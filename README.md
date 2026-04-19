@@ -1,6 +1,6 @@
 # Photography Portfolio Boilerplate
 
-An incredibly fast, highly automated photography portfolio built for action photographers. Designed originally for photosbyperkins.com, this open-source template transforms raw image directories into a blazingly fast, standalone PWA with automated EXIF extraction, facial cropping, WebP processing, and ZIP archive generation.
+An incredibly fast, highly automated photography portfolio built for action photographers. Originally designed for photosbyperkins.com, this open-source template transforms raw image directories into a blazingly fast, standalone PWA with automated EXIF extraction, face detect cropping, WebP processing, and ZIP archive generation.
 
 ## Features
 - **Fully Automated Data Pipeline**: Drop images in folders, and the system automatically extracts metadata, resizes, compresses, and maps faces.
