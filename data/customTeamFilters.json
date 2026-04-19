@@ -1,0 +1,126 @@
+[
+  {
+    "name": "WFTDA Sanctioned",
+    "wftdaOnly": true
+  },
+  {
+    "name": "Sacramento Roller Derby",
+    "match": [
+      "Sacramento Roller Derby",
+      "SRD"
+    ],
+    "notMatch": [
+      "Juniors",
+      "Jrs"
+    ]
+  },
+  {
+    "name": "Sacramento Roller Derby Juniors",
+    "match": [
+      "Sacramento Roller Derby Juniors",
+      "SRD Juniors",
+      "Sacramento Juniors"
+    ]
+  },
+  {
+    "name": "Sacramento Roller Derby Juniors Home Teams",
+    "match": [
+      "Sacramento Roller Derby Juniors",
+      "SRD Juniors",
+      "Sacramento Juniors"
+    ],
+    "notMatch": [
+      "Beastie"
+    ]
+  },
+  {
+    "name": "Sacramento Roller Derby Home Teams",
+    "match": [
+      "Sacramento Roller Derby",
+      "SRD"
+    ],
+    "notMatch": [
+      "Kodiak",
+      "Maulstars",
+      "Bruin",
+      "Juniors",
+      "Jrs"
+    ]
+  },
+  {
+    "name": "Sacramento Roller Derby Travel Teams",
+    "match": [
+      "Kodiak",
+      "Maulstars",
+      "Bruin",
+      "BEASTars"
+    ]
+  },
+  {
+    "name": "Sacred City",
+    "match": [
+      "Sacred City"
+    ]
+  },
+  {
+    "name": "Sacred City Home Teams",
+    "match": [
+      "Trainwreckers",
+      "Donna Party",
+      "Donna"
+    ]
+  },
+  {
+    "name": "Sacred City Travel Teams",
+    "match": [
+      "Sacrificers",
+      "Disciples"
+    ]
+  },
+  {
+    "name": "Bay Area Derby",
+    "match": [
+      "Bay Area Derby",
+      "B.A.D."
+    ]
+  },
+  {
+    "name": "Outlaw Roller Derby",
+    "match": [
+      "Outlaw Roller Derby",
+      "Outlaw"
+    ]
+  },
+  {
+    "name": "Santa Cruz Roller Derby",
+    "match": [
+      "Santa Cruz"
+    ],
+    "notMatch": [
+      "Groms"
+    ]
+  },
+  {
+    "name": "Junior Derby",
+    "match": [
+      "Junior",
+      "Jrs",
+      "Youth",
+      "Groms",
+      "Little Rascals"
+    ]
+  },
+  {
+    "name": "Adults Derby",
+    "match": [
+      "*"
+    ],
+    "notMatch": [
+      "Junior",
+      "Jrs",
+      "Youth",
+      "Groms",
+      "Little Rascals"
+    ]
+  }
+]

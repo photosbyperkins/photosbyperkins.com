@@ -1,0 +1,318 @@
+@use 'sass:math';
+
+@mixin apple-glass-blur {
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+}
+
+@mixin apple-glass {
+    background: var(--color-sticky-bg);
+    @include apple-glass-blur;
+}
+
+@mixin apple-glass-panel {
+    @include apple-glass;
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 4px 30px var(--glass-shadow);
+}
+// CSS Custom Properties & Reset
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    // Color palette
+    --color-bg: #0a0a0f;
+    --color-bg-rgb: 10, 10, 15;
+    --color-bg-2: #0f0f1a;
+    --color-bg-3: #141428;
+    --color-surface: rgba(255, 255, 255, 0.04);
+    --color-surface-hover: rgba(255, 255, 255, 0.08);
+    --color-border: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-shadow: rgba(0, 0, 0, 0.5);
+
+    // Accent: deep red (brightened for better contrast)
+    --color-accent: #e60000;
+    --color-accent-2: #ff4500;
+    --color-accent-glow: rgba(230, 0, 0, 0.35);
+
+    // Text
+    --color-text: #f0f0f8;
+    --color-text-muted: #8888aa;
+    --color-text-dim: #555580;
+
+    // Typography
+    --font-condensed: 'Barlow Condensed', 'Arial Narrow', 'Roboto Condensed', sans-serif;
+    --font-display: var(--font-condensed);
+    --font-body: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+
+    // Spacing
+    --section-padding: clamp(4rem, 8vw, 8rem);
+    --container-width: 1400px;
+    --container-padding: clamp(1.5rem, 5vw, 3rem);
+    --nav-height: 44px;
+    --nav-height-scrolled: 44px;
+    --nav-extension-height: 36px;
+    --nav-height-total: calc(var(--nav-height-scrolled) + var(--nav-extension-height));
+
+    // Transitions
+    --transition-fast: 200ms ease;
+    --transition-med: 400ms cubic-bezier(0.23, 1, 0.32, 1);
+    --transition-slow: 700ms cubic-bezier(0.23, 1, 0.32, 1);
+
+    // Shared background for seamless sticky UI (Glassmorphism)
+    --color-sticky-bg: rgba(var(--color-bg-rgb), 0.5);
+
+    // Alignment vars
+    --theme-toggle-size: 52px;
+    --footer-height: 120px;
+}
+
+:root[data-theme='light'] {
+    // Light Mode palette
+    --color-bg: #fafafa;
+    --color-bg-rgb: 250, 250, 250;
+    --color-bg-2: #f0f0f0;
+    --color-bg-3: #e4e4e4;
+    --color-surface: rgba(0, 0, 0, 0.04);
+    --color-surface-hover: rgba(0, 0, 0, 0.08);
+    --color-border: rgba(0, 0, 0, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.3);
+    --glass-shadow: rgba(0, 0, 0, 0.1);
+
+    // Accent
+    --color-accent: #e60000;
+    --color-accent-2: #cc0000;
+    --color-accent-glow: rgba(230, 0, 0, 0.15);
+
+    // Text
+    --color-text: #1a1a24;
+    --color-text-muted: #555566;
+    --color-text-dim: #888899;
+
+    --color-sticky-bg: rgba(var(--color-bg-rgb), 0.72);
+}
+
+$nav-height: 44px;
+$container-max: 1400px;
+
+html {
+    scroll-behavior: smooth;
+    scroll-padding-top: var(--nav-height-total);
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-family: var(--font-body);
+    transition:
+        background-color var(--transition-fast),
+        color var(--transition-fast);
+
+    // Text-rendering enhancements for crispness
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-synthesis: none;
+    font-optical-sizing: auto;
+
+    overflow-x: clip;
+}
+
+// Progressive Image Styles
+.progressive-image {
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    height: 100%;
+
+    &__placeholder {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        filter: blur(20px);
+        transform: scale(1.1);
+        /* Prevents blur bleeding at edges */
+        z-index: 1;
+    }
+
+    &__img {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        z-index: 2;
+    }
+}
+
+// Scrollbar styling
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--color-bg-2);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--color-accent);
+    border-radius: 3px;
+}
+
+// Utility classes
+.container {
+    width: 100%;
+    max-width: var(--container-width);
+    margin: 0 auto;
+    padding: 0 var(--container-padding);
+}
+
+.section-label {
+    font-family: var(--font-condensed);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+
+    &::before {
+        content: '';
+        display: block;
+        width: 2rem;
+        height: 2px;
+        background: var(--color-accent);
+        flex-shrink: 0;
+    }
+}
+
+.section-title {
+    font-family: var(--font-display);
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    line-height: 1.05;
+    letter-spacing: 0.02em;
+    color: var(--color-text);
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.75rem;
+    border-radius: 3px;
+    font-family: var(--font-condensed);
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    border: none;
+
+    &--primary {
+        background: var(--color-accent);
+        color: white;
+
+        @media (hover: hover) {
+            &:hover {
+                background: #c10707;
+                box-shadow: 0 8px 30px var(--color-accent-glow);
+            }
+        }
+    }
+
+    &--outline {
+        background: transparent;
+        color: var(--color-text);
+        border: 1.5px solid var(--color-border);
+
+        @media (hover: hover) {
+            &:hover {
+                border-color: var(--color-accent);
+                color: var(--color-accent);
+            }
+        }
+    }
+}
+
+// Scroll reveal animation base state
+.reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition:
+        opacity 0.7s ease,
+        transform 0.7s ease;
+
+    &.revealed {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+// Image error fallback
+.img-error {
+    background: var(--color-bg-3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-text-dim);
+    font-family: var(--font-condensed);
+    font-size: 0.85rem;
+    letter-spacing: 0.1em;
+}
+
+// Floating Theme Toggle
+.theme-toggle-floating {
+    position: fixed;
+    bottom: calc((var(--footer-height) - var(--theme-toggle-size)) / 2);
+    right: 2rem;
+    z-index: 990;
+    width: var(--theme-toggle-size);
+    height: var(--theme-toggle-size);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    @include apple-glass-panel;
+    color: var(--color-text);
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transform: translateY(0) scale(1);
+    opacity: 1;
+
+    &.is-hidden {
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(20px) scale(0.8);
+    }
+
+    @media (hover: hover) {
+        &:hover {
+            border-color: var(--color-accent);
+            color: var(--color-accent);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+    }
+
+    &:active {
+        transform: translateY(0) scale(0.95);
+    }
+
+    @media (max-width: 768px) {
+        display: none;
+    }
+}

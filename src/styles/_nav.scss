@@ -1,0 +1,97 @@
+@use './globals' as *;
+
+.nav {
+    position: -webkit-sticky;
+    position: sticky;
+    top: 0;
+    @include apple-glass;
+    z-index: 1000;
+
+    &__inner {
+        height: var(--nav-height-scrolled);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: relative;
+        z-index: 2;
+    }
+
+    &__extension-portal {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        height: var(--nav-extension-height);
+
+        &:empty {
+            display: none;
+        }
+    }
+
+    &__right {
+        display: flex;
+        align-items: center;
+        gap: 2.5rem;
+    }
+
+    &__logo {
+        display: flex;
+        align-items: center;
+        gap: 0; // Gap managed by text margin
+        text-decoration: none;
+        font-family: var(--font-condensed);
+        font-size: 24px;
+        font-weight: 300;
+        line-height: 1;
+        letter-spacing: 0.12em;
+        color: var(--color-text);
+        text-transform: uppercase;
+
+        &-text {
+            margin-left: 0.75rem;
+
+            @media (max-width: 600px) {
+                margin-left: 0.6rem;
+            }
+        }
+
+        &-icon {
+            width: 1.1em;
+            height: 1.1em;
+            display: block;
+            transform: translateY(0.05em);
+
+            html[data-theme='light'] & {
+                filter: invert(1);
+            }
+        }
+
+        &-accent {
+            color: var(--color-accent);
+        }
+    }
+
+    &__controls {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+    }
+}
+
+.theme-toggle-nav,
+.nav__icon-btn {
+    background: transparent;
+    border: none;
+    color: var(--color-text);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color var(--transition-fast);
+    transform: translateY(1px); // Fixed optical alignment!
+
+    @media (hover: hover) {
+        &:hover {
+            color: var(--color-accent);
+        }
+    }
+}

@@ -1,0 +1,3 @@
+@echo off
+echo Starting web server...
+npm run dev

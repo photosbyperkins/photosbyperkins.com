@@ -1,0 +1,173 @@
+@use './globals' as *;
+
+.about-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    @include apple-glass;
+    background: var(--color-lightbox-bg); // Heavier modal background for text legibility
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; // We explicitly scroll the inner content, not the overlay
+
+    &__header-bar {
+        flex: 0 0 auto;
+        width: 100%;
+        z-index: 100;
+
+        &-inner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            max-width: 1200px;
+            padding-top: 1.5rem;
+            padding-bottom: 1.5rem;
+
+            @media (max-width: 800px) {
+                padding-top: 1rem;
+                padding-bottom: 1rem;
+            }
+        }
+
+        .section-label {
+            margin: 0;
+            font-size: 0.85rem;
+            letter-spacing: 0.35em;
+            text-transform: uppercase;
+        }
+    }
+
+    &__back-btn {
+        background: transparent;
+        border: none;
+        color: var(--color-text);
+        cursor: pointer;
+        padding: 0.5rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-family: var(--font-condensed);
+        font-size: 0.95rem;
+        letter-spacing: 0.15em;
+        transition: all var(--transition-fast);
+
+        @media (hover: hover) {
+            &:hover {
+                color: var(--color-accent);
+            }
+        }
+    }
+}
+
+.about {
+    flex: 1 1 auto;
+    width: 100%;
+    overflow-y: auto; // Let the entire container scroll naturally
+    padding-bottom: 4rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    &__grid {
+        display: grid;
+        width: 100%;
+        max-width: 1200px;
+        margin: 0;
+        gap: clamp(2rem, 6vw, 6rem);
+        align-items: start;
+        justify-content: center;
+
+        // Wide Mode
+        @media (min-width: 801px) {
+            grid-template-columns: minmax(300px, 4fr) 6fr;
+            padding-bottom: 2rem;
+            padding-top: 2rem;
+        }
+
+        // Skinny Mode
+        @media (max-width: 800px) {
+            grid-template-columns: 1fr;
+            grid-template-rows: auto 1fr; // Photo on top, text auto-fills bottom and scrolls
+            text-align: center;
+            gap: 1.5rem;
+            padding-top: 1rem;
+            padding-bottom: 2rem;
+        }
+
+        &::before {
+            display: none;
+        }
+    }
+
+    &__photo-wrapper {
+        position: relative;
+        cursor: default;
+        width: 100%;
+
+        @media (max-width: 800px) {
+            max-width: clamp(140px, 30vh, 250px);
+            margin: 0 auto;
+        }
+    }
+
+    &__photo-frame {
+        border-radius: 6px;
+        overflow: hidden;
+        position: relative;
+        z-index: 1;
+        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+        width: 100%;
+        aspect-ratio: 3/4; // Strictly maintain rectangular ratio
+    }
+
+    &__photo {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center 25%;
+        display: block;
+        filter: grayscale(15%) contrast(1.05);
+        animation: subtle-zoom 40s ease-in-out infinite alternate;
+        will-change: transform;
+    }
+
+    &__text {
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
+    }
+
+    &__body {
+        p {
+            color: var(--color-text);
+            opacity: 0.95;
+            font-size: 1.15rem;
+            line-height: 1.8;
+            margin-bottom: 1.25rem;
+            text-align: justify;
+            hyphens: auto;
+
+            @media (max-width: 800px) {
+                text-align: left;
+            }
+
+            &:last-of-type {
+                margin-bottom: 0;
+            }
+
+            strong {
+                color: var(--color-text);
+                font-weight: 600;
+            }
+        }
+    }
+}
+
+@keyframes subtle-zoom {
+    0% {
+        transform: scale(1);
+    }
+    100% {
+        transform: scale(1.05);
+    }
+}

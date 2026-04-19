@@ -1,0 +1,70 @@
+@use './globals' as *;
+
+.footer {
+    background: var(--color-bg);
+    border-top: 1px solid var(--color-border);
+    min-height: var(--footer-height);
+    display: flex;
+    align-items: center;
+    padding: 1rem 0;
+
+    &__inner {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    &__copy-group {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25rem;
+    }
+
+    &__copy {
+        font-family: var(--font-condensed);
+        font-size: 0.85rem;
+        color: var(--color-text-dim);
+        letter-spacing: 0.05em;
+    }
+
+    &__heart {
+        color: var(--color-accent);
+    }
+
+    &__license {
+        font-family: var(--font-condensed);
+        font-size: 0.75rem;
+        color: var(--color-text-dim);
+        text-decoration: none;
+        transition: color var(--transition-fast);
+        opacity: 0.8;
+
+        @media (hover: hover) {
+            &:hover {
+                color: var(--color-accent);
+                opacity: 1;
+                text-decoration: underline;
+            }
+        }
+    }
+
+    &__github {
+        color: var(--color-text-dim);
+        display: flex;
+        align-items: center;
+        transition: color var(--transition-fast);
+        opacity: 0.8;
+
+        @media (hover: hover) {
+            &:hover {
+                color: var(--color-accent);
+                opacity: 1;
+            }
+        }
+    }
+}

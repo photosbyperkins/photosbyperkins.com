@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <script>
+    // Failsafe: Hard reload if Vite's main module chunk fails to load due to stale index.html cache
+    window.addEventListener('error', function(e) {
+      if (e.target && e.target.tagName === 'SCRIPT' && e.target.src && e.target.src.match(/\/assets\/index-.*\.js/)) {
+         var reloaded = sessionStorage.getItem('vite-recovery-reload');
+         if (!reloaded) {
+           sessionStorage.setItem('vite-recovery-reload', 'true');
+           window.location.href = window.location.href.split('?')[0] + '?v=' + new Date().getTime();
+         }
+      }
+    }, true);
+  </script>
+  <script>
+    (function() {
+      try {
+        var saved = localStorage.getItem('photo-theme-preference');
+        var theme = 'dark';
+        if (saved === 'light' || saved === 'dark') {
+          theme = saved;
+        } else {
+          var sysDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+          theme = sysDark ? 'dark' : 'light';
+        }
+        document.documentElement.setAttribute('data-theme', theme);
+        
+        var meta = document.createElement('meta');
+        meta.name = 'theme-color';
+        meta.content = theme === 'dark' ? '#0a0a0f' : '#fafafa';
+        document.head.appendChild(meta);
+      } catch (e) {}
+    })();
+  </script>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/png" href="/favicon.png?build=%BUILD_NUMBER%" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-title" content="%VITE_SITE_APP_TITLE%">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="description"
+    content="%VITE_SITE_DESC%" />
+  <meta name="keywords"
+    content="%VITE_SITE_KEYWORDS%" />
+  <meta property="og:title" content="%VITE_OG_TITLE%" />
+  <meta property="og:description"
+    content="%VITE_OG_DESC%" />
+  <meta property="og:type" content="website" />
+  <title>%VITE_SITE_TITLE%</title>
+</head>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
+</html>
