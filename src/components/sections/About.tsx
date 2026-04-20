@@ -91,7 +91,7 @@ export default function About() {
                                         variants={fadeUp}
                                     >
                                         {import.meta.env.VITE_ABOUT_ME ? (
-                                            import.meta.env.VITE_ABOUT_ME.split('\\n').map(
+                                            import.meta.env.VITE_ABOUT_ME.split('\n').map(
                                                 (paragraph: string, i: number) => {
                                                     if (!paragraph.trim()) return null;
                                                     return <p key={i}>{paragraph}</p>;
