@@ -53,6 +53,7 @@ export default function TeamFilter({
                                 placeholder="Filter teams..."
                                 value={teamSearchQuery}
                                 onChange={(e) => setTeamSearchQuery(e.target.value)}
+                                autoFocus
                             />
                             <div className="portfolio__sort-wrap">
                                 <div className="portfolio__segmented-toggle">
