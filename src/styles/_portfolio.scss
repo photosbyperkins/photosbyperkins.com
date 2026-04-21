@@ -1090,6 +1090,7 @@
             overflow: hidden;
             color: white;
             background: rgba(0, 0, 0, 0.65);
+            -webkit-backdrop-filter: blur(4px);
             backdrop-filter: blur(4px);
             border-radius: 8px;
             height: 42px;
@@ -1127,6 +1128,7 @@
             top: 52px;
             left: 0;
             background: rgba(20, 20, 20, 0.85);
+            -webkit-backdrop-filter: blur(12px);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 6px;
@@ -1186,6 +1188,7 @@
             justify-content: center;
             cursor: pointer;
             transition: all var(--transition-fast);
+            -webkit-backdrop-filter: blur(4px);
             backdrop-filter: blur(4px);
 
             @media (hover: hover) {
@@ -1319,6 +1322,7 @@
             justify-content: center;
             cursor: pointer;
             transition: all var(--transition-fast);
+            -webkit-backdrop-filter: blur(4px);
             backdrop-filter: blur(4px);
 
             @media (max-width: 600px) {
@@ -1370,6 +1374,7 @@
                 justify-content: center;
                 cursor: pointer;
                 transition: all var(--transition-fast);
+                -webkit-backdrop-filter: blur(4px);
                 backdrop-filter: blur(4px);
 
                 @media (hover: hover) {

@@ -1,8 +1,8 @@
 @use 'sass:math';
 
 @mixin apple-glass-blur {
-    backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
 }
 
 @mixin apple-glass {
