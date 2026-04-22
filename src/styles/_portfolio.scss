@@ -315,6 +315,7 @@
         padding-bottom: 4rem;
         display: grid;
         grid-template-columns: minmax(0, 1fr);
+        align-content: start;
         gap: 1rem;
 
         @media (min-width: 600px) {
