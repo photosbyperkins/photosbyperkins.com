@@ -118,7 +118,6 @@ export default function Portfolio({ years }: PortfolioProps) {
     useEffect(() => {
         const currentRouteHash = activeRouteSlug || '';
         if (prevRouteHash.current !== currentRouteHash) {
-             
             setTeamSearchQuery('');
             if (isSticky) {
                 scrollOnNextDataLoad.current = true;
@@ -180,24 +179,21 @@ export default function Portfolio({ years }: PortfolioProps) {
         }
     }, [isSticky, selectedTab, teamSearchQuery]);
 
-    const getForTab = useCallback(
-        async (tabSlug: string, setData: boolean, isTeamMode: boolean) => {
-            const basePath = isTeamMode ? `/data/teams` : `/data/years`;
-            return fetch(`${basePath}/${tabSlug}.json?build=${__BUILD_NUMBER__}`)
-                .then((res) => res.json())
-                .then((data) => {
-                    if (setData) {
-                        setYearData(data);
-                        if (scrollOnNextDataLoad.current) {
-                            scrollOnNextDataLoad.current = false;
-                            setTimeout(() => portfolioRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-                        }
+    const getForTab = useCallback(async (tabSlug: string, setData: boolean, isTeamMode: boolean) => {
+        const basePath = isTeamMode ? `/data/teams` : `/data/years`;
+        return fetch(`${basePath}/${tabSlug}.json?build=${__BUILD_NUMBER__}`)
+            .then((res) => res.json())
+            .then((data) => {
+                if (setData) {
+                    setYearData(data);
+                    if (scrollOnNextDataLoad.current) {
+                        scrollOnNextDataLoad.current = false;
+                        setTimeout(() => portfolioRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
                     }
-                })
-                .catch((err) => console.error(`Failed to load data for ${tabSlug}:`, err));
-        },
-        []
-    );
+                }
+            })
+            .catch((err) => console.error(`Failed to load data for ${tabSlug}:`, err));
+    }, []);
 
     useEffect(() => {
         if (!selectedTab) return;

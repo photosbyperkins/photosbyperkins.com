@@ -1408,10 +1408,11 @@
 
     // --- Global Search ---
     &__global-floating-container {
-        position: fixed;
+        position: sticky;
         bottom: 32px;
         left: 0;
         right: 0;
+        margin-top: 2rem;
         display: flex;
         justify-content: center;
         align-items: center;

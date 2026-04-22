@@ -45,7 +45,6 @@ const PortfolioEvent = memo(function PortfolioEvent({
     const isVisible = inView || (evIdx < 2 && inViewParent) || isSharedEvent;
 
     useEffect(() => {
-         
         setIsGridView(false);
     }, [selectedYear]);
 
