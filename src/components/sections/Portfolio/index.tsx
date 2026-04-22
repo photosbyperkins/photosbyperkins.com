@@ -43,13 +43,16 @@ export default function Portfolio({ years }: PortfolioProps) {
 
     useEffect(() => {
         if (isGlobalSearchOpen) {
+            document.documentElement.style.overflow = 'hidden';
             document.body.style.overflow = 'hidden';
             document.body.style.paddingRight = '8px';
         } else {
+            document.documentElement.style.overflow = '';
             document.body.style.overflow = '';
             document.body.style.paddingRight = '';
         }
         return () => {
+            document.documentElement.style.overflow = '';
             document.body.style.overflow = '';
             document.body.style.paddingRight = '';
         };
