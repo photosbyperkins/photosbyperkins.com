@@ -45,7 +45,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
     const isVisible = inView || (evIdx < 2 && inViewParent) || isSharedEvent;
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
+         
         setIsGridView(false);
     }, [selectedYear]);
 

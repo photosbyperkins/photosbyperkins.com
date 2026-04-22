@@ -54,7 +54,8 @@ export default function TeamFilter({
                             <div className="portfolio__search-input-wrap">
                                 <Search size={16} className="portfolio__search-input-icon" />
                                 <input
-                                    type="text"
+                                    type="search"
+                                    enterKeyHint="search"
                                     placeholder="Search Teams..."
                                     value={teamSearchQuery}
                                     onChange={(e) => setTeamSearchQuery(e.target.value)}

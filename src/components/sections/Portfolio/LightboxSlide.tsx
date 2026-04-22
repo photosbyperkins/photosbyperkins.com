@@ -115,10 +115,10 @@ const LightboxSlide = forwardRef<
     }, [image, scale, panX, panY, onZoomChange]);
 
     const handleTouchStart = (e: React.TouchEvent) => {
-        // eslint-disable-next-line react-hooks/purity
+         
         lastTouchTimeRef.current = Date.now();
         if (e.touches.length === 1) {
-            // eslint-disable-next-line react-hooks/purity
+             
             const now = Date.now();
             const touch = e.touches[0];
             if (now - lastTapRef.current.time < 300) {

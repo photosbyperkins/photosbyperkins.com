@@ -10,7 +10,7 @@ export const TEAM_ABBREVIATIONS: Record<string, string> = (() => {
     try {
         const envStr = import.meta.env.VITE_TEAM_ABBREVIATIONS;
         if (envStr) return JSON.parse(envStr);
-    } catch (e) {
+    } catch {
         console.warn('Failed to parse VITE_TEAM_ABBREVIATIONS from env');
     }
     return {

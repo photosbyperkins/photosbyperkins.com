@@ -104,14 +104,23 @@ export default defineConfig(({ mode }) => {
                     short_name: env.VITE_PWA_SHORT_NAME || 'Portfolio',
                     description: env.VITE_PWA_DESC || 'Photography Portfolio',
                     theme_color: env.VITE_PWA_THEME_COLOR || '#1a1a1a',
-                icons: [
-                    {
-                        src: 'apple-touch-icon.png',
-                        sizes: '180x180',
-                        type: 'image/png'
-                    }
-                ]
-            },
+                    icons: [
+                        {
+                            src: 'apple-touch-icon.png',
+                            sizes: '180x180',
+                            type: 'image/png'
+                        }
+                    ],
+                    shortcuts: [
+                        {
+                            name: "Search Teams",
+                            short_name: "Search",
+                            description: "Search for teams and events",
+                            url: "/portfolio?search=true",
+                            icons: [{ src: "favicon.svg", sizes: "any" }]
+                        }
+                    ]
+                },
             workbox: {
                 cleanupOutdatedCaches: true,
                 globPatterns: ['**/*.{js,css,ico,png,svg,html}'], // Included html to guarantee atomic updates with JS chunks

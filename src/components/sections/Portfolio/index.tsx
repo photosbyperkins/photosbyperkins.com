@@ -2,13 +2,12 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useInView, AnimatePresence, motion } from 'framer-motion';
 import { matchPath, useLocation, Link } from 'react-router-dom';
-import { Search, X, ArrowLeft } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import { formatTeamName } from '../../../utils/formatters';
 import PortfolioEvent from './PortfolioEvent';
 import Lightbox from './Lightbox';
 import TeamFilter from './TeamFilter';
 import { usePortfolioStore } from '../../../store/usePortfolioStore';
-import { useCanShare } from '../../../hooks/useCanShare';
 import type { YearData } from '../../../types';
 import '../../../styles/_portfolio.scss';
 
@@ -26,10 +25,19 @@ interface TeamMeta {
 
 export default function Portfolio({ years }: PortfolioProps) {
     const location = useLocation();
-    const canShare = useCanShare();
-    const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState(false);
+    const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const initialSearchOpen = params?.get('search') === 'true' || !!params?.get('q');
+    const initialSearchQuery = params?.get('q') || '';
+
+    const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState(initialSearchOpen);
+
+    const isFirstRender = useRef(true);
 
     useEffect(() => {
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return;
+        }
         setIsGlobalSearchOpen(false);
     }, [location.pathname]);
 
@@ -64,7 +72,7 @@ export default function Portfolio({ years }: PortfolioProps) {
     const isTeamRoute = !!teamMatch;
     const activeRouteSlug = teamMatch?.params.slug || yearMatch?.params.year;
 
-    const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    // Moved URLSearchParams to the top to initialize search state
     const initialYear = activeRouteSlug || params?.get('year');
     const initialEvent = params?.get('event');
     const initialPhoto = params?.get('photo');
@@ -81,8 +89,24 @@ export default function Portfolio({ years }: PortfolioProps) {
     })();
 
     const [teamIndex, setTeamIndex] = useState<TeamMeta[]>([]);
-    const [teamSearchQuery, setTeamSearchQuery] = useState('');
+    const [teamSearchQuery, setTeamSearchQuery] = useState(initialSearchQuery);
     const hasFetchedTeams = useRef(false);
+
+    const fetchTeamIndex = useCallback(() => {
+        if (hasFetchedTeams.current) return;
+        hasFetchedTeams.current = true;
+        fetch(`/data/teams/index.json?build=${__BUILD_NUMBER__}`)
+            .then((res) => res.json())
+            .then((data) => setTeamIndex(data))
+            .catch((err) => console.error('Failed to load teams index:', err));
+    }, []);
+
+    useEffect(() => {
+        if (initialSearchOpen) {
+            // Trigger team fetch automatically if search is opened from URL parsing
+            fetchTeamIndex();
+        }
+    }, [initialSearchOpen, fetchTeamIndex]);
 
     const [yearData, setYearData] = useState<YearData>({});
     const [isSticky, setIsSticky] = useState(false);
@@ -94,7 +118,7 @@ export default function Portfolio({ years }: PortfolioProps) {
     useEffect(() => {
         const currentRouteHash = activeRouteSlug || '';
         if (prevRouteHash.current !== currentRouteHash) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
+             
             setTeamSearchQuery('');
             if (isSticky) {
                 scrollOnNextDataLoad.current = true;
@@ -156,15 +180,6 @@ export default function Portfolio({ years }: PortfolioProps) {
         }
     }, [isSticky, selectedTab, teamSearchQuery]);
 
-    const fetchTeamIndex = useCallback(() => {
-        if (hasFetchedTeams.current) return;
-        hasFetchedTeams.current = true;
-        fetch(`/data/teams/index.json?build=${__BUILD_NUMBER__}`)
-            .then((res) => res.json())
-            .then((data) => setTeamIndex(data))
-            .catch((err) => console.error('Failed to load teams index:', err));
-    }, []);
-
     const getForTab = useCallback(
         async (tabSlug: string, setData: boolean, isTeamMode: boolean) => {
             const basePath = isTeamMode ? `/data/teams` : `/data/years`;
@@ -181,7 +196,7 @@ export default function Portfolio({ years }: PortfolioProps) {
                 })
                 .catch((err) => console.error(`Failed to load data for ${tabSlug}:`, err));
         },
-        [fetchTeamIndex]
+        []
     );
 
     useEffect(() => {
