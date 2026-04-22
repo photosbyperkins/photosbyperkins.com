@@ -1,13 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { useInView, AnimatePresence } from 'framer-motion';
+import { useInView, AnimatePresence, motion } from 'framer-motion';
 import { matchPath, useLocation, Link } from 'react-router-dom';
-import { Search, X } from 'lucide-react';
+import { Search, X, ArrowLeft } from 'lucide-react';
 import { formatTeamName } from '../../../utils/formatters';
 import PortfolioEvent from './PortfolioEvent';
 import Lightbox from './Lightbox';
 import TeamFilter from './TeamFilter';
 import { usePortfolioStore } from '../../../store/usePortfolioStore';
+import { useCanShare } from '../../../hooks/useCanShare';
 import type { YearData } from '../../../types';
 import '../../../styles/_portfolio.scss';
 
@@ -25,6 +26,26 @@ interface TeamMeta {
 
 export default function Portfolio({ years }: PortfolioProps) {
     const location = useLocation();
+    const canShare = useCanShare();
+    const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState(false);
+
+    useEffect(() => {
+        setIsGlobalSearchOpen(false);
+    }, [location.pathname]);
+
+    useEffect(() => {
+        if (isGlobalSearchOpen) {
+            document.body.style.overflow = 'hidden';
+            document.body.style.paddingRight = '8px';
+        } else {
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        };
+    }, [isGlobalSearchOpen]);
 
     const [lastPortfolioPath, setLastPortfolioPath] = useState(location.pathname);
 
@@ -40,7 +61,6 @@ export default function Portfolio({ years }: PortfolioProps) {
     const yearMatch = matchPath('/portfolio/:year', matchPathStr);
     const teamMatch = matchPath('/portfolio/team/:slug', matchPathStr);
 
-    const isSearchRoute = yearMatch?.params.year === 'search';
     const isTeamRoute = !!teamMatch;
     const activeRouteSlug = teamMatch?.params.slug || yearMatch?.params.year;
 
@@ -55,7 +75,6 @@ export default function Portfolio({ years }: PortfolioProps) {
     const setLightboxIndex = usePortfolioStore((state) => state.setLightboxIndex);
 
     const selectedTab = (() => {
-        if (isSearchRoute) return 'search';
         if (isTeamRoute && activeRouteSlug) return activeRouteSlug;
         if (activeRouteSlug && years.includes(activeRouteSlug)) return activeRouteSlug;
         return initialYear && years.includes(initialYear) ? initialYear : years[0] || '';
@@ -71,9 +90,9 @@ export default function Portfolio({ years }: PortfolioProps) {
     const scrollOnNextDataLoad = useRef(false);
 
     // Track route changes in an effect to safely mutate refs (React Compiler strict mode)
-    const prevRouteHash = useRef(`${activeRouteSlug}-${isSearchRoute}`);
+    const prevRouteHash = useRef(activeRouteSlug || '');
     useEffect(() => {
-        const currentRouteHash = `${activeRouteSlug}-${isSearchRoute}`;
+        const currentRouteHash = activeRouteSlug || '';
         if (prevRouteHash.current !== currentRouteHash) {
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setTeamSearchQuery('');
@@ -82,7 +101,7 @@ export default function Portfolio({ years }: PortfolioProps) {
             }
             prevRouteHash.current = currentRouteHash;
         }
-    }, [activeRouteSlug, isSearchRoute, isSticky]);
+    }, [activeRouteSlug, isSticky]);
 
     useEffect(() => {
         if (initialYear && initialEvent && (years.includes(initialYear) || isTeamRoute)) {
@@ -148,15 +167,6 @@ export default function Portfolio({ years }: PortfolioProps) {
 
     const getForTab = useCallback(
         async (tabSlug: string, setData: boolean, isTeamMode: boolean) => {
-            if (tabSlug === 'search') {
-                fetchTeamIndex();
-                if (scrollOnNextDataLoad.current) {
-                    scrollOnNextDataLoad.current = false;
-                    setTimeout(() => portfolioRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
-                }
-                return;
-            }
-
             const basePath = isTeamMode ? `/data/teams` : `/data/years`;
             return fetch(`${basePath}/${tabSlug}.json?build=${__BUILD_NUMBER__}`)
                 .then((res) => res.json())
@@ -176,7 +186,7 @@ export default function Portfolio({ years }: PortfolioProps) {
 
     useEffect(() => {
         if (!selectedTab) return;
-        const isTeamMode = selectedTab !== 'search' && !years.includes(selectedTab);
+        const isTeamMode = !years.includes(selectedTab);
         getForTab(selectedTab, true, isTeamMode);
     }, [selectedTab, years, getForTab]);
 
@@ -188,7 +198,7 @@ export default function Portfolio({ years }: PortfolioProps) {
 
     const events = Object.entries(yearData).reverse();
 
-    const isTeamMode = selectedTab !== 'search' && !years.includes(selectedTab);
+    const isTeamMode = !years.includes(selectedTab);
     const activeTeamMeta = isTeamMode ? teamIndex.find((t) => t.slug === selectedTab) : null;
 
     const filteredTeams = teamIndex.filter((team) => {
@@ -207,7 +217,7 @@ export default function Portfolio({ years }: PortfolioProps) {
         <nav className="portfolio__years" aria-label="Year Navigation">
             {isTeamMode && activeTeamMeta ? (
                 <Link
-                    to="/portfolio/search"
+                    to="/portfolio"
                     className="portfolio__active-filter active"
                     aria-label={`Remove filter for ${activeTeamMeta.name}`}
                     title={`Remove filter for ${activeTeamMeta.name}`}
@@ -222,7 +232,7 @@ export default function Portfolio({ years }: PortfolioProps) {
                     <Link
                         key={y}
                         to={`/portfolio/${y}`}
-                        className={`${y === selectedTab ? 'active' : ''} ${index === 0 && !isSearchRoute && !isTeamRoute && selectedTab === y ? 'is-current' : ''} ${index === 0 ? 'is-first' : ''}`}
+                        className={`${y === selectedTab ? 'active' : ''} ${index === 0 && !isTeamRoute && selectedTab === y ? 'is-current' : ''} ${index === 0 ? 'is-first' : ''}`}
                         onClick={(e) => {
                             if (y === selectedTab && isSticky) {
                                 e.preventDefault();
@@ -235,26 +245,6 @@ export default function Portfolio({ years }: PortfolioProps) {
                     </Link>
                 ))
             )}
-            {!isTeamMode && (
-                <Link
-                    to="/portfolio/search"
-                    className={selectedTab === 'search' ? 'active' : ''}
-                    aria-label="Search Teams"
-                    title="Search Teams"
-                    style={{ maxWidth: '20px' }}
-                    onClick={(e) => {
-                        setTeamSearchQuery('');
-                        if (selectedTab === 'search') {
-                            e.preventDefault();
-                            portfolioRef.current?.scrollIntoView({ behavior: 'smooth' });
-                        }
-                    }}
-                >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Search size={15} strokeWidth={2.5} />
-                    </div>
-                </Link>
-            )}
         </nav>
     );
 
@@ -265,32 +255,45 @@ export default function Portfolio({ years }: PortfolioProps) {
 
                 {navPortalTarget && createPortal(yearsSelectorContent, navPortalTarget)}
 
-                {selectedTab === 'search' ? (
-                    <TeamFilter
-                        teamSearchQuery={teamSearchQuery}
-                        setTeamSearchQuery={setTeamSearchQuery}
-                        filteredTeams={filteredTeams}
-                        teamIndexLoading={teamIndex.length === 0}
-                    />
-                ) : (
-                    <div className="portfolio__events">
-                        {/* Team header pill moved to navigation scale */}
-                        {events.map(([eventName, ev], evIdx) => (
-                            <PortfolioEvent
-                                key={`${selectedTab}-${eventName}`}
-                                eventName={eventName}
-                                ev={ev}
-                                evIdx={evIdx}
-                                selectedYear={selectedTab}
-                                inViewParent={inView}
-                                activeTeamName={activeTeamMeta?.name}
-                            />
-                        ))}
-                    </div>
-                )}
+                <div className="portfolio__events">
+                    {/* Team header pill moved to navigation scale */}
+                    {events.map(([eventName, ev], evIdx) => (
+                        <PortfolioEvent
+                            key={`${selectedTab}-${eventName}`}
+                            eventName={eventName}
+                            ev={ev}
+                            evIdx={evIdx}
+                            selectedYear={selectedTab}
+                            inViewParent={inView}
+                            activeTeamName={activeTeamMeta?.name}
+                        />
+                    ))}
+                </div>
             </div>
 
             <div ref={endSentinelRef} style={{ height: '1px' }} aria-hidden="true" />
+
+            <AnimatePresence>
+                {isGlobalSearchOpen && (
+                    <motion.div
+                        className="portfolio__global-search-overlay"
+                        initial={{ opacity: 0, y: 50 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 50 }}
+                        transition={{ duration: 0.3, ease: 'easeOut' }}
+                    >
+                        <div className="portfolio__global-search-content">
+                            <TeamFilter
+                                teamSearchQuery={teamSearchQuery}
+                                setTeamSearchQuery={setTeamSearchQuery}
+                                filteredTeams={filteredTeams}
+                                teamIndexLoading={teamIndex.length === 0}
+                                onBack={() => setIsGlobalSearchOpen(false)}
+                            />
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             <AnimatePresence>
                 {lightbox.isOpen && (
@@ -304,6 +307,22 @@ export default function Portfolio({ years }: PortfolioProps) {
                     />
                 )}
             </AnimatePresence>
+
+            {!isGlobalSearchOpen && (
+                <div className="portfolio__global-floating-container">
+                    <button
+                        className="portfolio__global-floating-search"
+                        onClick={() => {
+                            fetchTeamIndex();
+                            setIsGlobalSearchOpen(true);
+                        }}
+                        aria-label="Open Search"
+                    >
+                        <Search size={18} strokeWidth={2.5} />
+                        <span>Search</span>
+                    </button>
+                </div>
+            )}
         </section>
     );
 }

@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { Search, X } from 'lucide-react';
 import { formatTeamName } from '../../../utils/formatters';
 
 interface TeamMeta {
@@ -13,6 +14,7 @@ interface TeamFilterProps {
     setTeamSearchQuery: (val: string) => void;
     filteredTeams: TeamMeta[];
     teamIndexLoading: boolean;
+    onBack?: () => void;
 }
 
 type SortMode = 'alpha' | 'count';
@@ -22,6 +24,7 @@ export default function TeamFilter({
     setTeamSearchQuery,
     filteredTeams,
     teamIndexLoading,
+    onBack,
 }: TeamFilterProps) {
     const [sortMode, setSortMode] = useState<SortMode>('alpha');
 
@@ -47,14 +50,17 @@ export default function TeamFilter({
             {!teamIndexLoading ? (
                 <>
                     <div className="portfolio__team-filter">
-                        <div className="portfolio__team-filter-inner">
-                            <input
-                                type="text"
-                                placeholder="Filter teams..."
-                                value={teamSearchQuery}
-                                onChange={(e) => setTeamSearchQuery(e.target.value)}
-                                autoFocus
-                            />
+                        <div className="portfolio__team-filter-inner container">
+                            <div className="portfolio__search-input-wrap">
+                                <Search size={16} className="portfolio__search-input-icon" />
+                                <input
+                                    type="text"
+                                    placeholder="Search Teams..."
+                                    value={teamSearchQuery}
+                                    onChange={(e) => setTeamSearchQuery(e.target.value)}
+                                    autoFocus
+                                />
+                            </div>
                             <div className="portfolio__sort-wrap">
                                 <div className="portfolio__segmented-toggle">
                                     <button
@@ -81,9 +87,18 @@ export default function TeamFilter({
                                     </button>
                                 </div>
                             </div>
+                            {onBack && (
+                                <button
+                                    className="portfolio__global-search-back-btn"
+                                    onClick={onBack}
+                                    aria-label="Close"
+                                >
+                                    <X size={20} />
+                                </button>
+                            )}
                         </div>
                     </div>
-                    <div className="portfolio__team-grid">
+                    <div className="portfolio__team-grid container">
                         {sortedTeams.length > 0 ? (
                             sortedTeams.map((team) => {
                                 const displayName = formatTeamName(team.name);
@@ -106,7 +121,7 @@ export default function TeamFilter({
                     </div>
                 </>
             ) : (
-                <div className="portfolio__loading">Loading teams...</div>
+                <div className="portfolio__loading container">Loading teams...</div>
             )}
         </div>
     );

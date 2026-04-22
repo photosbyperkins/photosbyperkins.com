@@ -66,7 +66,7 @@
     --transition-slow: 700ms cubic-bezier(0.23, 1, 0.32, 1);
 
     // Shared background for seamless sticky UI (Glassmorphism)
-    --color-sticky-bg: rgba(var(--color-bg-rgb), 0.5);
+    --color-sticky-bg: rgba(var(--color-bg-rgb), 0.25);
 
     // Alignment vars
     --theme-toggle-size: 52px;
@@ -95,7 +95,7 @@
     --color-text-muted: #555566;
     --color-text-dim: #888899;
 
-    --color-sticky-bg: rgba(var(--color-bg-rgb), 0.72);
+    --color-sticky-bg: rgba(var(--color-bg-rgb), 0.45);
 }
 
 $nav-height: 44px;

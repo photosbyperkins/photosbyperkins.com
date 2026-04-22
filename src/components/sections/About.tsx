@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft } from 'lucide-react';
+import { X } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 
 import '../../styles/_about.scss';
@@ -73,9 +73,8 @@ export default function About() {
                             >
                                 BEHIND THE LENS
                             </motion.h2>
-                            <button className="about-overlay__back-btn" onClick={closeAbout} aria-label="Back">
-                                <ArrowLeft size={18} />
-                                <span>BACK</span>
+                            <button className="about-overlay__back-btn" onClick={closeAbout} aria-label="Close">
+                                <X size={20} />
                             </button>
                         </div>
                     </div>
