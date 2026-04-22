@@ -44,3 +44,6 @@ public/apple-touch-icon.png
 # Agent Directories
 .agent/
 .gemini/
+
+# Scripts
+*.bat
