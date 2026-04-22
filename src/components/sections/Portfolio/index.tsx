@@ -299,7 +299,10 @@ export default function Portfolio({ years }: PortfolioProps) {
                                 setTeamSearchQuery={setTeamSearchQuery}
                                 filteredTeams={filteredTeams}
                                 teamIndexLoading={teamIndex.length === 0}
-                                onBack={() => setIsGlobalSearchOpen(false)}
+                                onBack={() => {
+                                    setIsGlobalSearchOpen(false);
+                                    setTeamSearchQuery('');
+                                }}
                             />
                         </div>
                     </motion.div>
