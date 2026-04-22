@@ -1429,11 +1429,11 @@
         padding: 0 16px;
         height: 32px;
         border-radius: 16px;
-        background: rgba(var(--color-bg-rgb), 0.65);
+        background: rgba(var(--color-bg-rgb), 0.9);
         border: 1px solid var(--glass-border);
         -webkit-backdrop-filter: blur(4px);
         backdrop-filter: blur(4px);
-        color: var(--color-text-muted);
+        color: var(--color-text);
         font-family: var(--font-body);
         font-size: 0.9rem;
         font-weight: 500;
@@ -1448,8 +1448,8 @@
 
         @media (hover: hover) {
             &:hover {
-                background: rgba(var(--color-bg-rgb), 0.9);
-                color: var(--color-text);
+                background: rgba(var(--color-bg-rgb), 0.65);
+                color: var(--color-text-muted);
             }
         }
     }
