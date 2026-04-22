@@ -412,6 +412,7 @@
     &__events {
         display: flex;
         flex-direction: column;
+        padding-bottom: 2rem;
         gap: 3rem;
         container-type: inline-size;
     }
@@ -1413,7 +1414,6 @@
         bottom: 32px;
         left: 0;
         right: 0;
-        margin-top: 2rem;
         display: flex;
         justify-content: center;
         align-items: center;
