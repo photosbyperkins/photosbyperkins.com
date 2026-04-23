@@ -93,7 +93,7 @@ export default function About() {
                                         <img
                                             className="about__photo"
                                             src={`/photos/profile_photo.jpg?v=${__BUILD_NUMBER__}`}
-                                            alt="Michael Perkins — Roller Derby Photographer"
+                                            alt={import.meta.env.VITE_ABOUT_PHOTO_ALT || 'Photographer Profile Photo'}
                                         />
                                     </div>
                                 </motion.div>

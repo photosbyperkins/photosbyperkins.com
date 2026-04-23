@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, useMotionValue, animate, useTransform, type PanInfo } from 'framer-motion';
 import { Helmet } from 'react-helmet-async';
 import { X, ChevronLeft, ChevronRight, Download, Share2 } from 'lucide-react';
@@ -227,7 +228,7 @@ export default function Lightbox({ images, index, year, eventName, onClose, onSe
         </div>
     );
 
-    return (
+    const content = (
         <motion.div
             className="portfolio__lightbox"
             initial={{ opacity: 0 }}
@@ -253,12 +254,16 @@ export default function Lightbox({ images, index, year, eventName, onClose, onSe
 
             <Helmet>
                 <title>
-                    {eventName} {year ? `(${year})` : ''} | Photos by Perkins
+                    {eventName} {year ? `(${year})` : ''} |{' '}
+                    {import.meta.env.VITE_SITE_APP_TITLE || 'Photography Portfolio'}
                 </title>
-                <meta property="og:title" content={`${eventName} | Photos by Perkins`} />
+                <meta
+                    property="og:title"
+                    content={`${eventName} | ${import.meta.env.VITE_SITE_APP_TITLE || 'Photography Portfolio'}`}
+                />
                 <meta
                     name="description"
-                    content={`Action photography from ${eventName}${year ? `, ${year}` : ''}. Captured by Sacramento Roller Derby photographer Michael Perkins.`}
+                    content={`Action photography from ${eventName}${year ? `, ${year}` : ''}. ${import.meta.env.VITE_LIGHTBOX_DESC_SUFFIX || ''}`}
                 />
             </Helmet>
             <div
@@ -409,4 +414,7 @@ export default function Lightbox({ images, index, year, eventName, onClose, onSe
             </div>
         </motion.div>
     );
+
+    if (typeof document === 'undefined') return content;
+    return createPortal(content, document.body);
 }

@@ -2,7 +2,7 @@
 
 .portfolio {
     padding: 0 0 var(--section-padding) 0;
-    background: var(--color-bg);
+    background: transparent;
 
     @at-root .portfolio__years {
         display: flex;
@@ -1423,6 +1423,7 @@
 
     &__global-floating-search {
         pointer-events: auto;
+        position: relative;
         display: flex;
         align-items: center;
         gap: 6px;
@@ -1430,9 +1431,24 @@
         height: 32px;
         border-radius: 16px;
         background: rgba(var(--color-bg-rgb), 0.65);
-        border: 1px solid var(--glass-border);
+        border: none;
         -webkit-backdrop-filter: blur(4px);
         backdrop-filter: blur(4px);
+
+        &::before {
+            content: '';
+            position: absolute;
+            inset: -1px;
+            border-radius: 17px;
+            background: rgba(var(--color-bg-rgb), 0.25);
+            -webkit-backdrop-filter: blur(30px) saturate(250%);
+            backdrop-filter: blur(30px) saturate(250%);
+            border: 1px solid var(--glass-border);
+            box-shadow: 0 8px 32px var(--glass-shadow);
+            z-index: -1;
+            pointer-events: none;
+            transition: all var(--transition-fast);
+        }
         color: var(--color-text);
         font-family: var(--font-body);
         font-size: 0.9rem;
@@ -1448,7 +1464,7 @@
 
         @media (hover: hover) {
             &:hover {
-                background: rgba(var(--color-bg-rgb), 0.65);
+                background: rgba(var(--color-bg-rgb), 0.85);
                 color: var(--color-accent);
             }
         }

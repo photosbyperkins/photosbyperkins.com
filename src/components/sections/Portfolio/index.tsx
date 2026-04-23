@@ -287,30 +287,34 @@ export default function Portfolio({ years }: PortfolioProps) {
 
             <div ref={endSentinelRef} style={{ height: '1px' }} aria-hidden="true" />
 
-            <AnimatePresence>
-                {isGlobalSearchOpen && (
-                    <motion.div
-                        className="portfolio__global-search-overlay"
-                        initial={{ opacity: 0, y: 50 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 50 }}
-                        transition={{ duration: 0.3, ease: 'easeOut' }}
-                    >
-                        <div className="portfolio__global-search-content">
-                            <TeamFilter
-                                teamSearchQuery={teamSearchQuery}
-                                setTeamSearchQuery={setTeamSearchQuery}
-                                filteredTeams={filteredTeams}
-                                teamIndexLoading={teamIndex.length === 0}
-                                onBack={() => {
-                                    setIsGlobalSearchOpen(false);
-                                    setTeamSearchQuery('');
-                                }}
-                            />
-                        </div>
-                    </motion.div>
+            {typeof document !== 'undefined' &&
+                createPortal(
+                    <AnimatePresence>
+                        {isGlobalSearchOpen && (
+                            <motion.div
+                                className="portfolio__global-search-overlay"
+                                initial={{ opacity: 0, y: 50 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 50 }}
+                                transition={{ duration: 0.3, ease: 'easeOut' }}
+                            >
+                                <div className="portfolio__global-search-content">
+                                    <TeamFilter
+                                        teamSearchQuery={teamSearchQuery}
+                                        setTeamSearchQuery={setTeamSearchQuery}
+                                        filteredTeams={filteredTeams}
+                                        teamIndexLoading={teamIndex.length === 0}
+                                        onBack={() => {
+                                            setIsGlobalSearchOpen(false);
+                                            setTeamSearchQuery('');
+                                        }}
+                                    />
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>,
+                    document.body
                 )}
-            </AnimatePresence>
 
             <AnimatePresence>
                 {lightbox.isOpen && (

@@ -6,6 +6,20 @@
     top: 0;
     @include apple-glass;
     z-index: 1000;
+    border-bottom: none;
+
+    &::after {
+        content: '';
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: rgba(var(--color-bg-rgb), 0.25);
+        -webkit-backdrop-filter: blur(30px) saturate(250%);
+        backdrop-filter: blur(30px) saturate(250%);
+        pointer-events: none;
+    }
 
     &__inner {
         height: var(--nav-height-scrolled);
@@ -34,6 +48,10 @@
     }
 
     &__logo {
+        background: transparent;
+        border: none;
+        padding: 0;
+        cursor: pointer;
         display: flex;
         align-items: center;
         gap: 0; // Gap managed by text margin
@@ -45,6 +63,13 @@
         letter-spacing: 0.12em;
         color: var(--color-text);
         text-transform: uppercase;
+        transition: opacity var(--transition-fast);
+
+        @media (hover: hover) {
+            &:hover {
+                opacity: 0.8;
+            }
+        }
 
         &-text {
             margin-left: 0.75rem;

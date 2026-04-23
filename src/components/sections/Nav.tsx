@@ -106,24 +106,19 @@ export default function Nav() {
             <nav className="nav" ref={navRef}>
                 <div className="container">
                     <div className="nav__inner">
-                        <div className="nav__logo">
+                        <button className="nav__logo" onClick={openAbout} aria-label="About Me">
                             <img src="/favicon.svg?v=2" alt="" className="nav__logo-icon" />
                             <span className="nav__logo-text">
-                                PHOTOS BY <span className="nav__logo-accent">PERKINS</span>
+                                {import.meta.env.VITE_NAV_LOGO_TEXT || 'JANE'}{' '}
+                                <span className="nav__logo-accent">
+                                    {import.meta.env.VITE_NAV_LOGO_ACCENT || 'DOE'}
+                                </span>
                             </span>
-                        </div>
+                        </button>
 
                         <div className="nav__right">
                             <div className="nav__controls">
                                 <ThemeToggle variant="nav" />
-                                <button
-                                    onClick={openAbout}
-                                    className="nav__icon-btn"
-                                    aria-label="About Me"
-                                    title="About Me"
-                                >
-                                    <Info size={20} strokeWidth={2} />
-                                </button>
                             </div>
                         </div>
                     </div>

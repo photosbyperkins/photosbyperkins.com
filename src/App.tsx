@@ -3,7 +3,7 @@ import { useLocation } from 'react-router-dom';
 import Nav from './components/sections/Nav';
 import About from './components/sections/About';
 import Portfolio from './components/sections/Portfolio';
-import { GithubIcon } from './components/ui/icons';
+import { GithubIcon, FacebookIcon, InstagramIcon } from './components/ui/icons';
 
 function Footer() {
     return (
@@ -11,6 +11,41 @@ function Footer() {
             <div className="container">
                 <div className="footer__inner">
                     <div className="footer__copy-group">
+                        <div className="footer__icon-row">
+                            {import.meta.env.VITE_SOCIAL_GITHUB && (
+                                <a
+                                    href={import.meta.env.VITE_SOCIAL_GITHUB}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="footer__social"
+                                    aria-label="GitHub"
+                                >
+                                    <GithubIcon size={20} />
+                                </a>
+                            )}
+                            {import.meta.env.VITE_SOCIAL_FACEBOOK && (
+                                <a
+                                    href={import.meta.env.VITE_SOCIAL_FACEBOOK}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="footer__social"
+                                    aria-label="Facebook"
+                                >
+                                    <FacebookIcon size={20} />
+                                </a>
+                            )}
+                            {import.meta.env.VITE_SOCIAL_INSTAGRAM && (
+                                <a
+                                    href={import.meta.env.VITE_SOCIAL_INSTAGRAM}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="footer__social"
+                                    aria-label="Instagram"
+                                >
+                                    <InstagramIcon size={20} />
+                                </a>
+                            )}
+                        </div>
                         <span className="footer__copy">
                             © {new Date().getFullYear()}{' '}
                             {import.meta.env.VITE_COPYRIGHT_NAME || import.meta.env.VITE_SITE_APP_TITLE || 'Jane Doe'}
@@ -24,15 +59,6 @@ function Footer() {
                             {import.meta.env.VITE_LICENSE_LABEL || 'Photos licensed under CC BY-SA 4.0'}
                         </a>
                     </div>
-                    <a
-                        href="https://github.com/photosbyperkins/photosbyperkins.com"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="footer__github"
-                        aria-label="GitHub Repository"
-                    >
-                        <GithubIcon size={24} />
-                    </a>
                 </div>
             </div>
         </footer>
