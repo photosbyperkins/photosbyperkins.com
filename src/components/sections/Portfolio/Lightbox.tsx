@@ -44,6 +44,11 @@ export default function Lightbox({ images, index, year, eventName, onClose, onSe
         return url ? `${url}?v=${__BUILD_NUMBER__}` : undefined;
     };
 
+    const getThumbSrc = (photo: PhotoInput) => {
+        const url = typeof photo === 'string' ? photo : (photo?.thumb || photo?.original);
+        return url ? `${url}?v=${__BUILD_NUMBER__}` : undefined;
+    };
+
     const maxDataChars = useMemo(() => {
         if (!images) return 0;
         let max = 0;
@@ -239,13 +244,13 @@ export default function Lightbox({ images, index, year, eventName, onClose, onSe
         >
             <div className="portfolio__lightbox-ambient">
                 <motion.img
-                    src={getImgSrc(images[(index - 1 + images.length) % images.length])}
+                    src={getThumbSrc(images[(index - 1 + images.length) % images.length])}
                     style={{ opacity: prevOpacity }}
                     alt=""
                 />
-                <motion.img src={getImgSrc(currentPhoto)} style={{ opacity: currentOpacity }} alt="" />
+                <motion.img src={getThumbSrc(currentPhoto)} style={{ opacity: currentOpacity }} alt="" />
                 <motion.img
-                    src={getImgSrc(images[(index + 1) % images.length])}
+                    src={getThumbSrc(images[(index + 1) % images.length])}
                     style={{ opacity: nextOpacity }}
                     alt=""
                 />

@@ -26,6 +26,7 @@ dist-ssr
 # Media and generated data
 data/
 build/
+build.json
 public/hero/
 deploy_staging*
 photos/
