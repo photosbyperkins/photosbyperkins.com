@@ -1447,6 +1447,15 @@
                 rgba(255, 255, 255, 0) 40%,
                 rgba(255, 255, 255, 0.1) 100%
             );
+
+            html[data-theme='light'] & {
+                background: linear-gradient(
+                    135deg,
+                    rgba(0, 0, 0, 0.15) 0%,
+                    rgba(0, 0, 0, 0) 40%,
+                    rgba(0, 0, 0, 0.05) 100%
+                );
+            }
             -webkit-mask:
                 linear-gradient(#fff 0 0) content-box,
                 linear-gradient(#fff 0 0);

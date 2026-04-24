@@ -45,7 +45,7 @@ export default function Lightbox({ images, index, year, eventName, onClose, onSe
     };
 
     const getThumbSrc = (photo: PhotoInput) => {
-        const url = typeof photo === 'string' ? photo : (photo?.thumb || photo?.original);
+        const url = typeof photo === 'string' ? photo : photo?.thumb || photo?.original;
         return url ? `${url}?v=${__BUILD_NUMBER__}` : undefined;
     };
 
