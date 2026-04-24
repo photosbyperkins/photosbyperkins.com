@@ -184,6 +184,7 @@ export default function Portfolio({ years }: PortfolioProps) {
 
     const [yearData, setYearData] = useState<YearData>({});
     const [recapCount, setRecapCount] = useState<number>(0);
+    const [recapEvents, setRecapEvents] = useState<string[]>([]);
 
     const getForTab = useCallback(async (tabSlug: string, setData: boolean, isTeamMode: boolean) => {
         const basePath = isTeamMode ? `/data/teams` : `/data/years`;
@@ -193,6 +194,7 @@ export default function Portfolio({ years }: PortfolioProps) {
                 if (setData) {
                     setYearData(data.events || data);
                     setRecapCount(data.recapCount || 0);
+                    setRecapEvents(data.recapEvents || []);
                     if (scrollOnNextDataLoad.current) {
                         scrollOnNextDataLoad.current = false;
                         setTimeout(() => portfolioRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
@@ -274,6 +276,7 @@ export default function Portfolio({ years }: PortfolioProps) {
                         <Recap
                             slug={selectedTab}
                             count={recapCount}
+                            events={recapEvents}
                             overlayText={selectedTab}
                             isYear={true}
                         />

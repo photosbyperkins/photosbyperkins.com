@@ -1,20 +1,31 @@
 @use './globals' as *;
 
 .recap {
-    width: 100%;
-    padding: 2rem 0;
+    width: 100vw;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+    padding: 0 0 2rem 0;
     display: flex;
     flex-direction: column;
     justify-content: center;
+    align-items: center;
     background-color: transparent;
 
     &__grid {
         position: relative;
         container-type: inline-size;
         width: 100%;
+        max-height: 65vh;
         display: flex;
-        border-radius: 12px;
         overflow: hidden;
+        -webkit-mask-image: linear-gradient(
+            to right,
+            transparent 0px,
+            black 100px,
+            black calc(100% - 100px),
+            transparent 100%
+        );
+        mask-image: linear-gradient(to right, transparent 0px, black 100px, black calc(100% - 100px), transparent 100%);
 
         .recap__overlay-text {
             position: absolute;
@@ -42,15 +53,16 @@
             line-height: 1;
 
             &--year {
-                font-size: 30cqw;
+                font-size: min(30cqw, 55vh);
                 line-height: 1;
                 padding: 0;
+                transform: translateY(-0.04em); // Optically center the uppercase-only font
 
                 @media (max-width: 900px) {
-                    font-size: 45cqw;
+                    font-size: min(45cqw, 55vh);
                 }
                 @media (max-width: 600px) {
-                    font-size: 50cqw;
+                    font-size: min(50cqw, 55vh);
                 }
             }
         }
@@ -68,9 +80,11 @@
             --visible-slices: min(var(--total-slices, 24), 8);
         }
 
-        // Fixed aspect ratio for the static slice grid
         aspect-ratio: 3;
 
+        @media (min-width: 1600px) {
+            aspect-ratio: 4;
+        }
         @media (max-width: 900px) {
             aspect-ratio: 2;
         }
@@ -85,27 +99,11 @@
         overflow: hidden;
         cursor: pointer;
         container-type: inline-size;
+        background-color: var(--color-bg-2); // Placeholder color while loading
         transition: filter 0.2s ease-out;
 
         &:hover {
             filter: brightness(1.15) saturate(1.05);
-        }
-
-        // Responsive hiding for narrower screens
-        @media (max-width: 1200px) {
-            &:nth-child(n + 17) {
-                display: none;
-            }
-        }
-        @media (max-width: 900px) {
-            &:nth-child(n + 13) {
-                display: none;
-            }
-        }
-        @media (max-width: 600px) {
-            &:nth-child(n + 9) {
-                display: none;
-            }
         }
 
         .recap__img {
@@ -113,12 +111,13 @@
             height: 100%;
             object-fit: cover;
             object-position: center;
+            color: transparent; // Hides alt text while loading
         }
     }
 
     // Responsive behavior
     @media (max-width: 800px) {
         height: auto;
-        padding: 1rem 0;
+        padding: 0 0 1rem 0;
     }
 }

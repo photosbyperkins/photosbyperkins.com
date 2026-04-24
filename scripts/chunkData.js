@@ -64,13 +64,13 @@ function generateRecapImages(eventsObj) {
         }
     });
 
-    if (images.length < 24 && validEvents.length > 0) {
+    if (images.length < 48 && validEvents.length > 0) {
         let addedInRound = true;
         let photoIndex = 0;
-        while (images.length < 24 && addedInRound) {
+        while (images.length < 48 && addedInRound) {
             addedInRound = false;
             for (const [eventName, ev] of validEvents) {
-                if (images.length >= 24) break;
+                if (images.length >= 48) break;
                 if (ev.recapImages && ev.recapImages.length > photoIndex) {
                     const img = formatImage(ev.recapImages[photoIndex], eventName, ev);
                     if (img) {
@@ -340,7 +340,8 @@ async function processChunks() {
         const yearFile = path.join(YEARS_DIR, `${year}.json`);
         const recapImages = generateRecapImages(processedYearData);
         recapDefinitions[year] = recapImages;
-        fs.writeFileSync(yearFile, JSON.stringify({ events: processedYearData, recapCount: recapImages.length }, null, 0)); // Compress output
+        const recapEvents = recapImages.map(img => img.title);
+        fs.writeFileSync(yearFile, JSON.stringify({ events: processedYearData, recapCount: recapImages.length, recapEvents }, null, 0)); // Compress output
         console.log(`  📄 Chunked year: ${year}.json and ${Object.keys(processedYearData).length} albums`);
     }
 
@@ -351,7 +352,7 @@ async function processChunks() {
         uniqueTeams.push({ name: teamData.name, slug: teamSlug, count: Object.keys(teamData.events).length });
         // We no longer generate recap slices for teams since the random hero logic
         // often pulls images of the opposing team
-        fs.writeFileSync(path.join(TEAMS_DIR, `${teamSlug}.json`), JSON.stringify({ events: teamData.events, recapCount: 0 }, null, 0));
+        fs.writeFileSync(path.join(TEAMS_DIR, `${teamSlug}.json`), JSON.stringify({ events: teamData.events, recapCount: 0, recapEvents: [] }, null, 0));
     }
 
     // Sort uniquely mapped teams by mostly alphabetically

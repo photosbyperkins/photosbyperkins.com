@@ -56,7 +56,7 @@ def get_focus(image_path):
                     is_overlap = True
                     break
             if not is_overlap:
-                all_faces.append((px, py, pw, ph, 1.0))
+                all_faces.append((px, py, pw, ph, 0.2)) # Harshly penalize profiles
             
         if len(all_faces) > 0:
             orig_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) if scale < 1.0 else gray
@@ -100,13 +100,22 @@ def get_focus(image_path):
                 # Reject faces that take up too much horizontal space (too large for a narrow slice)
                 if face_width_ratio > 0.25:
                     continue
+                    
+                # Reject faces that are extremely small (likely distant background faces)
+                if face_width_ratio < 0.05:
+                    continue
                 
                 # Exponential scaling for larger faces (up to the cap) + frontal vs profile multiplier
                 weight = sharpness * (normalized_area ** 0.5) * multiplier
                 
                 if weight > max_weight:
                     max_weight = weight
-                    best_face = (cx, cy)
+                    
+                    # Vertical Framing Guardrails: 
+                    # Shift the focus Y coordinate UP by half the face height.
+                    # This gives the downstream 1:2 crop algorithm "headroom" so hair/helmets aren't chopped off.
+                    adjusted_cy = max(0.0, cy - (h / img_h * 0.5))
+                    best_face = (cx, adjusted_cy)
                 
             if best_face is not None:
                 # having too many faces should penalize the score

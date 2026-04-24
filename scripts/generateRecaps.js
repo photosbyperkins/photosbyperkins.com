@@ -107,7 +107,7 @@ async function generateRecaps() {
             const metadata = await sharp(actualSourcePath).metadata();
             const { width, height } = metadata;
 
-            const cropRatio = 1 / 2; // width / height
+            const cropRatio = 1 / 4; // width / height
             let cropWidth, cropHeight;
 
             if (width / height > cropRatio) {
@@ -133,8 +133,8 @@ async function generateRecaps() {
             await sharp(actualSourcePath)
                 .extract({ left, top, width: cropWidth, height: cropHeight })
                 .resize({
-                    width: 300,
-                    height: 600,
+                    width: 240,
+                    height: 960,
                     withoutEnlargement: true,
                     fit: 'inside', // To ensure it respects original ratios if smaller
                 })
