@@ -18,44 +18,71 @@ function slugify(text) {
         .replace(/--+/g, '-'); // Replace multiple - with single -
 }
 
-async function getHeroImages(data) {
-    const pool = [];
-    const years = Object.keys(data).sort((a, b) => b.localeCompare(a));
+// getHeroImages removed because hero images are generated dynamically at runtime
 
-    if (years.length > 0) {
-        const latestYear = years[0];
-        const events = Object.values(data[latestYear]);
-        for (const ev of events) {
-            if (ev.highlights && ev.highlights.length > 0) {
-                pool.push(...ev.highlights);
+function generateRecapImages(eventsObj) {
+    const eventsArray = Object.entries(eventsObj);
+    const validEvents = eventsArray.filter(([eventName]) => !eventName.toLowerCase().includes('headshot')).reverse();
+    
+    const images = [];
+    const seenSrcs = new Set();
+
+    const formatImage = (photoInput, eventName, ev) => {
+        const src = typeof photoInput === 'string' ? photoInput : photoInput.src || photoInput.original;
+        if (seenSrcs.has(src)) return null;
+        seenSrcs.add(src);
+
+        const focusX = typeof photoInput === 'object' ? photoInput.focusX : undefined;
+        const focusY = typeof photoInput === 'object' ? photoInput.focusY : undefined;
+
+        const titleMatch = eventName.match(/^(?:\[(\d{4})\]\s*)?(\d{2}\.\d{2})\s+(.*)/);
+        const baseDatePrefix = titleMatch ? titleMatch[2] : '';
+        const mainTitle = titleMatch ? titleMatch[3] : eventName;
+
+        const teams = mainTitle
+            .split(/\s+(?:vs|versus)\s+/i)
+            .map((t) => t.trim())
+            .filter(Boolean);
+
+        return {
+            src,
+            focusX,
+            focusY,
+            title: eventName,
+            date: ev.date || baseDatePrefix,
+            teams: teams.length > 0 ? teams : undefined,
+        };
+    };
+
+    validEvents.forEach(([eventName, ev]) => {
+        if (ev.hero) {
+            const img = formatImage(ev.hero, eventName, ev);
+            if (img) images.push(img);
+        } else if (ev.recapImages && ev.recapImages.length > 0) {
+             const img = formatImage(ev.recapImages[0], eventName, ev);
+             if (img) images.push(img);
+        }
+    });
+
+    if (images.length < 24 && validEvents.length > 0) {
+        let addedInRound = true;
+        let photoIndex = 0;
+        while (images.length < 24 && addedInRound) {
+            addedInRound = false;
+            for (const [eventName, ev] of validEvents) {
+                if (images.length >= 24) break;
+                if (ev.recapImages && ev.recapImages.length > photoIndex) {
+                    const img = formatImage(ev.recapImages[photoIndex], eventName, ev);
+                    if (img) {
+                        images.push(img);
+                        addedInRound = true;
+                    }
+                }
             }
+            photoIndex++;
         }
     }
-
-    // Shuffle and take 10
-    const selected = pool.sort(() => Math.random() - 0.5).slice(0, 10);
-    const processedImages = [];
-    for (let i = 0; i < selected.length; i++) {
-        const h = selected[i];
-        if (typeof h === 'string') {
-            processedImages.push({ src: getUrl(h) });
-            continue;
-        }
-
-        const focusX = h.focusX;
-        const focusY = h.focusY;
-
-        let webpUrl = h.original || h.source;
-        webpUrl = webpUrl.replace(/^(?:\/)?photos[\\/]/i, '/webp/').replace(/\.jpe?g$/i, '.webp');
-
-        processedImages.push({
-            src: getUrl(webpUrl),
-            ...(focusX != null && { focusX }),
-            ...(focusY != null && { focusY }),
-        });
-    }
-
-    return processedImages;
+    return images;
 }
 
 async function processChunks() {
@@ -70,10 +97,10 @@ async function processChunks() {
 
     // 1. Generate Index
     const years = Object.keys(data).sort((a, b) => b.localeCompare(a));
+    const recapDefinitions = {};
 
     const indexData = {
         years: years,
-        heroImages: await getHeroImages(data),
     };
 
     // Ensure/Clean years dir
@@ -83,7 +110,7 @@ async function processChunks() {
     fs.mkdirSync(YEARS_DIR, { recursive: true });
 
     fs.writeFileSync(INDEX_FILE, JSON.stringify(indexData, null, 2));
-    console.log(`✨ Wrote index.json with ${years.length} years and ${indexData.heroImages.length} hero images.`);
+    console.log(`✨ Wrote index.json with ${years.length} years.`);
 
     // 2. Generate chunks per year and individual albums
     const ALBUMS_DIR = path.join(process.cwd(), 'public', 'data', 'albums');
@@ -206,6 +233,7 @@ async function processChunks() {
                 photoCount: (event.album || []).length,
                 albumSlug: slug,
                 originalYear: year, // Required when fetched from a team index!
+                recapImages: (event.album || []).slice(0, 24), // Pre-compute fallback images for the recap grid
             };
 
             // Keep metadata in year file
@@ -310,7 +338,9 @@ async function processChunks() {
         }
 
         const yearFile = path.join(YEARS_DIR, `${year}.json`);
-        fs.writeFileSync(yearFile, JSON.stringify(processedYearData, null, 0)); // Compress output
+        const recapImages = generateRecapImages(processedYearData);
+        recapDefinitions[year] = recapImages;
+        fs.writeFileSync(yearFile, JSON.stringify({ events: processedYearData, recapCount: recapImages.length }, null, 0)); // Compress output
         console.log(`  📄 Chunked year: ${year}.json and ${Object.keys(processedYearData).length} albums`);
     }
 
@@ -319,7 +349,9 @@ async function processChunks() {
     const uniqueTeams = [];
     for (const [teamSlug, teamData] of Object.entries(globalTeamsList)) {
         uniqueTeams.push({ name: teamData.name, slug: teamSlug, count: Object.keys(teamData.events).length });
-        fs.writeFileSync(path.join(TEAMS_DIR, `${teamSlug}.json`), JSON.stringify(teamData.events, null, 0));
+        // We no longer generate recap slices for teams since the random hero logic
+        // often pulls images of the opposing team
+        fs.writeFileSync(path.join(TEAMS_DIR, `${teamSlug}.json`), JSON.stringify({ events: teamData.events, recapCount: 0 }, null, 0));
     }
 
     // Sort uniquely mapped teams by mostly alphabetically
@@ -328,6 +360,10 @@ async function processChunks() {
     // Write the global list to index for fast fetching in the Search view
     fs.writeFileSync(path.join(TEAMS_DIR, `index.json`), JSON.stringify(uniqueTeams, null, 0));
     console.log(`  📄 Wrote index.json with ${uniqueTeams.length} unique teams and ${uniqueTeams.length} team chunks.`);
+
+    // Write definitions file for generateRecaps.js
+    fs.writeFileSync(path.join(process.cwd(), 'data', 'recap_definitions.json'), JSON.stringify(recapDefinitions, null, 2));
+    console.log(`  📄 Wrote recap_definitions.json with ${Object.keys(recapDefinitions).length} definitions.`);
 }
 
 processChunks();

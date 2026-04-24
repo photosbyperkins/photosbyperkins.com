@@ -65,15 +65,8 @@ function Footer() {
     );
 }
 
-export interface HeroImageInput {
-    src: string;
-    focusX?: number;
-    focusY?: number;
-}
-
 interface IndexData {
     years: string[];
-    heroImages: HeroImageInput[];
 }
 
 function ScrollToMountTarget() {
@@ -84,7 +77,7 @@ function ScrollToMountTarget() {
         if (state?.preventScroll) return;
 
         setTimeout(() => {
-            let targetId = location.pathname.split('/')[1] || 'hero';
+            let targetId = location.pathname.split('/')[1] || 'recap';
             if (location.pathname.startsWith('/portfolio')) targetId = 'portfolio';
             document.getElementById(targetId)?.scrollIntoView({ behavior: 'auto' });
         }, 100);

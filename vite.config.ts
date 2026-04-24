@@ -14,7 +14,7 @@ function photosMiddleware(): { name: string; configureServer: (server: ViteDevSe
         name: 'serve-photos',
         configureServer(server) {
             server.middlewares.use((req: IncomingMessage, res: ServerResponse, next: Connect.NextFunction) => {
-                if (req.url && (req.url.startsWith('/photos/') || req.url.startsWith('/thumbnails/') || req.url.startsWith('/webp/') || req.url.startsWith('/zips/'))) {
+                if (req.url && (req.url.startsWith('/photos/') || req.url.startsWith('/thumbnails/') || req.url.startsWith('/recap/') || req.url.startsWith('/webp/') || req.url.startsWith('/zips/'))) {
                     // Lazy load the map of post-normalized URLs to pre-normalized disk paths
                     if (!urlMap) {
                         urlMap = new Map();
@@ -50,6 +50,8 @@ function photosMiddleware(): { name: string; configureServer: (server: ViteDevSe
                     const safeRelative = relativePath.replace(/^\//, '');
                     let filePath;
                     if (safeRelative.startsWith('thumbnails/')) {
+                        filePath = path.join(process.cwd(), 'build', safeRelative);
+                    } else if (safeRelative.startsWith('recap/')) {
                         filePath = path.join(process.cwd(), 'build', safeRelative);
                     } else if (safeRelative.startsWith('webp/')) {
                         filePath = path.join(process.cwd(), 'build', safeRelative);
@@ -139,7 +141,7 @@ export default defineConfig(({ mode }) => {
                         },
                     },
                     {
-                        urlPattern: /\/(?:photos|thumbnails)\/.*\.(?:png|jpg|jpeg|svg|webp|avif)$/i,
+                        urlPattern: /\/(?:photos|thumbnails|recap)\/.*\.(?:png|jpg|jpeg|svg|webp|avif)(?:\?.*)?$/i,
                         handler: 'CacheFirst',
                         options: {
                             cacheName: 'image-cache',

@@ -4,6 +4,7 @@ export type PhotoInput =
           original: string;
           thumb: string;
           tiny?: string;
+          src?: string;
           focusX?: number;
           focusY?: number;
           width?: number;

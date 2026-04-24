@@ -1,0 +1,124 @@
+@use './globals' as *;
+
+.recap {
+    width: 100%;
+    padding: 2rem 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background-color: transparent;
+
+    &__grid {
+        position: relative;
+        container-type: inline-size;
+        width: 100%;
+        display: flex;
+        border-radius: 12px;
+        overflow: hidden;
+
+        .recap__overlay-text {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-condensed);
+            font-size: clamp(3rem, 10vw, 6rem);
+            text-align: center;
+            padding: 2rem;
+            font-weight: 800;
+
+            // Simple transparent text watermark
+            color: #ffffff;
+            opacity: 0.6;
+            text-shadow:
+                0 4px 32px rgba(0, 0, 0, 0.8),
+                0 2px 12px rgba(0, 0, 0, 0.6);
+
+            text-transform: uppercase;
+            pointer-events: none;
+            z-index: 10;
+            margin: 0;
+            line-height: 1;
+
+            &--year {
+                font-size: 30cqw;
+                line-height: 1;
+                padding: 0;
+
+                @media (max-width: 900px) {
+                    font-size: 45cqw;
+                }
+                @media (max-width: 600px) {
+                    font-size: 50cqw;
+                }
+            }
+        }
+
+        // Calculate visible slices based on total slices from React and responsive hiding logic
+        --visible-slices: var(--total-slices, 24);
+
+        @media (max-width: 1200px) {
+            --visible-slices: min(var(--total-slices, 24), 16);
+        }
+        @media (max-width: 900px) {
+            --visible-slices: min(var(--total-slices, 24), 12);
+        }
+        @media (max-width: 600px) {
+            --visible-slices: min(var(--total-slices, 24), 8);
+        }
+
+        // Fixed aspect ratio for the static slice grid
+        aspect-ratio: 3;
+
+        @media (max-width: 900px) {
+            aspect-ratio: 2;
+        }
+        @media (max-width: 600px) {
+            aspect-ratio: 1.5;
+        }
+    }
+
+    &__slice {
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+        container-type: inline-size;
+        transition: filter 0.2s ease-out;
+
+        &:hover {
+            filter: brightness(1.15) saturate(1.05);
+        }
+
+        // Responsive hiding for narrower screens
+        @media (max-width: 1200px) {
+            &:nth-child(n + 17) {
+                display: none;
+            }
+        }
+        @media (max-width: 900px) {
+            &:nth-child(n + 13) {
+                display: none;
+            }
+        }
+        @media (max-width: 600px) {
+            &:nth-child(n + 9) {
+                display: none;
+            }
+        }
+
+        .recap__img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+        }
+    }
+
+    // Responsive behavior
+    @media (max-width: 800px) {
+        height: auto;
+        padding: 1rem 0;
+    }
+}

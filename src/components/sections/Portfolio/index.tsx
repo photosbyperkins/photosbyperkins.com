@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useInView, AnimatePresence, motion } from 'framer-motion';
 import { matchPath, useLocation, Link } from 'react-router-dom';
@@ -7,6 +7,7 @@ import { formatTeamName } from '../../../utils/formatters';
 import PortfolioEvent from './PortfolioEvent';
 import Lightbox from './Lightbox';
 import TeamFilter from './TeamFilter';
+import Recap from '../Recap';
 import { usePortfolioStore } from '../../../store/usePortfolioStore';
 import type { YearData } from '../../../types';
 import '../../../styles/_portfolio.scss';
@@ -111,7 +112,6 @@ export default function Portfolio({ years }: PortfolioProps) {
         }
     }, [initialSearchOpen, fetchTeamIndex]);
 
-    const [yearData, setYearData] = useState<YearData>({});
     const [isSticky, setIsSticky] = useState(false);
 
     const scrollOnNextDataLoad = useRef(false);
@@ -182,13 +182,17 @@ export default function Portfolio({ years }: PortfolioProps) {
         }
     }, [isSticky, selectedTab, teamSearchQuery]);
 
+    const [yearData, setYearData] = useState<YearData>({});
+    const [recapCount, setRecapCount] = useState<number>(0);
+
     const getForTab = useCallback(async (tabSlug: string, setData: boolean, isTeamMode: boolean) => {
         const basePath = isTeamMode ? `/data/teams` : `/data/years`;
         return fetch(`${basePath}/${tabSlug}.json?build=${__BUILD_NUMBER__}`)
             .then((res) => res.json())
             .then((data) => {
                 if (setData) {
-                    setYearData(data);
+                    setYearData(data.events || data);
+                    setRecapCount(data.recapCount || 0);
                     if (scrollOnNextDataLoad.current) {
                         scrollOnNextDataLoad.current = false;
                         setTimeout(() => portfolioRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
@@ -265,6 +269,16 @@ export default function Portfolio({ years }: PortfolioProps) {
     return (
         <section className="portfolio" id="portfolio" ref={portfolioRef}>
             <div className="container">
+                {recapCount > 0 && !isTeamMode && (
+                    <div className="portfolio__recap-section">
+                        <Recap
+                            slug={selectedTab}
+                            count={recapCount}
+                            overlayText={selectedTab}
+                            isYear={true}
+                        />
+                    </div>
+                )}
                 <div ref={sentinelRef} style={{ height: '1px' }} aria-hidden="true" />
 
                 {navPortalTarget && createPortal(yearsSelectorContent, navPortalTarget)}

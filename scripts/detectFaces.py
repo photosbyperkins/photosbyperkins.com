@@ -22,8 +22,8 @@ def get_focus(image_path):
             
         img_h, img_w = img.shape[:2]
         
-        # Scale down to 320px width for fast detection
-        scale = 320.0 / img_w
+        # Scale down to 640px width for reliable detection
+        scale = 640.0 / img_w
         if scale < 1.0:
             small_w, small_h = int(img_w * scale), int(img_h * scale)
             detect_img = cv2.resize(img, (small_w, small_h))
@@ -95,21 +95,31 @@ def get_focus(image_path):
                 
                 # Area normalized to 0.0-1.0 size of the whole image
                 normalized_area = (w * h) / (img_w * img_h)
+                face_width_ratio = w / img_w
+
+                # Reject faces that take up too much horizontal space (too large for a narrow slice)
+                if face_width_ratio > 0.25:
+                    continue
                 
-                # Exponential scaling for larger faces + frontal vs profile multiplier
-                weight = sharpness * (normalized_area ** 1.5) * multiplier
+                # Exponential scaling for larger faces (up to the cap) + frontal vs profile multiplier
+                weight = sharpness * (normalized_area ** 0.5) * multiplier
                 
                 if weight > max_weight:
                     max_weight = weight
                     best_face = (cx, cy)
                 
             if best_face is not None:
-                return float(best_face[0]), float(best_face[1])
+                # having too many faces should penalize the score
+                # having sharper + larger faces should increase the score
+                # having face forward versus side profile should increase the score
+                total_faces = len(all_faces)
+                image_score = float(max_weight) / (total_faces ** 1.5) if total_faces > 0 else 0.0
+                return float(best_face[0]), float(best_face[1]), image_score
                 
     except Exception as e:
         print(f"Error processing {image_path}: {e}")
         
-    return None, None
+    return None, None, 0.0
 
 def main():
     data_dir = 'data'
@@ -165,22 +175,26 @@ def main():
                         
                         if thumb_web_path in cache_data:
                             val = cache_data[thumb_web_path]
-                            if val is not None and isinstance(val, dict) and "x" in val:
-                                photo['focusX'] = val['x']
-                                photo['focusY'] = val['y']
-                                found_count += 1
-                            skipped_count += 1
-                            continue
+                            if val is not None and isinstance(val, dict) and "score" in val:
+                                if "x" in val:
+                                    photo['focusX'] = val['x']
+                                    photo['focusY'] = val['y']
+                                    found_count += 1
+                                photo['faceScore'] = val['score']
+                                skipped_count += 1
+                                continue
                             
                         if os.path.exists(local_thumb_path):
-                            fx, fy = get_focus(local_thumb_path)
+                            fx, fy, score = get_focus(local_thumb_path)
                             if fx is not None:
-                                cache_data[thumb_web_path] = {"x": fx, "y": fy}
+                                cache_data[thumb_web_path] = {"x": fx, "y": fy, "score": score}
                                 photo['focusX'] = fx
                                 photo['focusY'] = fy
+                                photo['faceScore'] = score
                                 found_count += 1
                             else:
-                                cache_data[thumb_web_path] = None
+                                cache_data[thumb_web_path] = {"score": score} # 0.0
+                                photo['faceScore'] = score
                             processed_count += 1
                         else:
                             cache_data[thumb_web_path] = None
@@ -188,6 +202,34 @@ def main():
                         if processed_count > 0 and processed_count % 100 == 0:
                             print(f"  Processed {processed_count} new images... ({found_count} faces tracked so far)")
                             
+    # Second pass: Select the best hero image for each event based on faceScore
+    print("Selecting optimal hero images for each event...")
+    for year, events in photos_data.items():
+        for event_name, event_data in events.items():
+            candidates = event_data.get('highlights', [])
+            if not candidates:
+                candidates = event_data.get('album', [])
+                
+            if candidates:
+                best_photo = None
+                best_score = -1.0
+                
+                for photo in candidates:
+                    if isinstance(photo, str):
+                        continue
+                    score = photo.get('faceScore', 0.0)
+                    if score > best_score:
+                        best_score = score
+                        best_photo = photo
+                        
+                if best_photo:
+                    # Strip out full album-level metadata so we only store the essentials for the hero
+                    event_data['hero'] = {
+                        'src': best_photo.get('src') or best_photo.get('original'),
+                        'focusX': best_photo.get('focusX'),
+                        'focusY': best_photo.get('focusY')
+                    }
+
     with open(photos_file, 'w', encoding='utf-8') as f:
         json.dump(photos_data, f, indent=2)
         

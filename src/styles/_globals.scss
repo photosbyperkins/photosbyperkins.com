@@ -103,7 +103,7 @@ $container-max: 1400px;
 
 html {
     scroll-behavior: smooth;
-    scroll-padding-top: var(--nav-height-total);
+    scroll-padding-top: calc(var(--nav-height-total) + 2rem);
     -webkit-text-size-adjust: 100%;
 }
 

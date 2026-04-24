@@ -43,7 +43,7 @@ export default function Nav() {
 
     // Track active section and sync to URL
     useEffect(() => {
-        const sections = ['hero', 'portfolio', 'about'];
+        const sections = ['recap', 'portfolio', 'about'];
         const observed = new Set<string>();
 
         const observer = new IntersectionObserver(
@@ -55,7 +55,7 @@ export default function Nav() {
                 // Pick the top visible entry natively (centerline guarantees accuracy)
                 const bestEntry = visibleEntries[0];
 
-                let path = bestEntry.target.id === 'hero' ? '/' : `/${bestEntry.target.id}`;
+                let path = bestEntry.target.id === 'recap' ? '/' : `/${bestEntry.target.id}`;
                 if (bestEntry.target.id === 'portfolio') {
                     path = lastPortfolioRef.current;
                 }

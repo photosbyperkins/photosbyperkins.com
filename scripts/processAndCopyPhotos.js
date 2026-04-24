@@ -141,6 +141,26 @@ async function processPhotos() {
         }
     }
 
+    // Pass 1.8: Queue dynamically generated recaps
+    const recapsDir = path.join(process.cwd(), 'build', 'recap');
+    if (fs.existsSync(recapsDir)) {
+        function queueRecapFiles(dir) {
+            const entries = fs.readdirSync(dir, { withFileTypes: true });
+            for (const entry of entries) {
+                const fullPath = path.join(dir, entry.name);
+                if (entry.isDirectory()) {
+                    queueRecapFiles(fullPath);
+                } else if (entry.name.endsWith('.webp')) {
+                    const relativePath = path.relative(path.join(process.cwd(), 'build'), fullPath);
+                    const destPath = path.join(DIST_DIR, relativePath);
+                    validDestPaths.add(destPath);
+                    copyTasks.push({ source: fullPath, dest: destPath });
+                }
+            }
+        }
+        queueRecapFiles(recapsDir);
+    }
+
     // Pass 2: Transfer Build Payload
     console.log(`\n🚀 Copying ${copyTasks.length} mapped photos and assets to dist...`);
     for (const { source, dest } of copyTasks) {
@@ -229,6 +249,7 @@ async function processPhotos() {
     }
     removeStaleFiles(path.join(DIST_DIR, 'photos'), validDestPaths);
     removeStaleFiles(path.join(DIST_DIR, 'thumbnails'), validDestPaths);
+    removeStaleFiles(path.join(DIST_DIR, 'recap'), validDestPaths);
     removeStaleFiles(path.join(DIST_DIR, 'zips'), validDestPaths);
     removeStaleFiles(path.join(DIST_DIR, 'webp'), validDestPaths);
 
