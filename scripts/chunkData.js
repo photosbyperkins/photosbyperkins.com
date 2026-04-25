@@ -353,6 +353,23 @@ async function processChunks() {
         const recapImages = generateRecapImages(processedYearData);
         recapDefinitions[year] = recapImages;
         const recapEvents = recapImages.map(img => img.title);
+
+        // Strip payload bloat from processedYearData before saving it.
+        // Because globalTeamsList uses the exact same evMeta references, this also cleans the team chunks.
+        for (const evKey in processedYearData) {
+            delete processedYearData[evKey].recapImages;
+            delete processedYearData[evKey].hero;
+
+            if (processedYearData[evKey].highlights) {
+                processedYearData[evKey].highlights = processedYearData[evKey].highlights.map((h) => ({
+                    original: h.original,
+                    thumb: h.thumb || h.original,
+                    focusX: h.focusX,
+                    focusY: h.focusY,
+                }));
+            }
+        }
+
         fs.writeFileSync(yearFile, JSON.stringify({ events: processedYearData, recapCount: recapImages.length, recapEvents }, null, 0)); // Compress output
         console.log(`  📄 Chunked year: ${year}.json and ${Object.keys(processedYearData).length} albums`);
     }
