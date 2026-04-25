@@ -21,11 +21,11 @@
         -webkit-mask-image: linear-gradient(
             to right,
             transparent 0px,
-            black 100px,
-            black calc(100% - 100px),
+            black 40px,
+            black calc(100% - 40px),
             transparent 100%
         );
-        mask-image: linear-gradient(to right, transparent 0px, black 100px, black calc(100% - 100px), transparent 100%);
+        mask-image: linear-gradient(to right, transparent 0px, black 40px, black calc(100% - 40px), transparent 100%);
 
         .recap__overlay-text {
             position: absolute;
@@ -53,44 +53,17 @@
             line-height: 1;
 
             &--year {
-                font-size: min(30cqw, 55vh);
+                font-size: clamp(220px, 45vw, 550px);
                 line-height: 1;
                 padding: 0;
                 transform: translateY(-0.04em); // Optically center the uppercase-only font
-
-                @media (max-width: 900px) {
-                    font-size: min(45cqw, 55vh);
-                }
-                @media (max-width: 600px) {
-                    font-size: min(50cqw, 55vh);
-                }
             }
         }
 
-        // Calculate visible slices based on total slices from React and responsive hiding logic
-        --visible-slices: var(--total-slices, 24);
-
-        @media (max-width: 1200px) {
-            --visible-slices: min(var(--total-slices, 24), 16);
-        }
-        @media (max-width: 900px) {
-            --visible-slices: min(var(--total-slices, 24), 12);
-        }
-        @media (max-width: 600px) {
-            --visible-slices: min(var(--total-slices, 24), 8);
-        }
-
-        aspect-ratio: 3;
-
-        @media (min-width: 1600px) {
-            aspect-ratio: 4;
-        }
-        @media (max-width: 900px) {
-            aspect-ratio: 2;
-        }
-        @media (max-width: 600px) {
-            aspect-ratio: 1.5;
-        }
+        // Maintain a stable height regardless of horizontal window resizing.
+        // The React component dynamically adjusts the number of slices to keep their widths ~65px.
+        height: clamp(256px, 45vw, 512px);
+        perspective: 1000px;
     }
 
     &__slice {
@@ -101,6 +74,14 @@
         container-type: inline-size;
         background-color: var(--color-bg-2); // Placeholder color while loading
         transition: filter 0.2s ease-out;
+        transform-style: preserve-3d;
+
+        // Prevent subpixel flex rendering micro-gaps by slightly overlapping
+        margin-right: -1px;
+
+        &:last-child {
+            margin-right: 0;
+        }
 
         &:hover {
             filter: brightness(1.15) saturate(1.05);

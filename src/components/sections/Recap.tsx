@@ -10,23 +10,127 @@ interface RecapProps {
     isYear?: boolean;
 }
 
+const RecapSliceItem = ({ sliceNumber, idx, slug, events, eventIdx }: any) => {
+    const recapSrc = `/recap/${slug}/photo_${sliceNumber}.webp`;
+    const [isLoaded, setIsLoaded] = useState(false);
+
+    return (
+        <motion.div
+            id={`recap-slice-${idx}`}
+            layout
+            className="recap__slice"
+            aria-label={`View recap image ${sliceNumber}`}
+            onClick={() => {
+                if (events && events[eventIdx]) {
+                    const eventElement = document.getElementById(
+                        `event-${(events[eventIdx] || '').replace(/[^a-zA-Z0-9-]/g, '-')}`
+                    );
+                    if (eventElement) {
+                        eventElement.scrollIntoView({ behavior: 'auto', block: 'start' });
+                    }
+                }
+            }}
+            initial={{ rotateY: -180, opacity: 0 }}
+            animate={isLoaded ? { rotateY: 0, opacity: 1 } : { rotateY: -180, opacity: 0 }}
+            transition={{ duration: 0.8, type: 'spring', bounce: 0.3 }}
+        >
+            <img
+                src={`${recapSrc}?v=${__BUILD_NUMBER__}`}
+                alt={`Recap Image ${idx + 1}`}
+                className="recap__img"
+                loading="lazy"
+                onLoad={() => setIsLoaded(true)}
+            />
+        </motion.div>
+    );
+};
+
 export default function Recap({ slug, count, events, overlayText, isYear }: RecapProps) {
     const [isMobile, setIsMobile] = useState(false);
     const [visibleCount, setVisibleCount] = useState(48);
 
-    // Generate an array of numbers [1, 2, ..., min(count, visibleCount)]
-    const slices = Array.from({ length: Math.min(count, visibleCount) }, (_, i) => i + 1);
+    const computeSlices = () => {
+        if (visibleCount >= count) {
+            return Array.from({ length: count }, (_, i) => i + 1);
+        }
+
+        if (!events || events.length === 0) {
+            const indices = [];
+            for (let i = 0; i < visibleCount; i++) {
+                indices.push(Math.round((i * (count - 1)) / (visibleCount - 1)));
+            }
+            return indices.map((idx) => idx + 1);
+        }
+
+        const groups: number[][] = [];
+        let currentEvent = events[0];
+        let currentGroup: number[] = [0];
+
+        for (let i = 1; i < count; i++) {
+            if (events[i] !== currentEvent) {
+                groups.push(currentGroup);
+                currentGroup = [i];
+                currentEvent = events[i];
+            } else {
+                currentGroup.push(i);
+            }
+        }
+        groups.push(currentGroup);
+
+        const idealGroupIndices = [];
+        for (let i = 0; i < visibleCount; i++) {
+            idealGroupIndices.push(Math.round((i * (groups.length - 1)) / (visibleCount - 1)));
+        }
+
+        const groupPickCounts = new Array(groups.length).fill(0);
+        idealGroupIndices.forEach((gIdx) => groupPickCounts[gIdx]++);
+
+        const finalIndices: number[] = [];
+        for (let g = 0; g < groups.length; g++) {
+            const group = groups[g];
+            let picks = groupPickCounts[g];
+            if (picks === 0) continue;
+
+            if (picks > group.length) picks = group.length;
+
+            if (picks === 1) {
+                if (g === 0) finalIndices.push(group[0]);
+                else if (g === groups.length - 1) finalIndices.push(group[group.length - 1]);
+                else finalIndices.push(group[Math.floor(group.length / 2)]);
+            } else {
+                for (let i = 0; i < picks; i++) {
+                    const idxInGroup = Math.round((i * (group.length - 1)) / (picks - 1));
+                    finalIndices.push(group[idxInGroup]);
+                }
+            }
+        }
+
+        if (finalIndices.length < visibleCount) {
+            const unselected = Array.from({ length: count }, (_, i) => i).filter((i) => !finalIndices.includes(i));
+            const needed = visibleCount - finalIndices.length;
+            for (let i = 0; i < needed; i++) {
+                if (unselected.length > 0) {
+                    const pickIndex = Math.floor((i * unselected.length) / needed);
+                    const pick = unselected[pickIndex];
+                    finalIndices.push(pick);
+                    unselected.splice(pickIndex, 1);
+                }
+            }
+        }
+
+        finalIndices.sort((a, b) => a - b);
+        return finalIndices.map((idx) => idx + 1);
+    };
+
+    const slices = computeSlices();
 
     useEffect(() => {
         const checkMobile = () => {
             setIsMobile(window.innerWidth <= 800);
             const w = window.innerWidth;
-            if (w <= 600) setVisibleCount(8);
-            else if (w <= 900) setVisibleCount(12);
-            else if (w <= 1200) setVisibleCount(16);
-            else if (w <= 1600) setVisibleCount(24);
-            else if (w <= 2400) setVisibleCount(32);
-            else setVisibleCount(48);
+            // Target roughly 65px per slice for maximum granularity, clamped between 6 and 48
+            const calculatedSlices = Math.floor(w / 65);
+            setVisibleCount(Math.max(6, Math.min(48, calculatedSlices)));
         };
         checkMobile();
         window.addEventListener('resize', checkMobile);
@@ -38,37 +142,16 @@ export default function Recap({ slug, count, events, overlayText, isYear }: Reca
     return (
         <section className="recap" id="recap" style={{ '--total-slices': slices.length } as React.CSSProperties}>
             <div className="recap__grid">
-                {slices.map((sliceNumber, idx) => {
-                    const recapSrc = `/recap/${slug}/photo_${sliceNumber}.webp`;
-
-                    return (
-                        <motion.div
-                            id={`recap-slice-${idx}`}
-                            layout
-                            key={recapSrc}
-                            className="recap__slice"
-                            aria-label={`View recap image ${sliceNumber}`}
-                            onClick={() => {
-                                if (events && events[idx]) {
-                                    const eventElement = document.getElementById(
-                                        `event-${(events[idx] || '').replace(/[^a-zA-Z0-9-]/g, '-')}`
-                                    );
-                                    if (eventElement) {
-                                        eventElement.scrollIntoView({ behavior: 'auto', block: 'start' });
-                                    }
-                                }
-                            }}
-                        >
-                            <img
-                                src={`${recapSrc}?v=${__BUILD_NUMBER__}`}
-                                alt={`Recap Image ${idx + 1}`}
-                                className="recap__img"
-                                loading={idx < 12 ? 'eager' : 'lazy'}
-                                fetchPriority={idx < 12 ? 'high' : 'auto'}
-                            />
-                        </motion.div>
-                    );
-                })}
+                {slices.map((sliceNumber, idx) => (
+                    <RecapSliceItem
+                        key={`/recap/${slug}/photo_${sliceNumber}.webp`}
+                        sliceNumber={sliceNumber}
+                        idx={idx}
+                        slug={slug}
+                        events={events}
+                        eventIdx={sliceNumber - 1}
+                    />
+                ))}
                 {overlayText && (
                     <div className={`recap__overlay-text ${isYear ? 'recap__overlay-text--year' : ''}`}>
                         {overlayText}

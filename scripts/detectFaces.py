@@ -2,12 +2,30 @@ import os
 import json
 import cv2
 import numpy as np
+import urllib.request
 
-face_cascade_path = cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
-profile_cascade_path = cv2.data.haarcascades + 'haarcascade_profileface.xml'
+def download_model_files():
+    model_dir = os.path.join('data', 'models')
+    os.makedirs(model_dir, exist_ok=True)
+    
+    prototxt_path = os.path.join(model_dir, 'deploy.prototxt')
+    model_path = os.path.join(model_dir, 'res10_300x300_ssd_iter_140000.caffemodel')
+    
+    prototxt_url = "https://raw.githubusercontent.com/opencv/opencv/master/samples/dnn/face_detector/deploy.prototxt"
+    model_url = "https://raw.githubusercontent.com/opencv/opencv_3rdparty/dnn_samples_face_detector_20170830/res10_300x300_ssd_iter_140000.caffemodel"
+    
+    if not os.path.exists(prototxt_path):
+        print("Downloading DNN Prototxt...")
+        urllib.request.urlretrieve(prototxt_url, prototxt_path)
+        
+    if not os.path.exists(model_path):
+        print("Downloading DNN Caffe Model (2.5MB)...")
+        urllib.request.urlretrieve(model_url, model_path)
+        
+    return prototxt_path, model_path
 
-face_cascade = cv2.CascadeClassifier(face_cascade_path)
-profile_cascade = cv2.CascadeClassifier(profile_cascade_path)
+prototxt_path, model_path = download_model_files()
+net = cv2.dnn.readNetFromCaffe(prototxt_path, model_path)
 
 def weighted_median(values, weights):
     pass # Deprecated in favor of single best face
@@ -18,11 +36,10 @@ def get_focus(image_path):
         img = cv2.imdecode(img_data, cv2.IMREAD_COLOR)
         
         if img is None:
-            return None, None
+            return None, None, 0.0
             
         img_h, img_w = img.shape[:2]
         
-        # Scale down to 640px width for reliable detection
         scale = 640.0 / img_w
         if scale < 1.0:
             small_w, small_h = int(img_w * scale), int(img_h * scale)
@@ -31,35 +48,31 @@ def get_focus(image_path):
             detect_img = img
             scale = 1.0
             
-        gray = cv2.cvtColor(detect_img, cv2.COLOR_BGR2GRAY)
-        
-        # Detect faces
-        frontal_faces = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4, minSize=(20, 20))
-        profile_faces = profile_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=4, minSize=(20, 20))
+        h, w = detect_img.shape[:2]
+        blob = cv2.dnn.blobFromImage(detect_img, 1.0, (300, 300), (104.0, 177.0, 123.0))
+        net.setInput(blob)
+        detections = net.forward()
         
         all_faces = []
-        for x, y, w, h in frontal_faces:
-            all_faces.append((x, y, w, h, 2.0))
-            
-        def compute_iou(boxA, boxB):
-            xA, yA = max(boxA[0], boxB[0]), max(boxA[1], boxB[1])
-            xB, yB = min(boxA[0]+boxA[2], boxB[0]+boxB[2]), min(boxA[1]+boxA[3], boxB[1]+boxB[3])
-            interArea = max(0, xB - xA) * max(0, yB - yA)
-            boxAArea = boxA[2] * boxA[3]
-            boxBArea = boxB[2] * boxB[3]
-            return interArea / float(boxAArea + boxBArea - interArea) if (boxAArea + boxBArea - interArea) > 0 else 0
-            
-        for px, py, pw, ph in profile_faces:
-            is_overlap = False
-            for fx, fy, fw, fh in frontal_faces:
-                if compute_iou((px, py, pw, ph), (fx, fy, fw, fh)) > 0.3:
-                    is_overlap = True
-                    break
-            if not is_overlap:
-                all_faces.append((px, py, pw, ph, 0.2)) # Harshly penalize profiles
+        for i in range(0, detections.shape[2]):
+            confidence = detections[0, 0, i, 2]
+            if confidence > 0.4:
+                box = detections[0, 0, i, 3:7] * np.array([w, h, w, h])
+                (startX, startY, endX, endY) = box.astype("int")
+                
+                startX = max(0, startX)
+                startY = max(0, startY)
+                endX = min(w, endX)
+                endY = min(h, endY)
+                
+                face_w = endX - startX
+                face_h = endY - startY
+                
+                if face_w > 10 and face_h > 10:
+                    all_faces.append((startX, startY, face_w, face_h, confidence))
             
         if len(all_faces) > 0:
-            orig_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) if scale < 1.0 else gray
+            orig_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) if scale < 1.0 else cv2.cvtColor(detect_img, cv2.COLOR_BGR2GRAY)
             
             native_path = image_path.replace(os.path.join('build', 'thumbnails'), os.path.join('build', 'processed'), 1)
             native_img = None
@@ -73,56 +86,59 @@ def get_focus(image_path):
             best_face = None
             max_weight = -1
             
-            for (sx, sy, sw, sh, multiplier) in all_faces:
+            for (sx, sy, sw, sh, confidence) in all_faces:
                 x = sx / scale
                 y = sy / scale
-                w = sw / scale
-                h = sh / scale
+                face_w = sw / scale
+                face_h = sh / scale
                 
-                cx = (x + w / 2.0) / img_w
-                cy = (y + h / 2.0) / img_h
+                cx = (x + face_w / 2.0) / img_w
+                cy = (y + face_h / 2.0) / img_h
                 
-                src_x = int(cx * w_src - (w / img_w / 2.0 * w_src))
-                src_y = int(cy * h_src - (h / img_h / 2.0 * h_src))
-                src_w = int((w / img_w) * w_src)
-                src_h = int((h / img_h) * h_src)
+                src_x = int(cx * w_src - (face_w / img_w / 2.0 * w_src))
+                src_y = int(cy * h_src - (face_h / img_h / 2.0 * h_src))
+                src_w = int((face_w / img_w) * w_src)
+                src_h = int((face_h / img_h) * h_src)
                 
                 face_roi = sharpness_source[max(0, src_y):min(h_src, src_y+src_h), max(0, src_x):min(w_src, src_x+src_w)]
                 if face_roi.size == 0:
                     continue
                     
                 sharpness = cv2.Laplacian(face_roi, cv2.CV_64F).var()
+                normalized_area = (face_w * face_h) / (img_w * img_h)
                 
-                # Area normalized to 0.0-1.0 size of the whole image
-                normalized_area = (w * h) / (img_w * img_h)
-                face_width_ratio = w / img_w
-
-                # Reject faces that take up too much horizontal space (too large for a narrow slice)
-                if face_width_ratio > 0.25:
+                # The final recap slice is cropped to a 1:4 aspect ratio.
+                # For most photos, the slice width is 25% of the image HEIGHT.
+                crop_ratio = 1.0 / 4.0
+                crop_w = img_h * crop_ratio if (img_w / img_h) > crop_ratio else img_w
+                
+                # Reject faces that are wider than 90% of the slice width to prevent horizontal clipping
+                if face_w > crop_w * 0.90:
                     continue
                     
                 # Reject faces that are extremely small (likely distant background faces)
-                if face_width_ratio < 0.05:
+                if face_w / img_w < 0.05:
                     continue
                 
-                # Exponential scaling for larger faces (up to the cap) + frontal vs profile multiplier
-                weight = sharpness * (normalized_area ** 0.5) * multiplier
+                dist_from_center_x = abs(cx - 0.5)
+                dist_from_center_y = abs(cy - 0.5)
+                center_penalty = 1.0 - (dist_from_center_x * 0.5 + dist_from_center_y * 0.5)
+                
+                weight = sharpness * (normalized_area ** 0.5) * float(confidence) * center_penalty
                 
                 if weight > max_weight:
                     max_weight = weight
-                    
-                    # Vertical Framing Guardrails: 
-                    # Shift the focus Y coordinate UP by half the face height.
-                    # This gives the downstream 1:2 crop algorithm "headroom" so hair/helmets aren't chopped off.
-                    adjusted_cy = max(0.0, cy - (h / img_h * 0.5))
+                    adjusted_cy = max(0.0, cy - (face_h / img_h * 0.5))
                     best_face = (cx, adjusted_cy)
                 
             if best_face is not None:
-                # having too many faces should penalize the score
-                # having sharper + larger faces should increase the score
-                # having face forward versus side profile should increase the score
                 total_faces = len(all_faces)
-                image_score = float(max_weight) / (total_faces ** 1.5) if total_faces > 0 else 0.0
+                # Severely penalize multiple faces to ensure we pick "singular face only" portraits
+                # total_faces=1 -> divider=1
+                # total_faces=2 -> divider=16
+                # total_faces=3 -> divider=81
+                penalty_factor = float(total_faces ** 4.0)
+                image_score = float(max_weight) / penalty_factor if total_faces > 0 else 0.0
                 return float(best_face[0]), float(best_face[1]), image_score
                 
     except Exception as e:

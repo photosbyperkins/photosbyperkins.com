@@ -82,6 +82,15 @@ function generateRecapImages(eventsObj) {
             photoIndex++;
         }
     }
+    images.sort((a, b) => {
+        const dateA = a.date || '';
+        const dateB = b.date || '';
+        if (dateA !== dateB) {
+            return dateB.localeCompare(dateA); // Latest events first
+        }
+        return (a.src || '').localeCompare(b.src || ''); // Keep chronological order within the same event
+    });
+
     return images;
 }
 
@@ -233,7 +242,10 @@ async function processChunks() {
                 photoCount: (event.album || []).length,
                 albumSlug: slug,
                 originalYear: year, // Required when fetched from a team index!
-                recapImages: (event.album || []).slice(0, 24), // Pre-compute fallback images for the recap grid
+                recapImages: (event.album || [])
+                    .slice()
+                    .sort((a, b) => (b.faceScore || 0) - (a.faceScore || 0))
+                    .slice(0, 24), // Pre-compute fallback images for the recap grid
             };
 
             // Keep metadata in year file
