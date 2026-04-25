@@ -152,10 +152,10 @@ export default function Lightbox({ images, index, year, eventName, onClose, onSe
             // Fire off immediate next/prev directly into the browser network pipeline
             const immediate = allIdxs.slice(0, 2);
             immediate.forEach((idx) => {
-                const src = getWebpSrc(idx);
-                if (src) {
+                const thumbSrc = getThumbSrc(images[idx]);
+                if (thumbSrc) {
                     const img = new Image();
-                    img.src = `${src}?v=${__BUILD_NUMBER__}`;
+                    img.src = thumbSrc;
                 }
             });
 
@@ -164,14 +164,14 @@ export default function Lightbox({ images, index, year, eventName, onClose, onSe
             for (const idx of queued) {
                 if (isCancelled) break;
 
-                const src = getWebpSrc(idx);
-                if (!src) continue;
+                const thumbSrc = getThumbSrc(images[idx]);
+                if (!thumbSrc) continue;
 
                 await new Promise<void>((resolve) => {
                     const img = new Image();
                     img.onload = () => resolve();
                     img.onerror = () => resolve();
-                    img.src = `${src}?v=${__BUILD_NUMBER__}`;
+                    img.src = thumbSrc;
                 });
 
                 // Micro-pause to yield to main UI thread / react rendering
@@ -243,16 +243,23 @@ export default function Lightbox({ images, index, year, eventName, onClose, onSe
             onClick={onClose}
         >
             <div className="portfolio__lightbox-ambient">
-                <motion.img
-                    src={getThumbSrc(images[(index - 1 + images.length) % images.length])}
-                    style={{ opacity: prevOpacity }}
-                    alt=""
+                <motion.div
+                    className="portfolio__lightbox-ambient-img"
+                    style={{
+                        backgroundImage: `url("${getThumbSrc(images[(index - 1 + images.length) % images.length])}")`,
+                        opacity: prevOpacity,
+                    }}
                 />
-                <motion.img src={getThumbSrc(currentPhoto)} style={{ opacity: currentOpacity }} alt="" />
-                <motion.img
-                    src={getThumbSrc(images[(index + 1) % images.length])}
-                    style={{ opacity: nextOpacity }}
-                    alt=""
+                <motion.div
+                    className="portfolio__lightbox-ambient-img"
+                    style={{ backgroundImage: `url("${getThumbSrc(currentPhoto)}")`, opacity: currentOpacity }}
+                />
+                <motion.div
+                    className="portfolio__lightbox-ambient-img"
+                    style={{
+                        backgroundImage: `url("${getThumbSrc(images[(index + 1) % images.length])}")`,
+                        opacity: nextOpacity,
+                    }}
                 />
                 <div className="portfolio__lightbox-ambient-glass" />
             </div>
