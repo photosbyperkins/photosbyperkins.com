@@ -185,6 +185,8 @@ export default function Portfolio({ years }: PortfolioProps) {
     const [yearData, setYearData] = useState<YearData>({});
     const [recapCount, setRecapCount] = useState<number>(0);
     const [recapEvents, setRecapEvents] = useState<{ eventName: string; photoIndex: number }[]>([]);
+    const [isRecapLoaded, setIsRecapLoaded] = useState(true);
+    const [pendingNextPart, setPendingNextPart] = useState<string | null>(null);
 
     const activeRequestRef = useRef<number>(0);
 
@@ -194,6 +196,8 @@ export default function Portfolio({ years }: PortfolioProps) {
         const requestToken = Date.now();
         if (setData) {
             activeRequestRef.current = requestToken;
+            setPendingNextPart(null);
+            setIsRecapLoaded(false); // Lock background fetching
         }
 
         const fetchPart = (slug: string, accumulate: boolean) => {
@@ -209,6 +213,11 @@ export default function Portfolio({ years }: PortfolioProps) {
                             setRecapCount(data.recapCount || 0);
                             setRecapEvents(data.recapEvents || []);
 
+                            // If there is no recap, unlock background fetching immediately
+                            if ((data.recapCount || 0) === 0 || isTeamMode) {
+                                setIsRecapLoaded(true);
+                            }
+
                             if (scrollOnNextDataLoad.current) {
                                 scrollOnNextDataLoad.current = false;
                                 setTimeout(() => portfolioRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
@@ -216,11 +225,9 @@ export default function Portfolio({ years }: PortfolioProps) {
                         }
 
                         if (data.nextPart) {
-                            setTimeout(() => {
-                                if (activeRequestRef.current === requestToken) {
-                                    fetchPart(data.nextPart, true);
-                                }
-                            }, 300);
+                            setPendingNextPart(data.nextPart);
+                        } else {
+                            setPendingNextPart(null);
                         }
                     }
                 })
@@ -230,6 +237,35 @@ export default function Portfolio({ years }: PortfolioProps) {
         fetchPart(tabSlug, false);
     }, []);
 
+    // Handle trickling next parts only when Recap allows it
+    useEffect(() => {
+        if (!pendingNextPart || !isRecapLoaded) return;
+
+        const isTeamMode = !years.includes(selectedTab);
+        const basePath = isTeamMode ? `/data/teams` : `/data/years`;
+        const requestToken = activeRequestRef.current;
+        const targetPart = pendingNextPart;
+
+        const timer = setTimeout(() => {
+            fetch(`${basePath}/${targetPart}.json?build=${__BUILD_NUMBER__}`)
+                .then((res) => res.json())
+                .then((data) => {
+                    if (activeRequestRef.current !== requestToken) return;
+
+                    setYearData((prev) => ({ ...prev, ...data.events }));
+
+                    if (data.nextPart) {
+                        setPendingNextPart(data.nextPart);
+                    } else {
+                        setPendingNextPart(null);
+                    }
+                })
+                .catch((err) => console.error(`Failed to load trickle data for ${targetPart}:`, err));
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [pendingNextPart, isRecapLoaded, selectedTab, years]);
+
     useEffect(() => {
         if (!selectedTab) return;
         const isTeamMode = !years.includes(selectedTab);
@@ -237,10 +273,11 @@ export default function Portfolio({ years }: PortfolioProps) {
     }, [selectedTab, years, getForTab]);
 
     useEffect(() => {
+        if (!isRecapLoaded) return; // Pause background year prefetching until Recap finishes loading
         years.forEach((year, i) => {
             if (i > 0) getForTab(year, false, false);
         });
-    }, [years, getForTab]);
+    }, [years, getForTab, isRecapLoaded]);
 
     const events = Object.entries(yearData);
 
@@ -305,6 +342,7 @@ export default function Portfolio({ years }: PortfolioProps) {
                             events={recapEvents}
                             overlayText={selectedTab}
                             isYear={true}
+                            onRecapLoadComplete={() => setIsRecapLoaded(true)}
                         />
                     </div>
                 )}

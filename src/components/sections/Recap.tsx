@@ -14,9 +14,10 @@ interface RecapProps {
     events?: RecapEventMeta[];
     overlayText?: string;
     isYear?: boolean;
+    onRecapLoadComplete?: () => void;
 }
 
-const RecapSliceItem = ({ sliceNumber, idx, slug, events, eventIdx }: any) => {
+const RecapSliceItem = ({ sliceNumber, idx, slug, events, eventIdx, onLoad }: any) => {
     const recapSrc = `/recap/${slug}/photo_${sliceNumber}.webp`;
     const [isLoaded, setIsLoaded] = useState(false);
 
@@ -42,14 +43,23 @@ const RecapSliceItem = ({ sliceNumber, idx, slug, events, eventIdx }: any) => {
                 alt={`Recap Image ${idx + 1}`}
                 className="recap__img"
                 loading="lazy"
-                onLoad={() => setIsLoaded(true)}
+                onLoad={() => {
+                    setIsLoaded(true);
+                    if (onLoad) onLoad();
+                }}
             />
         </motion.div>
     );
 };
 
-export default function Recap({ slug, count, events, overlayText, isYear }: RecapProps) {
+export default function Recap({ slug, count, events, overlayText, isYear, onRecapLoadComplete }: RecapProps) {
     const [visibleCount, setVisibleCount] = useState(48);
+    const [loadedCount, setLoadedCount] = useState(0);
+
+    // Reset loaded count when slug changes
+    useEffect(() => {
+        setLoadedCount(0);
+    }, [slug]);
 
     const computeSlices = () => {
         if (visibleCount >= count) {
@@ -138,7 +148,16 @@ export default function Recap({ slug, count, events, overlayText, isYear }: Reca
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
-    if (slices.length === 0) return null;
+    useEffect(() => {
+        if (slices.length > 0 && loadedCount >= slices.length) {
+            if (onRecapLoadComplete) onRecapLoadComplete();
+        }
+    }, [loadedCount, slices.length, onRecapLoadComplete]);
+
+    if (slices.length === 0) {
+        if (onRecapLoadComplete) onRecapLoadComplete(); // Signal completion immediately if nothing to load
+        return null;
+    }
 
     return (
         <section className="recap" id="recap" style={{ '--total-slices': slices.length } as React.CSSProperties}>
@@ -151,6 +170,7 @@ export default function Recap({ slug, count, events, overlayText, isYear }: Reca
                         slug={slug}
                         events={events}
                         eventIdx={sliceNumber - 1}
+                        onLoad={() => setLoadedCount((prev) => prev + 1)}
                     />
                 ))}
                 {overlayText && (
