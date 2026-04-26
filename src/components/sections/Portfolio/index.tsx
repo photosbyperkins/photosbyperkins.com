@@ -186,22 +186,48 @@ export default function Portfolio({ years }: PortfolioProps) {
     const [recapCount, setRecapCount] = useState<number>(0);
     const [recapEvents, setRecapEvents] = useState<string[]>([]);
 
+    const activeRequestRef = useRef<number>(0);
+
     const getForTab = useCallback(async (tabSlug: string, setData: boolean, isTeamMode: boolean) => {
         const basePath = isTeamMode ? `/data/teams` : `/data/years`;
-        return fetch(`${basePath}/${tabSlug}.json?build=${__BUILD_NUMBER__}`)
-            .then((res) => res.json())
-            .then((data) => {
-                if (setData) {
-                    setYearData(data.events || data);
-                    setRecapCount(data.recapCount || 0);
-                    setRecapEvents(data.recapEvents || []);
-                    if (scrollOnNextDataLoad.current) {
-                        scrollOnNextDataLoad.current = false;
-                        setTimeout(() => portfolioRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+
+        const requestToken = Date.now();
+        if (setData) {
+            activeRequestRef.current = requestToken;
+        }
+
+        const fetchPart = (slug: string, accumulate: boolean) => {
+            fetch(`${basePath}/${slug}.json?build=${__BUILD_NUMBER__}`)
+                .then((res) => res.json())
+                .then((data) => {
+                    if (setData) {
+                        if (activeRequestRef.current !== requestToken) return; // Tab switched, abort
+
+                        setYearData((prev) => (accumulate ? { ...prev, ...data.events } : data.events));
+
+                        if (!accumulate) {
+                            setRecapCount(data.recapCount || 0);
+                            setRecapEvents(data.recapEvents || []);
+
+                            if (scrollOnNextDataLoad.current) {
+                                scrollOnNextDataLoad.current = false;
+                                setTimeout(() => portfolioRef.current?.scrollIntoView({ behavior: 'smooth' }), 100);
+                            }
+                        }
+
+                        if (data.nextPart) {
+                            setTimeout(() => {
+                                if (activeRequestRef.current === requestToken) {
+                                    fetchPart(data.nextPart, true);
+                                }
+                            }, 300);
+                        }
                     }
-                }
-            })
-            .catch((err) => console.error(`Failed to load data for ${tabSlug}:`, err));
+                })
+                .catch((err) => console.error(`Failed to load data for ${slug}:`, err));
+        };
+
+        fetchPart(tabSlug, false);
     }, []);
 
     useEffect(() => {

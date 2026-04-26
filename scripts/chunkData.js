@@ -94,6 +94,46 @@ function generateRecapImages(eventsObj) {
     return images;
 }
 
+function writeChunkedFile(baseDir, baseName, dataEvents, extraPayload, chunkSize = 10) {
+    const eventEntries = Object.entries(dataEvents);
+    
+    if (eventEntries.length === 0) {
+        fs.writeFileSync(path.join(baseDir, `${baseName}.json`), JSON.stringify({ events: {}, ...extraPayload }, null, 0));
+        return;
+    }
+
+    const parts = [];
+    for (let i = 0; i < eventEntries.length; i += chunkSize) {
+        parts.push(eventEntries.slice(i, i + chunkSize));
+    }
+
+    for (let i = 0; i < parts.length; i++) {
+        const isFirst = i === 0;
+        const isLast = i === parts.length - 1;
+        const fileName = isFirst ? `${baseName}.json` : `${baseName}_part${i + 1}.json`;
+        const nextPart = isLast ? null : `${baseName}_part${i + 2}`;
+
+        const eventsObj = {};
+        for (const [k, v] of parts[i]) {
+            eventsObj[k] = v;
+        }
+
+        const payload = {
+            events: eventsObj
+        };
+        
+        if (nextPart) {
+            payload.nextPart = nextPart;
+        }
+        
+        if (isFirst && extraPayload) {
+            Object.assign(payload, extraPayload);
+        }
+
+        fs.writeFileSync(path.join(baseDir, fileName), JSON.stringify(payload, null, 0));
+    }
+}
+
 async function processChunks() {
     console.log('📦 Chunking photos.json data...');
 
@@ -349,7 +389,6 @@ async function processChunks() {
             });
         }
 
-        const yearFile = path.join(YEARS_DIR, `${year}.json`);
         const recapImages = generateRecapImages(processedYearData);
         recapDefinitions[year] = recapImages;
         const recapEvents = recapImages.map(img => img.title);
@@ -370,8 +409,8 @@ async function processChunks() {
             }
         }
 
-        fs.writeFileSync(yearFile, JSON.stringify({ events: processedYearData, recapCount: recapImages.length, recapEvents }, null, 0)); // Compress output
-        console.log(`  📄 Chunked year: ${year}.json and ${Object.keys(processedYearData).length} albums`);
+        writeChunkedFile(YEARS_DIR, year, processedYearData, { recapCount: recapImages.length, recapEvents });
+        console.log(`  📄 Chunked year: ${year} into parts with ${Object.keys(processedYearData).length} albums`);
     }
 
     // Write out Teams Data
@@ -381,7 +420,7 @@ async function processChunks() {
         uniqueTeams.push({ name: teamData.name, slug: teamSlug, count: Object.keys(teamData.events).length });
         // We no longer generate recap slices for teams since the random hero logic
         // often pulls images of the opposing team
-        fs.writeFileSync(path.join(TEAMS_DIR, `${teamSlug}.json`), JSON.stringify({ events: teamData.events, recapCount: 0, recapEvents: [] }, null, 0));
+        writeChunkedFile(TEAMS_DIR, teamSlug, teamData.events, { recapCount: 0, recapEvents: [] });
     }
 
     // Sort uniquely mapped teams by mostly alphabetically
