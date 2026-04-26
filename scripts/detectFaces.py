@@ -3,6 +3,9 @@ import json
 import cv2
 import numpy as np
 import urllib.request
+import concurrent.futures
+import threading
+import multiprocessing
 
 def download_model_files():
     model_dir = os.path.join('data', 'models')
@@ -25,7 +28,13 @@ def download_model_files():
     return prototxt_path, model_path
 
 prototxt_path, model_path = download_model_files()
-net = cv2.dnn.readNetFromCaffe(prototxt_path, model_path)
+
+thread_local = threading.local()
+
+def get_net():
+    if not hasattr(thread_local, "net"):
+        thread_local.net = cv2.dnn.readNetFromCaffe(prototxt_path, model_path)
+    return thread_local.net
 
 def weighted_median(values, weights):
     pass # Deprecated in favor of single best face
@@ -50,6 +59,8 @@ def get_focus(image_path):
             
         h, w = detect_img.shape[:2]
         blob = cv2.dnn.blobFromImage(detect_img, 1.0, (300, 300), (104.0, 177.0, 123.0))
+        
+        net = get_net()
         net.setInput(blob)
         detections = net.forward()
         
@@ -112,9 +123,18 @@ def get_focus(image_path):
                 crop_ratio = 1.0 / 4.0
                 crop_w = img_h * crop_ratio if (img_w / img_h) > crop_ratio else img_w
                 
-                # Reject faces that are wider than 90% of the slice width to prevent horizontal clipping
-                if face_w > crop_w * 0.90:
+                # Reject faces that are wider than 55% of the slice width to prevent horizontal clipping
+                # (bounding box only covers inner face, so we need ample room for the rest of the head)
+                if face_w > crop_w * 0.55:
                     continue
+
+                # Reject faces that cannot be perfectly centered because they are too close to the edge.
+                # If they are too close to the edge, the crop window clamps, pushing the face off-center.
+                min_cx = (crop_w / 2.0) / img_w
+                max_cx = 1.0 - min_cx
+                if cx < min_cx or cx > max_cx:
+                    continue
+
                     
                 # Reject faces that are extremely small (likely distant background faces)
                 if face_w / img_w < 0.05:
@@ -183,6 +203,7 @@ def main():
     processed_count = 0
     found_count = 0
     skipped_count = 0
+    paths_to_process = []
     
     for year, events in photos_data.items():
         for event_name, event_data in events.items():
@@ -210,22 +231,38 @@ def main():
                                 continue
                             
                         if os.path.exists(local_thumb_path):
-                            fx, fy, score = get_focus(local_thumb_path)
-                            if fx is not None:
-                                cache_data[thumb_web_path] = {"x": fx, "y": fy, "score": score}
-                                photo['focusX'] = fx
-                                photo['focusY'] = fy
-                                photo['faceScore'] = score
-                                found_count += 1
-                            else:
-                                cache_data[thumb_web_path] = {"score": score} # 0.0
-                                photo['faceScore'] = score
-                            processed_count += 1
+                            paths_to_process.append((photo, thumb_web_path, local_thumb_path))
                         else:
                             cache_data[thumb_web_path] = None
                             
-                        if processed_count > 0 and processed_count % 100 == 0:
-                            print(f"  Processed {processed_count} new images... ({found_count} faces tracked so far)")
+    def process_image(item):
+        photo, thumb_web_path, local_thumb_path = item
+        fx, fy, score = get_focus(local_thumb_path)
+        return photo, thumb_web_path, fx, fy, score
+
+    if paths_to_process:
+        print(f"Processing {len(paths_to_process)} new images concurrently...")
+        threads = min(32, (multiprocessing.cpu_count() or 1) * 2)
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=threads) as executor:
+            future_to_item = {executor.submit(process_image, item): item for item in paths_to_process}
+            
+            for future in concurrent.futures.as_completed(future_to_item):
+                photo, thumb_web_path, fx, fy, score = future.result()
+                
+                if fx is not None:
+                    cache_data[thumb_web_path] = {"x": fx, "y": fy, "score": score}
+                    photo['focusX'] = fx
+                    photo['focusY'] = fy
+                    photo['faceScore'] = score
+                    found_count += 1
+                else:
+                    cache_data[thumb_web_path] = {"score": score}
+                    photo['faceScore'] = score
+                    
+                processed_count += 1
+                if processed_count % 100 == 0:
+                    print(f"  Processed {processed_count}/{len(paths_to_process)} images... ({found_count} faces tracked so far)")
                             
     # Second pass: Select the best hero image for each event based on faceScore
     print("Selecting optimal hero images for each event...")
