@@ -242,7 +242,7 @@ export default function Portfolio({ years }: PortfolioProps) {
         });
     }, [years, getForTab]);
 
-    const events = Object.entries(yearData).reverse();
+    const events = Object.entries(yearData);
 
     const isTeamMode = !years.includes(selectedTab);
     const activeTeamMeta = isTeamMode ? teamIndex.find((t) => t.slug === selectedTab) : null;

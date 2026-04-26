@@ -49,7 +49,6 @@ const RecapSliceItem = ({ sliceNumber, idx, slug, events, eventIdx }: any) => {
 };
 
 export default function Recap({ slug, count, events, overlayText, isYear }: RecapProps) {
-
     const [visibleCount, setVisibleCount] = useState(48);
 
     const computeSlices = () => {
@@ -129,7 +128,6 @@ export default function Recap({ slug, count, events, overlayText, isYear }: Reca
 
     useEffect(() => {
         const checkMobile = () => {
-
             const w = window.innerWidth;
             // Target roughly 65px per slice for maximum granularity, clamped between 6 and 48
             const calculatedSlices = Math.floor(w / 65);

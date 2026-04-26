@@ -255,16 +255,19 @@ async function processChunks() {
             const dateB = dateMatchB ? dateMatchB[1] : '';
 
             if (dateA !== dateB) {
-                return dateA.localeCompare(dateB);
+                // Reverse chronological by date (latest first)
+                return dateB.localeCompare(dateA);
             }
 
             const timeA = eventA.earliestTime || 0;
             const timeB = eventB.earliestTime || 0;
             if (timeA !== timeB) {
-                return timeA - timeB;
+                // Reverse chronological by time (latest first)
+                return timeB - timeA;
             }
 
-            return nameA.localeCompare(nameB);
+            // Reverse alphabetical if dates are identical
+            return nameB.localeCompare(nameA);
         });
 
         for (const [eventName, event] of sortedYearEntries) {
@@ -416,9 +419,44 @@ async function processChunks() {
     const uniqueTeams = [];
     for (const [teamSlug, teamData] of Object.entries(globalTeamsList)) {
         uniqueTeams.push({ name: teamData.name, slug: teamSlug, count: Object.keys(teamData.events).length });
+        
+        // Sort team events in reverse chronological order across all years
+        const sortedTeamEvents = {};
+        const teamEventEntries = Object.entries(teamData.events).sort((a, b) => {
+            const [keyA, evA] = a;
+            const [keyB, evB] = b;
+            
+            // Keys look like "[2024] 10.22 Event"
+            const yearA = keyA.match(/^\[(\d{4})\]/)?.[1] || '';
+            const yearB = keyB.match(/^\[(\d{4})\]/)?.[1] || '';
+            
+            if (yearA !== yearB) {
+                return yearB.localeCompare(yearA); // Latest year first
+            }
+            
+            const dateA = keyA.match(/\] (\d{2}\.\d{2})/)?.[1] || '';
+            const dateB = keyB.match(/\] (\d{2}\.\d{2})/)?.[1] || '';
+            
+            if (dateA !== dateB) {
+                return dateB.localeCompare(dateA); // Latest date first
+            }
+            
+            const timeA = evA.earliestTime || 0;
+            const timeB = evB.earliestTime || 0;
+            if (timeA !== timeB) {
+                return timeB - timeA; // Latest time first
+            }
+            
+            return keyB.localeCompare(keyA);
+        });
+        
+        for (const [k, v] of teamEventEntries) {
+            sortedTeamEvents[k] = v;
+        }
+
         // We no longer generate recap slices for teams since the random hero logic
         // often pulls images of the opposing team
-        writeChunkedFile(TEAMS_DIR, teamSlug, teamData.events, { recapCount: 0, recapEvents: [] });
+        writeChunkedFile(TEAMS_DIR, teamSlug, sortedTeamEvents, { recapCount: 0, recapEvents: [] });
     }
 
     // Sort uniquely mapped teams by mostly alphabetically
