@@ -1,11 +1,11 @@
 import { useRef, useCallback } from 'react';
 
 export function usePortfolioScroll(portfolioRef: React.RefObject<HTMLDivElement | null>) {
-    const scrollOnNextDataLoad = useRef(false);
+    const scrollOnNextDataLoadRef = useRef(false);
 
     const handleDataLoad = useCallback(() => {
-        if (scrollOnNextDataLoad.current) {
-            scrollOnNextDataLoad.current = false;
+        if (scrollOnNextDataLoadRef.current) {
+            scrollOnNextDataLoadRef.current = false;
             // Add a small delay to ensure DOM has updated with new data before scrolling
             setTimeout(() => {
                 if (portfolioRef.current) {
@@ -15,5 +15,5 @@ export function usePortfolioScroll(portfolioRef: React.RefObject<HTMLDivElement 
         }
     }, [portfolioRef]);
 
-    return { scrollOnNextDataLoad, handleDataLoad };
+    return { scrollOnNextDataLoadRef, handleDataLoad };
 }

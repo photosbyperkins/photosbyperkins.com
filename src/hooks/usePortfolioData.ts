@@ -111,6 +111,7 @@ export function usePortfolioData({ selectedTab, years, onDataLoadAction }: UsePo
     useEffect(() => {
         if (!selectedTab) return;
         const isTeamMode = !years.includes(selectedTab);
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         getForTab(selectedTab, true, isTeamMode);
     }, [selectedTab, years, getForTab]);
 

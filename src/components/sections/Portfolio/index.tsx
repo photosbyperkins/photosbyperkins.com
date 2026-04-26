@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useInView, AnimatePresence, motion } from 'framer-motion';
 import { matchPath, useLocation, Link } from 'react-router-dom';
@@ -114,12 +114,12 @@ export default function Portfolio({ years }: PortfolioProps) {
         }
     }, [initialSearchOpen, fetchTeamIndex]);
 
-    const { isSticky, setIsSticky, stickyRef, sentinelRef } = useStickyHeader();
+    const { isSticky, stickyRef, sentinelRef } = useStickyHeader();
 
     const portfolioRef = useRef<HTMLDivElement>(null);
     const inView = useInView(portfolioRef, { once: true, margin: '-60px' });
 
-    const { scrollOnNextDataLoad, handleDataLoad } = usePortfolioScroll(portfolioRef);
+    const { scrollOnNextDataLoadRef, handleDataLoad } = usePortfolioScroll(portfolioRef);
 
     // Track route changes in an effect to safely mutate refs (React Compiler strict mode)
     const prevRouteHash = useRef(activeRouteSlug || '');
@@ -128,11 +128,11 @@ export default function Portfolio({ years }: PortfolioProps) {
         if (prevRouteHash.current !== currentRouteHash) {
             setTeamSearchQuery('');
             if (isSticky) {
-                scrollOnNextDataLoad.current = true;
+                scrollOnNextDataLoadRef.current = true;
             }
             prevRouteHash.current = currentRouteHash;
         }
-    }, [activeRouteSlug, isSticky, scrollOnNextDataLoad]);
+    }, [activeRouteSlug, isSticky, scrollOnNextDataLoadRef]);
 
     useEffect(() => {
         if (initialYear && initialEvent && (years.includes(initialYear) || isTeamRoute)) {

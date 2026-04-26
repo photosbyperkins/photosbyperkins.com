@@ -44,11 +44,6 @@ export default function Lightbox({ images, index, year, eventName, onClose, onSe
     const prevOpacity = useTransform(x, [0, windowWidth], [0, 1]);
     const nextOpacity = useTransform(x, [-windowWidth, 0], [1, 0]);
 
-    const getImgSrc = (photo: PhotoInput) => {
-        const url = typeof photo === 'string' ? photo : photo?.original;
-        return url ? `${url}?v=${__BUILD_NUMBER__}` : undefined;
-    };
-
     const getThumbSrc = (photo: PhotoInput) => {
         const url = typeof photo === 'string' ? photo : photo?.thumb || photo?.original;
         return url ? `${url}?v=${__BUILD_NUMBER__}` : undefined;
@@ -120,8 +115,8 @@ export default function Lightbox({ images, index, year, eventName, onClose, onSe
         };
     }, []);
 
-    // Reset load state when the index changes
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setMainImageLoaded(false);
     }, [index]);
 
@@ -153,13 +148,6 @@ export default function Lightbox({ images, index, year, eventName, onClose, onSe
                 }
                 return distA - distB;
             });
-
-            const getWebpSrc = (idx: number) => {
-                const obj = images[idx];
-                if (!obj) return null;
-                const src = typeof obj === 'string' ? obj : obj.original;
-                return src.replace(/^(?:\/)?photos\//i, '/webp/').replace(/\.jpe?g$/i, '.webp');
-            };
 
             // Fire off immediate next/prev directly into the browser network pipeline
             const immediate = allIdxs.slice(0, 2);

@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Info } from 'lucide-react';
 import ThemeToggle from '../ui/ThemeToggle';
 import { useAppStore } from '../../store/useAppStore';
 import '../../styles/_nav.scss';

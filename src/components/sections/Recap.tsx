@@ -65,8 +65,8 @@ export default function Recap({ slug, count, events, overlayText, isYear, onReca
     const [visibleCount, setVisibleCount] = useState(48);
     const [loadedCount, setLoadedCount] = useState(0);
 
-    // Reset loaded count when slug changes
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setLoadedCount(0);
     }, [slug]);
 
@@ -153,6 +153,7 @@ export default function Recap({ slug, count, events, overlayText, isYear, onReca
     const debouncedCheckMobile = useDebounce(checkMobile, 150);
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         checkMobile();
         window.addEventListener('resize', debouncedCheckMobile);
         return () => window.removeEventListener('resize', debouncedCheckMobile);
