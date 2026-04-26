@@ -30,15 +30,12 @@
     --color-bg-rgb: 10, 10, 15;
     --color-bg-2: #0f0f1a;
     --color-bg-3: #141428;
-    --color-surface: rgba(255, 255, 255, 0.04);
-    --color-surface-hover: rgba(255, 255, 255, 0.08);
     --color-border: rgba(255, 255, 255, 0.1);
     --glass-border: rgba(255, 255, 255, 0.1);
     --glass-shadow: rgba(0, 0, 0, 0.5);
 
     // Accent: deep red (brightened for better contrast)
     --color-accent: #e60000;
-    --color-accent-2: #ff4500;
     --color-accent-glow: rgba(230, 0, 0, 0.35);
 
     // Text
@@ -71,6 +68,18 @@
     // Alignment vars
     --theme-toggle-size: 52px;
     --footer-height: 120px;
+
+    // Z-Index Tokens
+    --z-base: 1;
+    --z-elevated: 5;
+    --z-overlay: 10;
+    --z-sticky: 100;
+    --z-floating: 990;
+    --z-nav: 1000;
+    --z-lightbox: 9000;
+    --z-lightbox-controls: 9015;
+    --z-lightbox-overlay: 9020;
+    --z-modal: 9999;
 }
 
 :root[data-theme='light'] {
@@ -79,15 +88,12 @@
     --color-bg-rgb: 250, 250, 250;
     --color-bg-2: #f0f0f0;
     --color-bg-3: #e4e4e4;
-    --color-surface: rgba(0, 0, 0, 0.04);
-    --color-surface-hover: rgba(0, 0, 0, 0.08);
     --color-border: rgba(0, 0, 0, 0.1);
     --glass-border: rgba(0, 0, 0, 0.1);
     --glass-shadow: rgba(0, 0, 0, 0.1);
 
     // Accent
     --color-accent: #e60000;
-    --color-accent-2: #cc0000;
     --color-accent-glow: rgba(230, 0, 0, 0.15);
 
     // Text

@@ -3,7 +3,7 @@
 .about-overlay {
     position: fixed;
     inset: 0;
-    z-index: 9999;
+    z-index: var(--z-modal);
     @include apple-glass;
     display: flex;
     flex-direction: column;
@@ -12,7 +12,7 @@
     &__header-bar {
         flex: 0 0 auto;
         width: 100%;
-        z-index: 100;
+        z-index: var(--z-sticky);
         position: sticky;
         top: 0;
         padding: 1.5rem 0 1rem;

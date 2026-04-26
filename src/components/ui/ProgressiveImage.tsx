@@ -34,7 +34,7 @@ export default function ProgressiveImage({
 
         observer.observe(ref.current);
         return () => observer.disconnect();
-    }, [shouldLoad]);
+    }, []);
 
     return (
         <div

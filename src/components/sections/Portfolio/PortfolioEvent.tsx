@@ -4,8 +4,9 @@ import { Save, Star } from 'lucide-react';
 import ProgressiveImage from '../../ui/ProgressiveImage';
 import { FeaturedGridIcon } from '../../ui/icons';
 import { usePortfolioStore } from '../../../store/usePortfolioStore';
-import { formatTeamName } from '../../../utils/formatters';
+import { formatTeamName, parseEventTitle } from '../../../utils/formatters';
 import { useCanShare } from '../../../hooks/useCanShare';
+import { useEventAlbum } from '../../../hooks/useEventAlbum';
 import type { EventData, PhotoInput } from '../../../types';
 
 declare const __BUILD_NUMBER__: string;
@@ -33,9 +34,6 @@ const PortfolioEvent = memo(function PortfolioEvent({
     const setSharedPhoto = usePortfolioStore((state) => state.setSharedPhoto);
 
     const [ev, setEv] = useState<EventData>(initialEv);
-    const [loading, setLoading] = useState(false);
-    const [fetchError, setFetchError] = useState(false);
-    const [retryCount, setRetryCount] = useState(0);
     const [isGridView, setIsGridView] = useState(false);
 
     const ref = useRef<HTMLDivElement>(null);
@@ -48,40 +46,13 @@ const PortfolioEvent = memo(function PortfolioEvent({
         setIsGridView(false);
     }, [selectedYear]);
 
-    useEffect(() => {
-        if (
-            isVisible &&
-            (!ev.album || ev.album.length === 0) &&
-            ev.albumSlug &&
-            !loading &&
-            !fetchError &&
-            retryCount < 2
-        ) {
-            const timer = setTimeout(() => {
-                setLoading(true);
-                const loadYear = ev.originalYear || selectedYear;
-                fetch(`/data/albums/${loadYear}/${ev.albumSlug}.json?v=${__BUILD_NUMBER__}`)
-                    .then((res) => {
-                        if (res.status === 429) throw new Error('Too Many Requests');
-                        if (!res.ok) throw new Error('Failed to load');
-                        return res.json();
-                    })
-                    .then((albumData) => {
-                        setEv((prev) => ({ ...prev, album: albumData }));
-                        setLoading(false);
-                    })
-                    .catch((err) => {
-                        console.error(`Failed to load album for ${eventName}:`, err);
-                        setLoading(false);
-                        setRetryCount((prev) => prev + 1);
-                        if (retryCount >= 1) {
-                            setFetchError(true);
-                        }
-                    });
-            }, 0);
-            return () => clearTimeout(timer);
-        }
-    }, [isVisible, selectedYear, ev.albumSlug, ev.originalYear, eventName, ev.album, loading, fetchError, retryCount]);
+    const { loading, fetchError } = useEventAlbum({
+        ev,
+        isVisible,
+        selectedYear,
+        eventName,
+        setEv,
+    });
 
     const albumImages: PhotoInput[] = useMemo(() => {
         return ev.album || [];
@@ -138,44 +109,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
     });
 
     // Parsing title logic
-    const titleMatch = eventName.match(/^(?:\[(\d{4})\]\s*)?(\d{2}\.\d{2})\s+(.*)/);
-    const parsedYear = titleMatch ? titleMatch[1] : undefined;
-    const baseDatePrefix = titleMatch ? titleMatch[2] : '';
-    const mainTitle = titleMatch ? titleMatch[3] : eventName;
-
-    const datePrefix = (() => {
-        let prefix = baseDatePrefix && parsedYear ? `${baseDatePrefix}.${parsedYear.slice(-2)}` : baseDatePrefix;
-
-        if (baseDatePrefix) {
-            const [monthStr, dayStr] = baseDatePrefix.split('.');
-            const yearStr = parsedYear || ev.originalYear || selectedYear;
-
-            try {
-                const dateObj = new Date(parseInt(yearStr), parseInt(monthStr) - 1, parseInt(dayStr));
-                if (!isNaN(dateObj.getTime())) {
-                    const options: Intl.DateTimeFormatOptions = {
-                        month: '2-digit',
-                        day: '2-digit',
-                    };
-                    if (parsedYear) {
-                        options.year = '2-digit';
-                    }
-
-                    const parts = new Intl.DateTimeFormat(undefined, options).formatToParts(dateObj);
-
-                    prefix = parts
-                        .filter((part) => part.type === 'month' || part.type === 'day' || part.type === 'year')
-                        .map((part) => part.value)
-                        .join('.');
-                }
-            } catch (e) {
-                console.error('Failed to localize date:', e);
-            }
-        }
-
-        return prefix;
-    })();
-
+    const { mainTitle, datePrefix } = parseEventTitle(eventName, ev.originalYear, selectedYear);
     // Split by vs/versus first
     const baseTeams = mainTitle
         .split(/\s+(?:vs|versus)\s+/i)

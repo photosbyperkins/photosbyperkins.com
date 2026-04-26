@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { usePortfolioStore } from '../../store/usePortfolioStore';
+import { useDebounce } from '../../hooks/useDebounce';
 declare const __BUILD_NUMBER__: string;
 
 interface RecapEventMeta {
@@ -16,10 +17,19 @@ interface RecapProps {
     isYear?: boolean;
     onRecapLoadComplete?: () => void;
 }
+interface RecapSliceItemProps {
+    sliceNumber: number;
+    idx: number;
+    slug: string;
+    events?: RecapEventMeta[];
+    eventIdx: number;
+    onLoad?: () => void;
+}
 
-const RecapSliceItem = ({ sliceNumber, idx, slug, events, eventIdx, onLoad }: any) => {
+const RecapSliceItem = ({ sliceNumber, idx, slug, events, eventIdx, onLoad }: RecapSliceItemProps) => {
     const recapSrc = `/recap/${slug}/photo_${sliceNumber}.webp`;
     const [isLoaded, setIsLoaded] = useState(false);
+    const setSharedPhoto = usePortfolioStore((state) => state.setSharedPhoto);
 
     return (
         <motion.div
@@ -30,7 +40,6 @@ const RecapSliceItem = ({ sliceNumber, idx, slug, events, eventIdx, onLoad }: an
             onClick={() => {
                 if (events && events[eventIdx]) {
                     const meta = events[eventIdx];
-                    const setSharedPhoto = usePortfolioStore.getState().setSharedPhoto;
                     setSharedPhoto({ eventName: meta.eventName, photoIndex: meta.photoIndex });
                 }
             }}
@@ -61,7 +70,7 @@ export default function Recap({ slug, count, events, overlayText, isYear, onReca
         setLoadedCount(0);
     }, [slug]);
 
-    const computeSlices = () => {
+    const slices = useMemo(() => {
         if (visibleCount >= count) {
             return Array.from({ length: count }, (_, i) => i + 1);
         }
@@ -132,21 +141,22 @@ export default function Recap({ slug, count, events, overlayText, isYear, onReca
 
         finalIndices.sort((a, b) => a - b);
         return finalIndices.map((idx) => idx + 1);
-    };
+    }, [visibleCount, count, events]);
 
-    const slices = computeSlices();
+    const checkMobile = useCallback(() => {
+        const w = window.innerWidth;
+        // Target roughly 65px per slice for maximum granularity, clamped between 6 and 48
+        const calculatedSlices = Math.floor(w / 65);
+        setVisibleCount(Math.max(6, Math.min(48, calculatedSlices)));
+    }, []);
+
+    const debouncedCheckMobile = useDebounce(checkMobile, 150);
 
     useEffect(() => {
-        const checkMobile = () => {
-            const w = window.innerWidth;
-            // Target roughly 65px per slice for maximum granularity, clamped between 6 and 48
-            const calculatedSlices = Math.floor(w / 65);
-            setVisibleCount(Math.max(6, Math.min(48, calculatedSlices)));
-        };
         checkMobile();
-        window.addEventListener('resize', checkMobile);
-        return () => window.removeEventListener('resize', checkMobile);
-    }, []);
+        window.addEventListener('resize', debouncedCheckMobile);
+        return () => window.removeEventListener('resize', debouncedCheckMobile);
+    }, [checkMobile, debouncedCheckMobile]);
 
     useEffect(() => {
         if (slices.length > 0 && loadedCount >= slices.length) {

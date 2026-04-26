@@ -18,6 +18,7 @@ interface LightboxProps {
 }
 
 import { useCanShare } from '../../../hooks/useCanShare';
+import { useDebounce } from '../../../hooks/useDebounce';
 
 export default function Lightbox({ images, index, year, eventName, onClose, onSetIndex }: LightboxProps) {
     const canShare = useCanShare();
@@ -30,11 +31,14 @@ export default function Lightbox({ images, index, year, eventName, onClose, onSe
     const [mainImageLoaded, setMainImageLoaded] = useState(false);
     const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
 
+    const handleResize = useDebounce(() => {
+        setWindowWidth(window.innerWidth);
+    }, 150);
+
     useEffect(() => {
-        const handleResize = () => setWindowWidth(window.innerWidth);
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
-    }, []);
+    }, [handleResize]);
 
     const currentOpacity = useTransform(x, [-windowWidth, 0, windowWidth], [0, 1, 0]);
     const prevOpacity = useTransform(x, [0, windowWidth], [0, 1]);

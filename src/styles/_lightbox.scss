@@ -1,0 +1,395 @@
+@use './globals' as *;
+
+.portfolio {
+    // --- Lightbox ---
+    &__lightbox {
+        position: fixed;
+        inset: 0;
+        z-index: var(--z-lightbox);
+        background: var(--color-bg);
+        transition: background-color var(--transition-fast);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+
+        img {
+            object-fit: contain;
+            border-radius: 2px;
+            cursor: grab;
+            user-select: none;
+            touch-action: none;
+
+            &:active {
+                cursor: grabbing;
+            }
+        }
+
+        &-content {
+            display: none; // Retired in favor of track-container
+        }
+
+        &-top-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 72px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.5rem;
+            z-index: var(--z-lightbox-controls);
+            background: transparent;
+            pointer-events: none;
+
+            button {
+                pointer-events: auto;
+            }
+        }
+
+        &-top-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            pointer-events: none;
+            position: relative;
+
+            & > * {
+                pointer-events: auto;
+            }
+        }
+
+        &-top-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            pointer-events: none;
+            position: relative;
+
+            & > * {
+                pointer-events: auto;
+            }
+        }
+
+        &-top-center {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            pointer-events: none;
+        }
+
+        &-data-display {
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            color: var(--color-text);
+            background: rgba(var(--color-bg-rgb), 0.65);
+            border: 1px solid var(--glass-border);
+            -webkit-backdrop-filter: blur(4px);
+            backdrop-filter: blur(4px);
+            border-radius: 8px;
+            height: 42px;
+            padding: 0 16px;
+            width: auto;
+            justify-content: center;
+            pointer-events: none;
+            user-select: none;
+            cursor: default;
+            position: relative;
+        }
+
+        &-data-info {
+            display: flex;
+            flex-direction: column;
+            white-space: nowrap;
+            font-size: 10px;
+            line-height: 1.1;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        &-data-row-top {
+            font-weight: 600;
+            color: var(--color-text);
+        }
+
+        &-data-row-bottom {
+            color: var(--color-text-muted);
+        }
+
+        &-menu {
+            position: absolute;
+            top: 52px;
+            left: 0;
+            background: rgba(20, 20, 20, 0.85);
+            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 6px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            min-width: 160px;
+            pointer-events: auto;
+            transform-origin: top left;
+        }
+
+        &-menu-item {
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 10px 12px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            font-family: var(--font-primary);
+            font-size: 0.95rem;
+
+            svg {
+                opacity: 0.8;
+            }
+
+            &.is-disabled {
+                opacity: 0.4;
+                cursor: not-allowed;
+            }
+
+            @media (hover: hover) {
+                &:hover:not(.is-disabled) {
+                    background: rgba(255, 255, 255, 0.1);
+
+                    svg {
+                        opacity: 1;
+                    }
+                }
+            }
+        }
+
+        &-action {
+            background: rgba(var(--color-bg-rgb), 0.65);
+            border: 1px solid var(--glass-border);
+            color: var(--color-text-muted);
+            width: 40px;
+            height: 40px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            -webkit-backdrop-filter: blur(4px);
+            backdrop-filter: blur(4px);
+
+            @media (hover: hover) {
+                &:hover {
+                    background: rgba(var(--color-bg-rgb), 0.9);
+                    color: var(--color-text);
+                }
+            }
+        }
+
+        &-track-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: grab;
+
+            &:active {
+                cursor: grabbing;
+            }
+        }
+
+        &-track {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 300vw;
+            height: 100%;
+            touch-action: none;
+            will-change: transform;
+        }
+
+        &-slide {
+            width: 100vw;
+            height: 100%;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            &--prev,
+            &--next {
+                // Ensure adjacent tracking slides are fully opaque and sharp BEFORE swiping
+                // to eliminate the "fade from white" transparency effect.
+                opacity: 1;
+            }
+        }
+
+        &-image-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        &-ambient {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+
+            &-img {
+                position: absolute;
+                inset: 0;
+                width: 100%;
+                height: 100%;
+                background-size: cover;
+                background-position: center;
+                filter: blur(70px) saturate(130%);
+                transform: scale(1.25);
+            }
+
+            &-glass {
+                position: absolute;
+                inset: 0;
+                // Instagram uses a strong dark or light tint overlay over top the mega-blurred image
+                // instead of an expensive browser backdrop-filter
+                background: rgba(0, 0, 0, 0.65);
+            }
+
+            html[data-theme='light'] &-glass {
+                background: rgba(255, 255, 255, 0.65);
+            }
+        }
+
+        &-image-full {
+            position: relative;
+            z-index: 1;
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            border-radius: 4px;
+        }
+
+        &-zoom-toggle {
+            position: absolute;
+            bottom: 0;
+            height: 100px;
+            right: 24px;
+            display: flex;
+            align-items: center;
+            z-index: var(--z-lightbox-overlay);
+            pointer-events: none;
+
+            & > * {
+                pointer-events: auto;
+            }
+
+            @media (max-width: 600px) {
+                right: 12px;
+            }
+        }
+
+        &-zoom-btn {
+            background: rgba(var(--color-bg-rgb), 0.65);
+            border: 1px solid var(--glass-border);
+            color: var(--color-text-muted);
+            width: 44px;
+            height: 44px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            -webkit-backdrop-filter: blur(4px);
+            backdrop-filter: blur(4px);
+
+            @media (max-width: 600px) {
+                width: 40px;
+                height: 40px;
+            }
+
+            @media (hover: hover) {
+                &:hover:not(.is-disabled) {
+                    background: rgba(var(--color-bg-rgb), 0.9);
+                    color: var(--color-text);
+                    transform: scale(1.05);
+                }
+            }
+
+            &.is-disabled {
+                opacity: 0.3;
+                cursor: not-allowed;
+            }
+        }
+
+        &-footer {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1.5rem;
+            z-index: var(--z-lightbox-controls);
+            background: transparent;
+            pointer-events: none;
+
+            & > * {
+                pointer-events: auto;
+            }
+
+            &-nav {
+                background: rgba(var(--color-bg-rgb), 0.65);
+                border: 1px solid var(--glass-border);
+                border-radius: 6px;
+                color: var(--color-text-muted);
+                width: 40px;
+                height: 40px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                transition: all var(--transition-fast);
+                -webkit-backdrop-filter: blur(4px);
+                backdrop-filter: blur(4px);
+
+                @media (hover: hover) {
+                    &:hover {
+                        background: rgba(var(--color-bg-rgb), 0.9);
+                        color: var(--color-text);
+                    }
+                }
+            }
+        }
+
+        &-counter {
+            color: var(--color-text);
+            font-size: 9px;
+            line-height: 1;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+    }
+}

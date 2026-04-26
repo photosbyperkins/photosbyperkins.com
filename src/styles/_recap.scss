@@ -48,7 +48,7 @@
 
             text-transform: uppercase;
             pointer-events: none;
-            z-index: 10;
+            z-index: var(--z-overlay);
             margin: 0;
             line-height: 1;
 

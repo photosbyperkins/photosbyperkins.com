@@ -1,6 +1,7 @@
 import { forwardRef, useRef, useState, useCallback, useEffect, useImperativeHandle } from 'react';
 import { motion, useMotionValue, animate } from 'framer-motion';
 import type { PhotoInput } from '../../../types';
+import { useDebounce } from '../../../hooks/useDebounce';
 
 export interface LightboxSlideHandle {
     toggleZoom: (clientX?: number, clientY?: number) => void;
@@ -95,16 +96,19 @@ const LightboxSlide = forwardRef<
         }
     }, [image, calculateMaxScale]);
 
-    useEffect(() => {
-        const handleResize = () => {
-            calculateMaxScale();
-            animate(scale, 1);
-            animate(panX, 0);
-            animate(panY, 0);
-        };
-        window.addEventListener('resize', handleResize);
-        return () => window.removeEventListener('resize', handleResize);
+    const handleResize = useCallback(() => {
+        calculateMaxScale();
+        animate(scale, 1);
+        animate(panX, 0);
+        animate(panY, 0);
     }, [calculateMaxScale, panX, panY, scale]);
+
+    const debouncedResize = useDebounce(handleResize, 150);
+
+    useEffect(() => {
+        window.addEventListener('resize', debouncedResize);
+        return () => window.removeEventListener('resize', debouncedResize);
+    }, [debouncedResize]);
 
     useEffect(() => {
         scale.set(1);

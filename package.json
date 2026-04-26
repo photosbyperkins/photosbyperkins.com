@@ -7,7 +7,7 @@
     "dev": "vite",
     "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,css,scss}\"",
     "clean": "node scripts/cleanDist.js",
-    "build": "npm run clean && npm run format && tsc && npm run index && npm run webp && npm run thumbnails && npm run favicon && node scripts/processAndCopyPhotos.js && npm run faces && npm run wftda && npm run chunk-data && npm run recaps && vite build && node scripts/generateSitemap.js && node scripts/generateSharePages.js",
+    "build": "node scripts/build.js",
     "deploy": "node scripts/deploy.js",
     "fix-permissions": "node scripts/fixPermissions.js",
     "faces": "python scripts/detectFaces.py",
@@ -57,6 +57,7 @@
     "react-dom": "^19.2.5",
     "react-helmet-async": "^3.0.0",
     "react-router-dom": "^7.14.1",
-    "sass": "^1.99.0"
+    "sass": "^1.99.0",
+    "zod": "^4.3.6"
   }
 }

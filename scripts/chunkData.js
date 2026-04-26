@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { z } from 'zod';
 const WFTDA_FILE = path.join(process.cwd(), 'data', 'wftda-matches.json');
 
 const DATA_FILE = path.join(process.cwd(), 'data', 'photos.json');
@@ -141,6 +142,20 @@ async function processChunks() {
     }
 
     const data = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
+
+    const photosSchema = z.record(
+        z.string(), // Year
+        z.record(
+            z.string(), // Event Name
+            z.object({
+                album: z.array(z.any()),
+                highlights: z.array(z.any()).optional(),
+            }).passthrough()
+        )
+    );
+
+    photosSchema.parse(data);
+    console.log('✅ photos.json schema validated via Zod successfully.');
 
     // 1. Generate Index
     const years = Object.keys(data).sort((a, b) => b.localeCompare(a));
