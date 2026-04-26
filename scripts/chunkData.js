@@ -51,14 +51,12 @@ function generateRecapImages(eventsObj) {
             title: eventName,
             date: ev.date || baseDatePrefix,
             teams: teams.length > 0 ? teams : undefined,
+            albumIndex: typeof photoInput === 'object' ? photoInput.albumIndex : undefined,
         };
     };
 
     validEvents.forEach(([eventName, ev]) => {
-        if (ev.hero) {
-            const img = formatImage(ev.hero, eventName, ev);
-            if (img) images.push(img);
-        } else if (ev.recapImages && ev.recapImages.length > 0) {
+        if (ev.recapImages && ev.recapImages.length > 0) {
              const img = formatImage(ev.recapImages[0], eventName, ev);
              if (img) images.push(img);
         }
@@ -66,7 +64,7 @@ function generateRecapImages(eventsObj) {
 
     if (images.length < 48 && validEvents.length > 0) {
         let addedInRound = true;
-        let photoIndex = 0;
+        let photoIndex = 1;
         while (images.length < 48 && addedInRound) {
             addedInRound = false;
             for (const [eventName, ev] of validEvents) {
@@ -283,7 +281,7 @@ async function processChunks() {
                 albumSlug: slug,
                 originalYear: year, // Required when fetched from a team index!
                 recapImages: (event.album || [])
-                    .slice()
+                    .map((img, idx) => ({ ...img, albumIndex: idx }))
                     .sort((a, b) => (b.faceScore || 0) - (a.faceScore || 0))
                     .slice(0, 24), // Pre-compute fallback images for the recap grid
             };
@@ -391,7 +389,7 @@ async function processChunks() {
 
         const recapImages = generateRecapImages(processedYearData);
         recapDefinitions[year] = recapImages;
-        const recapEvents = recapImages.map(img => img.title);
+        const recapEvents = recapImages.map(img => ({ eventName: img.title, photoIndex: img.albumIndex }));
 
         // Strip payload bloat from processedYearData before saving it.
         // Because globalTeamsList uses the exact same evMeta references, this also cleans the team chunks.

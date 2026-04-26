@@ -15,8 +15,9 @@ const LightboxSlide = forwardRef<
         alt: string;
         onZoomChange?: (isZoomed: boolean) => void;
         onCanZoomChange?: (canZoom: boolean) => void;
+        onLoad?: () => void;
     }
->(function LightboxSlide({ image, alt, onZoomChange, onCanZoomChange }, ref) {
+>(function LightboxSlide({ image, alt, onZoomChange, onCanZoomChange, onLoad }, ref) {
     const limitsRef = useRef<HTMLDivElement>(null);
     const [dragMode, setDragMode] = useState<boolean | 'x' | 'y'>(false);
 
@@ -278,7 +279,10 @@ const LightboxSlide = forwardRef<
                 src={`${displayUrl}?v=${__BUILD_NUMBER__}`}
                 alt={alt}
                 className="portfolio__lightbox-image-full"
-                onLoad={calculateMaxScale}
+                onLoad={() => {
+                    calculateMaxScale();
+                    if (onLoad) onLoad();
+                }}
                 style={{
                     scale,
                     x: panX,

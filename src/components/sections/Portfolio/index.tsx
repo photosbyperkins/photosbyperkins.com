@@ -184,7 +184,7 @@ export default function Portfolio({ years }: PortfolioProps) {
 
     const [yearData, setYearData] = useState<YearData>({});
     const [recapCount, setRecapCount] = useState<number>(0);
-    const [recapEvents, setRecapEvents] = useState<string[]>([]);
+    const [recapEvents, setRecapEvents] = useState<{ eventName: string; photoIndex: number }[]>([]);
 
     const activeRequestRef = useRef<number>(0);
 

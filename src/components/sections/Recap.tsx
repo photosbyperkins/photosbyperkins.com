@@ -1,11 +1,17 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { usePortfolioStore } from '../../store/usePortfolioStore';
 declare const __BUILD_NUMBER__: string;
+
+interface RecapEventMeta {
+    eventName: string;
+    photoIndex: number;
+}
 
 interface RecapProps {
     slug: string;
     count: number;
-    events?: string[];
+    events?: RecapEventMeta[];
     overlayText?: string;
     isYear?: boolean;
 }
@@ -22,12 +28,9 @@ const RecapSliceItem = ({ sliceNumber, idx, slug, events, eventIdx }: any) => {
             aria-label={`View recap image ${sliceNumber}`}
             onClick={() => {
                 if (events && events[eventIdx]) {
-                    const eventElement = document.getElementById(
-                        `event-${(events[eventIdx] || '').replace(/[^a-zA-Z0-9-]/g, '-')}`
-                    );
-                    if (eventElement) {
-                        eventElement.scrollIntoView({ behavior: 'auto', block: 'start' });
-                    }
+                    const meta = events[eventIdx];
+                    const setSharedPhoto = usePortfolioStore.getState().setSharedPhoto;
+                    setSharedPhoto({ eventName: meta.eventName, photoIndex: meta.photoIndex });
                 }
             }}
             initial={{ rotateY: -180, opacity: 0 }}
@@ -46,7 +49,7 @@ const RecapSliceItem = ({ sliceNumber, idx, slug, events, eventIdx }: any) => {
 };
 
 export default function Recap({ slug, count, events, overlayText, isYear }: RecapProps) {
-    const [isMobile, setIsMobile] = useState(false);
+
     const [visibleCount, setVisibleCount] = useState(48);
 
     const computeSlices = () => {
@@ -63,14 +66,14 @@ export default function Recap({ slug, count, events, overlayText, isYear }: Reca
         }
 
         const groups: number[][] = [];
-        let currentEvent = events[0];
+        let currentEvent = events[0].eventName;
         let currentGroup: number[] = [0];
 
         for (let i = 1; i < count; i++) {
-            if (events[i] !== currentEvent) {
+            if (events[i].eventName !== currentEvent) {
                 groups.push(currentGroup);
                 currentGroup = [i];
-                currentEvent = events[i];
+                currentEvent = events[i].eventName;
             } else {
                 currentGroup.push(i);
             }
@@ -126,7 +129,7 @@ export default function Recap({ slug, count, events, overlayText, isYear }: Reca
 
     useEffect(() => {
         const checkMobile = () => {
-            setIsMobile(window.innerWidth <= 800);
+
             const w = window.innerWidth;
             // Target roughly 65px per slice for maximum granularity, clamped between 6 and 48
             const calculatedSlices = Math.floor(w / 65);

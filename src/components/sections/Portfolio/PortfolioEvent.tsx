@@ -89,16 +89,10 @@ const PortfolioEvent = memo(function PortfolioEvent({
 
     useEffect(() => {
         if (isSharedEvent && ev.album && ev.album.length > 0 && sharedPhoto) {
-            // Need a tiny delay for layout to settle before scrolling
-            setTimeout(() => {
-                if (ref.current) {
-                    ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-                if (sharedPhoto.photoIndex !== undefined) {
-                    openLightbox(albumImages, sharedPhoto.photoIndex, eventName, selectedYear);
-                }
-                setSharedPhoto(null);
-            }, 100);
+            if (sharedPhoto.photoIndex !== undefined) {
+                openLightbox(albumImages, sharedPhoto.photoIndex, eventName, selectedYear);
+            }
+            setSharedPhoto(null);
         }
     }, [isSharedEvent, ev.album, sharedPhoto, eventName, selectedYear, openLightbox, setSharedPhoto, albumImages]);
 

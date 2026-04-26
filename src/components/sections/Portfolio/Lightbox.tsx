@@ -27,6 +27,7 @@ export default function Lightbox({ images, index, year, eventName, onClose, onSe
     const slideRef = useRef<LightboxSlideHandle>(null);
     const [isAnimating, setIsAnimating] = useState(false);
     const [isZoomed, setIsZoomed] = useState(false);
+    const [mainImageLoaded, setMainImageLoaded] = useState(false);
     const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
 
     useEffect(() => {
@@ -115,11 +116,18 @@ export default function Lightbox({ images, index, year, eventName, onClose, onSe
         };
     }, []);
 
+    // Reset load state when the index changes
+    useEffect(() => {
+        setMainImageLoaded(false);
+    }, [index]);
+
     // ASYNC PRELOADER: Smart background album fetcher
     // Implements an expanding radius preload that prioritizes nearest neighbors
     // to the current photo, fanning out across the entire album without
     // suffocating the network queue by awaiting images sequentially.
     useEffect(() => {
+        if (!mainImageLoaded) return; // Wait for the high-res image the user is staring at to finish loading FIRST!
+
         let isCancelled = false;
 
         const preloadAlbum = async () => {
@@ -184,7 +192,7 @@ export default function Lightbox({ images, index, year, eventName, onClose, onSe
         return () => {
             isCancelled = true;
         };
-    }, [index, images, total]);
+    }, [mainImageLoaded, index, images, total]);
 
     const handleDownload = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -382,6 +390,7 @@ export default function Lightbox({ images, index, year, eventName, onClose, onSe
                                     : `Photo ${index + 1}`
                             }
                             onZoomChange={setIsZoomed}
+                            onLoad={() => setMainImageLoaded(true)}
                         />
                     </div>
 
