@@ -45,7 +45,7 @@ def get_focus(image_path):
         img = cv2.imdecode(img_data, cv2.IMREAD_COLOR)
         
         if img is None:
-            return None, None, 0.0
+            return None, None, 0.0, 0.0
             
         img_h, img_w = img.shape[:2]
         
@@ -97,6 +97,9 @@ def get_focus(image_path):
             best_face = None
             max_weight = -1
             
+            best_recap_face = None
+            max_recap_weight = -1
+            
             for (sx, sy, sw, sh, confidence) in all_faces:
                 x = sx / scale
                 y = sy / scale
@@ -123,6 +126,23 @@ def get_focus(image_path):
                 crop_ratio = 1.0 / 4.0
                 crop_w = img_h * crop_ratio if (img_w / img_h) > crop_ratio else img_w
                 
+                # Reject faces that are extremely small (likely distant background faces)
+                if face_w / img_w < 0.05:
+                    continue
+                
+                dist_from_center_x = abs(cx - 0.5)
+                dist_from_center_y = abs(cy - 0.5)
+                center_penalty = 1.0 - (dist_from_center_x * 0.5 + dist_from_center_y * 0.5)
+                
+                weight = sharpness * (normalized_area ** 0.5) * float(confidence) * center_penalty
+                
+                # --- Lightbox/Portfolio Algorithm (Lenient) ---
+                if weight > max_weight:
+                    max_weight = weight
+                    adjusted_cy = max(0.0, cy - (face_h / img_h * 0.5))
+                    best_face = (cx, adjusted_cy)
+                    
+                # --- Recap Algorithm (Strict) ---
                 # Reject faces that are wider than 55% of the slice width to prevent horizontal clipping
                 # (bounding box only covers inner face, so we need ample room for the rest of the head)
                 if face_w > crop_w * 0.55:
@@ -135,36 +155,28 @@ def get_focus(image_path):
                 if cx < min_cx or cx > max_cx:
                     continue
 
-                    
-                # Reject faces that are extremely small (likely distant background faces)
-                if face_w / img_w < 0.05:
-                    continue
-                
-                dist_from_center_x = abs(cx - 0.5)
-                dist_from_center_y = abs(cy - 0.5)
-                center_penalty = 1.0 - (dist_from_center_x * 0.5 + dist_from_center_y * 0.5)
-                
-                weight = sharpness * (normalized_area ** 0.5) * float(confidence) * center_penalty
-                
-                if weight > max_weight:
-                    max_weight = weight
+                if weight > max_recap_weight:
+                    max_recap_weight = weight
                     adjusted_cy = max(0.0, cy - (face_h / img_h * 0.5))
-                    best_face = (cx, adjusted_cy)
+                    best_recap_face = (cx, adjusted_cy)
                 
             if best_face is not None:
                 total_faces = len(all_faces)
-                # Severely penalize multiple faces to ensure we pick "singular face only" portraits
-                # total_faces=1 -> divider=1
-                # total_faces=2 -> divider=16
-                # total_faces=3 -> divider=81
+                
+                # Lightbox/Portfolio Score (No multiple face penalty)
+                image_score = float(max_weight)
+                
+                # Recap Score (Strict multiple face penalty)
                 penalty_factor = float(total_faces ** 4.0)
-                image_score = float(max_weight) / penalty_factor if total_faces > 0 else 0.0
-                return float(best_face[0]), float(best_face[1]), image_score
+                recap_score = float(max_recap_weight) / penalty_factor if total_faces > 0 and best_recap_face is not None else 0.0
+                
+                # Use best_face coordinates for general focus
+                return float(best_face[0]), float(best_face[1]), image_score, recap_score
                 
     except Exception as e:
         print(f"Error processing {image_path}: {e}")
         
-    return None, None, 0.0
+    return None, None, 0.0, 0.0
 
 def main():
     data_dir = 'data'
@@ -227,6 +239,7 @@ def main():
                                     photo['focusY'] = val['y']
                                     found_count += 1
                                 photo['faceScore'] = val['score']
+                                photo['recapScore'] = val.get('recapScore', 0.0)
                                 skipped_count += 1
                                 continue
                             
@@ -237,8 +250,8 @@ def main():
                             
     def process_image(item):
         photo, thumb_web_path, local_thumb_path = item
-        fx, fy, score = get_focus(local_thumb_path)
-        return photo, thumb_web_path, fx, fy, score
+        fx, fy, score, recap_score = get_focus(local_thumb_path)
+        return photo, thumb_web_path, fx, fy, score, recap_score
 
     if paths_to_process:
         print(f"Processing {len(paths_to_process)} new images concurrently...")
@@ -248,16 +261,17 @@ def main():
             future_to_item = {executor.submit(process_image, item): item for item in paths_to_process}
             
             for future in concurrent.futures.as_completed(future_to_item):
-                photo, thumb_web_path, fx, fy, score = future.result()
+                photo, thumb_web_path, fx, fy, score, recap_score = future.result()
                 
                 if fx is not None:
-                    cache_data[thumb_web_path] = {"x": fx, "y": fy, "score": score}
+                    cache_data[thumb_web_path] = {"x": fx, "y": fy, "score": score, "recapScore": recap_score}
                     photo['focusX'] = fx
                     photo['focusY'] = fy
                     photo['faceScore'] = score
+                    photo['recapScore'] = recap_score
                     found_count += 1
                 else:
-                    cache_data[thumb_web_path] = {"score": score}
+                    cache_data[thumb_web_path] = {"score": score, "recapScore": recap_score}
                     photo['faceScore'] = score
                     
                 processed_count += 1

@@ -290,7 +290,12 @@ async function processChunks() {
             const albumFile = path.join(yearAlbumsDir, `${slug}.json`);
 
             // Save album separately
-            fs.writeFileSync(albumFile, JSON.stringify(event.album || [], null, 0));
+            const cleanAlbum = (event.album || []).map(img => {
+                if (typeof img === 'string') return img;
+                const { faceScore, recapScore, ...rest } = img;
+                return rest;
+            });
+            fs.writeFileSync(albumFile, JSON.stringify(cleanAlbum, null, 0));
 
             const evMeta = {
                 ...event,
@@ -300,7 +305,7 @@ async function processChunks() {
                 originalYear: year, // Required when fetched from a team index!
                 recapImages: (event.album || [])
                     .map((img, idx) => ({ ...img, albumIndex: idx }))
-                    .sort((a, b) => (b.faceScore || 0) - (a.faceScore || 0))
+                    .sort((a, b) => (b.recapScore || 0) - (a.recapScore || 0))
                     .slice(0, 24), // Pre-compute fallback images for the recap grid
             };
 

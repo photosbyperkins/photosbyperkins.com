@@ -1,5 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import type { YearData } from '../types';
+import type { YearData, PhotoInput, FavoriteStoreItem } from '../types';
+import { usePortfolioStore } from '../store/usePortfolioStore';
+import { parseEventTitle } from '../utils/formatters';
 
 interface FetchPayload {
     events: YearData;
@@ -27,8 +29,50 @@ export function usePortfolioData({ selectedTab, years, onDataLoadAction }: UsePo
 
     const activeRequestRef = useRef<number>(0);
 
+    const favorites = usePortfolioStore((state) => state.favorites);
+    const isLightboxOpen = usePortfolioStore((state) => state.lightbox.isOpen);
+    const [displayFavorites, setDisplayFavorites] = useState(favorites);
+
+    useEffect(() => {
+        if (!isLightboxOpen) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setDisplayFavorites(favorites);
+        }
+    }, [favorites, isLightboxOpen]);
+
+    useEffect(() => {
+        if (selectedTab === 'favorites') {
+            const sortedFavorites = [...displayFavorites].sort((a: FavoriteStoreItem, b: FavoriteStoreItem) => {
+                const getTimestamp = (item: FavoriteStoreItem) => {
+                    if (!item || typeof item !== 'object' || !('eventName' in item)) return 0;
+                    const { baseDatePrefix, parsedYear } = parseEventTitle(item.eventName, item.year);
+                    const year = parsedYear || item.year || '2000';
+                    if (baseDatePrefix) {
+                        const [month, day] = baseDatePrefix.split('.');
+                        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).getTime();
+                    }
+                    return new Date(parseInt(year), 0, 1).getTime();
+                };
+                return getTimestamp(b) - getTimestamp(a);
+            });
+
+            setYearData({
+                Favorites: {
+                    album: sortedFavorites as unknown as PhotoInput[],
+                    highlights: [],
+                    date: null,
+                },
+            });
+            setRecapCount(0);
+            setRecapEvents([]);
+            setIsRecapLoaded(true);
+        }
+    }, [selectedTab, displayFavorites]);
+
     const getForTab = useCallback(
         async (tabSlug: string, setData: boolean, isTeamMode: boolean) => {
+            if (tabSlug === 'favorites') return;
+
             const basePath = isTeamMode ? `/data/teams` : `/data/years`;
             const requestToken = Date.now();
 

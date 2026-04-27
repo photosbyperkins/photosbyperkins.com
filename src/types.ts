@@ -48,6 +48,14 @@ export type YearData = Record<string, EventData>;
 
 // --- Store Types ---
 
+export interface FavoriteItem {
+    photo: PhotoInput;
+    eventName: string;
+    year: string;
+}
+
+export type FavoriteStoreItem = PhotoInput | FavoriteItem;
+
 export interface LightboxState {
     images: PhotoInput[];
     index: number;
@@ -64,8 +72,11 @@ export interface SharedPhotoState {
 export interface PortfolioStore {
     lightbox: LightboxState;
     sharedPhoto: SharedPhotoState | null;
+    favorites: FavoriteStoreItem[];
     openLightbox: (images: PhotoInput[], index: number, eventName: string, year: string) => void;
     closeLightbox: () => void;
     setLightboxIndex: (index: number) => void;
-    setSharedPhoto: (shared: SharedPhotoState | null) => void;
+    setSharedPhoto: (sharedPhoto: SharedPhotoState | null) => void;
+    toggleFavorite: (item: FavoriteStoreItem) => void;
+    clearFavorites: () => void;
 }

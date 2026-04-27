@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { motion } from 'framer-motion';
 import { usePortfolioStore } from '../../store/usePortfolioStore';
 import { useDebounce } from '../../hooks/useDebounce';
@@ -26,7 +26,14 @@ interface RecapSliceItemProps {
     onLoad?: () => void;
 }
 
-const RecapSliceItem = ({ sliceNumber, idx, slug, events, eventIdx, onLoad }: RecapSliceItemProps) => {
+const RecapSliceItem = memo(function RecapSliceItem({
+    sliceNumber,
+    idx,
+    slug,
+    events,
+    eventIdx,
+    onLoad,
+}: RecapSliceItemProps) {
     const recapSrc = `/recap/${slug}/photo_${sliceNumber}.webp`;
     const [isLoaded, setIsLoaded] = useState(false);
     const setSharedPhoto = usePortfolioStore((state) => state.setSharedPhoto);
@@ -59,7 +66,7 @@ const RecapSliceItem = ({ sliceNumber, idx, slug, events, eventIdx, onLoad }: Re
             />
         </motion.div>
     );
-};
+});
 
 export default function Recap({ slug, count, events, overlayText, isYear, onRecapLoadComplete }: RecapProps) {
     const [visibleCount, setVisibleCount] = useState(48);
@@ -170,6 +177,10 @@ export default function Recap({ slug, count, events, overlayText, isYear, onReca
         return null;
     }
 
+    const handleSliceLoad = useCallback(() => {
+        setLoadedCount((prev) => prev + 1);
+    }, []);
+
     return (
         <section className="recap" id="recap" style={{ '--total-slices': slices.length } as React.CSSProperties}>
             <div className="recap__grid">
@@ -181,7 +192,7 @@ export default function Recap({ slug, count, events, overlayText, isYear, onReca
                         slug={slug}
                         events={events}
                         eventIdx={sliceNumber - 1}
-                        onLoad={() => setLoadedCount((prev) => prev + 1)}
+                        onLoad={handleSliceLoad}
                     />
                 ))}
                 {overlayText && (

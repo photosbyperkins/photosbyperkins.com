@@ -1,11 +1,12 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useInView, AnimatePresence, motion } from 'framer-motion';
 import { matchPath, useLocation, Link } from 'react-router-dom';
-import { Search, X } from 'lucide-react';
+import { Search, X, Heart } from 'lucide-react';
+import Fuse from 'fuse.js';
 import { formatTeamName } from '../../../utils/formatters';
 import PortfolioEvent from './PortfolioEvent';
-import Lightbox from './Lightbox';
+import LightboxContainer from './LightboxContainer';
 import TeamFilter from './TeamFilter';
 import Recap from '../Recap';
 import { usePortfolioStore } from '../../../store/usePortfolioStore';
@@ -84,12 +85,10 @@ export default function Portfolio({ years }: PortfolioProps) {
     const initialPhoto = params?.get('photo');
 
     const setSharedPhoto = usePortfolioStore((state) => state.setSharedPhoto);
-    const lightbox = usePortfolioStore((state) => state.lightbox);
-    const closeLightbox = usePortfolioStore((state) => state.closeLightbox);
-    const setLightboxIndex = usePortfolioStore((state) => state.setLightboxIndex);
 
     const selectedTab = (() => {
         if (isTeamRoute && activeRouteSlug) return activeRouteSlug;
+        if (activeRouteSlug === 'favorites') return 'favorites';
         if (activeRouteSlug && years.includes(activeRouteSlug)) return activeRouteSlug;
         return initialYear && years.includes(initialYear) ? initialYear : years[0] || '';
     })();
@@ -152,15 +151,17 @@ export default function Portfolio({ years }: PortfolioProps) {
     const isTeamMode = !years.includes(selectedTab);
     const activeTeamMeta = isTeamMode ? teamIndex.find((t) => t.slug === selectedTab) : null;
 
-    const filteredTeams = teamIndex.filter((team) => {
-        const displayName = formatTeamName(team.name).toLowerCase();
-        const rawName = team.name.toLowerCase();
-        const searchTerms = teamSearchQuery.toLowerCase().split(/\s+/).filter(Boolean);
+    const filteredTeams = useMemo(() => {
+        if (!teamSearchQuery.trim()) return teamIndex;
 
-        if (searchTerms.length === 0) return true;
+        const fuse = new Fuse(teamIndex, {
+            keys: ['name', 'slug'],
+            threshold: 0.3,
+            ignoreLocation: true,
+        });
 
-        return searchTerms.every((term) => rawName.includes(term) || displayName.includes(term));
-    });
+        return fuse.search(teamSearchQuery).map((result) => result.item);
+    }, [teamIndex, teamSearchQuery]);
 
     const navPortalTarget = typeof document !== 'undefined' ? document.getElementById('nav-extension-portal') : null;
 
@@ -179,22 +180,51 @@ export default function Portfolio({ years }: PortfolioProps) {
                     </span>
                 </Link>
             ) : (
-                years.map((y, index) => (
+                <>
+                    {years.map((y, index) => (
+                        <Link
+                            key={y}
+                            to={`/portfolio/${y}`}
+                            className={`${y === selectedTab ? 'active' : ''} ${index === 0 && !isTeamRoute && selectedTab === y ? 'is-current' : ''} ${index === 0 ? 'is-first' : ''}`}
+                            onClick={(e) => {
+                                if (y === selectedTab && isSticky) {
+                                    e.preventDefault();
+                                    portfolioRef.current?.scrollIntoView({ behavior: 'smooth' });
+                                }
+                            }}
+                        >
+                            <span className="portfolio__year-full">{y}</span>
+                            <span className="portfolio__year-short">{y.slice(-2)}</span>
+                        </Link>
+                    ))}
                     <Link
-                        key={y}
-                        to={`/portfolio/${y}`}
-                        className={`${y === selectedTab ? 'active' : ''} ${index === 0 && !isTeamRoute && selectedTab === y ? 'is-current' : ''} ${index === 0 ? 'is-first' : ''}`}
+                        to="/portfolio/favorites"
+                        className={`${selectedTab === 'favorites' ? 'active' : ''}`}
                         onClick={(e) => {
-                            if (y === selectedTab && isSticky) {
+                            if (selectedTab === 'favorites' && isSticky) {
                                 e.preventDefault();
                                 portfolioRef.current?.scrollIntoView({ behavior: 'smooth' });
                             }
                         }}
+                        title="Favorites"
+                        aria-label="Favorites"
                     >
-                        <span className="portfolio__year-full">{y}</span>
-                        <span className="portfolio__year-short">{y.slice(-2)}</span>
+                        <span className="portfolio__year-full">
+                            <Heart
+                                size={16}
+                                fill={selectedTab === 'favorites' ? 'currentColor' : 'none'}
+                                style={{ color: selectedTab === 'favorites' ? 'var(--color-accent)' : 'inherit' }}
+                            />
+                        </span>
+                        <span className="portfolio__year-short">
+                            <Heart
+                                size={16}
+                                fill={selectedTab === 'favorites' ? 'currentColor' : 'none'}
+                                style={{ color: selectedTab === 'favorites' ? 'var(--color-accent)' : 'inherit' }}
+                            />
+                        </span>
                     </Link>
-                ))
+                </>
             )}
         </nav>
     );
@@ -263,20 +293,9 @@ export default function Portfolio({ years }: PortfolioProps) {
                     document.body
                 )}
 
-            <AnimatePresence>
-                {lightbox.isOpen && (
-                    <Lightbox
-                        images={lightbox.images}
-                        index={lightbox.index}
-                        year={lightbox.year}
-                        eventName={lightbox.eventName}
-                        onClose={closeLightbox}
-                        onSetIndex={setLightboxIndex}
-                    />
-                )}
-            </AnimatePresence>
+            <LightboxContainer />
 
-            {!isGlobalSearchOpen && (
+            {!isGlobalSearchOpen && selectedTab !== 'favorites' && (
                 <div className="portfolio__global-floating-container">
                     <button
                         className="portfolio__global-floating-search"

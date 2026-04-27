@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useMotionValue, animate, useTransform, type PanInfo } from 'framer-motion';
 import { Helmet } from 'react-helmet-async';
-import { X, ChevronLeft, ChevronRight, Download, Share2 } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Download, Share2, Heart, Maximize, Minimize } from 'lucide-react';
 import LightboxSlide, { type LightboxSlideHandle } from './LightboxSlide';
 import type { PhotoInput } from '../../../types';
 
@@ -19,15 +19,18 @@ interface LightboxProps {
 
 import { useCanShare } from '../../../hooks/useCanShare';
 import { useDebounce } from '../../../hooks/useDebounce';
+import { usePortfolioStore } from '../../../store/usePortfolioStore';
 
 export default function Lightbox({ images, index, year, eventName, onClose, onSetIndex }: LightboxProps) {
     const canShare = useCanShare();
+    const { favorites, toggleFavorite } = usePortfolioStore();
 
     const x = useMotionValue(0);
     const containerRef = useRef<HTMLDivElement>(null);
     const slideRef = useRef<LightboxSlideHandle>(null);
     const [isAnimating, setIsAnimating] = useState(false);
     const [isZoomed, setIsZoomed] = useState(false);
+    const [canZoom, setCanZoom] = useState(false);
     const [mainImageLoaded, setMainImageLoaded] = useState(false);
     const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
 
@@ -115,6 +118,13 @@ export default function Lightbox({ images, index, year, eventName, onClose, onSe
         };
     }, []);
 
+    const currentPhoto = images[index];
+    const currentSrc = typeof currentPhoto === 'string' ? currentPhoto : currentPhoto.original;
+    const isFavorite = favorites.some((f) => {
+        const fInput = typeof f === 'object' && 'photo' in f ? f.photo : f;
+        const fOriginal = typeof fInput === 'string' ? fInput : fInput.original;
+        return fOriginal === currentSrc;
+    });
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setMainImageLoaded(false);
@@ -211,7 +221,6 @@ export default function Lightbox({ images, index, year, eventName, onClose, onSe
         }
     };
 
-    const currentPhoto = images[index];
     const exif = typeof currentPhoto === 'object' ? currentPhoto.exif : null;
 
     const dataDisplayUI = (
@@ -285,54 +294,87 @@ export default function Lightbox({ images, index, year, eventName, onClose, onSe
                 }}
             >
                 <div className="portfolio__lightbox-top-left">
-                    {canShare ? (
-                        <button
-                            className="portfolio__lightbox-action"
-                            onClick={async (e) => {
-                                e.stopPropagation();
-                                if (year && eventName) {
-                                    let baseUrl = window.location.href.split('?')[0];
-                                    if (!window.location.pathname.startsWith('/portfolio/')) {
-                                        baseUrl = `${window.location.origin}/portfolio/${year}`;
-                                    }
-                                    const shareUrl = new URL(baseUrl);
-                                    shareUrl.searchParams.set('event', eventName || '');
-                                    shareUrl.searchParams.set('photo', index.toString());
-
-                                    try {
-                                        const obj = images[index];
-                                        const src = typeof obj === 'string' ? obj : obj.original;
-                                        const filename = src.split('/').pop() || 'photo.jpg';
-                                        const response = await fetch(src);
-                                        const blob = await response.blob();
-                                        const file = new File([blob], filename, {
-                                            type: blob.type || 'image/jpeg',
-                                        });
-
-                                        const shareData: ShareData = {
-                                            title: `Photo from ${eventName}`,
-                                            url: shareUrl.toString(),
-                                        };
-
-                                        if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                                            shareData.files = [file];
+                    <div className="portfolio__lightbox-action-group">
+                        {canShare ? (
+                            <button
+                                className="portfolio__lightbox-action"
+                                onClick={async (e) => {
+                                    e.stopPropagation();
+                                    if (year && eventName) {
+                                        let baseUrl = window.location.href.split('?')[0];
+                                        if (!window.location.pathname.startsWith('/portfolio/')) {
+                                            baseUrl = `${window.location.origin}/portfolio/${year}`;
                                         }
+                                        const shareUrl = new URL(baseUrl);
+                                        shareUrl.searchParams.set('event', eventName || '');
+                                        shareUrl.searchParams.set('photo', index.toString());
 
-                                        await navigator.share(shareData);
-                                    } catch (err) {
-                                        console.error('Error sharing:', err);
+                                        try {
+                                            const obj = images[index];
+                                            const src = typeof obj === 'string' ? obj : obj.original;
+                                            const filename = src.split('/').pop() || 'photo.jpg';
+                                            const response = await fetch(src);
+                                            const blob = await response.blob();
+                                            const file = new File([blob], filename, {
+                                                type: blob.type || 'image/jpeg',
+                                            });
+
+                                            const shareData: ShareData = {
+                                                title: `Photo from ${eventName}`,
+                                                url: shareUrl.toString(),
+                                            };
+
+                                            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                                                shareData.files = [file];
+                                            }
+
+                                            await navigator.share(shareData);
+                                        } catch (err) {
+                                            console.error('Error sharing:', err);
+                                        }
                                     }
-                                }
+                                }}
+                                aria-label="Share"
+                            >
+                                <Share2 size={18} />
+                            </button>
+                        ) : (
+                            <button
+                                className="portfolio__lightbox-action"
+                                onClick={handleDownload}
+                                aria-label="Download"
+                            >
+                                <Download size={18} />
+                            </button>
+                        )}
+                        <button
+                            className={`portfolio__lightbox-action ${isFavorite ? 'portfolio__lightbox-action--active' : ''}`}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                toggleFavorite({
+                                    photo: images[index],
+                                    eventName: eventName || '',
+                                    year: year || '',
+                                });
                             }}
-                            aria-label="Share"
+                            aria-label="Toggle Favorite"
+                            style={{ color: isFavorite ? 'var(--color-accent)' : 'inherit' }}
                         >
-                            <Share2 size={18} />
+                            <Heart size={18} fill={isFavorite ? 'currentColor' : 'none'} />
                         </button>
-                    ) : (
-                        <button className="portfolio__lightbox-action" onClick={handleDownload} aria-label="Download">
-                            <Download size={18} />
+                        <button
+                            className={`portfolio__lightbox-action ${!canZoom ? 'is-disabled' : ''}`}
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                slideRef.current?.toggleZoom();
+                            }}
+                            disabled={!canZoom}
+                            aria-label={isZoomed ? 'Fit to Screen' : 'View Actual Size'}
+                            title={isZoomed ? 'Fit to Screen' : 'View Actual Size'}
+                        >
+                            {isZoomed ? <Minimize size={18} /> : <Maximize size={18} />}
                         </button>
-                    )}
+                    </div>
                 </div>
 
                 <div className="portfolio__lightbox-top-right">
@@ -382,6 +424,7 @@ export default function Lightbox({ images, index, year, eventName, onClose, onSe
                                     : `Photo ${index + 1}`
                             }
                             onZoomChange={setIsZoomed}
+                            onCanZoomChange={setCanZoom}
                             onLoad={() => setMainImageLoaded(true)}
                         />
                     </div>

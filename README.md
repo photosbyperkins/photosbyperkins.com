@@ -7,6 +7,8 @@ An incredibly fast, highly automated photography portfolio built for action phot
 - **Glassmorphic UI**: A stunning, modern, hardware-accelerated interface.
 - **100% Client-Side**: Once built, it's a completely static site (JSON + Media).
 - **Service Worker PWA**: Works offline, fully cache-enabled using Vite PWA.
+- **Fuzzy Search Engine**: Instantly find teams with typo-tolerant search powered by `fuse.js`.
+- **Favorites & Web Worker Zipping**: Star your favorite photos and batch download them entirely client-side using `jszip` in a background Web Worker!
 
 ---
 

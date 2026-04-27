@@ -61,7 +61,15 @@ async function generateWebp() {
 
                         fs.mkdirSync(path.dirname(destPath), { recursive: true });
 
-                        await sharp(sourcePath).webp({ quality: dynamicQ, effort: 6 }).toFile(destPath);
+                        await sharp(sourcePath)
+                            .resize({
+                                width: 2560,
+                                height: 2560,
+                                fit: 'inside',
+                                withoutEnlargement: true,
+                            })
+                            .webp({ quality: dynamicQ, effort: 6 })
+                            .toFile(destPath);
                         console.log(`  ✅ Generated WebP (Q:${dynamicQ}): ${webpRelative}`);
                     } catch (err) {
                         console.error(`  ❌ Failed WebP ${sourceRelative}:`, err.message);

@@ -1,22 +1,61 @@
 import { create } from 'zustand';
-import type { PortfolioStore } from '../types';
+import { persist } from 'zustand/middleware';
 
-export const usePortfolioStore = create<PortfolioStore>((set) => ({
-    lightbox: {
-        images: [],
-        index: 0,
-        eventName: '',
-        year: '',
-        isOpen: false,
-    },
-    sharedPhoto: null,
+import type { PortfolioStore, FavoriteStoreItem } from '../types';
 
-    openLightbox: (images, index, eventName, year) =>
-        set({ lightbox: { images, index, eventName, year, isOpen: true } }),
+export const usePortfolioStore = create<PortfolioStore>()(
+    persist(
+        (set) => ({
+            lightbox: {
+                images: [],
+                index: 0,
+                eventName: '',
+                year: '',
+                isOpen: false,
+            },
+            sharedPhoto: null,
+            favorites: [],
 
-    closeLightbox: () => set((state) => ({ lightbox: { ...state.lightbox, isOpen: false } })),
+            openLightbox: (images, index, eventName, year) =>
+                set({ lightbox: { images, index, eventName, year, isOpen: true } }),
 
-    setLightboxIndex: (index) => set((state) => ({ lightbox: { ...state.lightbox, index } })),
+            closeLightbox: () => set((state) => ({ lightbox: { ...state.lightbox, isOpen: false } })),
 
-    setSharedPhoto: (sharedPhoto) => set({ sharedPhoto }),
-}));
+            setLightboxIndex: (index) => set((state) => ({ lightbox: { ...state.lightbox, index } })),
+
+            setSharedPhoto: (sharedPhoto) => set({ sharedPhoto }),
+
+            toggleFavorite: (item) =>
+                set((state) => {
+                    const getPhotoInput = (f: FavoriteStoreItem) =>
+                        f && typeof f === 'object' && 'photo' in f ? f.photo : f;
+                    const photoInput = getPhotoInput(item);
+                    const photoOriginal = typeof photoInput === 'string' ? photoInput : photoInput.original;
+
+                    const isFav = state.favorites.some((f) => {
+                        const fInput = getPhotoInput(f);
+                        const fOriginal = typeof fInput === 'string' ? fInput : fInput.original;
+                        return fOriginal === photoOriginal;
+                    });
+
+                    if (isFav) {
+                        return {
+                            favorites: state.favorites.filter((f) => {
+                                const fInput = getPhotoInput(f);
+                                const fOriginal = typeof fInput === 'string' ? fInput : fInput.original;
+                                return fOriginal !== photoOriginal;
+                            }),
+                        };
+                    } else {
+                        return { favorites: [...state.favorites, item] };
+                    }
+                }),
+
+            clearFavorites: () => set({ favorites: [] }),
+        }),
+        {
+            name: 'portfolio-favorites',
+            partialize: (state) => ({ favorites: state.favorites }),
+        }
+    )
+);

@@ -7,7 +7,7 @@ import { fork } from 'child_process';
 const PHOTOS_DIR = path.join(process.cwd(), 'photos');
 const THUMBNAILS_DIR = path.join(process.cwd(), 'build', 'thumbnails');
 const METRICS_FILE = path.join(process.cwd(), 'data', 'quality_metrics.json');
-const MAX_DIMENSION = 1080;
+const MAX_DIMENSION = 800;
 const QUALITY_MAX = 95;
 const QUALITY_MIN = 45;
 const QUALITY_STEP_SIZE = 1;

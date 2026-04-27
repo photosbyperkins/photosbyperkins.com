@@ -34,11 +34,10 @@
             top: 0;
             left: 0;
             right: 0;
-            height: 72px;
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             justify-content: space-between;
-            padding: 0 1.5rem;
+            padding: 16px 1.5rem;
             z-index: var(--z-lightbox-controls);
             background: transparent;
             pointer-events: none;
@@ -192,6 +191,32 @@
                 &:hover {
                     background: rgba(var(--color-bg-rgb), 0.9);
                     color: var(--color-text);
+                }
+            }
+        }
+
+        &-action-group {
+            display: flex;
+            flex-direction: column;
+            background: rgba(var(--color-bg-rgb), 0.65);
+            border: 1px solid var(--glass-border);
+            border-radius: 6px;
+            overflow: hidden;
+            -webkit-backdrop-filter: blur(4px);
+            backdrop-filter: blur(4px);
+
+            .portfolio__lightbox-action {
+                background: transparent;
+                border: none;
+                border-radius: 0;
+                -webkit-backdrop-filter: none;
+                backdrop-filter: none;
+
+                @media (hover: hover) {
+                    &:hover {
+                        background: rgba(var(--color-text-rgb), 0.1);
+                        color: var(--color-text);
+                    }
                 }
             }
         }

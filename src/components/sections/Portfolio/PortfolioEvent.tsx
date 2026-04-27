@@ -1,13 +1,13 @@
 import { useState, useEffect, useMemo, useRef, memo } from 'react';
 import { motion, useInView } from 'framer-motion';
-import { Save, Star } from 'lucide-react';
+import { Save, Star, Heart } from 'lucide-react';
 import ProgressiveImage from '../../ui/ProgressiveImage';
 import { FeaturedGridIcon } from '../../ui/icons';
 import { usePortfolioStore } from '../../../store/usePortfolioStore';
 import { formatTeamName, parseEventTitle } from '../../../utils/formatters';
 import { useCanShare } from '../../../hooks/useCanShare';
 import { useEventAlbum } from '../../../hooks/useEventAlbum';
-import type { EventData, PhotoInput } from '../../../types';
+import type { EventData, PhotoInput, FavoriteStoreItem } from '../../../types';
 
 declare const __BUILD_NUMBER__: string;
 
@@ -40,7 +40,56 @@ const PortfolioEvent = memo(function PortfolioEvent({
     const inView = useInView(ref, { once: true, margin: '400px' });
 
     const isSharedEvent = sharedPhoto?.eventName === eventName;
-    const isVisible = inView || (evIdx < 2 && inViewParent) || isSharedEvent;
+    const isVisible = inView || (evIdx < 2 && inViewParent) || isSharedEvent || eventName === 'Favorites';
+
+    useEffect(() => {
+        if (eventName === 'Favorites') {
+            setEv(initialEv);
+        }
+    }, [initialEv, eventName]);
+
+    const [isZipping, setIsZipping] = useState(false);
+    const [zipProgress, setZipProgress] = useState(0);
+
+    const handleDownloadFavorites = async () => {
+        if (isZipping || !ev.album) return;
+        setIsZipping(true);
+        setZipProgress(0);
+
+        const worker = new Worker(new URL('../../../workers/zipWorker.ts', import.meta.url), { type: 'module' });
+
+        worker.onmessage = (e) => {
+            if (e.data.type === 'progress') {
+                setZipProgress(Math.round(e.data.progress));
+            } else if (e.data.type === 'done') {
+                const { blob, filename } = e.data;
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.click();
+                URL.revokeObjectURL(url);
+
+                setZipProgress(100);
+                setTimeout(() => {
+                    setIsZipping(false);
+                    setZipProgress(0);
+                }, 1500);
+
+                worker.terminate();
+            } else if (e.data.type === 'error') {
+                console.error('Zip error:', e.data.error);
+                setIsZipping(false);
+                worker.terminate();
+            }
+        };
+
+        const urls = ev.album.map((item: any) => {
+            const photo = item && typeof item === 'object' && 'photo' in item ? item.photo : item;
+            return typeof photo === 'string' ? photo : photo.original;
+        });
+        worker.postMessage({ urls, filename: 'Favorites.zip' });
+    };
 
     useEffect(() => {
         setIsGridView(false);
@@ -55,8 +104,24 @@ const PortfolioEvent = memo(function PortfolioEvent({
     });
 
     const albumImages: PhotoInput[] = useMemo(() => {
-        return ev.album || [];
+        if (!ev.album) return [];
+        return ev.album.map((item: unknown) => {
+            if (item && typeof item === 'object' && 'photo' in item) {
+                return (item as FavoriteStoreItem & { photo: PhotoInput }).photo;
+            }
+            return item as PhotoInput;
+        });
     }, [ev.album]);
+
+    const highlightImages: PhotoInput[] = useMemo(() => {
+        if (!ev.highlights) return [];
+        return ev.highlights.map((item: unknown) => {
+            if (item && typeof item === 'object' && 'photo' in item) {
+                return (item as FavoriteStoreItem & { photo: PhotoInput }).photo;
+            }
+            return item as PhotoInput;
+        });
+    }, [ev.highlights]);
 
     useEffect(() => {
         if (isSharedEvent && ev.album && ev.album.length > 0 && sharedPhoto) {
@@ -67,46 +132,56 @@ const PortfolioEvent = memo(function PortfolioEvent({
         }
     }, [isSharedEvent, ev.album, sharedPhoto, eventName, selectedYear, openLightbox, setSharedPhoto, albumImages]);
 
-    const totalPhotos = ev.photoCount || (ev.album ? ev.album.length : 0);
-    const albumObj = ev.album || [];
-    let featuredPhotos: PhotoInput[] = ev.highlights || [];
+    const totalPhotos = ev.photoCount || albumImages.length;
 
-    // Filter out highlights that don't exist in the album (orphaned highlights)
-    if (featuredPhotos.length > 0 && albumImages.length > 0) {
-        featuredPhotos = featuredPhotos.filter((h: PhotoInput) => {
-            const hUrl = typeof h === 'string' ? h : h.original;
-            return albumImages.some((ai: PhotoInput) => (typeof ai === 'string' ? ai : ai.original) === hUrl);
+    const featuredPhotos: PhotoInput[] = useMemo(() => {
+        let photos: PhotoInput[] = [...highlightImages];
+
+        // Filter out highlights that don't exist in the album (orphaned highlights)
+        if (photos.length > 0 && albumImages.length > 0) {
+            photos = photos.filter((h: PhotoInput) => {
+                const hUrl = typeof h === 'string' ? h : h.original;
+                return albumImages.some((ai: PhotoInput) => {
+                    const aiUrl = typeof ai === 'string' ? ai : ai.original;
+                    return aiUrl === hUrl;
+                });
+            });
+        }
+
+        if (photos.length === 0) {
+            if (albumImages.length > 0) {
+                photos = albumImages.slice(0, 10);
+            }
+        } else {
+            if (photos.length < 10) {
+                const remaining = 10 - photos.length;
+                const extras = albumImages
+                    .filter((a: PhotoInput) => {
+                        const url = typeof a === 'string' ? a : a.original;
+                        return !photos.some((f: PhotoInput) => {
+                            const fUrl = typeof f === 'string' ? f : f.original;
+                            return fUrl === url;
+                        });
+                    })
+                    .slice(0, remaining);
+                photos = [...photos, ...extras];
+            }
+        }
+        // Sort featured photos sequentially by index
+        photos.sort((a: FavoriteStoreItem, b: FavoriteStoreItem) => {
+            const getIndex = (src: FavoriteStoreItem) => {
+                const srcInput = typeof src === 'object' && 'photo' in src ? src.photo : src;
+                const url = typeof srcInput === 'string' ? srcInput : srcInput.original;
+                if (!url) return 0;
+                const filename = url.split('/').pop() || '';
+                const match = filename.match(/(\d+)/);
+                return match ? parseInt(match[1], 10) : 0;
+            };
+            return getIndex(a) - getIndex(b);
         });
-    }
 
-    if (featuredPhotos.length === 0) {
-        if (ev.album && ev.album.length > 0) {
-            featuredPhotos = ev.album.slice(0, 10);
-        }
-    } else {
-        if (featuredPhotos.length < 10) {
-            const remaining = 10 - featuredPhotos.length;
-            const extras = albumObj
-                .filter((a: PhotoInput) => {
-                    const url = typeof a === 'string' ? a : a.original;
-                    return !featuredPhotos.some((f: PhotoInput) => (typeof f === 'string' ? f : f.original) === url);
-                })
-                .slice(0, remaining);
-            featuredPhotos = [...featuredPhotos, ...extras];
-        }
-    }
-    featuredPhotos = featuredPhotos.slice(0, 10);
-
-    // Sort featured photos sequentially by index
-    featuredPhotos.sort((a, b) => {
-        const getIndex = (src: PhotoInput) => {
-            const url = typeof src === 'string' ? src : src.original;
-            const filename = url.split('/').pop() || '';
-            const match = filename.match(/(\d+)(?!.*\d)/);
-            return match ? parseInt(match[0], 10) : 0;
-        };
-        return getIndex(a) - getIndex(b);
-    });
+        return photos.slice(0, 10);
+    }, [albumImages, highlightImages]);
 
     // Parsing title logic
     const { mainTitle, datePrefix } = parseEventTitle(eventName, ev.originalYear, selectedYear);
@@ -206,7 +281,14 @@ const PortfolioEvent = memo(function PortfolioEvent({
 
                                             return (
                                                 <h3 key={i}>
-                                                    {hasAbbreviation ? (
+                                                    {eventName === 'Favorites' ? (
+                                                        <>
+                                                            <span style={{ color: 'var(--color-accent)' }}>
+                                                                YOUR&nbsp;
+                                                            </span>
+                                                            FAVORITES
+                                                        </>
+                                                    ) : hasAbbreviation ? (
                                                         <>
                                                             <span className="portfolio__team-name--full">{team}</span>
                                                             <span className="portfolio__team-name--mobile">
@@ -285,7 +367,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
                 <div className="portfolio__event-meta">
                     {ev.date && <span className="portfolio__stat-tag">{ev.date}</span>}
 
-                    {ev.zip && !canShare && (
+                    {ev.zip && !canShare && eventName !== 'Favorites' && (
                         <a
                             href={`${ev.zip}?v=${__BUILD_NUMBER__}`}
                             download
@@ -298,33 +380,79 @@ const PortfolioEvent = memo(function PortfolioEvent({
                         </a>
                     )}
 
-                    <div className="portfolio__segmented-toggle">
+                    {eventName === 'Favorites' && ev.album && ev.album.length > 0 && (
                         <button
-                            className={`portfolio__segment-btn ${!isGridView ? 'active' : ''}`}
-                            onClick={() => setIsGridView((prev) => !prev)}
-                            aria-label="Show Featured Photos"
-                            title="Show Featured Photos"
+                            className="portfolio__zip-btn"
+                            onClick={handleDownloadFavorites}
+                            disabled={isZipping}
+                            title="Download Favorites as .zip"
+                            style={{
+                                cursor: isZipping ? 'wait' : 'pointer',
+                                backgroundImage: isZipping
+                                    ? 'linear-gradient(to bottom, var(--color-accent) 100%, transparent 100%)'
+                                    : 'none',
+                                backgroundSize: `100% ${isZipping ? zipProgress : 0}%`,
+                                backgroundRepeat: 'no-repeat',
+                                backgroundPosition: 'top center',
+                                transition:
+                                    'background-size 0.2s ease-out, border-color 0.2s ease-out, color 0.2s ease-out',
+                                borderColor: isZipping ? 'var(--color-accent)' : undefined,
+                                color: isZipping ? (zipProgress > 50 ? '#fff' : 'var(--color-accent)') : undefined,
+                            }}
                         >
-                            <Star size={16} />
+                            <Save size={16} />
                         </button>
-                        <button
-                            className={`portfolio__segment-btn ${isGridView ? 'active' : ''}`}
-                            onClick={() => setIsGridView((prev) => !prev)}
-                            aria-label="Show Full Album"
-                            title="Show Full Album"
-                        >
-                            <FeaturedGridIcon size={16} />
-                        </button>
-                    </div>
+                    )}
+
+                    {eventName !== 'Favorites' && (
+                        <div className="portfolio__segmented-toggle">
+                            <button
+                                className={`portfolio__segment-btn ${!isGridView ? 'active' : ''}`}
+                                onClick={() => setIsGridView((prev) => !prev)}
+                                aria-label="Show Featured Photos"
+                                title="Show Featured Photos"
+                            >
+                                <Star size={16} />
+                            </button>
+                            <button
+                                className={`portfolio__segment-btn ${isGridView ? 'active' : ''}`}
+                                onClick={() => setIsGridView((prev) => !prev)}
+                                aria-label="Show Full Album"
+                                title="Show Full Album"
+                            >
+                                <FeaturedGridIcon size={16} />
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
             {ev.description && <p className="portfolio__event-desc">{ev.description}</p>}
 
             {isVisible ? (
                 <>
-                    {isGridView ? (
+                    {eventName === 'Favorites' && (!ev.album || ev.album.length === 0) ? (
+                        <div
+                            className="portfolio__empty-state"
+                            style={{ padding: '3rem 1rem', color: 'var(--color-text-muted)', textAlign: 'center' }}
+                        >
+                            <Heart size={48} strokeWidth={1} style={{ marginBottom: '1rem', opacity: 0.5 }} />
+                            <p
+                                style={{
+                                    margin: 0,
+                                    fontFamily: 'var(--font-condensed)',
+                                    fontSize: '1.2rem',
+                                    letterSpacing: '0.05em',
+                                }}
+                            >
+                                NO FAVORITES YET
+                            </p>
+                            <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem' }}>
+                                Click the heart icon on any photo to add it here.
+                            </p>
+                        </div>
+                    ) : isGridView ? (
                         <div className="portfolio__event-grid">
-                            {(ev.album || []).map((url: PhotoInput, i) => {
+                            {albumImages.map((url: PhotoInput, i) => {
                                 const origUrl = typeof url === 'string' ? url : url.original;
                                 const thumbUrl = typeof url === 'string' ? url : url.thumb || url.original;
 
