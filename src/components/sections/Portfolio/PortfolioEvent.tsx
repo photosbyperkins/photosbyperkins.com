@@ -450,7 +450,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
                                 Click the heart icon on any photo to add it here.
                             </p>
                         </div>
-                    ) : isGridView ? (
+                    ) : isGridView || eventName === 'Favorites' ? (
                         <div className="portfolio__event-grid">
                             {albumImages.map((url: PhotoInput, i) => {
                                 const origUrl = typeof url === 'string' ? url : url.original;
