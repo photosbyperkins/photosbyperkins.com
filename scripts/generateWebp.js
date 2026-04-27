@@ -63,8 +63,8 @@ async function generateWebp() {
 
                         await sharp(sourcePath)
                             .resize({
-                                width: 2560,
-                                height: 2560,
+                                width: 3840,
+                                height: 3840,
                                 fit: 'inside',
                                 withoutEnlargement: true,
                             })
