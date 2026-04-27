@@ -42,6 +42,7 @@ const LightboxSlide = forwardRef<
     const lastTouchTimeRef = useRef<number>(0);
     const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const pointerDownRef = useRef<{ x: number; y: number; time: number } | null>(null);
+    const lastDoubleTapTimeRef = useRef<number>(0);
 
     const isAnimatingInRef = useRef(false);
 
@@ -131,6 +132,11 @@ const LightboxSlide = forwardRef<
                 const dx = touch.clientX - lastTapRef.current.x;
                 const dy = touch.clientY - lastTapRef.current.y;
                 if (Math.hypot(dx, dy) < 40) {
+                    lastDoubleTapTimeRef.current = Date.now();
+                    if (clickTimeoutRef.current) {
+                        clearTimeout(clickTimeoutRef.current);
+                        clickTimeoutRef.current = null;
+                    }
                     if (maxScaleRef.current > 1.05) {
                         e.preventDefault();
                         toggleZoom(touch.clientX, touch.clientY);
@@ -267,6 +273,8 @@ const LightboxSlide = forwardRef<
             e.stopPropagation();
             if (scale.get() > 1.05) return;
 
+            if (Date.now() - lastDoubleTapTimeRef.current < 500) return;
+
             if (pointerDownRef.current) {
                 const dx = Math.abs(e.clientX - pointerDownRef.current.x);
                 const dy = Math.abs(e.clientY - pointerDownRef.current.y);
@@ -281,7 +289,7 @@ const LightboxSlide = forwardRef<
                 clickTimeoutRef.current = setTimeout(() => {
                     clickTimeoutRef.current = null;
                     if (onSingleClick) onSingleClick();
-                }, 250);
+                }, 300);
             }
         },
         [scale, onSingleClick]

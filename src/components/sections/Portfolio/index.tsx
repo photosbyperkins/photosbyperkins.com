@@ -181,11 +181,11 @@ export default function Portfolio({ years }: PortfolioProps) {
                 </Link>
             ) : (
                 <>
-                    {years.map((y, index) => (
+                    {years.map((y) => (
                         <Link
                             key={y}
                             to={`/portfolio/${y}`}
-                            className={`${y === selectedTab ? 'active' : ''} ${index === 0 && !isTeamRoute && selectedTab === y ? 'is-current' : ''} ${index === 0 ? 'is-first' : ''}`}
+                            className={`${y === selectedTab ? 'active' : ''}`}
                             onClick={(e) => {
                                 if (y === selectedTab && isSticky) {
                                     e.preventDefault();
@@ -193,8 +193,12 @@ export default function Portfolio({ years }: PortfolioProps) {
                                 }
                             }}
                         >
-                            <span className="portfolio__year-full">{y}</span>
-                            <span className="portfolio__year-short">{y.slice(-2)}</span>
+                            <span className="portfolio__year-full" style={{ transform: 'translateY(1px)' }}>
+                                {y}
+                            </span>
+                            <span className="portfolio__year-short" style={{ transform: 'translateY(1px)' }}>
+                                {y.slice(-2)}
+                            </span>
                         </Link>
                     ))}
                     <Link
@@ -213,14 +217,20 @@ export default function Portfolio({ years }: PortfolioProps) {
                             <Heart
                                 size={16}
                                 fill={selectedTab === 'favorites' ? 'currentColor' : 'none'}
-                                style={{ color: selectedTab === 'favorites' ? 'var(--color-accent)' : 'inherit' }}
+                                style={{
+                                    color: selectedTab === 'favorites' ? 'var(--color-accent)' : 'inherit',
+                                    transform: 'translateY(3px)',
+                                }}
                             />
                         </span>
                         <span className="portfolio__year-short">
                             <Heart
                                 size={16}
                                 fill={selectedTab === 'favorites' ? 'currentColor' : 'none'}
-                                style={{ color: selectedTab === 'favorites' ? 'var(--color-accent)' : 'inherit' }}
+                                style={{
+                                    color: selectedTab === 'favorites' ? 'var(--color-accent)' : 'inherit',
+                                    transform: 'translateY(3px)',
+                                }}
                             />
                         </span>
                     </Link>

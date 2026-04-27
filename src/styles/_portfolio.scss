@@ -72,17 +72,6 @@
                     display: block;
                 }
 
-                &.is-current,
-                &.is-first {
-                    .portfolio__year-full {
-                        display: block;
-                    }
-
-                    .portfolio__year-short {
-                        display: none;
-                    }
-                }
-
                 &.active {
                     color: var(--color-text);
 
