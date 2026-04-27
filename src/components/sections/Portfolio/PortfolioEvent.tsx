@@ -380,7 +380,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
                         </a>
                     )}
 
-                    {eventName === 'Favorites' && ev.album && ev.album.length > 0 && (
+                    {eventName === 'Favorites' && !canShare && ev.album && ev.album.length > 0 && (
                         <button
                             className="portfolio__zip-btn"
                             onClick={handleDownloadFavorites}

@@ -31,6 +31,7 @@ export default function Lightbox({ images, index, year, eventName, onClose, onSe
     const [isAnimating, setIsAnimating] = useState(false);
     const [isZoomed, setIsZoomed] = useState(false);
     const [canZoom, setCanZoom] = useState(false);
+    const [isTheaterMode, setIsTheaterMode] = useState(false);
     const [mainImageLoaded, setMainImageLoaded] = useState(false);
     const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
 
@@ -244,7 +245,7 @@ export default function Lightbox({ images, index, year, eventName, onClose, onSe
 
     const content = (
         <motion.div
-            className="portfolio__lightbox"
+            className={`portfolio__lightbox ${isTheaterMode ? 'is-theater-mode' : ''}`}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -362,18 +363,6 @@ export default function Lightbox({ images, index, year, eventName, onClose, onSe
                         >
                             <Heart size={18} fill={isFavorite ? 'currentColor' : 'none'} />
                         </button>
-                        <button
-                            className={`portfolio__lightbox-action ${!canZoom ? 'is-disabled' : ''}`}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                slideRef.current?.toggleZoom();
-                            }}
-                            disabled={!canZoom}
-                            aria-label={isZoomed ? 'Fit to Screen' : 'View Actual Size'}
-                            title={isZoomed ? 'Fit to Screen' : 'View Actual Size'}
-                        >
-                            {isZoomed ? <Minimize size={18} /> : <Maximize size={18} />}
-                        </button>
                     </div>
                 </div>
 
@@ -410,6 +399,7 @@ export default function Lightbox({ images, index, year, eventName, onClose, onSe
                         <LightboxSlide
                             image={images[(index - 1 + images.length) % images.length]}
                             alt={eventName ? `Previous photo from ${eventName}` : 'Previous photo'}
+                            onSingleClick={() => setIsTheaterMode((prev) => !prev)}
                         />
                     </div>
 
@@ -426,6 +416,7 @@ export default function Lightbox({ images, index, year, eventName, onClose, onSe
                             onZoomChange={setIsZoomed}
                             onCanZoomChange={setCanZoom}
                             onLoad={() => setMainImageLoaded(true)}
+                            onSingleClick={() => setIsTheaterMode((prev) => !prev)}
                         />
                     </div>
 
@@ -434,6 +425,7 @@ export default function Lightbox({ images, index, year, eventName, onClose, onSe
                         <LightboxSlide
                             image={images[(index + 1) % images.length]}
                             alt={eventName ? `Next photo from ${eventName}` : 'Next photo'}
+                            onSingleClick={() => setIsTheaterMode((prev) => !prev)}
                         />
                     </div>
                 </motion.div>

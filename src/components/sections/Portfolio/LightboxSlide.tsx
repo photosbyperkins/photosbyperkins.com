@@ -17,8 +17,9 @@ const LightboxSlide = forwardRef<
         onZoomChange?: (isZoomed: boolean) => void;
         onCanZoomChange?: (canZoom: boolean) => void;
         onLoad?: () => void;
+        onSingleClick?: () => void;
     }
->(function LightboxSlide({ image, alt, onZoomChange, onCanZoomChange, onLoad }, ref) {
+>(function LightboxSlide({ image, alt, onZoomChange, onCanZoomChange, onLoad, onSingleClick }, ref) {
     const limitsRef = useRef<HTMLDivElement>(null);
     const [dragMode, setDragMode] = useState<boolean | 'x' | 'y'>(false);
 
@@ -39,6 +40,8 @@ const LightboxSlide = forwardRef<
     const releaseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastTapRef = useRef<{ time: number; x: number; y: number }>({ time: 0, x: 0, y: 0 });
     const lastTouchTimeRef = useRef<number>(0);
+    const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const pointerDownRef = useRef<{ x: number; y: number; time: number } | null>(null);
 
     const isAnimatingInRef = useRef(false);
 
@@ -255,9 +258,42 @@ const LightboxSlide = forwardRef<
         toggleZoom,
     }));
 
+    const handlePointerDown = (e: React.PointerEvent) => {
+        pointerDownRef.current = { x: e.clientX, y: e.clientY, time: Date.now() };
+    };
+
+    const handleClick = useCallback(
+        (e: React.MouseEvent) => {
+            e.stopPropagation();
+            if (scale.get() > 1.05) return;
+
+            if (pointerDownRef.current) {
+                const dx = Math.abs(e.clientX - pointerDownRef.current.x);
+                const dy = Math.abs(e.clientY - pointerDownRef.current.y);
+                const dt = Date.now() - pointerDownRef.current.time;
+                if (dx > 10 || dy > 10 || dt > 500) return;
+            }
+
+            if (clickTimeoutRef.current) {
+                clearTimeout(clickTimeoutRef.current);
+                clickTimeoutRef.current = null;
+            } else {
+                clickTimeoutRef.current = setTimeout(() => {
+                    clickTimeoutRef.current = null;
+                    if (onSingleClick) onSingleClick();
+                }, 250);
+            }
+        },
+        [scale, onSingleClick]
+    );
+
     const handleDoubleClick = useCallback(
         (e: React.MouseEvent) => {
             e.stopPropagation();
+            if (clickTimeoutRef.current) {
+                clearTimeout(clickTimeoutRef.current);
+                clickTimeoutRef.current = null;
+            }
             // Ignore native double clicks if they immediately follow a handled touch event
             if (Date.now() - lastTouchTimeRef.current < 500) return;
 
@@ -277,6 +313,8 @@ const LightboxSlide = forwardRef<
             onTouchStart={handleTouchStart}
             onTouchEnd={handleTouchEnd}
             onTouchCancel={handleTouchEnd}
+            onPointerDown={handlePointerDown}
+            onClick={handleClick}
             onDoubleClick={handleDoubleClick}
         >
             <motion.img
