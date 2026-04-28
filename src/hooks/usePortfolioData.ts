@@ -3,6 +3,17 @@ import type { YearData, PhotoInput, FavoriteStoreItem } from '../types';
 import { usePortfolioStore } from '../store/usePortfolioStore';
 import { parseEventTitle } from '../utils/formatters';
 
+// Module-level cache — persists for the lifetime of the page session.
+// Pre-fetched and actively-fetched year data is stored here so that
+// switching back to an already-seen year is instant (no network round-trip).
+interface CachedYearPayload {
+    events: YearData;
+    recapCount: number;
+    recapEvents: { eventName: string; photoIndex: number }[];
+    nextPart: string | null;
+}
+const yearDataCache: Record<string, CachedYearPayload> = {};
+
 interface FetchPayload {
     events: YearData;
     recapCount?: number;
@@ -79,6 +90,19 @@ export function usePortfolioData({ selectedTab, years, onDataLoadAction }: UsePo
             if (setData) {
                 activeRequestRef.current = requestToken;
                 setPendingNextPart(null);
+
+                // Serve from cache instantly if available — no network needed.
+                const cached = yearDataCache[tabSlug];
+                if (cached) {
+                    setYearData(cached.events);
+                    setRecapCount(cached.recapCount);
+                    setRecapEvents(cached.recapEvents);
+                    setIsRecapLoaded(true);
+                    if (cached.nextPart) setPendingNextPart(cached.nextPart);
+                    if (onDataLoadAction) onDataLoadAction();
+                    return;
+                }
+
                 setIsRecapLoaded(false); // Lock background fetching
             }
 
@@ -96,6 +120,14 @@ export function usePortfolioData({ selectedTab, years, onDataLoadAction }: UsePo
                                 setRecapCount(data.recapCount || 0);
                                 setRecapEvents(data.recapEvents || []);
 
+                                // Store first-part result so future switches are instant.
+                                yearDataCache[tabSlug] = {
+                                    events: data.events,
+                                    recapCount: data.recapCount || 0,
+                                    recapEvents: data.recapEvents || [],
+                                    nextPart: data.nextPart ?? null,
+                                };
+
                                 // If there is no recap, unlock background fetching immediately
                                 if ((data.recapCount || 0) === 0 || isTeamMode) {
                                     setIsRecapLoaded(true);
@@ -110,6 +142,16 @@ export function usePortfolioData({ selectedTab, years, onDataLoadAction }: UsePo
                                 setPendingNextPart(data.nextPart);
                             } else {
                                 setPendingNextPart(null);
+                            }
+                        } else if (!accumulate) {
+                            // Pre-fetch path: populate cache so the next foreground switch is instant.
+                            if (!yearDataCache[tabSlug]) {
+                                yearDataCache[tabSlug] = {
+                                    events: data.events,
+                                    recapCount: data.recapCount || 0,
+                                    recapEvents: data.recapEvents || [],
+                                    nextPart: data.nextPart ?? null,
+                                };
                             }
                         }
                     })

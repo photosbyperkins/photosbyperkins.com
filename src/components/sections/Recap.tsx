@@ -4,6 +4,9 @@ import { usePortfolioStore } from '../../store/usePortfolioStore';
 import { useDebounce } from '../../hooks/useDebounce';
 declare const __BUILD_NUMBER__: string;
 
+// Caches the expensive slices computation across remounts.
+const slicesComputeCache = new Map<string, number[]>();
+
 interface RecapEventMeta {
     eventName: string;
     photoIndex: number;
@@ -78,77 +81,84 @@ export default function Recap({ slug, count, events, overlayText, isYear, onReca
     }, [slug]);
 
     const slices = useMemo(() => {
-        if (visibleCount >= count) {
-            return Array.from({ length: count }, (_, i) => i + 1);
-        }
+        const cacheKey = `${slug}-${visibleCount}-${count}`;
+        const cached = slicesComputeCache.get(cacheKey);
+        if (cached) return cached;
 
-        if (!events || events.length === 0) {
+        let result: number[];
+
+        if (visibleCount >= count) {
+            result = Array.from({ length: count }, (_, i) => i + 1);
+        } else if (!events || events.length === 0) {
             const indices = [];
             for (let i = 0; i < visibleCount; i++) {
                 indices.push(Math.round((i * (count - 1)) / (visibleCount - 1)));
             }
-            return indices.map((idx) => idx + 1);
-        }
+            result = indices.map((idx) => idx + 1);
+        } else {
+            const groups: number[][] = [];
+            let currentEvent = events[0].eventName;
+            let currentGroup: number[] = [0];
 
-        const groups: number[][] = [];
-        let currentEvent = events[0].eventName;
-        let currentGroup: number[] = [0];
-
-        for (let i = 1; i < count; i++) {
-            if (events[i].eventName !== currentEvent) {
-                groups.push(currentGroup);
-                currentGroup = [i];
-                currentEvent = events[i].eventName;
-            } else {
-                currentGroup.push(i);
-            }
-        }
-        groups.push(currentGroup);
-
-        const idealGroupIndices = [];
-        for (let i = 0; i < visibleCount; i++) {
-            idealGroupIndices.push(Math.round((i * (groups.length - 1)) / (visibleCount - 1)));
-        }
-
-        const groupPickCounts = new Array(groups.length).fill(0);
-        idealGroupIndices.forEach((gIdx) => groupPickCounts[gIdx]++);
-
-        const finalIndices: number[] = [];
-        for (let g = 0; g < groups.length; g++) {
-            const group = groups[g];
-            let picks = groupPickCounts[g];
-            if (picks === 0) continue;
-
-            if (picks > group.length) picks = group.length;
-
-            if (picks === 1) {
-                if (g === 0) finalIndices.push(group[0]);
-                else if (g === groups.length - 1) finalIndices.push(group[group.length - 1]);
-                else finalIndices.push(group[Math.floor(group.length / 2)]);
-            } else {
-                for (let i = 0; i < picks; i++) {
-                    const idxInGroup = Math.round((i * (group.length - 1)) / (picks - 1));
-                    finalIndices.push(group[idxInGroup]);
+            for (let i = 1; i < count; i++) {
+                if (events[i].eventName !== currentEvent) {
+                    groups.push(currentGroup);
+                    currentGroup = [i];
+                    currentEvent = events[i].eventName;
+                } else {
+                    currentGroup.push(i);
                 }
             }
-        }
+            groups.push(currentGroup);
 
-        if (finalIndices.length < visibleCount) {
-            const unselected = Array.from({ length: count }, (_, i) => i).filter((i) => !finalIndices.includes(i));
-            const needed = visibleCount - finalIndices.length;
-            for (let i = 0; i < needed; i++) {
-                if (unselected.length > 0) {
-                    const pickIndex = Math.floor((i * unselected.length) / needed);
-                    const pick = unselected[pickIndex];
-                    finalIndices.push(pick);
-                    unselected.splice(pickIndex, 1);
+            const idealGroupIndices = [];
+            for (let i = 0; i < visibleCount; i++) {
+                idealGroupIndices.push(Math.round((i * (groups.length - 1)) / (visibleCount - 1)));
+            }
+
+            const groupPickCounts = new Array(groups.length).fill(0);
+            idealGroupIndices.forEach((gIdx) => groupPickCounts[gIdx]++);
+
+            const finalIndices: number[] = [];
+            for (let g = 0; g < groups.length; g++) {
+                const group = groups[g];
+                let picks = groupPickCounts[g];
+                if (picks === 0) continue;
+
+                if (picks > group.length) picks = group.length;
+
+                if (picks === 1) {
+                    if (g === 0) finalIndices.push(group[0]);
+                    else if (g === groups.length - 1) finalIndices.push(group[group.length - 1]);
+                    else finalIndices.push(group[Math.floor(group.length / 2)]);
+                } else {
+                    for (let i = 0; i < picks; i++) {
+                        const idxInGroup = Math.round((i * (group.length - 1)) / (picks - 1));
+                        finalIndices.push(group[idxInGroup]);
+                    }
                 }
             }
+
+            if (finalIndices.length < visibleCount) {
+                const unselected = Array.from({ length: count }, (_, i) => i).filter((i) => !finalIndices.includes(i));
+                const needed = visibleCount - finalIndices.length;
+                for (let i = 0; i < needed; i++) {
+                    if (unselected.length > 0) {
+                        const pickIndex = Math.floor((i * unselected.length) / needed);
+                        const pick = unselected[pickIndex];
+                        finalIndices.push(pick);
+                        unselected.splice(pickIndex, 1);
+                    }
+                }
+            }
+
+            finalIndices.sort((a, b) => a - b);
+            result = finalIndices.map((idx) => idx + 1);
         }
 
-        finalIndices.sort((a, b) => a - b);
-        return finalIndices.map((idx) => idx + 1);
-    }, [visibleCount, count, events]);
+        slicesComputeCache.set(cacheKey, result);
+        return result;
+    }, [slug, visibleCount, count, events]);
 
     const checkMobile = useCallback(() => {
         const w = window.innerWidth;
