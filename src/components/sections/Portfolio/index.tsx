@@ -151,17 +151,20 @@ export default function Portfolio({ years }: PortfolioProps) {
     const isTeamMode = !years.includes(selectedTab);
     const activeTeamMeta = isTeamMode ? teamIndex.find((t) => t.slug === selectedTab) : null;
 
+    const fuse = useMemo(
+        () =>
+            new Fuse(teamIndex, {
+                keys: ['name', 'slug'],
+                threshold: 0.3,
+                ignoreLocation: true,
+            }),
+        [teamIndex]
+    );
+
     const filteredTeams = useMemo(() => {
         if (!teamSearchQuery.trim()) return teamIndex;
-
-        const fuse = new Fuse(teamIndex, {
-            keys: ['name', 'slug'],
-            threshold: 0.3,
-            ignoreLocation: true,
-        });
-
         return fuse.search(teamSearchQuery).map((result) => result.item);
-    }, [teamIndex, teamSearchQuery]);
+    }, [fuse, teamIndex, teamSearchQuery]);
 
     const navPortalTarget = typeof document !== 'undefined' ? document.getElementById('nav-extension-portal') : null;
 

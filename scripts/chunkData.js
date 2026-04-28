@@ -297,12 +297,24 @@ async function processChunks() {
             });
             fs.writeFileSync(albumFile, JSON.stringify(cleanAlbum, null, 0));
 
+            // Pre-compute the widest EXIF string length so the Lightbox never scans at runtime
+            let maxExifChars = 0;
+            for (const img of (event.album || [])) {
+                if (img && typeof img === 'object' && img.exif) {
+                    const top = [img.exif.cameraModel, img.exif.lens].filter(Boolean).join(' \u2022 ');
+                    const bottom = [img.exif.focalLength, img.exif.aperture, img.exif.shutterSpeed, img.exif.iso].filter(Boolean).join(' \u2022 ');
+                    if (top.length > maxExifChars) maxExifChars = top.length;
+                    if (bottom.length > maxExifChars) maxExifChars = bottom.length;
+                }
+            }
+
             const evMeta = {
                 ...event,
                 album: [], // Clear it to save space
                 photoCount: (event.album || []).length,
                 albumSlug: slug,
                 originalYear: year, // Required when fetched from a team index!
+                ...(maxExifChars > 0 && { maxExifChars }),
                 recapImages: (event.album || [])
                     .map((img, idx) => ({ ...img, albumIndex: idx }))
                     .sort((a, b) => (b.recapScore || 0) - (a.recapScore || 0))

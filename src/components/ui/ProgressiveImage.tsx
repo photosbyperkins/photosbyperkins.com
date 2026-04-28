@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
+declare const __BUILD_NUMBER__: string;
+
 type ProgressiveImageProps = Omit<
     React.ImgHTMLAttributes<HTMLImageElement>,
     'onAnimationStart' | 'onDragStart' | 'onDragEnd' | 'onDrag'

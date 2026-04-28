@@ -1,4 +1,5 @@
 import { TEAM_ABBREVIATIONS } from './constants';
+import type { FavoriteStoreItem, PhotoInput } from '../types';
 
 export function formatTeamName(teamName: string): string {
     let formattedName = teamName;
@@ -47,4 +48,31 @@ export function parseEventTitle(eventName: string, originalYear?: string, select
     }
 
     return { parsedYear, baseDatePrefix, mainTitle, datePrefix };
+}
+
+/**
+ * Unwraps a FavoriteStoreItem to its underlying PhotoInput.
+ * Centralises the repeated `'photo' in f ? f.photo : f` guard pattern.
+ */
+export function resolvePhotoInput(item: FavoriteStoreItem): PhotoInput {
+    if (item && typeof item === 'object' && 'photo' in item) {
+        return item.photo;
+    }
+    return item as PhotoInput;
+}
+
+/** Returns the original (full-res jpg) URL from any FavoriteStoreItem. */
+export function getPhotoOriginalUrl(item: FavoriteStoreItem): string {
+    const photo = resolvePhotoInput(item);
+    return typeof photo === 'string' ? photo : photo.original;
+}
+
+/**
+ * Returns the WebP display URL used by the lightbox for sharing.
+ * Mirrors the transformation in LightboxSlide: /photos/ → /webp/, .jpg → .webp
+ */
+export function getPhotoDisplayUrl(original: string): string {
+    return original
+        .replace(/^(?:\/)?photos\//i, '/webp/')
+        .replace(/\.jpe?g$/i, '.webp');
 }

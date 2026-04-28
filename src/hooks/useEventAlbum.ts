@@ -41,10 +41,10 @@ export function useEventAlbum({ ev, isVisible, selectedYear, eventName, setEv }:
                     .catch((err) => {
                         console.error(`Failed to load album for ${eventName}:`, err);
                         setLoading(false);
-                        setRetryCount((prev) => prev + 1);
-                        if (retryCount >= 1) {
-                            setFetchError(true);
-                        }
+                        setRetryCount((prev) => {
+                            if (prev >= 1) setFetchError(true);
+                            return prev + 1;
+                        });
                     });
             }, 0);
             return () => clearTimeout(timer);

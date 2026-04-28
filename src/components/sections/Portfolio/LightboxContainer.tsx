@@ -15,6 +15,7 @@ export default function LightboxContainer() {
                     index={lightbox.index}
                     year={lightbox.year}
                     eventName={lightbox.eventName}
+                    maxExifChars={lightbox.maxExifChars}
                     onClose={closeLightbox}
                     onSetIndex={setLightboxIndex}
                 />

@@ -26,16 +26,7 @@ export default function About() {
             document.body.style.paddingRight = '8px'; // Prevent jumping from scrollbar disappearing
 
             const handleKeyDown = (e: KeyboardEvent) => {
-                if (e.key === 'Escape' || e.key === 'Backspace') {
-                    // Prevent backspace from navigating back in the browser history if an input isn't focused
-                    if (
-                        e.key === 'Backspace' &&
-                        e.target instanceof HTMLElement &&
-                        e.target.tagName !== 'INPUT' &&
-                        e.target.tagName !== 'TEXTAREA'
-                    ) {
-                        e.preventDefault();
-                    }
+                if (e.key === 'Escape') {
                     closeAbout();
                 }
             };

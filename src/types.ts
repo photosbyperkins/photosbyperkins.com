@@ -37,6 +37,7 @@ export type EventData = {
     photoCount?: number;
     albumSlug?: string;
     originalYear?: string;
+    maxExifChars?: number;
     wftdaMatch?: WftdaMatch;
     localScore?: {
         team1Score: number | string | null;
@@ -62,6 +63,7 @@ export interface LightboxState {
     eventName: string;
     year: string;
     isOpen: boolean;
+    maxExifChars?: number;
 }
 
 export interface SharedPhotoState {
@@ -73,7 +75,7 @@ export interface PortfolioStore {
     lightbox: LightboxState;
     sharedPhoto: SharedPhotoState | null;
     favorites: FavoriteStoreItem[];
-    openLightbox: (images: PhotoInput[], index: number, eventName: string, year: string) => void;
+    openLightbox: (images: PhotoInput[], index: number, eventName: string, year: string, maxExifChars?: number) => void;
     closeLightbox: () => void;
     setLightboxIndex: (index: number) => void;
     setSharedPhoto: (sharedPhoto: SharedPhotoState | null) => void;

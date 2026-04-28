@@ -81,7 +81,7 @@ export function usePortfolioData({ selectedTab, years, onDataLoadAction }: UsePo
     }, [selectedTab, displayFavorites]);
 
     const getForTab = useCallback(
-        async (tabSlug: string, setData: boolean, isTeamMode: boolean) => {
+        (tabSlug: string, setData: boolean, isTeamMode: boolean) => {
             if (tabSlug === 'favorites') return;
 
             const basePath = isTeamMode ? `/data/teams` : `/data/years`;

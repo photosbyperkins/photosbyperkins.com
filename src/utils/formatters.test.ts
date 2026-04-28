@@ -1,7 +1,24 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { formatTeamName } from './formatters';
 
+// Inject a known abbreviation map so tests don't depend on VITE_TEAM_ABBREVIATIONS env.
+vi.mock('./constants', () => ({
+    TEAM_ABBREVIATIONS: {
+        'Sacramento Roller Derby': 'SRD',
+        'Rat City Roller Derby': 'RCRD',
+        'Bay Area Derby': 'BAD',
+        'Carson Junior Victory Rollers': 'Carson Jr. Victory Rollers',
+        'Happy Valley Derby Darlins': 'HVDD',
+        Juarez: 'Juárez',
+        Headshots: '',
+    },
+}));
+
 describe('formatTeamName', () => {
+    beforeEach(() => {
+        vi.resetModules();
+    });
+
     it('abbreviates known teams properly', () => {
         expect(formatTeamName('Sacramento Roller Derby')).toBe('SRD');
         expect(formatTeamName('Rat City Roller Derby')).toBe('RCRD');

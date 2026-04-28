@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useMotionValue, animate, useTransform, type PanInfo } from 'framer-motion';
 import { Helmet } from 'react-helmet-async';
@@ -13,6 +13,7 @@ interface LightboxProps {
     index: number;
     year?: string;
     eventName?: string;
+    maxExifChars?: number;
     onClose: () => void;
     onSetIndex: (idx: number) => void;
 }
@@ -20,8 +21,9 @@ interface LightboxProps {
 import { useCanShare } from '../../../hooks/useCanShare';
 import { useDebounce } from '../../../hooks/useDebounce';
 import { usePortfolioStore } from '../../../store/usePortfolioStore';
+import { getPhotoDisplayUrl } from '../../../utils/formatters';
 
-export default function Lightbox({ images, index, year, eventName, onClose, onSetIndex }: LightboxProps) {
+export default function Lightbox({ images, index, year, eventName, maxExifChars = 0, onClose, onSetIndex }: LightboxProps) {
     const canShare = useCanShare();
     const { favorites, toggleFavorite } = usePortfolioStore();
 
@@ -52,22 +54,6 @@ export default function Lightbox({ images, index, year, eventName, onClose, onSe
         const url = typeof photo === 'string' ? photo : photo?.thumb || photo?.original;
         return url ? `${url}?v=${__BUILD_NUMBER__}` : undefined;
     };
-
-    const maxDataChars = useMemo(() => {
-        if (!images) return 0;
-        let max = 0;
-        images.forEach((img) => {
-            if (typeof img !== 'string' && img.exif) {
-                const topStr = [img.exif.cameraModel, img.exif.lens].filter(Boolean).join(' • ');
-                const bottomStr = [img.exif.focalLength, img.exif.aperture, img.exif.shutterSpeed, img.exif.iso]
-                    .filter(Boolean)
-                    .join(' • ');
-                if (topStr.length > max) max = topStr.length;
-                if (bottomStr.length > max) max = bottomStr.length;
-            }
-        });
-        return max;
-    }, [images]);
 
     const total = images.length;
 
@@ -312,12 +298,14 @@ export default function Lightbox({ images, index, year, eventName, onClose, onSe
 
                                         try {
                                             const obj = images[index];
-                                            const src = typeof obj === 'string' ? obj : obj.original;
-                                            const filename = src.split('/').pop() || 'photo.jpg';
-                                            const response = await fetch(src);
+                                            const originalSrc = typeof obj === 'string' ? obj : obj.original;
+                                            // Use the WebP version — already loaded by the lightbox, smaller, and gives room to crop.
+                                            const webpSrc = getPhotoDisplayUrl(originalSrc);
+                                            const filename = webpSrc.split('/').pop() || 'photo.webp';
+                                            const response = await fetch(webpSrc);
                                             const blob = await response.blob();
                                             const file = new File([blob], filename, {
-                                                type: blob.type || 'image/jpeg',
+                                                type: blob.type || 'image/webp',
                                             });
 
                                             const shareData: ShareData = {

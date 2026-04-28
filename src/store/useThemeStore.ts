@@ -59,12 +59,7 @@ export const useThemeStore = create<ThemeState>((set, get) => {
             }
         };
 
-        if (mql.addEventListener) {
-            mql.addEventListener('change', handleChange);
-        } else if (mql.addListener) {
-            // Deprecated fallback for older Safari
-            mql.addListener(handleChange);
-        }
+        mql.addEventListener('change', handleChange);
     }
 
     return {

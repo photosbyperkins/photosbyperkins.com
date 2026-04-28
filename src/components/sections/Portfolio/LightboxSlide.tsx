@@ -96,7 +96,8 @@ const LightboxSlide = forwardRef<
         const img = limitsRef.current?.querySelector('img');
         if (img && img.complete && img.clientWidth > 0) {
             // Need a tiny delay for React layout engine sizing to execute first frame
-            setTimeout(calculateMaxScale, 50);
+            const timer = setTimeout(calculateMaxScale, 50);
+            return () => clearTimeout(timer);
         }
     }, [image, calculateMaxScale]);
 
@@ -169,9 +170,6 @@ const LightboxSlide = forwardRef<
             isZoomedInternalRef.current = false;
 
             if (releaseTimeoutRef.current) clearTimeout(releaseTimeoutRef.current);
-            releaseTimeoutRef.current = setTimeout(() => {
-                // Stabilize track lock if needed, but for now we trust the immediate flip
-            }, 300);
         }
     };
 
