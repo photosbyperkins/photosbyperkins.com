@@ -29,15 +29,11 @@ export const usePortfolioStore = create<PortfolioStore>()(
             toggleFavorite: (item) =>
                 set((state) => {
                     const photoOriginal = getPhotoOriginalUrl(item);
-                    const isFav = state.favorites.some(
-                        (f) => getPhotoOriginalUrl(f) === photoOriginal
-                    );
+                    const isFav = state.favorites.some((f) => getPhotoOriginalUrl(f) === photoOriginal);
 
                     if (isFav) {
                         return {
-                            favorites: state.favorites.filter(
-                                (f) => getPhotoOriginalUrl(f) !== photoOriginal
-                            ),
+                            favorites: state.favorites.filter((f) => getPhotoOriginalUrl(f) !== photoOriginal),
                         };
                     } else {
                         return { favorites: [...state.favorites, item] };

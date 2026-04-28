@@ -72,7 +72,5 @@ export function getPhotoOriginalUrl(item: FavoriteStoreItem): string {
  * Mirrors the transformation in LightboxSlide: /photos/ → /webp/, .jpg → .webp
  */
 export function getPhotoDisplayUrl(original: string): string {
-    return original
-        .replace(/^(?:\/)?photos\//i, '/webp/')
-        .replace(/\.jpe?g$/i, '.webp');
+    return original.replace(/^(?:\/)?photos\//i, '/webp/').replace(/\.jpe?g$/i, '.webp');
 }

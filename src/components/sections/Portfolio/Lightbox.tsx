@@ -23,7 +23,15 @@ import { useDebounce } from '../../../hooks/useDebounce';
 import { usePortfolioStore } from '../../../store/usePortfolioStore';
 import { getPhotoDisplayUrl } from '../../../utils/formatters';
 
-export default function Lightbox({ images, index, year, eventName, maxExifChars = 0, onClose, onSetIndex }: LightboxProps) {
+export default function Lightbox({
+    images,
+    index,
+    year,
+    eventName,
+    maxExifChars = 0,
+    onClose,
+    onSetIndex,
+}: LightboxProps) {
     const canShare = useCanShare();
     const { favorites, toggleFavorite } = usePortfolioStore();
 

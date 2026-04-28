@@ -139,9 +139,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
         let photos: PhotoInput[] = [...highlightImages];
 
         // Build a Set of album URLs for O(n) lookups instead of O(n²) nested .some()
-        const albumUrlSet = new Set(
-            albumImages.map((ai: PhotoInput) => (typeof ai === 'string' ? ai : ai.original))
-        );
+        const albumUrlSet = new Set(albumImages.map((ai: PhotoInput) => (typeof ai === 'string' ? ai : ai.original)));
 
         // Filter out highlights that don't exist in the album (orphaned highlights)
         if (photos.length > 0 && albumImages.length > 0) {
@@ -158,9 +156,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
         } else {
             if (photos.length < 10) {
                 const remaining = 10 - photos.length;
-                const featuredUrlSet = new Set(
-                    photos.map((f: PhotoInput) => (typeof f === 'string' ? f : f.original))
-                );
+                const featuredUrlSet = new Set(photos.map((f: PhotoInput) => (typeof f === 'string' ? f : f.original)));
                 const extras = albumImages
                     .filter((a: PhotoInput) => !featuredUrlSet.has(typeof a === 'string' ? a : a.original))
                     .slice(0, remaining);
@@ -294,10 +290,20 @@ const PortfolioEvent = memo(function PortfolioEvent({
                                     const t2 = ev.wftdaMatch.team2.toLowerCase();
                                     const tCurr = formatTeamName(team).toLowerCase();
                                     const tRaw = team.toLowerCase();
-                                    if (t1.includes(tCurr) || tCurr.includes(t1) || t1.includes(tRaw) || tRaw.includes(t1)) {
+                                    if (
+                                        t1.includes(tCurr) ||
+                                        tCurr.includes(t1) ||
+                                        t1.includes(tRaw) ||
+                                        tRaw.includes(t1)
+                                    ) {
                                         score = ev.wftdaMatch.score1;
                                         isWin = Number(ev.wftdaMatch.score1) > Number(ev.wftdaMatch.score2);
-                                    } else if (t2.includes(tCurr) || tCurr.includes(t2) || t2.includes(tRaw) || tRaw.includes(t2)) {
+                                    } else if (
+                                        t2.includes(tCurr) ||
+                                        tCurr.includes(t2) ||
+                                        t2.includes(tRaw) ||
+                                        tRaw.includes(t2)
+                                    ) {
                                         score = ev.wftdaMatch.score2;
                                         isWin = Number(ev.wftdaMatch.score2) > Number(ev.wftdaMatch.score1);
                                     }
@@ -305,7 +311,9 @@ const PortfolioEvent = memo(function PortfolioEvent({
                                     const originalTeams = mainTitle.split(/\s+(?:vs|versus)\s+/i).map((t) => t.trim());
                                     const isTeam1 = team === originalTeams[0];
                                     score = isTeam1 ? ev.localScore!.team1Score! : ev.localScore!.team2Score!;
-                                    const otherScore = isTeam1 ? ev.localScore!.team2Score! : ev.localScore!.team1Score!;
+                                    const otherScore = isTeam1
+                                        ? ev.localScore!.team2Score!
+                                        : ev.localScore!.team1Score!;
                                     isWin = Number(score) > Number(otherScore);
                                 }
                                 return (
@@ -437,7 +445,9 @@ const PortfolioEvent = memo(function PortfolioEvent({
                                             src={thumbUrl}
                                             placeholder={null}
                                             alt={`${eventName} photo ${i + 1}`}
-                                            onClick={() => openLightbox(albumImages, i, eventName, selectedYear, ev.maxExifChars)}
+                                            onClick={() =>
+                                                openLightbox(albumImages, i, eventName, selectedYear, ev.maxExifChars)
+                                            }
                                             objectPosition={
                                                 focusX != null && focusY != null
                                                     ? `${focusX * 100}% ${focusY * 100}%`
