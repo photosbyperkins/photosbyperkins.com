@@ -222,7 +222,7 @@ export default function Lightbox({
         <div className="portfolio__lightbox-data-display">
             <div
                 className="portfolio__lightbox-data-info"
-                style={exif && maxDataChars > 0 ? { minWidth: `${maxDataChars * 5.0}px` } : undefined}
+                style={exif && maxExifChars > 0 ? { minWidth: `${maxExifChars * 5.0}px` } : undefined}
             >
                 <span className="portfolio__lightbox-counter" style={{ marginBottom: exif ? '1px' : '0' }}>
                     {index + 1} of {total}
