@@ -111,8 +111,11 @@ async function generateRecaps() {
             let cropWidth, cropHeight;
 
             if (width / height > cropRatio) {
-                cropHeight = height;
-                cropWidth = Math.round(height * cropRatio);
+                // Landscape photo: cap cropHeight at 65% of image height so face-centering
+                // math can actually offset top > 0. Using full height forces top=0 for any
+                // face above the vertical midpoint.
+                cropHeight = Math.round(height * 0.65);
+                cropWidth = Math.round(cropHeight * cropRatio);
             } else {
                 cropWidth = width;
                 cropHeight = Math.round(width / cropRatio);
