@@ -111,10 +111,10 @@ async function generateRecaps() {
             let cropWidth, cropHeight;
 
             if (width / height > cropRatio) {
-                // Landscape photo: cap cropHeight at 65% of image height so face-centering
-                // math can actually offset top > 0. Using full height forces top=0 for any
-                // face above the vertical midpoint.
-                cropHeight = Math.round(height * 0.65);
+                // Landscape photo: cap at 65% of height so face-centering math can offset
+                // top > 0, but floor at 960 to guarantee the crop is large enough to fill
+                // the 240×960 output target without needing upscaling.
+                cropHeight = Math.min(height, Math.max(960, Math.round(height * 0.65)));
                 cropWidth = Math.round(cropHeight * cropRatio);
             } else {
                 cropWidth = width;
@@ -139,7 +139,7 @@ async function generateRecaps() {
                     width: 240,
                     height: 960,
                     withoutEnlargement: true,
-                    fit: 'inside', // To ensure it respects original ratios if smaller
+                    fit: 'inside',
                 })
                 .webp({ quality: targetQuality, effort: 6 })
                 .toFile(destPath);
