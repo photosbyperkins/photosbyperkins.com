@@ -16,7 +16,7 @@ export function parseEventTitle(eventName: string, originalYear?: string, select
     const baseDatePrefix = titleMatch ? titleMatch[2] : '';
     const mainTitle = titleMatch ? titleMatch[3] : eventName;
 
-    let datePrefix = baseDatePrefix && parsedYear ? `${baseDatePrefix}.${parsedYear.slice(-2)}` : baseDatePrefix;
+    let datePrefix = baseDatePrefix;
 
     if (baseDatePrefix) {
         const [monthStr, dayStr] = baseDatePrefix.split('.');
@@ -30,14 +30,11 @@ export function parseEventTitle(eventName: string, originalYear?: string, select
                         month: '2-digit',
                         day: '2-digit',
                     };
-                    if (parsedYear) {
-                        options.year = '2-digit';
-                    }
 
                     const parts = new Intl.DateTimeFormat(undefined, options).formatToParts(dateObj);
 
                     datePrefix = parts
-                        .filter((part) => part.type === 'month' || part.type === 'day' || part.type === 'year')
+                        .filter((part) => part.type === 'month' || part.type === 'day')
                         .map((part) => part.value)
                         .join('.');
                 }

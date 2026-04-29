@@ -4,7 +4,7 @@ import { useInView, AnimatePresence, motion } from 'framer-motion';
 import { matchPath, useLocation, Link } from 'react-router-dom';
 import { Search, X, Heart } from 'lucide-react';
 import Fuse from 'fuse.js';
-import { formatTeamName } from '../../../utils/formatters';
+import { formatTeamName, parseEventTitle } from '../../../utils/formatters';
 import PortfolioEvent from './PortfolioEvent';
 import LightboxContainer from './LightboxContainer';
 import TeamFilter from './TeamFilter';
@@ -149,6 +149,26 @@ export default function Portfolio({ years }: PortfolioProps) {
     const events = Object.entries(yearData);
 
     const isTeamMode = !years.includes(selectedTab);
+
+    // In team mode, build a list of rows: either an event entry or a year-divider string.
+    type EventRow = { type: 'event'; eventName: string; ev: (typeof yearData)[string]; evIdx: number } | { type: 'divider'; year: string };
+    const eventRows = isTeamMode
+        ? (() => {
+              const rows: EventRow[] = [];
+              let lastYear: string | null = null;
+              let eventCounter = 0;
+              for (const [eventName, ev] of events) {
+                  const { parsedYear } = parseEventTitle(eventName, ev.originalYear);
+                  const year = parsedYear || ev.originalYear || selectedTab;
+                  if (year !== lastYear) {
+                      if (year) rows.push({ type: 'divider', year });
+                      lastYear = year ?? null;
+                  }
+                  rows.push({ type: 'event', eventName, ev, evIdx: eventCounter++ });
+              }
+              return rows;
+          })()
+        : events.map(([eventName, ev], evIdx) => ({ type: 'event' as const, eventName, ev, evIdx }));
     const activeTeamMeta = isTeamMode ? teamIndex.find((t) => t.slug === selectedTab) : null;
 
     const fuse = useMemo(
@@ -262,18 +282,23 @@ export default function Portfolio({ years }: PortfolioProps) {
                 {navPortalTarget && createPortal(yearsSelectorContent, navPortalTarget)}
 
                 <div className="portfolio__events" ref={stickyRef}>
-                    {/* Team header pill moved to navigation scale */}
-                    {events.map(([eventName, ev], evIdx) => (
-                        <PortfolioEvent
-                            key={`${selectedTab}-${eventName}`}
-                            eventName={eventName}
-                            ev={ev}
-                            evIdx={evIdx}
-                            selectedYear={selectedTab}
-                            inViewParent={inView}
-                            activeTeamName={activeTeamMeta?.name}
-                        />
-                    ))}
+                    {eventRows.map((row) =>
+                        row.type === 'divider' ? (
+                            <div key={`divider-${row.year}`} className="portfolio__year-divider" aria-hidden="true">
+                                <span>{row.year}</span>
+                            </div>
+                        ) : (
+                            <PortfolioEvent
+                                key={`${selectedTab}-${row.eventName}`}
+                                eventName={row.eventName}
+                                ev={row.ev}
+                                evIdx={row.evIdx}
+                                selectedYear={selectedTab}
+                                inViewParent={inView}
+                                activeTeamName={activeTeamMeta?.name}
+                            />
+                        )
+                    )}
                 </div>
             </div>
 
