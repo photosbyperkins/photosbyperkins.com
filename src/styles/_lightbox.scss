@@ -388,7 +388,9 @@
 
         &.is-theater-mode {
             .portfolio__lightbox-footer,
+            .portfolio__lightbox-footer > *,
             .portfolio__lightbox-top-left,
+            .portfolio__lightbox-top-left > *,
             .portfolio__lightbox-top-right > .portfolio__lightbox-action {
                 opacity: 0;
                 pointer-events: none;
