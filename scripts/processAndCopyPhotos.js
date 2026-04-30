@@ -89,15 +89,13 @@ async function processPhotos() {
                 const extraPathsToCopy = [];
                 if (webPathThumb) {
                     extraPathsToCopy.push(webPathThumb);
-                    const scrubberPath = webPathThumb.replace(/^\/thumbnails\//, '/scrubber/');
-                    extraPathsToCopy.push(scrubberPath);
                 }
                 if (webPathTiny) extraPathsToCopy.push(webPathTiny);
 
                 for (const webPath of extraPathsToCopy) {
                     const relativePath = webPath.startsWith('/') ? webPath.slice(1) : webPath;
                     let sourcePath;
-                    if (relativePath.startsWith('thumbnails/') || relativePath.startsWith('scrubber/')) {
+                    if (relativePath.startsWith('thumbnails/')) {
                         sourcePath = path.join(process.cwd(), 'build', relativePath);
                     } else {
                         sourcePath = path.join(process.cwd(), relativePath);
@@ -163,6 +161,26 @@ async function processPhotos() {
             }
         }
         queueRecapFiles(recapsDir);
+    }
+
+    // Pass 1.9: Queue scrubber sprite sheets
+    const scrubberDir = path.join(process.cwd(), 'build', 'scrubber');
+    if (fs.existsSync(scrubberDir)) {
+        function queueScrubberFiles(dir) {
+            const entries = fs.readdirSync(dir, { withFileTypes: true });
+            for (const entry of entries) {
+                const fullPath = path.join(dir, entry.name);
+                if (entry.isDirectory()) {
+                    queueScrubberFiles(fullPath);
+                } else if (entry.name.endsWith('.webp')) {
+                    const relativePath = path.relative(path.join(process.cwd(), 'build'), fullPath);
+                    const destPath = path.join(DIST_DIR, relativePath);
+                    validDestPaths.add(destPath);
+                    copyTasks.push({ source: fullPath, dest: destPath });
+                }
+            }
+        }
+        queueScrubberFiles(scrubberDir);
     }
 
     // Pass 2: Transfer Build Payload

@@ -393,12 +393,13 @@ async function processEventDir(eventDir, year, eventSlug) {
     }
 
     // Clean up albumArr (remove temporary basenames & aspect ratio)
-    const finalAlbum = albumWithDims.map(({ source, original, thumb, width, height, exif }) => ({
+    const finalAlbum = albumWithDims.map(({ source, original, thumb, width, height, exif }, i) => ({
         source,
         original,
         thumb,
         width,
         height,
+        spriteIndex: i,
         ...(exif && { exif }),
     }));
 
@@ -480,6 +481,7 @@ async function main() {
                         thumb: `/thumbnails/${year}/all-photos/${thumbName}`,
                         width,
                         height,
+                        spriteIndex: idx,
                         ...(exif && { exif }),
                     });
                 }

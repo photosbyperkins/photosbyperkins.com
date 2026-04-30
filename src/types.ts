@@ -9,6 +9,7 @@ export type PhotoInput =
           focusY?: number;
           width?: number;
           height?: number;
+          spriteIndex?: number;
           exif?: {
               cameraModel?: string;
               lens?: string;

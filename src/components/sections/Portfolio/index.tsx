@@ -154,23 +154,25 @@ export default function Portfolio({ years }: PortfolioProps) {
     type EventRow =
         | { type: 'event'; eventName: string; ev: (typeof yearData)[string]; evIdx: number }
         | { type: 'divider'; year: string };
-    const eventRows = isTeamMode
-        ? (() => {
-              const rows: EventRow[] = [];
-              let lastYear: string | null = null;
-              let eventCounter = 0;
-              for (const [eventName, ev] of events) {
-                  const { parsedYear } = parseEventTitle(eventName, ev.originalYear);
-                  const year = parsedYear || ev.originalYear || selectedTab;
-                  if (year !== lastYear) {
-                      if (year) rows.push({ type: 'divider', year });
-                      lastYear = year ?? null;
+    const isFavoritesTab = selectedTab === 'favorites';
+    const eventRows =
+        isTeamMode && !isFavoritesTab
+            ? (() => {
+                  const rows: EventRow[] = [];
+                  let lastYear: string | null = null;
+                  let eventCounter = 0;
+                  for (const [eventName, ev] of events) {
+                      const { parsedYear } = parseEventTitle(eventName, ev.originalYear);
+                      const year = parsedYear || ev.originalYear || selectedTab;
+                      if (year !== lastYear) {
+                          if (year) rows.push({ type: 'divider', year });
+                          lastYear = year ?? null;
+                      }
+                      rows.push({ type: 'event', eventName, ev, evIdx: eventCounter++ });
                   }
-                  rows.push({ type: 'event', eventName, ev, evIdx: eventCounter++ });
-              }
-              return rows;
-          })()
-        : events.map(([eventName, ev], evIdx) => ({ type: 'event' as const, eventName, ev, evIdx }));
+                  return rows;
+              })()
+            : events.map(([eventName, ev], evIdx) => ({ type: 'event' as const, eventName, ev, evIdx }));
     const activeTeamMeta = isTeamMode ? teamIndex.find((t) => t.slug === selectedTab) : null;
 
     const fuse = useMemo(
