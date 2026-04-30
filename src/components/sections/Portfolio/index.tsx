@@ -151,7 +151,9 @@ export default function Portfolio({ years }: PortfolioProps) {
     const isTeamMode = !years.includes(selectedTab);
 
     // In team mode, build a list of rows: either an event entry or a year-divider string.
-    type EventRow = { type: 'event'; eventName: string; ev: (typeof yearData)[string]; evIdx: number } | { type: 'divider'; year: string };
+    type EventRow =
+        | { type: 'event'; eventName: string; ev: (typeof yearData)[string]; evIdx: number }
+        | { type: 'divider'; year: string };
     const eventRows = isTeamMode
         ? (() => {
               const rows: EventRow[] = [];

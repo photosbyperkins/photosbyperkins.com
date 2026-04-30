@@ -1,7 +1,7 @@
 {
   "name": "photosbyperkins",
   "private": false,
-  "version": "1.3.0",
+  "version": "1.4.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,6 +13,7 @@
     "faces": "python scripts/detectFaces.py",
     "index": "node scripts/generatePhotoIndex.js",
     "thumbnails": "node scripts/generateThumbnails.js",
+    "scrubber": "node scripts/generateScrubberThumbs.js",
     "recaps": "node scripts/generateRecaps.js",
     "favicon": "node scripts/generate_favicon.js",
     "webp": "node scripts/generateWebp.js",

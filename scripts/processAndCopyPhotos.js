@@ -87,13 +87,17 @@ async function processPhotos() {
                 const webPathThumb = typeof imgObj === 'string' ? null : imgObj.thumb;
                 const webPathTiny = typeof imgObj === 'string' ? null : imgObj.tiny;
                 const extraPathsToCopy = [];
-                if (webPathThumb) extraPathsToCopy.push(webPathThumb);
+                if (webPathThumb) {
+                    extraPathsToCopy.push(webPathThumb);
+                    const scrubberPath = webPathThumb.replace(/^\/thumbnails\//, '/scrubber/');
+                    extraPathsToCopy.push(scrubberPath);
+                }
                 if (webPathTiny) extraPathsToCopy.push(webPathTiny);
 
                 for (const webPath of extraPathsToCopy) {
                     const relativePath = webPath.startsWith('/') ? webPath.slice(1) : webPath;
                     let sourcePath;
-                    if (relativePath.startsWith('thumbnails/')) {
+                    if (relativePath.startsWith('thumbnails/') || relativePath.startsWith('scrubber/')) {
                         sourcePath = path.join(process.cwd(), 'build', relativePath);
                     } else {
                         sourcePath = path.join(process.cwd(), relativePath);
@@ -249,6 +253,7 @@ async function processPhotos() {
     }
     removeStaleFiles(path.join(DIST_DIR, 'photos'), validDestPaths);
     removeStaleFiles(path.join(DIST_DIR, 'thumbnails'), validDestPaths);
+    removeStaleFiles(path.join(DIST_DIR, 'scrubber'), validDestPaths);
     removeStaleFiles(path.join(DIST_DIR, 'recap'), validDestPaths);
     removeStaleFiles(path.join(DIST_DIR, 'zips'), validDestPaths);
     removeStaleFiles(path.join(DIST_DIR, 'webp'), validDestPaths);

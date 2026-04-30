@@ -149,6 +149,8 @@ async function extractExif(absPath) {
         let lens = rawLens
             ? rawLens
                   .replace(/\b(nikkor|fl|ed|sr|vr|af-s)\b/gi, '')
+                  .replace(/leica\s*dg\s*nocticron\s*/gi, '')
+                  .replace(/olympus\s*m\./gi, '')
                   .replace(/f\/([\d.]+)E\b/gi, 'f/$1')
                   .replace(/\bZ(?=\d|f|fc|\b)/gi, 'ℤ')
                   .replace(/\.0\s*mm/gi, 'mm')

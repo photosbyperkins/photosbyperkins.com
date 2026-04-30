@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useMotionValue, animate, useTransform, type PanInfo } from 'framer-motion';
 import { Helmet } from 'react-helmet-async';
-import { X, ChevronLeft, ChevronRight, Download, Share2, Heart, Maximize, Minimize } from 'lucide-react';
+import { X, Download, Share2, Heart } from 'lucide-react';
 import LightboxSlide, { type LightboxSlideHandle } from './LightboxSlide';
 import type { PhotoInput } from '../../../types';
 
@@ -38,12 +38,27 @@ export default function Lightbox({
     const x = useMotionValue(0);
     const containerRef = useRef<HTMLDivElement>(null);
     const slideRef = useRef<LightboxSlideHandle>(null);
+    const recentlyDragged = useRef<{ x: number; y: number } | null>(null);
     const [isAnimating, setIsAnimating] = useState(false);
     const [isZoomed, setIsZoomed] = useState(false);
     const [canZoom, setCanZoom] = useState(false);
     const [isTheaterMode, setIsTheaterMode] = useState(false);
     const [mainImageLoaded, setMainImageLoaded] = useState(false);
     const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
+
+    const getThumbSrc = useCallback((photo: PhotoInput) => {
+        const url = typeof photo === 'string' ? photo : photo?.thumb || photo?.original;
+        return url ? `${url}?v=${__BUILD_NUMBER__}` : undefined;
+    }, []);
+
+    // Helper to fetch the new 72px micro-media from the build/scrubber folder
+    const getScrubberSrc = useCallback((photo: PhotoInput) => {
+        const url = typeof photo === 'string' ? photo : photo?.thumb || photo?.original;
+        if (!url) return undefined;
+        // Replace /thumbnails/ with /scrubber/
+        const scrubberUrl = url.replace(/^\/thumbnails\//, '/scrubber/');
+        return `${scrubberUrl}?v=${__BUILD_NUMBER__}`;
+    }, []);
 
     const handleResize = useDebounce(() => {
         setWindowWidth(window.innerWidth);
@@ -58,10 +73,19 @@ export default function Lightbox({
     const prevOpacity = useTransform(x, [0, windowWidth], [0, 1]);
     const nextOpacity = useTransform(x, [-windowWidth, 0], [1, 0]);
 
-    const getThumbSrc = (photo: PhotoInput) => {
-        const url = typeof photo === 'string' ? photo : photo?.thumb || photo?.original;
-        return url ? `${url}?v=${__BUILD_NUMBER__}` : undefined;
-    };
+    // Map the horizontal swipe down to a 72px physical tracking shift
+    const dragShift = useTransform(x, [-windowWidth, 0, windowWidth], [-72, 0, 72]);
+
+    // How many slices to render (enough to fill the viewport + generous buffer)
+    const visibleSlices = Math.max(5, Math.ceil(windowWidth / 72) + 6);
+    // Ensure odd number so there's a perfectly centered item
+    const sliceCount = visibleSlices % 2 === 0 ? visibleSlices + 1 : visibleSlices;
+    const maxDist = Math.floor(sliceCount / 2);
+
+    // The center slice (offset 0) is at position maxDist in the rendered array.
+    // Its center is at (maxDist * 72 + 36) from the track's left edge.
+    // To place that at the viewport center:
+    const trackX = useTransform(dragShift, (shift) => windowWidth / 2 - (maxDist * 72 + 36) + shift);
 
     const total = images.length;
 
@@ -114,12 +138,20 @@ export default function Lightbox({
     }, []);
 
     const currentPhoto = images[index];
-    const currentSrc = typeof currentPhoto === 'string' ? currentPhoto : currentPhoto.original;
-    const isFavorite = favorites.some((f) => {
-        const fInput = typeof f === 'object' && 'photo' in f ? f.photo : f;
-        const fOriginal = typeof fInput === 'string' ? fInput : fInput.original;
-        return fOriginal === currentSrc;
-    });
+
+    const checkIfFavorite = useCallback(
+        (photo: PhotoInput) => {
+            const src = typeof photo === 'string' ? photo : photo.original;
+            return favorites.some((f) => {
+                const fInput = typeof f === 'object' && 'photo' in f ? f.photo : f;
+                const fOriginal = typeof fInput === 'string' ? fInput : fInput.original;
+                return fOriginal === src;
+            });
+        },
+        [favorites]
+    );
+
+    const isFavorite = checkIfFavorite(currentPhoto);
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setMainImageLoaded(false);
@@ -215,7 +247,6 @@ export default function Lightbox({
             animate(x, 0, { type: 'spring', stiffness: 450, damping: 40 });
         }
     };
-
     const exif = typeof currentPhoto === 'object' ? currentPhoto.exif : null;
 
     const dataDisplayUI = (
@@ -224,9 +255,6 @@ export default function Lightbox({
                 className="portfolio__lightbox-data-info"
                 style={exif && maxExifChars > 0 ? { minWidth: `${maxExifChars * 5.0}px` } : undefined}
             >
-                <span className="portfolio__lightbox-counter" style={{ marginBottom: exif ? '1px' : '0' }}>
-                    {index + 1} of {total}
-                </span>
                 <span className="portfolio__lightbox-data-row-top">
                     {[exif?.cameraModel, exif?.lens].filter(Boolean).join(' • ')}
                 </span>
@@ -244,7 +272,17 @@ export default function Lightbox({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.2 }}
-            onClick={onClose}
+            onPointerDown={(e) => {
+                recentlyDragged.current = { x: e.clientX, y: e.clientY };
+            }}
+            onClick={(e) => {
+                const start = recentlyDragged.current;
+                if (start && typeof start === 'object') {
+                    const dist = Math.hypot(e.clientX - start.x, e.clientY - start.y);
+                    if (dist > 5) return; // Was a drag, not a click
+                }
+                onClose();
+            }}
         >
             <div className="portfolio__lightbox-ambient">
                 <motion.div
@@ -307,7 +345,6 @@ export default function Lightbox({
                                         try {
                                             const obj = images[index];
                                             const originalSrc = typeof obj === 'string' ? obj : obj.original;
-                                            // Use the WebP version — already loaded by the lightbox, smaller, and gives room to crop.
                                             const webpSrc = getPhotoDisplayUrl(originalSrc);
                                             const filename = webpSrc.split('/').pop() || 'photo.webp';
                                             const response = await fetch(webpSrc);
@@ -344,22 +381,11 @@ export default function Lightbox({
                                 <Download size={18} />
                             </button>
                         )}
-                        <button
-                            className={`portfolio__lightbox-action ${isFavorite ? 'portfolio__lightbox-action--active' : ''}`}
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                toggleFavorite({
-                                    photo: images[index],
-                                    eventName: eventName || '',
-                                    year: year || '',
-                                });
-                            }}
-                            aria-label="Toggle Favorite"
-                            style={{ color: isFavorite ? 'var(--color-accent)' : 'inherit' }}
-                        >
-                            <Heart size={18} fill={isFavorite ? 'currentColor' : 'none'} />
-                        </button>
                     </div>
+                </div>
+
+                <div className="portfolio__lightbox-top-center" onClick={(e) => e.stopPropagation()}>
+                    {dataDisplayUI}
                 </div>
 
                 <div className="portfolio__lightbox-top-right">
@@ -427,33 +453,74 @@ export default function Lightbox({
                 </motion.div>
             </div>
 
-            <div className="portfolio__lightbox-footer" onClick={(e) => e.stopPropagation()}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', pointerEvents: 'none' }}>
+            <div className="portfolio__lightbox-scrubber" onClick={(e) => e.stopPropagation()}>
+                {/* Sliding track — thumbnails slide under the fixed playhead */}
+                <motion.div className="portfolio__lightbox-scrubber-track" style={{ x: trackX }}>
+                    {(() => {
+                        const offsets: number[] = [];
+                        for (let o = -maxDist; o <= maxDist; o++) {
+                            offsets.push(o);
+                        }
+
+                        return offsets.map((offset) => {
+                            const wrappedIndex = (((index + offset) % images.length) + images.length) % images.length;
+                            const img = images[wrappedIndex];
+                            const isImgFavorite = checkIfFavorite(img);
+                            const isActive = offset === 0;
+
+                            return (
+                                <div
+                                    key={`${offset}`}
+                                    className={`portfolio__lightbox-scrubber-thumb${isActive ? ' is-active' : ''}`}
+                                    onClick={() => onSetIndex(wrappedIndex)}
+                                    style={{ backgroundImage: `url("${getScrubberSrc(img)}")` }}
+                                    role="button"
+                                    tabIndex={0}
+                                    aria-label={`Go to photo ${wrappedIndex + 1}`}
+                                >
+                                    {!isActive && isImgFavorite && (
+                                        <div
+                                            className="portfolio__lightbox-scrubber-heart is-active"
+                                            style={{ pointerEvents: 'none' }}
+                                        >
+                                            <Heart
+                                                size={28}
+                                                fill="var(--color-accent)"
+                                                color="var(--color-accent)"
+                                                strokeWidth={1.5}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        });
+                    })()}
+                </motion.div>
+
+                {/* Fixed playhead — outline + heart, always centered */}
+                <div className="portfolio__lightbox-scrubber-playhead">
                     <button
-                        className="portfolio__lightbox-footer-nav"
-                        style={{ pointerEvents: 'auto' }}
+                        className={`portfolio__lightbox-scrubber-heart${isFavorite ? ' is-active' : ''}`}
                         onClick={(e) => {
                             e.stopPropagation();
-                            paginate(-1);
+                            toggleFavorite({
+                                photo: images[index],
+                                eventName: eventName || '',
+                                year: year || '',
+                            });
                         }}
-                        aria-label="Previous"
+                        aria-label="Toggle Favorite"
                     >
-                        <ChevronLeft size={20} />
+                        <Heart
+                            size={28}
+                            fill={isFavorite ? 'var(--color-accent)' : 'rgba(0, 0, 0, 0.4)'}
+                            color={isFavorite ? 'var(--color-accent)' : '#ffffff'}
+                            strokeWidth={1.5}
+                        />
                     </button>
-
-                    {dataDisplayUI}
-
-                    <button
-                        className="portfolio__lightbox-footer-nav"
-                        style={{ pointerEvents: 'auto' }}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            paginate(1);
-                        }}
-                        aria-label="Next"
-                    >
-                        <ChevronRight size={20} />
-                    </button>
+                    <span className="portfolio__lightbox-scrubber-counter">
+                        {index + 1} / {total}
+                    </span>
                 </div>
             </div>
         </motion.div>
