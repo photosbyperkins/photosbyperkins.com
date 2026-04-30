@@ -25,7 +25,6 @@
             }
         }
 
-
         &-top-bar {
             position: absolute;
             top: 0;
@@ -77,8 +76,6 @@
             pointer-events: none;
             z-index: var(--z-lightbox-controls);
         }
-
-
 
         &-data-display {
             display: flex;
@@ -191,8 +188,6 @@
                 background: transparent;
                 overflow: visible;
             }
-
-
 
             &-counter {
                 position: absolute;
@@ -432,9 +427,6 @@
             object-fit: contain;
             border-radius: 4px;
         }
-
-
-
 
         &.is-theater-mode {
             .portfolio__lightbox-scrubber,
