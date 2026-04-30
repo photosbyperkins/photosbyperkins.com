@@ -114,6 +114,19 @@ export default function Lightbox({
                 restDelta: 0.5,
             });
 
+            // Preload the ambient thumbnail for the destination photo to avoid flash
+            const nextThumbSrc = getThumbSrc(images[nextIndex]);
+            if (nextThumbSrc) {
+                await new Promise<void>((resolve) => {
+                    const img = new Image();
+                    img.onload = () => resolve();
+                    img.onerror = () => resolve();
+                    img.src = nextThumbSrc;
+                    // Safety timeout — don't block navigation for slow thumbs
+                    setTimeout(resolve, 200);
+                });
+            }
+
             // Update index and reset position
             onSetIndex(nextIndex);
             x.set(0);

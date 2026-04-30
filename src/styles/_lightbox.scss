@@ -402,6 +402,7 @@
                 background-position: center;
                 filter: blur(70px) saturate(130%);
                 transform: scale(1.25);
+                will-change: opacity;
             }
 
             &-glass {
