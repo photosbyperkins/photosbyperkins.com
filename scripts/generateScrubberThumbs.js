@@ -1,17 +1,15 @@
 import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
-import os from 'os';
 
-const PHOTOS_DIR = path.join(process.cwd(), 'photos');
 const SCRUBBER_DIR = path.join(process.cwd(), 'build', 'scrubber');
 const INDEX_FILE = path.join(process.cwd(), 'data', 'photos.json');
 
-const SCRUBBER_WIDTH = 72;
-const SCRUBBER_HEIGHT = 48;
+const FRAME_WIDTH = 72;
+const FRAME_HEIGHT = 48;
 
 async function generateScrubberThumbs() {
-    console.log('🎞️  Generating micro-media scrubber thumbs...\n');
+    console.log('🎞️  Generating scrubber sprite sheets...\n');
 
     if (!fs.existsSync(SCRUBBER_DIR)) {
         fs.mkdirSync(SCRUBBER_DIR, { recursive: true });
@@ -23,65 +21,146 @@ async function generateScrubberThumbs() {
     }
     const indexData = JSON.parse(fs.readFileSync(INDEX_FILE, 'utf8'));
 
-    const validThumbs = new Set();
-    const tasks = [];
-    let skippedCount = 0;
+    const validSprites = new Set();
+    let spritesGenerated = 0;
+    let spritesSkipped = 0;
 
     for (const year in indexData) {
         for (const event in indexData[year]) {
             const eventData = indexData[year][event];
-            const allPhotos = [...(eventData.album || []), ...(eventData.highlights || [])];
+            const allPhotos = [...(eventData.album || [])];
+
+            if (allPhotos.length === 0) continue;
+
+            // Derive the sprite output path from the first photo's thumb path
+            const firstThumb = allPhotos[0]?.thumb;
+            if (!firstThumb) continue;
+
+            const thumbDir = firstThumb.substring(0, firstThumb.lastIndexOf('/'));
+            const spriteRelative = thumbDir.replace(/^\/thumbnails\//, 'scrubber/');
+            const spriteDir = path.join(process.cwd(), 'build', spriteRelative);
+            const spritePath = path.join(spriteDir, 'sprite.webp');
+
+            validSprites.add(spritePath);
+
+            // Skip if sprite exists and has the correct frame count (width matches 72 × photos)
+            const expectedWidth = FRAME_WIDTH * allPhotos.length;
+            if (fs.existsSync(spritePath)) {
+                try {
+                    const meta = await sharp(spritePath).metadata();
+                    if (meta.width === expectedWidth) {
+                        spritesSkipped++;
+                        continue;
+                    }
+                } catch (_e) { /* regenerate on read failure */ }
+            }
+
+            // Generate individual frame buffers
+            const frameBuffers = [];
+            let failCount = 0;
 
             for (const imgObj of allPhotos) {
-                if (typeof imgObj === 'string' || !imgObj.source) continue;
+                if (typeof imgObj === 'string' || !imgObj.thumb) {
+                    // Create a blank frame as placeholder
+                    frameBuffers.push(
+                        await sharp({
+                            create: {
+                                width: FRAME_WIDTH,
+                                height: FRAME_HEIGHT,
+                                channels: 3,
+                                background: { r: 30, g: 30, b: 30 },
+                            },
+                        })
+                            .webp()
+                            .toBuffer()
+                    );
+                    continue;
+                }
 
-                // Source image path
-                const sourceRelative = imgObj.source.startsWith('/') ? imgObj.source.slice(1) : imgObj.source;
-                const sourcePath = path.join(process.cwd(), sourceRelative);
-
-                // Re-map thumbnail path to scrubber path
-                // e.g. /thumbnails/2023/event/photo.webp -> build/scrubber/2023/event/photo.webp
+                // Use the already-generated thumbnail as source (always exists, ~400px is plenty for 72×48)
                 const thumbRelative = imgObj.thumb.startsWith('/') ? imgObj.thumb.slice(1) : imgObj.thumb;
-                const scrubberRelative = thumbRelative.replace(/^thumbnails[\\/]/, 'scrubber/');
-                const destPath = path.join(process.cwd(), 'build', scrubberRelative);
+                const thumbPath = path.join(process.cwd(), 'build', thumbRelative);
 
-                validThumbs.add(destPath);
-
-                if (fs.existsSync(destPath)) {
-                    skippedCount++;
+                if (!fs.existsSync(thumbPath)) {
+                    console.error(`  ❌ Thumbnail missing: ${thumbPath}`);
+                    failCount++;
+                    frameBuffers.push(
+                        await sharp({
+                            create: {
+                                width: FRAME_WIDTH,
+                                height: FRAME_HEIGHT,
+                                channels: 3,
+                                background: { r: 30, g: 30, b: 30 },
+                            },
+                        })
+                            .webp()
+                            .toBuffer()
+                    );
                     continue;
                 }
 
-                if (!fs.existsSync(sourcePath)) {
-                    console.error(`  ❌ Source photo missing: ${sourcePath}`);
-                    continue;
+                try {
+                    const buf = await sharp(thumbPath)
+                        .resize({
+                            width: FRAME_WIDTH,
+                            height: FRAME_HEIGHT,
+                            fit: 'cover',
+                            position: 'center',
+                        })
+                        .toFormat('raw')
+                        .toBuffer();
+                    frameBuffers.push(buf);
+                } catch (err) {
+                    console.error(`  ❌ Failed to process ${thumbRelative}:`, err.message);
+                    failCount++;
+                    frameBuffers.push(
+                        await sharp({
+                            create: {
+                                width: FRAME_WIDTH,
+                                height: FRAME_HEIGHT,
+                                channels: 3,
+                                background: { r: 30, g: 30, b: 30 },
+                            },
+                        })
+                            .toFormat('raw')
+                            .toBuffer()
+                    );
                 }
-
-                tasks.push(async () => {
-                    fs.mkdirSync(path.dirname(destPath), { recursive: true });
-                    try {
-                        await sharp(sourcePath)
-                            .resize({
-                                width: SCRUBBER_WIDTH,
-                                height: SCRUBBER_HEIGHT,
-                                fit: 'cover',
-                                position: 'center'
-                            })
-                            .webp({
-                                quality: 60, // Highly compressed for micro-media
-                                effort: 6
-                            })
-                            .toFile(destPath);
-                        console.log(`  ✅ Generated Scrubber: ${scrubberRelative}`);
-                    } catch (err) {
-                        console.error(`  ❌ Failed ${scrubberRelative}:`, err.message);
-                    }
-                });
             }
+
+            // Composite all frames into a single horizontal strip
+            const totalWidth = FRAME_WIDTH * frameBuffers.length;
+            const compositeInputs = frameBuffers.map((buf, i) => ({
+                input: buf,
+                raw: { width: FRAME_WIDTH, height: FRAME_HEIGHT, channels: 3 },
+                left: i * FRAME_WIDTH,
+                top: 0,
+            }));
+
+            fs.mkdirSync(spriteDir, { recursive: true });
+
+            await sharp({
+                create: {
+                    width: totalWidth,
+                    height: FRAME_HEIGHT,
+                    channels: 3,
+                    background: { r: 0, g: 0, b: 0 },
+                },
+            })
+                .composite(compositeInputs)
+                .webp({ quality: 60, effort: 6 })
+                .toFile(spritePath);
+
+            const fileSizeKb = (fs.statSync(spritePath).size / 1024).toFixed(1);
+            console.log(
+                `  ✅ ${spriteRelative}/sprite.webp — ${frameBuffers.length} frames, ${totalWidth}×${FRAME_HEIGHT}px, ${fileSizeKb}KB${failCount > 0 ? ` (${failCount} failed)` : ''}`
+            );
+            spritesGenerated++;
         }
     }
 
-    console.log('\n🧹 Cleaning up stale scrubber thumbs...');
+    // Clean up stale sprites
+    console.log('\n🧹 Cleaning up stale scrubber sprites...');
     function removeStaleFiles(dir, validSet) {
         if (!fs.existsSync(dir)) return;
         const entries = fs.readdirSync(dir, { withFileTypes: true });
@@ -91,44 +170,22 @@ async function generateScrubberThumbs() {
                 removeStaleFiles(fullPath, validSet);
                 try {
                     fs.rmdirSync(fullPath);
-                } catch (e) {} // Remove if empty
+                } catch (_e) {} // Remove if empty
             } else {
                 if (!validSet.has(fullPath)) {
                     try {
                         fs.unlinkSync(fullPath);
-                        console.log(`  🗑️  Removed stale scrubber thumb: ${e.name}`);
-                    } catch (err) {}
+                        console.log(`  🗑️  Removed stale: ${e.name}`);
+                    } catch (_err) {}
                 }
             }
         }
     }
-    removeStaleFiles(SCRUBBER_DIR, validThumbs);
+    removeStaleFiles(SCRUBBER_DIR, validSprites);
 
-    if (skippedCount > 0) {
-        console.log(`⏭️  Skipped ${skippedCount} existing scrubber thumbs.`);
-    }
-
-    if (tasks.length > 0) {
-        // Use 16 threads max
-        const threads = 16;
-        console.log(`🚀 Processing ${tasks.length} new scrubber thumbs across ${threads} threads...\n`);
-        
-        const executing = [];
-        for (const task of tasks) {
-            const p = Promise.resolve().then(() => task());
-            const e = p.then(() => executing.splice(executing.indexOf(e), 1));
-            executing.push(e);
-            if (executing.length >= threads) {
-                await Promise.race(executing);
-            }
-        }
-        await Promise.all(executing); // Wait for remaining
-        
-    } else {
-        console.log(`✅ No new scrubber thumbs to generate.`);
-    }
-
-    console.log('\n✨ Scrubber thumbs complete!');
+    console.log(`\n⏭️  Skipped ${spritesSkipped} up-to-date sprites.`);
+    console.log(`✨ Generated ${spritesGenerated} new sprite sheets.`);
+    console.log('🎞️  Scrubber sprite generation complete!');
 }
 
 generateScrubberThumbs().catch(console.error);

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useMotionValue, animate, useTransform, type PanInfo } from 'framer-motion';
 import { Helmet } from 'react-helmet-async';
@@ -51,14 +51,23 @@ export default function Lightbox({
         return url ? `${url}?v=${__BUILD_NUMBER__}` : undefined;
     }, []);
 
-    // Helper to fetch the new 72px micro-media from the build/scrubber folder
-    const getScrubberSrc = useCallback((photo: PhotoInput) => {
-        const url = typeof photo === 'string' ? photo : photo?.thumb || photo?.original;
-        if (!url) return undefined;
-        // Replace /thumbnails/ with /scrubber/
-        const scrubberUrl = url.replace(/^\/thumbnails\//, '/scrubber/');
-        return `${scrubberUrl}?v=${__BUILD_NUMBER__}`;
-    }, []);
+    // Derive scrubber sprite URL — all photos in a normal event share one sprite.
+    // Falls back to individual thumbs for Favorites (mixed-event) views.
+    const spriteUrl = useMemo(() => {
+        if (images.length === 0) return null;
+        const first = images[0];
+        if (typeof first === 'string' || !first.thumb || first.spriteIndex == null) return null;
+        // Ensure ALL images have spriteIndex and share the same event directory
+        const dir = first.thumb.substring(0, first.thumb.lastIndexOf('/'));
+        const allMatch = images.every((img) => {
+            if (typeof img === 'string' || img.spriteIndex == null) return false;
+            const imgDir = img.thumb.substring(0, img.thumb.lastIndexOf('/'));
+            return imgDir === dir;
+        });
+        if (!allMatch) return null;
+        const spriteDir = dir.replace(/^\/thumbnails\//, '/scrubber/');
+        return `${spriteDir}/sprite.webp?v=${__BUILD_NUMBER__}`;
+    }, [images]);
 
     const handleResize = useDebounce(() => {
         setWindowWidth(window.innerWidth);
@@ -480,7 +489,15 @@ export default function Lightbox({
                                     key={`${offset}`}
                                     className={`portfolio__lightbox-scrubber-thumb${isActive ? ' is-active' : ''}`}
                                     onClick={() => onSetIndex(wrappedIndex)}
-                                    style={{ backgroundImage: `url("${getScrubberSrc(img)}")` }}
+                                    style={
+                                        spriteUrl && typeof img !== 'string' && img.spriteIndex != null
+                                            ? {
+                                                  backgroundImage: `url("${spriteUrl}")`,
+                                                  backgroundPosition: `${-(img.spriteIndex * 72)}px 0`,
+                                                  backgroundSize: `auto 48px`,
+                                              }
+                                            : { backgroundImage: `url("${getThumbSrc(img)}")` }
+                                    }
                                     role="button"
                                     tabIndex={0}
                                     aria-label={`Go to photo ${wrappedIndex + 1}`}
