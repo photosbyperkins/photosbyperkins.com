@@ -158,9 +158,16 @@ export default function Lightbox({
     }, [index]);
 
     // ASYNC PRELOADER: Smart background album fetcher
-    // Implements an expanding radius preload that prioritizes nearest neighbors
-    // to the current photo, fanning out across the entire album without
-    // suffocating the network queue by awaiting images sequentially.
+    // Preloads the DISPLAY-RESOLUTION WebPs (not thumbnails) so swiping
+    // to nearby photos is instant.  Prioritises nearest neighbours then
+    // fans out across the entire album sequentially.
+    const getDisplaySrc = useCallback((photo: PhotoInput) => {
+        const url = typeof photo === 'string' ? photo : photo.original;
+        if (!url) return undefined;
+        const webpUrl = url.replace(/^(?:\/)?photos\//i, '/webp/').replace(/\.jpe?g$/i, '.webp');
+        return `${webpUrl}?v=${__BUILD_NUMBER__}`;
+    }, []);
+
     useEffect(() => {
         if (!mainImageLoaded) return; // Wait for the high-res image the user is staring at to finish loading FIRST!
 
@@ -189,10 +196,10 @@ export default function Lightbox({
             // Fire off immediate next/prev directly into the browser network pipeline
             const immediate = allIdxs.slice(0, 2);
             immediate.forEach((idx) => {
-                const thumbSrc = getThumbSrc(images[idx]);
-                if (thumbSrc) {
+                const src = getDisplaySrc(images[idx]);
+                if (src) {
                     const img = new Image();
-                    img.src = thumbSrc;
+                    img.src = src;
                 }
             });
 
@@ -201,14 +208,14 @@ export default function Lightbox({
             for (const idx of queued) {
                 if (isCancelled) break;
 
-                const thumbSrc = getThumbSrc(images[idx]);
-                if (!thumbSrc) continue;
+                const src = getDisplaySrc(images[idx]);
+                if (!src) continue;
 
                 await new Promise<void>((resolve) => {
                     const img = new Image();
                     img.onload = () => resolve();
                     img.onerror = () => resolve();
-                    img.src = thumbSrc;
+                    img.src = src;
                 });
 
                 // Micro-pause to yield to main UI thread / react rendering
@@ -221,7 +228,7 @@ export default function Lightbox({
         return () => {
             isCancelled = true;
         };
-    }, [mainImageLoaded, index, images, total]);
+    }, [mainImageLoaded, index, images, total, getDisplaySrc]);
 
     const handleDownload = (e: React.MouseEvent) => {
         e.stopPropagation();
