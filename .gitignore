@@ -30,6 +30,7 @@ build.json
 public/hero/
 deploy_staging*
 photos/
+__pycache__/
 .env
 
 # Agent and Test Artifacts
