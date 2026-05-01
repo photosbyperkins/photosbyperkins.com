@@ -25,6 +25,8 @@ async function generateWebp() {
         }
     }
 
+    const WEBP_DIR = path.join(process.cwd(), 'build', 'webp');
+    const validWebps = new Set();
     const tasks = [];
     let skippedCount = 0;
 
@@ -43,6 +45,8 @@ async function generateWebp() {
                 const originalRelative = imgObj.original.startsWith('/') ? imgObj.original.slice(1) : imgObj.original;
                 const webpRelative = originalRelative.replace(/^photos[\\/]/i, '').replace(/\.jpe?g$/i, '.webp');
                 const destPath = path.join(process.cwd(), 'build', 'webp', webpRelative);
+
+                validWebps.add(destPath);
 
                 if (fs.existsSync(destPath)) {
                     skippedCount++;
@@ -95,6 +99,28 @@ async function generateWebp() {
     }
 
     console.log('\n✅ WebP Dual-Architecture successfully generated!');
+
+    // Clean up stale WebPs
+    console.log('\n🧹 Cleaning up stale WebPs...');
+    function removeStaleFiles(dir, validSet) {
+        if (!fs.existsSync(dir)) return;
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        for (const e of entries) {
+            const fullPath = path.join(dir, e.name);
+            if (e.isDirectory()) {
+                removeStaleFiles(fullPath, validSet);
+                try { fs.rmdirSync(fullPath); } catch (_e) {} // Remove if empty
+            } else {
+                if (!validSet.has(fullPath)) {
+                    try {
+                        fs.unlinkSync(fullPath);
+                        console.log(`  🗑️  Removed stale WebP: ${e.name}`);
+                    } catch (_err) {}
+                }
+            }
+        }
+    }
+    removeStaleFiles(WEBP_DIR, validWebps);
 }
 
 generateWebp();

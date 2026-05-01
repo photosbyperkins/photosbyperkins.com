@@ -27,10 +27,11 @@ async function runWithConcurrency(tasks, concurrency) {
 async function generateRecaps() {
     console.log('🖼️  Generating precropped recap images...\n');
 
-    if (fs.existsSync(RECAP_DIR)) {
-        fs.rmSync(RECAP_DIR, { recursive: true, force: true });
+    if (!fs.existsSync(RECAP_DIR)) {
+        fs.mkdirSync(RECAP_DIR, { recursive: true });
     }
-    fs.mkdirSync(RECAP_DIR, { recursive: true });
+
+    const validPaths = new Set();
 
     const DEFS_FILE = path.join(process.cwd(), 'data', 'recap_definitions.json');
     if (!fs.existsSync(DEFS_FILE)) {
@@ -79,6 +80,8 @@ async function generateRecaps() {
 
         const destRelative = `recap/${task.slug}/photo_${task.index}.webp`;
         const destPath = path.join(process.cwd(), 'build', destRelative);
+
+        validPaths.add(destPath);
 
         if (fs.existsSync(destPath)) {
             skippedCount++;
@@ -156,6 +159,31 @@ async function generateRecaps() {
     if (tasks.length > 0) {
         await runWithConcurrency(tasks, threads);
     }
+
+    // Clean up stale recap slices
+    console.log('\n🧹 Cleaning up stale recap slices...');
+    let removedCount = 0;
+    function removeStaleFiles(dir, validSet) {
+        if (!fs.existsSync(dir)) return;
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        for (const e of entries) {
+            const fullPath = path.join(dir, e.name);
+            if (e.isDirectory()) {
+                removeStaleFiles(fullPath, validSet);
+                try { fs.rmdirSync(fullPath); } catch (_e) {} // Remove if empty
+            } else {
+                if (!validSet.has(fullPath)) {
+                    try {
+                        fs.unlinkSync(fullPath);
+                        console.log(`  🗑️  Removed stale: ${e.name}`);
+                        removedCount++;
+                    } catch (_err) {}
+                }
+            }
+        }
+    }
+    removeStaleFiles(RECAP_DIR, validPaths);
+    if (removedCount > 0) console.log(`  Removed ${removedCount} stale recap slices.`);
 
     console.log(`\n✨ Recap generation complete!`);
     console.log(`   Processed: ${processedCount}`);
