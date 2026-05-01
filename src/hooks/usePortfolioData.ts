@@ -216,6 +216,31 @@ export function usePortfolioData({ selectedTab, years, onDataLoadAction, sharedF
         });
     }, [years, getForTab, isRecapLoaded]);
 
+    // Warm recap sprites for other years after the current year's recap loads.
+    // Loads sequentially to avoid competing with album JSON fetches for bandwidth.
+    useEffect(() => {
+        if (!isRecapLoaded) return;
+        let cancelled = false;
+        const otherYears = years.filter((y) => y !== selectedTab);
+
+        (async () => {
+            for (const year of otherYears) {
+                if (cancelled) break;
+                const src = `/recap/${year}/sprite.webp?v=${__BUILD_NUMBER__}`;
+                await new Promise<void>((resolve) => {
+                    const img = new Image();
+                    img.onload = () => resolve();
+                    img.onerror = () => resolve(); // Skip missing sprites silently
+                    img.src = src;
+                });
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [years, selectedTab, isRecapLoaded]);
+
     return {
         yearData,
         recapCount,
