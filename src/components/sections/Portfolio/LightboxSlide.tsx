@@ -269,7 +269,6 @@ const LightboxSlide = forwardRef<
     const handleClick = useCallback(
         (e: React.MouseEvent) => {
             e.stopPropagation();
-            if (scale.get() > 1.05) return;
 
             if (Date.now() - lastDoubleTapTimeRef.current < 500) return;
 
@@ -290,7 +289,7 @@ const LightboxSlide = forwardRef<
                 }, 300);
             }
         },
-        [scale, onSingleClick]
+        [onSingleClick]
     );
 
     const handleDoubleClick = useCallback(
