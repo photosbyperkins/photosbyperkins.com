@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import { motion } from 'framer-motion';
 import { usePortfolioStore } from '../../store/usePortfolioStore';
 import { useDebounce } from '../../hooks/useDebounce';
+import { useReducedMotion } from '../../hooks/useReducedMotion';
 declare const __BUILD_NUMBER__: string;
 
 // Caches the expensive slices computation across remounts.
@@ -27,6 +28,7 @@ interface RecapSliceItemProps {
     events?: RecapEventMeta[];
     eventIdx: number;
     onLoad?: () => void;
+    reducedMotion?: boolean;
 }
 
 const RecapSliceItem = memo(function RecapSliceItem({
@@ -36,6 +38,7 @@ const RecapSliceItem = memo(function RecapSliceItem({
     events,
     eventIdx,
     onLoad,
+    reducedMotion,
 }: RecapSliceItemProps) {
     const recapSrc = `/recap/${slug}/photo_${sliceNumber}.webp`;
     const [isLoaded, setIsLoaded] = useState(false);
@@ -53,9 +56,9 @@ const RecapSliceItem = memo(function RecapSliceItem({
                     setSharedPhoto({ eventName: meta.eventName, photoIndex: meta.photoIndex });
                 }
             }}
-            initial={{ rotateY: -180, opacity: 0 }}
-            animate={isLoaded ? { rotateY: 0, opacity: 1 } : { rotateY: -180, opacity: 0 }}
-            transition={{ duration: 0.8, type: 'spring', bounce: 0.3 }}
+            initial={reducedMotion ? { opacity: 0 } : { rotateY: -180, opacity: 0 }}
+            animate={isLoaded ? (reducedMotion ? { opacity: 1 } : { rotateY: 0, opacity: 1 }) : (reducedMotion ? { opacity: 0 } : { rotateY: -180, opacity: 0 })}
+            transition={reducedMotion ? { duration: 0 } : { duration: 0.8, type: 'spring', bounce: 0.3 }}
         >
             <img
                 src={`${recapSrc}?v=${__BUILD_NUMBER__}`}
@@ -74,6 +77,7 @@ const RecapSliceItem = memo(function RecapSliceItem({
 export default function Recap({ slug, count, events, overlayText, isYear, onRecapLoadComplete }: RecapProps) {
     const [visibleCount, setVisibleCount] = useState(48);
     const [loadedCount, setLoadedCount] = useState(0);
+    const reducedMotion = useReducedMotion();
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -203,6 +207,7 @@ export default function Recap({ slug, count, events, overlayText, isYear, onReca
                         events={events}
                         eventIdx={sliceNumber - 1}
                         onLoad={handleSliceLoad}
+                        reducedMotion={reducedMotion}
                     />
                 ))}
                 {overlayText && (

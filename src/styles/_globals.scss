@@ -335,3 +335,38 @@ main {
         display: none;
     }
 }
+
+// Reduced motion: respect OS-level accessibility preference
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+// Skip-to-content link (visible only on keyboard focus)
+.skip-link {
+    position: absolute;
+    top: -100%;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 99999;
+    padding: 0.75rem 1.5rem;
+    background: var(--color-accent);
+    color: white;
+    font-family: var(--font-condensed);
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-decoration: none;
+    border-radius: 0 0 6px 6px;
+    transition: top 0.15s ease;
+
+    &:focus {
+        top: 0;
+    }
+}

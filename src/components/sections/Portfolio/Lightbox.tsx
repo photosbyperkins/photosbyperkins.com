@@ -4,6 +4,7 @@ import { motion, useMotionValue, animate, useTransform, type PanInfo } from 'fra
 import { Helmet } from 'react-helmet-async';
 import { X, Download, Share2, Heart } from 'lucide-react';
 import LightboxSlide, { type LightboxSlideHandle } from './LightboxSlide';
+import { useReducedMotion } from '../../../hooks/useReducedMotion';
 import type { PhotoInput } from '../../../types';
 
 declare const __BUILD_NUMBER__: string;
@@ -34,6 +35,9 @@ export default function Lightbox({
 }: LightboxProps) {
     const canShare = useCanShare();
     const { favorites, toggleFavorite } = usePortfolioStore();
+    const reducedMotion = useReducedMotion();
+    const previousFocusRef = useRef<Element | null>(null);
+    const lightboxRef = useRef<HTMLDivElement>(null);
 
     const x = useMotionValue(0);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -127,7 +131,10 @@ export default function Lightbox({
             const nextIndex = (index + newDirection + images.length) % images.length;
 
             // Animate the track
-            await animate(x, newDirection > 0 ? -window.innerWidth : window.innerWidth, {
+            await animate(x, newDirection > 0 ? -window.innerWidth : window.innerWidth, reducedMotion ? {
+                type: 'tween',
+                duration: 0,
+            } : {
                 type: 'spring',
                 stiffness: 450,
                 damping: 40,
@@ -176,6 +183,37 @@ export default function Lightbox({
         return () => {
             document.body.style.overflow = originalOverflow;
             document.body.style.touchAction = originalTouchAction;
+        };
+    }, []);
+
+    // Focus trap: save previous focus, focus lightbox, restore on unmount
+    useEffect(() => {
+        previousFocusRef.current = document.activeElement;
+        lightboxRef.current?.focus();
+
+        const handleFocusTrap = (e: KeyboardEvent) => {
+            if (e.key !== 'Tab' || !lightboxRef.current) return;
+            const focusable = lightboxRef.current.querySelectorAll<HTMLElement>(
+                'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+            );
+            if (focusable.length === 0) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (e.shiftKey && document.activeElement === first) {
+                e.preventDefault();
+                last.focus();
+            } else if (!e.shiftKey && document.activeElement === last) {
+                e.preventDefault();
+                first.focus();
+            }
+        };
+
+        window.addEventListener('keydown', handleFocusTrap);
+        return () => {
+            window.removeEventListener('keydown', handleFocusTrap);
+            if (previousFocusRef.current instanceof HTMLElement) {
+                previousFocusRef.current.focus();
+            }
         };
     }, []);
 
@@ -328,11 +366,16 @@ export default function Lightbox({
 
     const content = (
         <motion.div
+            ref={lightboxRef}
             className={`portfolio__lightbox ${isTheaterMode ? 'is-theater-mode' : ''}`}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Photo lightbox"
+            tabIndex={-1}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.2 }}
+            transition={{ duration: reducedMotion ? 0 : 0.2 }}
             onPointerDown={(e) => {
                 recentlyDragged.current = { x: e.clientX, y: e.clientY };
             }}
@@ -560,7 +603,7 @@ export default function Lightbox({
                                     tabIndex={0}
                                     aria-label={`Go to photo ${wrappedIndex + 1}`}
                                 >
-                                    {!isActive && isImgFavorite && (
+                                    {isImgFavorite && (
                                         <div
                                             className="portfolio__lightbox-scrubber-heart is-active"
                                             style={{ pointerEvents: 'none' }}

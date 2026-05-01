@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
@@ -19,11 +19,17 @@ const fadeUp = {
 export default function About() {
     const isAboutOpen = useAppStore((state) => state.isAboutOpen);
     const closeAbout = useAppStore((state) => state.closeAbout);
+    const closeBtnRef = useRef<HTMLButtonElement>(null);
+    const previousFocusRef = useRef<Element | null>(null);
 
     useEffect(() => {
         if (isAboutOpen) {
+            previousFocusRef.current = document.activeElement;
             document.body.style.overflow = 'hidden';
             document.body.style.paddingRight = '8px'; // Prevent jumping from scrollbar disappearing
+
+            // Auto-focus close button after render
+            requestAnimationFrame(() => closeBtnRef.current?.focus());
 
             const handleKeyDown = (e: KeyboardEvent) => {
                 if (e.key === 'Escape') {
@@ -36,6 +42,9 @@ export default function About() {
                 document.body.style.overflow = '';
                 document.body.style.paddingRight = '';
                 document.removeEventListener('keydown', handleKeyDown);
+                if (previousFocusRef.current instanceof HTMLElement) {
+                    previousFocusRef.current.focus();
+                }
             };
         } else {
             document.body.style.overflow = '';
@@ -48,6 +57,9 @@ export default function About() {
             {isAboutOpen && (
                 <motion.div
                     className="about-overlay"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="About the photographer"
                     initial={{ opacity: 0, y: 50 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 50 }}
@@ -64,7 +76,7 @@ export default function About() {
                             >
                                 BEHIND THE LENS
                             </motion.h2>
-                            <button className="about-overlay__back-btn" onClick={closeAbout} aria-label="Close">
+                            <button ref={closeBtnRef} className="about-overlay__back-btn" onClick={closeAbout} aria-label="Close">
                                 <X size={20} />
                             </button>
                         </div>
