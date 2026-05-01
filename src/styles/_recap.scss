@@ -94,5 +94,17 @@
     // Responsive behavior
     @media (max-width: 800px) {
         padding: 0 0 1rem 0;
+
+        // Transparent tap dead zone at the top of the grid to prevent
+        // accidental slice taps when reaching for the years selector above.
+        .recap__grid::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            z-index: 2;
+        }
     }
 }
