@@ -178,6 +178,22 @@ export default function Lightbox({
         return () => window.removeEventListener('keydown', handler);
     }, [onClose, index, images.length, isAnimating, paginate]);
 
+    // Scroll wheel navigation (debounced)
+    useEffect(() => {
+        let wheelCooldown = false;
+        const handler = (e: WheelEvent) => {
+            if (isZoomed || wheelCooldown) return;
+            const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+            if (Math.abs(delta) < 10) return;
+            e.preventDefault();
+            wheelCooldown = true;
+            paginate(delta > 0 ? 1 : -1);
+            setTimeout(() => { wheelCooldown = false; }, 400);
+        };
+        window.addEventListener('wheel', handler, { passive: false });
+        return () => window.removeEventListener('wheel', handler);
+    }, [paginate, isZoomed]);
+
     // Lock body scroll when Lightbox is open
     useEffect(() => {
         const originalOverflow = document.body.style.overflow;
