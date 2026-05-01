@@ -3,6 +3,7 @@ import { motion, useInView } from 'framer-motion';
 import { Save, Star, Heart } from 'lucide-react';
 import ProgressiveImage from '../../ui/ProgressiveImage';
 import { FeaturedGridIcon } from '../../ui/icons';
+import VirtualizedAlbumGrid from './VirtualizedAlbumGrid';
 import { usePortfolioStore } from '../../../store/usePortfolioStore';
 import { formatTeamName, parseEventTitle, resolvePhotoInput } from '../../../utils/formatters';
 import { useCanShare } from '../../../hooks/useCanShare';
@@ -431,6 +432,21 @@ const PortfolioEvent = memo(function PortfolioEvent({
                             </p>
                         </div>
                     ) : isGridView || eventName === 'Favorites' ? (
+                        albumImages.length > 50 && eventName !== 'Favorites' ? (
+                            <>
+                                <VirtualizedAlbumGrid
+                                    photos={albumImages}
+                                    eventName={eventName}
+                                    selectedYear={selectedYear}
+                                    maxExifChars={ev.maxExifChars}
+                                    openLightbox={openLightbox}
+                                />
+                                {loading && <div className="portfolio__loading">Loading photos...</div>}
+                                {fetchError && (
+                                    <div className="portfolio__error">Error loading photos. Please try refreshing.</div>
+                                )}
+                            </>
+                        ) : (
                         <div className="portfolio__event-grid">
                             {albumImages.map((url: PhotoInput, i) => {
                                 const origUrl = typeof url === 'string' ? url : url.original;
@@ -440,7 +456,19 @@ const PortfolioEvent = memo(function PortfolioEvent({
                                 const focusY = typeof url === 'string' ? undefined : url.focusY;
 
                                 return (
-                                    <div key={origUrl} className="portfolio__grid-item">
+                                    <div
+                                        key={origUrl}
+                                        className="portfolio__grid-item"
+                                        role="button"
+                                        tabIndex={0}
+                                        aria-label={`View ${eventName} photo ${i + 1}`}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault();
+                                                openLightbox(albumImages, i, eventName, selectedYear, ev.maxExifChars);
+                                            }
+                                        }}
+                                    >
                                         <ProgressiveImage
                                             src={thumbUrl}
                                             placeholder={null}
@@ -462,6 +490,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
                                 <div className="portfolio__error">Error loading photos. Please try refreshing.</div>
                             )}
                         </div>
+                        )
                     ) : (
                         <div className="portfolio__event-featured">
                             {featuredPhotos.length > 0 ? (
@@ -481,6 +510,9 @@ const PortfolioEvent = memo(function PortfolioEvent({
                                         <div
                                             key={origUrl}
                                             className={`portfolio__featured-item ${isDesktopLast && totalPhotos > 10 ? 'has-overlay-desktop' : ''} ${isMobileLast && totalPhotos > 5 ? 'has-overlay-mobile' : ''}`}
+                                            role="button"
+                                            tabIndex={0}
+                                            aria-label={`View ${eventName} featured photo ${i + 1}`}
                                             onClick={() =>
                                                 openLightbox(
                                                     albumImages,
@@ -490,6 +522,18 @@ const PortfolioEvent = memo(function PortfolioEvent({
                                                     ev.maxExifChars
                                                 )
                                             }
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                    e.preventDefault();
+                                                    openLightbox(
+                                                        albumImages,
+                                                        albumIndex !== -1 ? albumIndex : 0,
+                                                        eventName,
+                                                        selectedYear,
+                                                        ev.maxExifChars
+                                                    );
+                                                }
+                                            }}
                                         >
                                             <ProgressiveImage
                                                 src={thumbUrl}

@@ -23,11 +23,13 @@
     "populate-scores": "node scripts/populateEventScores.js",
     "rename": "node scripts/renamePhotoFolders.js",
     "lint": "eslint .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:e2e": "npx playwright test"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@nrs-binding/ssimulacra2": "^1.0.23",
+    "@playwright/test": "^1.59.1",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
@@ -53,6 +55,7 @@
     "@fontsource/barlow-condensed": "^5.2.8",
     "@fontsource/oswald": "^5.2.8",
     "@fontsource/outfit": "^5.2.8",
+    "@tanstack/react-virtual": "^3.13.24",
     "framer-motion": "^12.38.0",
     "fuse.js": "^7.3.0",
     "jszip": "^3.10.1",
