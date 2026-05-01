@@ -1,9 +1,11 @@
 import fs from 'fs';
 import path from 'path';
+import 'dotenv/config';
 
 const INDEX_FILE = path.join(process.cwd(), 'data', 'photos.json');
 const DIST_DIR = path.join(process.cwd(), 'dist');
-const BASE_URL = 'https://photosbyperkins.com';
+const BASE_URL = `https://${process.env.VITE_SITE_DOMAIN || 'localhost'}`;
+const APP_TITLE = process.env.VITE_SITE_APP_TITLE || 'Photography Portfolio';
 
 function generateSharePages() {
     console.log('🔗 Generating static share pages for OpenGraph...');
@@ -48,18 +50,18 @@ function generateSharePages() {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${event} - Michael Perkins Photography</title>
+    <title>${event} - ${APP_TITLE}</title>
     
     <!-- OpenGraph Meta Tags -->
-    <meta property="og:title" content="${event} - Michael Perkins Photography" />
+    <meta property="og:title" content="${event} - ${APP_TITLE}" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="${BASE_URL}/share/${encodeURIComponent(year)}/${encodeURIComponent(event)}" />
     ${ogImgUrl ? `<meta property="og:image" content="${ogImgUrl}" />` : ''}
-    <meta property="og:description" content="View the photo gallery for ${event} on Michael Perkins Photography." />
+    <meta property="og:description" content="View the photo gallery for ${event} on ${APP_TITLE}." />
     
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="${event} - Michael Perkins Photography">
+    <meta name="twitter:title" content="${event} - ${APP_TITLE}">
     <meta name="twitter:description" content="View the photo gallery for ${event}.">
     ${ogImgUrl ? `<meta name="twitter:image" content="${ogImgUrl}">` : ''}
 

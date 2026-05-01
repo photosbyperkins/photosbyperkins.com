@@ -1,9 +1,10 @@
 import fs from 'fs';
 import path from 'path';
+import 'dotenv/config';
 
 const INDEX_FILE = path.join(process.cwd(), 'data', 'photos.json');
 const DIST_DIR = path.join(process.cwd(), 'dist');
-const BASE_URL = 'https://photosbyperkins.com';
+const BASE_URL = `https://${process.env.VITE_SITE_DOMAIN || 'localhost'}`;
 
 function generateSitemap() {
     console.log('🗺️ Generating sitemap.xml...');
