@@ -206,6 +206,9 @@ export default defineConfig(({ mode }) => {
     },
     optimizeDeps: {
         include: ['jszip']
+    },
+    test: {
+        exclude: ['e2e/**', 'node_modules/**']
     }
     }
 })
