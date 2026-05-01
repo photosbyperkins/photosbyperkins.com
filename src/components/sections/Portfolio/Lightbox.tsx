@@ -85,6 +85,26 @@ export default function Lightbox({
         return `${spriteDir}/sprite.webp?v=${__BUILD_NUMBER__}`;
     }, [images]);
 
+    /** Return CSS background style for the ambient blur layer.
+     *  Uses the scrubber sprite frame when available (already loaded),
+     *  falls back to individual thumbnails for Favorites/mixed views. */
+    const getAmbientBg = useCallback(
+        (photo: PhotoInput): React.CSSProperties => {
+            if (spriteUrl && typeof photo !== 'string' && photo.spriteIndex != null) {
+                const totalSlices = images.length;
+                return {
+                    backgroundImage: `url("${spriteUrl}")`,
+                    // Scale the sprite so each slice fills the entire container
+                    backgroundSize: `${totalSlices * 100}% 100%`,
+                    backgroundPosition: `${totalSlices > 1 ? (photo.spriteIndex / (totalSlices - 1)) * 100 : 0}% center`,
+                };
+            }
+            const url = getThumbSrc(photo);
+            return url ? { backgroundImage: `url("${url}")` } : {};
+        },
+        [spriteUrl, getThumbSrc, images.length]
+    );
+
     const handleResize = useDebounce(() => {
         setWindowWidth(window.innerWidth);
     }, 150);
@@ -148,16 +168,18 @@ export default function Lightbox({
             );
 
             // Preload the ambient thumbnail for the destination photo to avoid flash
-            const nextThumbSrc = getThumbSrc(images[nextIndex]);
-            if (nextThumbSrc) {
-                await new Promise<void>((resolve) => {
-                    const img = new Image();
-                    img.onload = () => resolve();
-                    img.onerror = () => resolve();
-                    img.src = nextThumbSrc;
-                    // Safety timeout — don't block navigation for slow thumbs
-                    setTimeout(resolve, 200);
-                });
+            // (skip when using sprite — it's already fully loaded)
+            if (!spriteUrl) {
+                const nextThumbSrc = getThumbSrc(images[nextIndex]);
+                if (nextThumbSrc) {
+                    await new Promise<void>((resolve) => {
+                        const img = new Image();
+                        img.onload = () => resolve();
+                        img.onerror = () => resolve();
+                        img.src = nextThumbSrc;
+                        setTimeout(resolve, 200);
+                    });
+                }
             }
 
             // Update index and reset position
@@ -165,7 +187,7 @@ export default function Lightbox({
             x.set(0);
             setIsAnimating(false);
         },
-        [isAnimating, index, images.length, x, onSetIndex]
+        [isAnimating, index, images, x, onSetIndex, spriteUrl, getThumbSrc, reducedMotion]
     );
 
     useEffect(() => {
@@ -188,7 +210,9 @@ export default function Lightbox({
             e.preventDefault();
             wheelCooldown = true;
             paginate(delta > 0 ? 1 : -1);
-            setTimeout(() => { wheelCooldown = false; }, 400);
+            setTimeout(() => {
+                wheelCooldown = false;
+            }, 400);
         };
         window.addEventListener('wheel', handler, { passive: false });
         return () => window.removeEventListener('wheel', handler);
@@ -414,18 +438,18 @@ export default function Lightbox({
                 <motion.div
                     className="portfolio__lightbox-ambient-img"
                     style={{
-                        backgroundImage: `url("${getThumbSrc(images[(index - 1 + images.length) % images.length])}")`,
+                        ...getAmbientBg(images[(index - 1 + images.length) % images.length]),
                         opacity: prevOpacity,
                     }}
                 />
                 <motion.div
                     className="portfolio__lightbox-ambient-img"
-                    style={{ backgroundImage: `url("${getThumbSrc(currentPhoto)}")`, opacity: currentOpacity }}
+                    style={{ ...getAmbientBg(currentPhoto), opacity: currentOpacity }}
                 />
                 <motion.div
                     className="portfolio__lightbox-ambient-img"
                     style={{
-                        backgroundImage: `url("${getThumbSrc(images[(index + 1) % images.length])}")`,
+                        ...getAmbientBg(images[(index + 1) % images.length]),
                         opacity: nextOpacity,
                     }}
                 />

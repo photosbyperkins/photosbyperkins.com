@@ -2,29 +2,12 @@ import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
 import os from 'os';
+import { findOptimalQuality } from './ssim2Pool.js';
+import { runWithConcurrency, removeStaleFiles } from './utils.js';
 
-const YEARS_DIR = path.join(process.cwd(), 'public', 'data', 'years');
 const RECAP_DIR = path.join(process.cwd(), 'build', 'recap');
 
-async function runWithConcurrency(tasks, concurrency) {
-    const results = [];
-    const executing = [];
-    for (const task of tasks) {
-        const p = Promise.resolve().then(() => task());
-        results.push(p);
-
-        if (concurrency <= tasks.length) {
-            const e = p.then(() => executing.splice(executing.indexOf(e), 1));
-            executing.push(e);
-            if (executing.length >= concurrency) {
-                await Promise.race(executing);
-            }
-        }
-    }
-    return Promise.all(results);
-}
-
-async function generateRecaps() {
+export async function generateRecaps() {
     console.log('🖼️  Generating precropped recap images...\n');
 
     if (!fs.existsSync(RECAP_DIR)) {
@@ -35,8 +18,7 @@ async function generateRecaps() {
 
     const DEFS_FILE = path.join(process.cwd(), 'data', 'recap_definitions.json');
     if (!fs.existsSync(DEFS_FILE)) {
-        console.error('❌ Cannot find recap_definitions.json! Run `npm run chunk-data` first.');
-        process.exit(1);
+        throw new Error('recap_definitions.json not found. Run `npm run chunk-data` first.');
     }
 
     const definitions = JSON.parse(fs.readFileSync(DEFS_FILE, 'utf8'));
@@ -58,7 +40,7 @@ async function generateRecaps() {
         }
     }
 
-    console.log(`Found ${taskData.length} recap slice tasks to process.`);
+    console.log(`📋 Found ${taskData.length} recap slice tasks to process.`);
 
     const METRICS_FILE = path.join(process.cwd(), 'data', 'quality_metrics.json');
     let qualityMap = {};
@@ -91,7 +73,7 @@ async function generateRecaps() {
         let actualSourcePath = sourcePath;
 
         if (!fs.existsSync(actualSourcePath)) {
-            // Fallback to thumbnail if original is missing (useful for dev environments without raw photos)
+            // Fallback to thumbnail if original is missing
             const thumbRelative = sourceRelative.replace(/^photos[/\\]/, 'thumbnails/').replace(/\.[^/.]+$/, '.webp');
             const thumbPath = path.join(process.cwd(), 'build', thumbRelative);
             
@@ -114,9 +96,6 @@ async function generateRecaps() {
             let cropWidth, cropHeight;
 
             if (width / height > cropRatio) {
-                // Landscape photo: cap at 65% of height so face-centering math can offset
-                // top > 0, but floor at 960 to guarantee the crop is large enough to fill
-                // the 240×960 output target without needing upscaling.
                 cropHeight = Math.min(height, Math.max(960, Math.round(height * 0.65)));
                 cropWidth = Math.round(cropHeight * cropRatio);
             } else {
@@ -160,35 +139,79 @@ async function generateRecaps() {
         await runWithConcurrency(tasks, threads);
     }
 
-    // Clean up stale recap slices
-    console.log('\n🧹 Cleaning up stale recap slices...');
-    let removedCount = 0;
-    function removeStaleFiles(dir, validSet) {
-        if (!fs.existsSync(dir)) return;
-        const entries = fs.readdirSync(dir, { withFileTypes: true });
-        for (const e of entries) {
-            const fullPath = path.join(dir, e.name);
-            if (e.isDirectory()) {
-                removeStaleFiles(fullPath, validSet);
-                try { fs.rmdirSync(fullPath); } catch (_e) {} // Remove if empty
-            } else {
-                if (!validSet.has(fullPath)) {
-                    try {
-                        fs.unlinkSync(fullPath);
-                        console.log(`  🗑️  Removed stale: ${e.name}`);
-                        removedCount++;
-                    } catch (_err) {}
-                }
-            }
+    // --- Sprite Generation with SSIMULACRA 2 quality optimization ---
+    console.log('\n🎞️  Compositing recap sprites...');
+
+    let spriteCount = 0;
+    for (const [slug, images] of Object.entries(definitions)) {
+        if (!Array.isArray(images) || images.length === 0) continue;
+
+        const spriteFile = path.join(RECAP_DIR, slug, 'sprite.webp');
+        validPaths.add(spriteFile);
+
+        if (fs.existsSync(spriteFile) && processedCount === 0) {
+            console.log(`  ⏭️  Sprite exists: ${slug}/sprite.webp`);
+            continue;
+        }
+
+        const slicePaths = [];
+        let allExist = true;
+        for (let i = 1; i <= images.length; i++) {
+            const slicePath = path.join(RECAP_DIR, slug, `photo_${i}.webp`);
+            if (!fs.existsSync(slicePath)) { allExist = false; break; }
+            slicePaths.push(slicePath);
+        }
+
+        if (!allExist || slicePaths.length === 0) {
+            console.log(`  ⚠️  Skipping sprite for ${slug}: missing slices`);
+            continue;
+        }
+
+        try {
+            const firstMeta = await sharp(slicePaths[0]).metadata();
+            const sliceWidth = firstMeta.width;
+            const sliceHeight = firstMeta.height;
+            const totalWidth = sliceWidth * slicePaths.length;
+
+            const compositeInputs = await Promise.all(
+                slicePaths.map(async (sp, i) => ({
+                    input: await sharp(sp).resize(sliceWidth, sliceHeight, { fit: 'fill' }).png().toBuffer(),
+                    left: i * sliceWidth,
+                    top: 0,
+                }))
+            );
+
+            const referenceBuffer = await sharp({
+                create: { width: totalWidth, height: sliceHeight, channels: 3, background: { r: 0, g: 0, b: 0 } },
+            }).composite(compositeInputs).png().toBuffer();
+
+            const { quality, buffer } = await findOptimalQuality(referenceBuffer, `recap_${slug}`);
+
+            fs.mkdirSync(path.dirname(spriteFile), { recursive: true });
+            await fs.promises.writeFile(spriteFile, buffer);
+            const sizeKB = (buffer.length / 1024).toFixed(0);
+            console.log(`  ✅ Sprite: ${slug}/sprite.webp (Q:${quality}, ${sizeKB} KB, ${slicePaths.length} slices)`);
+            spriteCount++;
+        } catch (err) {
+            console.error(`  ❌ Failed sprite for ${slug}:`, err.message);
         }
     }
-    removeStaleFiles(RECAP_DIR, validPaths);
-    if (removedCount > 0) console.log(`  Removed ${removedCount} stale recap slices.`);
+
+    // Clean up stale recap files
+    console.log('\n🧹 Cleaning up stale recap files...');
+    const { removed } = removeStaleFiles(RECAP_DIR, validPaths);
+    if (removed > 0) console.log(`  Removed ${removed} stale files.`);
 
     console.log(`\n✨ Recap generation complete!`);
-    console.log(`   Processed: ${processedCount}`);
-    console.log(`   Skipped: ${skippedCount}`);
+    console.log(`   Slices processed: ${processedCount}`);
+    console.log(`   Slices skipped: ${skippedCount}`);
+    console.log(`   Sprites generated: ${spriteCount}`);
     if (failedCount > 0) console.log(`   Failed: ${failedCount}`);
 }
 
-generateRecaps();
+// Allow standalone execution
+if (process.argv[1] && process.argv[1].includes('generateRecaps')) {
+    const { initPool, stopPool } = await import('./ssim2Pool.js');
+    initPool();
+    generateRecaps().then(() => stopPool()).catch(console.error);
+}

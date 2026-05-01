@@ -3,6 +3,7 @@ import path from 'path';
 import sharp from 'sharp';
 import os from 'os';
 import { execSync } from 'child_process';
+import { runWithConcurrency, removeStaleFiles } from './utils.js';
 
 const INDEX_FILE = path.join(process.cwd(), 'data', 'photos.json');
 const METRICS_FILE = path.join(process.cwd(), 'data', 'quality_metrics.json');
@@ -251,24 +252,6 @@ async function processPhotos() {
 
     // Clean up obsolete payload content
     console.log('\n🧹 Cleaning up obsolete files in dist payload folders...');
-    function removeStaleFiles(dir, validSet) {
-        if (!fs.existsSync(dir)) return;
-        const entries = fs.readdirSync(dir, { withFileTypes: true });
-        for (const e of entries) {
-            const fullPath = path.join(dir, e.name);
-            if (e.isDirectory()) {
-                removeStaleFiles(fullPath, validSet);
-                try {
-                    fs.rmdirSync(fullPath);
-                } catch (e) {} // Remove if empty
-            } else {
-                if (!validSet.has(fullPath)) {
-                    fs.unlinkSync(fullPath);
-                    console.log(`  🗑️  Removed stale file: ${e.name}`);
-                }
-            }
-        }
-    }
     removeStaleFiles(path.join(DIST_DIR, 'photos'), validDestPaths);
     removeStaleFiles(path.join(DIST_DIR, 'thumbnails'), validDestPaths);
     removeStaleFiles(path.join(DIST_DIR, 'scrubber'), validDestPaths);
@@ -280,24 +263,6 @@ async function processPhotos() {
     if (processingErrors > 0 || copyErrors > 0) {
         console.log(`⚠️  Completed with ${processingErrors} encoding errors and ${copyErrors} copy errors.`);
     }
-}
-
-async function runWithConcurrency(tasks, concurrency) {
-    const results = [];
-    const executing = [];
-    for (const task of tasks) {
-        const p = Promise.resolve().then(() => task());
-        results.push(p);
-
-        if (concurrency <= tasks.length) {
-            const e = p.then(() => executing.splice(executing.indexOf(e), 1));
-            executing.push(e);
-            if (executing.length >= concurrency) {
-                await Promise.race(executing);
-            }
-        }
-    }
-    return Promise.all(results);
 }
 
 processPhotos();

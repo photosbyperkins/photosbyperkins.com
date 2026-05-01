@@ -1,7 +1,6 @@
-import { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import { useState, useEffect, useMemo, useRef, memo } from 'react';
 import { motion } from 'framer-motion';
 import { usePortfolioStore } from '../../store/usePortfolioStore';
-import { useDebounce } from '../../hooks/useDebounce';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 declare const __BUILD_NUMBER__: string;
 
@@ -22,34 +21,40 @@ interface RecapProps {
     onRecapLoadComplete?: () => void;
 }
 interface RecapSliceItemProps {
-    sliceNumber: number;
+    sliceIndex: number;
+    totalSlices: number;
     idx: number;
     slug: string;
     events?: RecapEventMeta[];
     eventIdx: number;
-    onLoad?: () => void;
     reducedMotion?: boolean;
+    spriteLoaded: boolean;
 }
 
 const RecapSliceItem = memo(function RecapSliceItem({
-    sliceNumber,
+    sliceIndex,
+    totalSlices,
     idx,
     slug,
     events,
     eventIdx,
-    onLoad,
     reducedMotion,
+    spriteLoaded,
 }: RecapSliceItemProps) {
-    const recapSrc = `/recap/${slug}/photo_${sliceNumber}.webp`;
-    const [isLoaded, setIsLoaded] = useState(false);
     const setSharedPhoto = usePortfolioStore((state) => state.setSharedPhoto);
+
+    // Each frame fills the slice exactly — bgSize stretches the sprite so each
+    // frame = container width, bgPosition picks the right one via percentage.
+    // With fixed 260px height and ~65px slice width, the native 1:4 ratio is preserved.
+    const bgPosition = `${totalSlices > 1 ? (sliceIndex / (totalSlices - 1)) * 100 : 0}% 0`;
+    const bgSize = `${totalSlices * 100}% 100%`;
 
     return (
         <motion.div
             id={`recap-slice-${idx}`}
             layout
             className="recap__slice"
-            aria-label={`View recap image ${sliceNumber}`}
+            aria-label={`View recap image ${sliceIndex + 1}`}
             onClick={() => {
                 if (events && events[eventIdx]) {
                     const meta = events[eventIdx];
@@ -58,7 +63,7 @@ const RecapSliceItem = memo(function RecapSliceItem({
             }}
             initial={reducedMotion ? { opacity: 0 } : { rotateY: -180, opacity: 0 }}
             animate={
-                isLoaded
+                spriteLoaded
                     ? reducedMotion
                         ? { opacity: 1 }
                         : { rotateY: 0, opacity: 1 }
@@ -68,14 +73,12 @@ const RecapSliceItem = memo(function RecapSliceItem({
             }
             transition={reducedMotion ? { duration: 0 } : { duration: 0.8, type: 'spring', bounce: 0.3 }}
         >
-            <img
-                src={`${recapSrc}?v=${__BUILD_NUMBER__}`}
-                alt={`Recap Image ${idx + 1}`}
-                className="recap__img"
-                loading="lazy"
-                onLoad={() => {
-                    setIsLoaded(true);
-                    if (onLoad) onLoad();
+            <div
+                className="recap__sprite-slice"
+                style={{
+                    backgroundImage: `url(/recap/${slug}/sprite.webp?v=${__BUILD_NUMBER__})`,
+                    backgroundPosition: bgPosition,
+                    backgroundSize: bgSize,
                 }}
             />
         </motion.div>
@@ -84,13 +87,23 @@ const RecapSliceItem = memo(function RecapSliceItem({
 
 export default function Recap({ slug, count, events, overlayText, isYear, onRecapLoadComplete }: RecapProps) {
     const [visibleCount, setVisibleCount] = useState(48);
-    const [loadedCount, setLoadedCount] = useState(0);
+    const [spriteLoaded, setSpriteLoaded] = useState(false);
     const reducedMotion = useReducedMotion();
 
+    // Preload the sprite image
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setLoadedCount(0);
+        setSpriteLoaded(false);
+        const img = new Image();
+        img.onload = () => setSpriteLoaded(true);
+        img.onerror = () => setSpriteLoaded(true); // Fallback: still render
+        img.src = `/recap/${slug}/sprite.webp?v=${__BUILD_NUMBER__}`;
     }, [slug]);
+
+    useEffect(() => {
+        if (spriteLoaded && onRecapLoadComplete) {
+            onRecapLoadComplete();
+        }
+    }, [spriteLoaded, onRecapLoadComplete]);
 
     const slices = useMemo(() => {
         const cacheKey = `${slug}-${visibleCount}-${count}`;
@@ -172,49 +185,60 @@ export default function Recap({ slug, count, events, overlayText, isYear, onReca
         return result;
     }, [slug, visibleCount, count, events]);
 
-    const checkMobile = useCallback(() => {
-        const w = window.innerWidth;
-        // Target roughly 65px per slice for maximum granularity, clamped between 6 and 48
-        const calculatedSlices = Math.floor(w / 65);
-        setVisibleCount(Math.max(6, Math.min(48, calculatedSlices)));
+    const sectionRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const el = sectionRef.current;
+        if (!el) return;
+
+        const updateSliceCount = (width: number) => {
+            const calculatedSlices = Math.floor(width / 65);
+            setVisibleCount(Math.max(6, Math.min(48, calculatedSlices)));
+        };
+
+        // Initial calculation
+        updateSliceCount(el.offsetWidth);
+
+        let rafId = 0;
+        const observer = new ResizeObserver((entries) => {
+            cancelAnimationFrame(rafId);
+            rafId = requestAnimationFrame(() => {
+                for (const entry of entries) {
+                    const w = entry.contentBoxSize?.[0]?.inlineSize ?? entry.contentRect.width;
+                    updateSliceCount(w);
+                }
+            });
+        });
+        observer.observe(el);
+        return () => {
+            cancelAnimationFrame(rafId);
+            observer.disconnect();
+        };
     }, []);
-
-    const debouncedCheckMobile = useDebounce(checkMobile, 150);
-
-    useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        checkMobile();
-        window.addEventListener('resize', debouncedCheckMobile);
-        return () => window.removeEventListener('resize', debouncedCheckMobile);
-    }, [checkMobile, debouncedCheckMobile]);
-
-    useEffect(() => {
-        if (slices.length > 0 && loadedCount >= slices.length) {
-            if (onRecapLoadComplete) onRecapLoadComplete();
-        }
-    }, [loadedCount, slices.length, onRecapLoadComplete]);
 
     if (slices.length === 0) {
         if (onRecapLoadComplete) onRecapLoadComplete(); // Signal completion immediately if nothing to load
         return null;
     }
 
-    const handleSliceLoad = useCallback(() => {
-        setLoadedCount((prev) => prev + 1);
-    }, []);
-
     return (
-        <section className="recap" id="recap" style={{ '--total-slices': slices.length } as React.CSSProperties}>
+        <section
+            className="recap"
+            id="recap"
+            ref={sectionRef}
+            style={{ '--total-slices': slices.length } as React.CSSProperties}
+        >
             <div className="recap__grid">
                 {slices.map((sliceNumber, idx) => (
                     <RecapSliceItem
-                        key={`/recap/${slug}/photo_${sliceNumber}.webp`}
-                        sliceNumber={sliceNumber}
+                        key={`sprite-${slug}-${sliceNumber}`}
+                        sliceIndex={sliceNumber - 1}
+                        totalSlices={count}
                         idx={idx}
                         slug={slug}
                         events={events}
                         eventIdx={sliceNumber - 1}
-                        onLoad={handleSliceLoad}
+                        spriteLoaded={spriteLoaded}
                         reducedMotion={reducedMotion}
                     />
                 ))}

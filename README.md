@@ -4,11 +4,14 @@ An incredibly fast, highly automated photography portfolio built for action phot
 
 ## Features
 - **Fully Automated Data Pipeline**: Drop images in folders, and the system automatically extracts metadata, resizes, compresses, and maps faces.
+- **SSIMULACRA 2 Quality Optimization**: Every thumbnail, scrubber sprite, and recap sprite is optimized to the lowest WebP quality that meets a perceptual quality threshold, balancing file size and visual fidelity.
 - **Glassmorphic UI**: A stunning, modern, hardware-accelerated interface.
 - **100% Client-Side**: Once built, it's a completely static site (JSON + Media).
 - **Service Worker PWA**: Works offline, fully cache-enabled using Vite PWA.
 - **Fuzzy Search Engine**: Instantly find teams with typo-tolerant search powered by `fuse.js`.
 - **Favorites & Web Worker Zipping**: Star your favorite photos and batch download them entirely client-side using `jszip` in a background Web Worker!
+- **Lightbox Scrubber**: Drag-to-navigate sprite-sheet scrubber for fast album browsing within the lightbox.
+- **Year Recap Sprites**: Animated recap banners composited from focus-cropped album highlights.
 
 ---
 
@@ -20,7 +23,7 @@ An incredibly fast, highly automated photography portfolio built for action phot
 4. **Favicon**: Drop an `icon.svg` into the root folder to completely customize the PWA icons, otherwise it defaults to a clean, generic camera.
 
 ## 📂 Organizing Your Photos
-This project relies aggressively on folder structure! Place your unwatermarked, full-resolution JPEG files inside the `.photos/` directory (or symlink your drive to `public_html/photos`).
+This project relies aggressively on folder structure! Place your unwatermarked, full-resolution JPEG files inside the `photos/` directory at the project root.
 
 Expects structure exactly like this:
 ```text
@@ -51,12 +54,32 @@ The build pipeline parses your folder names. If it sees `vs` or `versus`, it att
 6. **Profile Photo**: To display your own picture in the "Behind the Lens" popup, simply drop a file named `profile_photo.jpg` into your `photos/` directory (making it available at `/photos/profile_photo.jpg` on your server).
 
 ## 🚀 Build Pipeline (`npm run build`)
-Running `npm run build` is an intense, multi-stage pipeline:
-1. **`npm run thumbnails` & `npm run webp`**: Leverages `sharp` and `ssimulacra2` to generate massive amounts of optimized WebP variants and compressed thumbnails.
-2. **`npm run index`**: Scans the photos using `exifr` and extracts EXIF metadata, lens focal lengths, and camera models into JSON structure.
-3. **`npm run faces`**: Spawns Python scripts that use Haar Cascades to find faces within your images, setting smart responsive crop anchor points!
-4. **`npm run zips`**: Generates full-resolution `.zip` bundles of every single album for easy client download.
-5. **Vite Build**: The React frontend compiles into `/dist`.
+Running `npm run build` is an intense, multi-phase pipeline orchestrated by `scripts/build.js`. All build step scripts live in `scripts/pipeline/`.
+
+### Phase 1 — Sequential Setup
+1. **Clean** → **Format** → **TypeScript Check** → **Index Photos** (`exifr` EXIF extraction into JSON)
+
+### Phase 2 — Parallel Image Generation (shared SSIM pool)
+Scripts that need SSIMULACRA 2 quality optimization (thumbnails, scrubber sprites) run **in the same process**, sharing a single worker pool. Non-SSIM steps run as separate parallel processes.
+
+| In-Process (shared pool)       | Separate Processes         |
+|-------------------------------|---------------------------|
+| `generateThumbnails.js`       | `generateWebp.js`         |
+| `generateScrubberThumbs.js`   | `generateFavicon.js`      |
+|                               | `scrapeWftda.js`          |
+|                               | `detectFaces.py`          |
+
+### Phase 3 — Data Pipeline
+- **Chunk Data**: Splits `photos.json` into per-year JSON payloads with computed stats
+
+### Phase 4 — Recap Sprites (shared SSIM pool)
+- **Generate Recaps**: Composites recap slices into SSIM-optimized sprite sheets
+
+### Phase 5 — Parallel Build
+- **Process & Copy Photos** and **Vite Build** run simultaneously (both write to non-overlapping subdirectories of `dist/`)
+
+### Phase 6 — Post-Build
+- **Sitemap** → **Share Pages**
 
 ## 🚢 Deployment (`npm run deploy`)
 Deployment wraps up exactly what is needed into the staging directory and transfers it over SSH via `scp`.
@@ -68,5 +91,7 @@ Because media generation produces massive directories, `npm run deploy` intentio
 - `/thumbnails`
 - `/webp`
 - `/zips`
+- `/scrubber`
+- `/recap`
 
-**You must manually upload your finalized media!** Once you finish a sprint of editing and run `npm run build`, open an FTP client (like **FileZilla** or **Cyberduck**) and manually drag those 4 directories from your local `public/` or root into your server's `public_html` directory to sync them.
+**You must manually upload your finalized media!** Once you finish a sprint of editing and run `npm run build`, open an FTP client (like **FileZilla** or **Cyberduck**) and manually drag those directories from your local `dist/` into your server's `public_html` directory to sync them.

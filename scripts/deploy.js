@@ -44,7 +44,9 @@ function copyFilesToStaging(src, dest, remoteMap) {
             relPath.startsWith('photos/') ||
             relPath.startsWith('thumbnails/') ||
             relPath.startsWith('webp/') ||
-            relPath.startsWith('zips/')
+            relPath.startsWith('zips/') ||
+            relPath.startsWith('scrubber/') ||
+            relPath.startsWith('recap/')
         ) {
             return;
         }
@@ -66,7 +68,7 @@ async function runDeploy() {
         console.log('🔍 Checking for existing files on the server to skip...');
         let remoteFilesMap = new Map();
         try {
-            const sshCmd = `ssh -o StrictHostKeyChecking=accept-new ${SSH_USER}@${SSH_HOST} "cd ${REMOTE_DIR} && find . -type f -not -path './photos/*' -not -path './thumbnails/*' -not -path './webp/*' -not -path './zips/*' -printf '%P|%s\\n' 2>/dev/null"`;
+            const sshCmd = `ssh -o StrictHostKeyChecking=accept-new ${SSH_USER}@${SSH_HOST} "cd ${REMOTE_DIR} && find . -type f -not -path './photos/*' -not -path './thumbnails/*' -not -path './webp/*' -not -path './zips/*' -not -path './scrubber/*' -not -path './recap/*' -printf '%P|%s\\n' 2>/dev/null"`;
             const output = execSync(sshCmd, { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 });
             const files = output.split('\n').filter(Boolean);
             files.forEach((line) => {
@@ -145,7 +147,7 @@ async function runDeploy() {
 
         // Fix file permissions on the remote server (755 for directories, 644 for files)
         console.log(`🔐 Setting correct file permissions on Bluehost...`);
-        const chmodCommand = `ssh -o StrictHostKeyChecking=accept-new ${SSH_USER}@${SSH_HOST} "find ${REMOTE_DIR} -path ${REMOTE_DIR}/photos -prune -o -path ${REMOTE_DIR}/webp -prune -o -path ${REMOTE_DIR}/thumbnails -prune -o -type d -exec chmod 755 {} + && find ${REMOTE_DIR} -path ${REMOTE_DIR}/photos -prune -o -path ${REMOTE_DIR}/webp -prune -o -path ${REMOTE_DIR}/thumbnails -prune -o -type f -exec chmod 644 {} +"`;
+        const chmodCommand = `ssh -o StrictHostKeyChecking=accept-new ${SSH_USER}@${SSH_HOST} "find ${REMOTE_DIR} -path ${REMOTE_DIR}/photos -prune -o -path ${REMOTE_DIR}/webp -prune -o -path ${REMOTE_DIR}/thumbnails -prune -o -path ${REMOTE_DIR}/scrubber -prune -o -path ${REMOTE_DIR}/recap -prune -o -type d -exec chmod 755 {} + && find ${REMOTE_DIR} -path ${REMOTE_DIR}/photos -prune -o -path ${REMOTE_DIR}/webp -prune -o -path ${REMOTE_DIR}/thumbnails -prune -o -path ${REMOTE_DIR}/scrubber -prune -o -path ${REMOTE_DIR}/recap -prune -o -type f -exec chmod 644 {} +"`;
 
         let chmodAttempt = 1;
         let chmodSuccess = false;

@@ -121,6 +121,18 @@ const PortfolioEvent = memo(function PortfolioEvent({
         return ev.album.map((item: unknown) => resolvePhotoInput(item as FavoriteStoreItem));
     }, [ev.album]);
 
+    // Warm the scrubber sprite into browser cache as soon as album data arrives.
+    // The sprite is used for both the lightbox scrubber and ambient blur background.
+    useEffect(() => {
+        if (albumImages.length === 0) return;
+        const first = albumImages[0];
+        if (typeof first === 'string' || !first.thumb || first.spriteIndex == null) return;
+        const dir = first.thumb.substring(0, first.thumb.lastIndexOf('/'));
+        const spriteUrl = `${dir.replace(/^\/thumbnails\//, '/scrubber/')}/sprite.webp?v=${__BUILD_NUMBER__}`;
+        const img = new Image();
+        img.src = spriteUrl;
+    }, [albumImages]);
+
     const highlightImages: PhotoInput[] = useMemo(() => {
         if (!ev.highlights) return [];
         return ev.highlights.map((item: unknown) => resolvePhotoInput(item as FavoriteStoreItem));
