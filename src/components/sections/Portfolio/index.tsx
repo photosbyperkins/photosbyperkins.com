@@ -5,6 +5,7 @@ import { matchPath, useLocation, Link } from 'react-router-dom';
 import { Search, X, Heart } from 'lucide-react';
 import Fuse from 'fuse.js';
 import { formatTeamName, parseEventTitle } from '../../../utils/formatters';
+import { decodeFavoritesHash } from '../../../utils/favoritesUrl';
 import PortfolioEvent from './PortfolioEvent';
 import LightboxContainer from './LightboxContainer';
 import TeamFilter from './TeamFilter';
@@ -14,6 +15,7 @@ import { useStickyHeader } from '../../../hooks/useStickyHeader';
 import { usePortfolioData } from '../../../hooks/usePortfolioData';
 import { usePortfolioScroll } from '../../../hooks/usePortfolioScroll';
 import '../../../styles/_portfolio.scss';
+import type { PhotoInput, YearData } from '../../../types';
 
 declare const __BUILD_NUMBER__: string;
 
@@ -75,14 +77,19 @@ export default function Portfolio({ years }: PortfolioProps) {
 
     const yearMatch = matchPath('/portfolio/:year', matchPathStr);
     const teamMatch = matchPath('/portfolio/team/:slug', matchPathStr);
+    // Deep link: /portfolio/:year/:event/:photo
+    const deepLinkMatch = matchPath('/portfolio/:year/:event/:photo', matchPathStr);
+    // Event-only deep link: /portfolio/:year/:event (no photo index)
+    const eventDeepMatch = !deepLinkMatch ? matchPath('/portfolio/:year/:event', matchPathStr) : null;
 
     const isTeamRoute = !!teamMatch;
-    const activeRouteSlug = teamMatch?.params.slug || yearMatch?.params.year;
+    const activeRouteSlug = teamMatch?.params.slug || deepLinkMatch?.params.year || eventDeepMatch?.params.year || yearMatch?.params.year;
 
     // Moved URLSearchParams to the top to initialize search state
     const initialYear = activeRouteSlug || params?.get('year');
-    const initialEvent = params?.get('event');
-    const initialPhoto = params?.get('photo');
+    // Deep link event/photo take priority over query params
+    const initialEvent = deepLinkMatch?.params.event || eventDeepMatch?.params.event || params?.get('event');
+    const initialPhoto = deepLinkMatch?.params.photo || params?.get('photo');
 
     const setSharedPhoto = usePortfolioStore((state) => state.setSharedPhoto);
 
@@ -140,10 +147,60 @@ export default function Portfolio({ years }: PortfolioProps) {
         }
     }, [initialYear, initialEvent, initialPhoto, years, isTeamRoute, setSharedPhoto]);
 
+    // Shared favorites: detect #photos=... hash on favorites tab
+    const [sharedFavorites, setSharedFavorites] = useState<PhotoInput[] | undefined>(undefined);
+    const [sharedFavoritesCount, setSharedFavoritesCount] = useState(0);
+
+    useEffect(() => {
+        if (selectedTab !== 'favorites') {
+            setSharedFavorites(undefined);
+            setSharedFavoritesCount(0);
+            return;
+        }
+        const hash = window.location.hash;
+        if (!hash.startsWith('#photos=')) return;
+
+        const encoded = hash.slice('#photos='.length);
+        const basenames = decodeFavoritesHash(encoded);
+        if (basenames.length === 0) return;
+
+        // Fetch the full photo index to resolve basenames to PhotoInput objects
+        fetch(`/data/photos.json?build=${__BUILD_NUMBER__}`)
+            .then((res) => res.json())
+            .then((indexData: Record<string, Record<string, { album?: PhotoInput[] }>>) => {
+                const basenameSet = new Set(basenames);
+                const resolved: PhotoInput[] = [];
+
+                for (const year of Object.keys(indexData)) {
+                    for (const event of Object.keys(indexData[year])) {
+                        const album = indexData[year][event].album || [];
+                        for (const photo of album) {
+                            const original = typeof photo === 'string' ? photo : photo.original;
+                            const basename = original.split('/').pop() || '';
+                            if (basenameSet.has(basename)) {
+                                resolved.push(photo);
+                                basenameSet.delete(basename); // Each basename matched once
+                                if (basenameSet.size === 0) break;
+                            }
+                        }
+                        if (basenameSet.size === 0) break;
+                    }
+                    if (basenameSet.size === 0) break;
+                }
+
+                if (resolved.length > 0) {
+                    setSharedFavorites(resolved);
+                    setSharedFavoritesCount(resolved.length);
+                }
+            })
+            .catch((err) => console.error('Failed to resolve shared favorites:', err));
+    }, [selectedTab]);
+
     const { yearData, recapCount, recapEvents, setIsRecapLoaded } = usePortfolioData({
         selectedTab,
         years,
         onDataLoadAction: handleDataLoad,
+        sharedFavorites,
     });
 
     const events = Object.entries(yearData);
@@ -284,6 +341,43 @@ export default function Portfolio({ years }: PortfolioProps) {
                 <div ref={sentinelRef} style={{ height: '1px' }} aria-hidden="true" />
 
                 {navPortalTarget && createPortal(yearsSelectorContent, navPortalTarget)}
+
+                {sharedFavoritesCount > 0 && (
+                    <div className="portfolio__shared-banner" role="status">
+                        <span>Viewing shared favorites ({sharedFavoritesCount} photos)</span>
+                        <button
+                            onClick={() => {
+                                if (!sharedFavorites) return;
+                                const store = usePortfolioStore.getState();
+                                for (const photo of sharedFavorites) {
+                                    const original = typeof photo === 'string' ? photo : photo.original;
+                                    const isAlreadyFav = store.favorites.some((f) => {
+                                        const fPhoto = f && typeof f === 'object' && 'photo' in f ? f.photo : f;
+                                        const fOrig = typeof fPhoto === 'string' ? fPhoto : (fPhoto as { original: string }).original;
+                                        return fOrig === original;
+                                    });
+                                    if (!isAlreadyFav) store.toggleFavorite(photo);
+                                }
+                                // Clear the shared state and hash
+                                setSharedFavorites(undefined);
+                                setSharedFavoritesCount(0);
+                                window.history.replaceState(null, '', '/portfolio/favorites');
+                            }}
+                        >
+                            Save to My Favorites
+                        </button>
+                        <button
+                            onClick={() => {
+                                setSharedFavorites(undefined);
+                                setSharedFavoritesCount(0);
+                                window.history.replaceState(null, '', '/portfolio/favorites');
+                            }}
+                            aria-label="Dismiss"
+                        >
+                            <X size={14} />
+                        </button>
+                    </div>
+                )}
 
                 <div className="portfolio__events" ref={stickyRef}>
                     {eventRows.map((row) =>

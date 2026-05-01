@@ -27,9 +27,10 @@ interface UsePortfolioDataOptions {
     selectedTab: string;
     years: string[];
     onDataLoadAction?: () => void;
+    sharedFavorites?: PhotoInput[];
 }
 
-export function usePortfolioData({ selectedTab, years, onDataLoadAction }: UsePortfolioDataOptions) {
+export function usePortfolioData({ selectedTab, years, onDataLoadAction, sharedFavorites }: UsePortfolioDataOptions) {
     const [yearData, setYearData] = useState<YearData>({});
     const [recapCount, setRecapCount] = useState<number>(0);
     const [recapEvents, setRecapEvents] = useState<{ eventName: string; photoIndex: number }[]>([]);
@@ -53,23 +54,27 @@ export function usePortfolioData({ selectedTab, years, onDataLoadAction }: UsePo
 
     useEffect(() => {
         if (selectedTab === 'favorites') {
-            const sortedFavorites = [...displayFavorites].sort((a: FavoriteStoreItem, b: FavoriteStoreItem) => {
-                const getTimestamp = (item: FavoriteStoreItem) => {
-                    if (!item || typeof item !== 'object' || !('eventName' in item)) return 0;
-                    const { baseDatePrefix, parsedYear } = parseEventTitle(item.eventName, item.year);
-                    const year = parsedYear || item.year || '2000';
-                    if (baseDatePrefix) {
-                        const [month, day] = baseDatePrefix.split('.');
-                        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).getTime();
-                    }
-                    return new Date(parseInt(year), 0, 1).getTime();
-                };
-                return getTimestamp(b) - getTimestamp(a);
-            });
+            // If we have shared favorites from a URL, use those instead of localStorage
+            const photosToDisplay = sharedFavorites || (() => {
+                const sorted = [...displayFavorites].sort((a: FavoriteStoreItem, b: FavoriteStoreItem) => {
+                    const getTimestamp = (item: FavoriteStoreItem) => {
+                        if (!item || typeof item !== 'object' || !('eventName' in item)) return 0;
+                        const { baseDatePrefix, parsedYear } = parseEventTitle(item.eventName, item.year);
+                        const year = parsedYear || item.year || '2000';
+                        if (baseDatePrefix) {
+                            const [month, day] = baseDatePrefix.split('.');
+                            return new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).getTime();
+                        }
+                        return new Date(parseInt(year), 0, 1).getTime();
+                    };
+                    return getTimestamp(b) - getTimestamp(a);
+                });
+                return sorted as unknown as PhotoInput[];
+            })();
 
             setYearData({
                 Favorites: {
-                    album: sortedFavorites as unknown as PhotoInput[],
+                    album: photosToDisplay,
                     highlights: [],
                     date: null,
                 },
@@ -78,7 +83,7 @@ export function usePortfolioData({ selectedTab, years, onDataLoadAction }: UsePo
             setRecapEvents([]);
             setIsRecapLoaded(true);
         }
-    }, [selectedTab, displayFavorites]);
+    }, [selectedTab, displayFavorites, sharedFavorites]);
 
     const getForTab = useCallback(
         (tabSlug: string, setData: boolean, isTeamMode: boolean) => {

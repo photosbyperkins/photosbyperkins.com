@@ -480,3 +480,58 @@
         }
     }
 }
+
+// Shared favorites banner
+.portfolio__shared-banner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    margin-bottom: 16px;
+    background: rgba(var(--color-accent-rgb, 214, 64, 69), 0.12);
+    border: 1px solid rgba(var(--color-accent-rgb, 214, 64, 69), 0.3);
+    border-radius: 8px;
+    font-family: var(--font-condensed);
+    font-size: 0.875rem;
+    letter-spacing: 0.03em;
+    color: var(--color-text);
+
+    span {
+        flex: 1;
+    }
+
+    button {
+        background: none;
+        border: 1px solid var(--color-accent);
+        color: var(--color-accent);
+        padding: 4px 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-family: var(--font-condensed);
+        font-weight: 600;
+        font-size: 0.8rem;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        transition: background 0.15s ease, color 0.15s ease;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+
+        &:hover {
+            background: var(--color-accent);
+            color: white;
+        }
+    }
+
+    button[aria-label="Dismiss"] {
+        border: none;
+        padding: 4px;
+        opacity: 0.6;
+
+        &:hover {
+            opacity: 1;
+            background: none;
+            color: var(--color-accent);
+        }
+    }
+}

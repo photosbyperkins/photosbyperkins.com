@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef, memo } from 'react';
 import { motion, useInView } from 'framer-motion';
-import { Save, Star, Heart } from 'lucide-react';
+import { Save, Star, Heart, Share2 } from 'lucide-react';
 import ProgressiveImage from '../../ui/ProgressiveImage';
 import { FeaturedGridIcon } from '../../ui/icons';
 import VirtualizedAlbumGrid from './VirtualizedAlbumGrid';
@@ -8,6 +8,7 @@ import { usePortfolioStore } from '../../../store/usePortfolioStore';
 import { formatTeamName, parseEventTitle, resolvePhotoInput } from '../../../utils/formatters';
 import { useCanShare } from '../../../hooks/useCanShare';
 import { useEventAlbum } from '../../../hooks/useEventAlbum';
+import { buildFavoritesShareUrl } from '../../../utils/favoritesUrl';
 import type { EventData, PhotoInput, FavoriteStoreItem } from '../../../types';
 
 declare const __BUILD_NUMBER__: string;
@@ -357,6 +358,31 @@ const PortfolioEvent = memo(function PortfolioEvent({
                         >
                             <Save size={16} />
                         </a>
+                    )}
+
+                    {eventName === 'Favorites' && canShare && ev.album && ev.album.length > 0 && (
+                        <button
+                            className="portfolio__zip-btn"
+                            onClick={async () => {
+                                const favorites = usePortfolioStore.getState().favorites;
+                                const shareUrl = buildFavoritesShareUrl(favorites);
+                                try {
+                                    await navigator.share({
+                                        title: 'My Favorite Photos',
+                                        text: `Check out my ${favorites.length} favorite photos!`,
+                                        url: shareUrl,
+                                    });
+                                } catch (err) {
+                                    if ((err as Error).name !== 'AbortError') {
+                                        console.error('Share failed:', err);
+                                    }
+                                }
+                            }}
+                            title="Share Favorites"
+                            aria-label="Share Favorites"
+                        >
+                            <Share2 size={16} />
+                        </button>
                     )}
 
                     {eventName === 'Favorites' && !canShare && ev.album && ev.album.length > 0 && (
