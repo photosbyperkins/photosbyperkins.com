@@ -438,13 +438,8 @@ export default function Lightbox({
                                 onClick={async (e) => {
                                     e.stopPropagation();
                                     if (year && eventName) {
-                                        let baseUrl = window.location.href.split('?')[0];
-                                        if (!window.location.pathname.startsWith('/portfolio/')) {
-                                            baseUrl = `${window.location.origin}/portfolio/${year}`;
-                                        }
-                                        const shareUrl = new URL(baseUrl);
-                                        shareUrl.searchParams.set('event', eventName || '');
-                                        shareUrl.searchParams.set('photo', index.toString());
+                                        // Build path-based deep link: /portfolio/:year/:event/:photo
+                                        const shareUrl = `${window.location.origin}/portfolio/${encodeURIComponent(year)}/${encodeURIComponent(eventName)}/${index}`;
 
                                         try {
                                             const obj = images[index];
