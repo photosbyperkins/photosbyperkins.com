@@ -55,22 +55,24 @@ export function usePortfolioData({ selectedTab, years, onDataLoadAction, sharedF
     useEffect(() => {
         if (selectedTab === 'favorites') {
             // If we have shared favorites from a URL, use those instead of localStorage
-            const photosToDisplay = sharedFavorites || (() => {
-                const sorted = [...displayFavorites].sort((a: FavoriteStoreItem, b: FavoriteStoreItem) => {
-                    const getTimestamp = (item: FavoriteStoreItem) => {
-                        if (!item || typeof item !== 'object' || !('eventName' in item)) return 0;
-                        const { baseDatePrefix, parsedYear } = parseEventTitle(item.eventName, item.year);
-                        const year = parsedYear || item.year || '2000';
-                        if (baseDatePrefix) {
-                            const [month, day] = baseDatePrefix.split('.');
-                            return new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).getTime();
-                        }
-                        return new Date(parseInt(year), 0, 1).getTime();
-                    };
-                    return getTimestamp(b) - getTimestamp(a);
-                });
-                return sorted as unknown as PhotoInput[];
-            })();
+            const photosToDisplay =
+                sharedFavorites ||
+                (() => {
+                    const sorted = [...displayFavorites].sort((a: FavoriteStoreItem, b: FavoriteStoreItem) => {
+                        const getTimestamp = (item: FavoriteStoreItem) => {
+                            if (!item || typeof item !== 'object' || !('eventName' in item)) return 0;
+                            const { baseDatePrefix, parsedYear } = parseEventTitle(item.eventName, item.year);
+                            const year = parsedYear || item.year || '2000';
+                            if (baseDatePrefix) {
+                                const [month, day] = baseDatePrefix.split('.');
+                                return new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).getTime();
+                            }
+                            return new Date(parseInt(year), 0, 1).getTime();
+                        };
+                        return getTimestamp(b) - getTimestamp(a);
+                    });
+                    return sorted as unknown as PhotoInput[];
+                })();
 
             setYearData({
                 Favorites: {

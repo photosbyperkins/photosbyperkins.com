@@ -131,15 +131,21 @@ export default function Lightbox({
             const nextIndex = (index + newDirection + images.length) % images.length;
 
             // Animate the track
-            await animate(x, newDirection > 0 ? -window.innerWidth : window.innerWidth, reducedMotion ? {
-                type: 'tween',
-                duration: 0,
-            } : {
-                type: 'spring',
-                stiffness: 450,
-                damping: 40,
-                restDelta: 0.5,
-            });
+            await animate(
+                x,
+                newDirection > 0 ? -window.innerWidth : window.innerWidth,
+                reducedMotion
+                    ? {
+                          type: 'tween',
+                          duration: 0,
+                      }
+                    : {
+                          type: 'spring',
+                          stiffness: 450,
+                          damping: 40,
+                          restDelta: 0.5,
+                      }
+            );
 
             // Preload the ambient thumbnail for the destination photo to avoid flash
             const nextThumbSrc = getThumbSrc(images[nextIndex]);

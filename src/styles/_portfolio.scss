@@ -512,7 +512,9 @@
         font-size: 0.8rem;
         letter-spacing: 0.05em;
         text-transform: uppercase;
-        transition: background 0.15s ease, color 0.15s ease;
+        transition:
+            background 0.15s ease,
+            color 0.15s ease;
         display: flex;
         align-items: center;
         gap: 4px;
@@ -523,7 +525,7 @@
         }
     }
 
-    button[aria-label="Dismiss"] {
+    button[aria-label='Dismiss'] {
         border: none;
         padding: 4px;
         opacity: 0.6;

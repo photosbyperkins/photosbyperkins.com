@@ -57,7 +57,15 @@ const RecapSliceItem = memo(function RecapSliceItem({
                 }
             }}
             initial={reducedMotion ? { opacity: 0 } : { rotateY: -180, opacity: 0 }}
-            animate={isLoaded ? (reducedMotion ? { opacity: 1 } : { rotateY: 0, opacity: 1 }) : (reducedMotion ? { opacity: 0 } : { rotateY: -180, opacity: 0 })}
+            animate={
+                isLoaded
+                    ? reducedMotion
+                        ? { opacity: 1 }
+                        : { rotateY: 0, opacity: 1 }
+                    : reducedMotion
+                      ? { opacity: 0 }
+                      : { rotateY: -180, opacity: 0 }
+            }
             transition={reducedMotion ? { duration: 0 } : { duration: 0.8, type: 'spring', bounce: 0.3 }}
         >
             <img

@@ -76,7 +76,12 @@ export default function About() {
                             >
                                 BEHIND THE LENS
                             </motion.h2>
-                            <button ref={closeBtnRef} className="about-overlay__back-btn" onClick={closeAbout} aria-label="Close">
+                            <button
+                                ref={closeBtnRef}
+                                className="about-overlay__back-btn"
+                                onClick={closeAbout}
+                                aria-label="Close"
+                            >
                                 <X size={20} />
                             </button>
                         </div>

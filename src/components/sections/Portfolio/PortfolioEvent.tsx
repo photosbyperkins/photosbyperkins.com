@@ -473,49 +473,61 @@ const PortfolioEvent = memo(function PortfolioEvent({
                                 )}
                             </>
                         ) : (
-                        <div className="portfolio__event-grid">
-                            {albumImages.map((url: PhotoInput, i) => {
-                                const origUrl = typeof url === 'string' ? url : url.original;
-                                const thumbUrl = typeof url === 'string' ? url : url.thumb || url.original;
+                            <div className="portfolio__event-grid">
+                                {albumImages.map((url: PhotoInput, i) => {
+                                    const origUrl = typeof url === 'string' ? url : url.original;
+                                    const thumbUrl = typeof url === 'string' ? url : url.thumb || url.original;
 
-                                const focusX = typeof url === 'string' ? undefined : url.focusX;
-                                const focusY = typeof url === 'string' ? undefined : url.focusY;
+                                    const focusX = typeof url === 'string' ? undefined : url.focusX;
+                                    const focusY = typeof url === 'string' ? undefined : url.focusY;
 
-                                return (
-                                    <div
-                                        key={origUrl}
-                                        className="portfolio__grid-item"
-                                        role="button"
-                                        tabIndex={0}
-                                        aria-label={`View ${eventName} photo ${i + 1}`}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter' || e.key === ' ') {
-                                                e.preventDefault();
-                                                openLightbox(albumImages, i, eventName, selectedYear, ev.maxExifChars);
-                                            }
-                                        }}
-                                    >
-                                        <ProgressiveImage
-                                            src={thumbUrl}
-                                            placeholder={null}
-                                            alt={`${eventName} photo ${i + 1}`}
-                                            onClick={() =>
-                                                openLightbox(albumImages, i, eventName, selectedYear, ev.maxExifChars)
-                                            }
-                                            objectPosition={
-                                                focusX != null && focusY != null
-                                                    ? `${focusX * 100}% ${focusY * 100}%`
-                                                    : 'center'
-                                            }
-                                        />
-                                    </div>
-                                );
-                            })}
-                            {loading && <div className="portfolio__loading">Loading photos...</div>}
-                            {fetchError && (
-                                <div className="portfolio__error">Error loading photos. Please try refreshing.</div>
-                            )}
-                        </div>
+                                    return (
+                                        <div
+                                            key={origUrl}
+                                            className="portfolio__grid-item"
+                                            role="button"
+                                            tabIndex={0}
+                                            aria-label={`View ${eventName} photo ${i + 1}`}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter' || e.key === ' ') {
+                                                    e.preventDefault();
+                                                    openLightbox(
+                                                        albumImages,
+                                                        i,
+                                                        eventName,
+                                                        selectedYear,
+                                                        ev.maxExifChars
+                                                    );
+                                                }
+                                            }}
+                                        >
+                                            <ProgressiveImage
+                                                src={thumbUrl}
+                                                placeholder={null}
+                                                alt={`${eventName} photo ${i + 1}`}
+                                                onClick={() =>
+                                                    openLightbox(
+                                                        albumImages,
+                                                        i,
+                                                        eventName,
+                                                        selectedYear,
+                                                        ev.maxExifChars
+                                                    )
+                                                }
+                                                objectPosition={
+                                                    focusX != null && focusY != null
+                                                        ? `${focusX * 100}% ${focusY * 100}%`
+                                                        : 'center'
+                                                }
+                                            />
+                                        </div>
+                                    );
+                                })}
+                                {loading && <div className="portfolio__loading">Loading photos...</div>}
+                                {fetchError && (
+                                    <div className="portfolio__error">Error loading photos. Please try refreshing.</div>
+                                )}
+                            </div>
                         )
                     ) : (
                         <div className="portfolio__event-featured">

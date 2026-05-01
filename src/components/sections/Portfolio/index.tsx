@@ -83,7 +83,8 @@ export default function Portfolio({ years }: PortfolioProps) {
     const eventDeepMatch = !deepLinkMatch ? matchPath('/portfolio/:year/:event', matchPathStr) : null;
 
     const isTeamRoute = !!teamMatch;
-    const activeRouteSlug = teamMatch?.params.slug || deepLinkMatch?.params.year || eventDeepMatch?.params.year || yearMatch?.params.year;
+    const activeRouteSlug =
+        teamMatch?.params.slug || deepLinkMatch?.params.year || eventDeepMatch?.params.year || yearMatch?.params.year;
 
     // Moved URLSearchParams to the top to initialize search state
     const initialYear = activeRouteSlug || params?.get('year');
@@ -353,7 +354,10 @@ export default function Portfolio({ years }: PortfolioProps) {
                                     const original = typeof photo === 'string' ? photo : photo.original;
                                     const isAlreadyFav = store.favorites.some((f) => {
                                         const fPhoto = f && typeof f === 'object' && 'photo' in f ? f.photo : f;
-                                        const fOrig = typeof fPhoto === 'string' ? fPhoto : (fPhoto as { original: string }).original;
+                                        const fOrig =
+                                            typeof fPhoto === 'string'
+                                                ? fPhoto
+                                                : (fPhoto as { original: string }).original;
                                         return fOrig === original;
                                     });
                                     if (!isAlreadyFav) store.toggleFavorite(photo);
