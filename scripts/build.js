@@ -10,10 +10,10 @@ const stepsBefore = [
 const parallelSteps = [
     { name: 'Generate WebP', command: 'npm run webp' },
     { name: 'Generate Thumbnails', command: 'npm run thumbnails' },
+    { name: 'Generate Scrubber Sprites', command: 'npm run scrubber' },
 ];
 
 const stepsAfter = [
-    { name: 'Generate Scrubber Sprites', command: 'npm run scrubber' },
     { name: 'Generate Favicon', command: 'npm run favicon' },
     { name: 'Process & Copy Photos', command: 'node scripts/processAndCopyPhotos.js' },
     { name: 'Detect Faces', command: 'npm run faces' },

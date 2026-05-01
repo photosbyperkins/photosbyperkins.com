@@ -1,15 +1,60 @@
 import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
+import os from 'os';
 
 const SCRUBBER_DIR = path.join(process.cwd(), 'build', 'scrubber');
 const INDEX_FILE = path.join(process.cwd(), 'data', 'photos.json');
+const METRICS_FILE = path.join(process.cwd(), 'data', 'quality_metrics.json');
 
 const FRAME_WIDTH = 72;
 const FRAME_HEIGHT = 48;
+const TARGET_RATIO = FRAME_WIDTH / FRAME_HEIGHT; // 1.5 (3:2)
+
+/**
+ * Compute a 3:2 crop region centered on (focusX, focusY), clamped to image bounds.
+ * Returns { left, top, width, height } for sharp.extract().
+ */
+function computeFocusCrop(imgWidth, imgHeight, focusX, focusY) {
+    const imgRatio = imgWidth / imgHeight;
+
+    let cropW, cropH;
+    if (imgRatio > TARGET_RATIO) {
+        // Image is wider than 3:2 — constrain by height
+        cropH = imgHeight;
+        cropW = Math.round(imgHeight * TARGET_RATIO);
+    } else if (imgRatio < TARGET_RATIO) {
+        // Image is taller than 3:2 — constrain by width
+        cropW = imgWidth;
+        cropH = Math.round(imgWidth / TARGET_RATIO);
+    } else {
+        // Already 3:2
+        return null;
+    }
+
+    // Center the crop on the focus point
+    let left = Math.round(focusX * imgWidth - cropW / 2);
+    let top = Math.round(focusY * imgHeight - cropH / 2);
+
+    // Clamp to image bounds
+    left = Math.max(0, Math.min(left, imgWidth - cropW));
+    top = Math.max(0, Math.min(top, imgHeight - cropH));
+
+    return { left, top, width: cropW, height: cropH };
+}
+
+/**
+ * Compute the median of a numeric array.
+ */
+function median(values) {
+    if (values.length === 0) return null;
+    const sorted = [...values].sort((a, b) => a - b);
+    const mid = Math.floor(sorted.length / 2);
+    return sorted.length % 2 !== 0 ? sorted[mid] : Math.round((sorted[mid - 1] + sorted[mid]) / 2);
+}
 
 async function generateScrubberThumbs() {
-    console.log('🎞️  Generating scrubber sprite sheets...\n');
+    console.log('🎞️  Generating scrubber sprite sheets from originals...\n');
 
     if (!fs.existsSync(SCRUBBER_DIR)) {
         fs.mkdirSync(SCRUBBER_DIR, { recursive: true });
@@ -20,6 +65,16 @@ async function generateScrubberThumbs() {
         process.exit(1);
     }
     const indexData = JSON.parse(fs.readFileSync(INDEX_FILE, 'utf8'));
+
+    // Load SSIMULACRA 2 quality metrics for per-sprite quality targeting
+    let qualityMap = {};
+    if (fs.existsSync(METRICS_FILE)) {
+        try {
+            qualityMap = JSON.parse(fs.readFileSync(METRICS_FILE, 'utf8'));
+        } catch (e) {
+            console.error('  ⚠️  Failed to parse quality_metrics.json, using default quality');
+        }
+    }
 
     const validSprites = new Set();
     let spritesGenerated = 0;
@@ -60,7 +115,7 @@ async function generateScrubberThumbs() {
             let failCount = 0;
 
             for (const imgObj of allPhotos) {
-                if (typeof imgObj === 'string' || !imgObj.thumb) {
+                if (typeof imgObj === 'string' || !imgObj.source) {
                     // Create a blank frame as placeholder
                     frameBuffers.push(
                         await sharp({
@@ -71,18 +126,18 @@ async function generateScrubberThumbs() {
                                 background: { r: 30, g: 30, b: 30 },
                             },
                         })
-                            .webp()
+                            .toFormat('raw')
                             .toBuffer()
                     );
                     continue;
                 }
 
-                // Use the already-generated thumbnail as source (always exists, ~400px is plenty for 72×48)
-                const thumbRelative = imgObj.thumb.startsWith('/') ? imgObj.thumb.slice(1) : imgObj.thumb;
-                const thumbPath = path.join(process.cwd(), 'build', thumbRelative);
+                // Resolve original photo path from source (same pattern as generateWebp.js)
+                const sourceRelative = imgObj.source.startsWith('/') ? imgObj.source.slice(1) : imgObj.source;
+                const sourcePath = path.join(process.cwd(), sourceRelative);
 
-                if (!fs.existsSync(thumbPath)) {
-                    console.error(`  ❌ Thumbnail missing: ${thumbPath}`);
+                if (!fs.existsSync(sourcePath)) {
+                    console.error(`  ❌ Source photo missing: ${sourcePath}`);
                     failCount++;
                     frameBuffers.push(
                         await sharp({
@@ -93,14 +148,31 @@ async function generateScrubberThumbs() {
                                 background: { r: 30, g: 30, b: 30 },
                             },
                         })
-                            .webp()
+                            .toFormat('raw')
                             .toBuffer()
                     );
                     continue;
                 }
 
                 try {
-                    const buf = await sharp(thumbPath)
+                    let pipeline = sharp(sourcePath);
+
+                    // Get source dimensions to compute the focus-aware crop
+                    const meta = await sharp(sourcePath).metadata();
+                    const imgW = meta.width || 0;
+                    const imgH = meta.height || 0;
+
+                    if (imgW > 0 && imgH > 0) {
+                        const focusX = imgObj.focusX ?? 0.5;
+                        const focusY = imgObj.focusY ?? 0.5;
+                        const crop = computeFocusCrop(imgW, imgH, focusX, focusY);
+
+                        if (crop) {
+                            pipeline = pipeline.extract(crop);
+                        }
+                    }
+
+                    const buf = await pipeline
                         .resize({
                             width: FRAME_WIDTH,
                             height: FRAME_HEIGHT,
@@ -111,7 +183,7 @@ async function generateScrubberThumbs() {
                         .toBuffer();
                     frameBuffers.push(buf);
                 } catch (err) {
-                    console.error(`  ❌ Failed to process ${thumbRelative}:`, err.message);
+                    console.error(`  ❌ Failed to process ${sourceRelative}:`, err.message);
                     failCount++;
                     frameBuffers.push(
                         await sharp({
@@ -139,6 +211,16 @@ async function generateScrubberThumbs() {
 
             fs.mkdirSync(spriteDir, { recursive: true });
 
+            // Determine sprite quality from the median SSIMULACRA 2 Q value of constituent photos
+            const qValues = allPhotos
+                .filter(img => typeof img !== 'string' && img.source)
+                .map(img => {
+                    const key = (img.source.startsWith('/') ? img.source.slice(1) : img.source).replace(/\\/g, '/');
+                    return qualityMap[key];
+                })
+                .filter(q => q != null);
+            const spriteQuality = median(qValues) ?? 60;
+
             await sharp({
                 create: {
                     width: totalWidth,
@@ -148,12 +230,12 @@ async function generateScrubberThumbs() {
                 },
             })
                 .composite(compositeInputs)
-                .webp({ quality: 60, effort: 6 })
+                .webp({ quality: spriteQuality, effort: 6 })
                 .toFile(spritePath);
 
             const fileSizeKb = (fs.statSync(spritePath).size / 1024).toFixed(1);
             console.log(
-                `  ✅ ${spriteRelative}/sprite.webp — ${frameBuffers.length} frames, ${totalWidth}×${FRAME_HEIGHT}px, ${fileSizeKb}KB${failCount > 0 ? ` (${failCount} failed)` : ''}`
+                `  ✅ ${spriteRelative}/sprite.webp — ${frameBuffers.length} frames, ${totalWidth}×${FRAME_HEIGHT}px, ${fileSizeKb}KB, Q:${spriteQuality}${failCount > 0 ? ` (${failCount} failed)` : ''}`
             );
             spritesGenerated++;
         }
