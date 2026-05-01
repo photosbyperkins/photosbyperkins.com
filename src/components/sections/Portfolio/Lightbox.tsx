@@ -46,6 +46,18 @@ export default function Lightbox({
     const [mainImageLoaded, setMainImageLoaded] = useState(false);
     const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
 
+    const checkIfFavorite = useCallback(
+        (photo: PhotoInput) => {
+            const src = typeof photo === 'string' ? photo : photo.original;
+            return favorites.some((f) => {
+                const fInput = typeof f === 'object' && 'photo' in f ? f.photo : f;
+                const fOriginal = typeof fInput === 'string' ? fInput : fInput.original;
+                return fOriginal === src;
+            });
+        },
+        [favorites]
+    );
+
     const getThumbSrc = useCallback((photo: PhotoInput) => {
         const url = typeof photo === 'string' ? photo : photo?.thumb || photo?.original;
         return url ? `${url}?v=${__BUILD_NUMBER__}` : undefined;
@@ -95,6 +107,14 @@ export default function Lightbox({
     // Its center is at (maxDist * 72 + 36) from the track's left edge.
     // To place that at the viewport center:
     const trackX = useTransform(dragShift, (shift) => windowWidth / 2 - (maxDist * 72 + 36) + shift);
+
+    // Drive scrubber thumb opacities from drag progress
+    // Current active thumb fades from 1 → 0.5 as drag progresses
+    const thumbOpacity0 = useTransform(x, [-windowWidth, 0, windowWidth], [0.5, 1, 0.5]);
+    // Previous thumb (offset -1) brightens when dragging right (going to previous)
+    const thumbOpacityPrev = useTransform(x, [0, windowWidth], [0.5, 1]);
+    // Next thumb (offset +1) brightens when dragging left (going to next)
+    const thumbOpacityNext = useTransform(x, [-windowWidth, 0], [1, 0.5]);
 
     const total = images.length;
 
@@ -161,19 +181,31 @@ export default function Lightbox({
 
     const currentPhoto = images[index];
 
-    const checkIfFavorite = useCallback(
-        (photo: PhotoInput) => {
-            const src = typeof photo === 'string' ? photo : photo.original;
-            return favorites.some((f) => {
-                const fInput = typeof f === 'object' && 'photo' in f ? f.photo : f;
-                const fOriginal = typeof fInput === 'string' ? fInput : fInput.original;
-                return fOriginal === src;
-            });
-        },
-        [favorites]
-    );
-
     const isFavorite = checkIfFavorite(currentPhoto);
+
+    // Drive the playhead heart crossfade from drag progress
+    const prevPhoto = images[(index - 1 + images.length) % images.length];
+    const nextPhoto = images[(index + 1) % images.length];
+    const isPrevFavorite = checkIfFavorite(prevPhoto);
+    const isNextFavorite = checkIfFavorite(nextPhoto);
+
+    const filledHeartOpacity = useTransform(x, (latest) => {
+        const progress = Math.min(1, Math.abs(latest) / windowWidth);
+        const current = isFavorite ? 1 : 0;
+        if (latest > 0) {
+            // Dragging right → going to previous
+            const target = isPrevFavorite ? 1 : 0;
+            return current + (target - current) * progress;
+        } else if (latest < 0) {
+            // Dragging left → going to next
+            const target = isNextFavorite ? 1 : 0;
+            return current + (target - current) * progress;
+        }
+        return current;
+    });
+    const emptyHeartOpacity = useTransform(filledHeartOpacity, (v) => 1 - v);
+    const filledHeartScale = useTransform(filledHeartOpacity, (v) => 0.8 + v * 0.2);
+
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         setMainImageLoaded(false);
@@ -499,20 +531,31 @@ export default function Lightbox({
                             const isImgFavorite = checkIfFavorite(img);
                             const isActive = offset === 0;
 
+                            // Determine drag-driven opacity for this thumb
+                            const thumbOpacity =
+                                offset === 0
+                                    ? thumbOpacity0
+                                    : offset === -1
+                                      ? thumbOpacityPrev
+                                      : offset === 1
+                                        ? thumbOpacityNext
+                                        : undefined;
+
+                            const bgStyle =
+                                spriteUrl && typeof img !== 'string' && img.spriteIndex != null
+                                    ? {
+                                          backgroundImage: `url("${spriteUrl}")`,
+                                          backgroundPosition: `${-(img.spriteIndex * 72)}px 0`,
+                                          backgroundSize: `auto 48px`,
+                                      }
+                                    : { backgroundImage: `url("${getThumbSrc(img)}")` };
+
                             return (
-                                <div
+                                <motion.div
                                     key={`${offset}`}
                                     className={`portfolio__lightbox-scrubber-thumb${isActive ? ' is-active' : ''}`}
                                     onClick={() => onSetIndex(wrappedIndex)}
-                                    style={
-                                        spriteUrl && typeof img !== 'string' && img.spriteIndex != null
-                                            ? {
-                                                  backgroundImage: `url("${spriteUrl}")`,
-                                                  backgroundPosition: `${-(img.spriteIndex * 72)}px 0`,
-                                                  backgroundSize: `auto 48px`,
-                                              }
-                                            : { backgroundImage: `url("${getThumbSrc(img)}")` }
-                                    }
+                                    style={{ ...bgStyle, opacity: thumbOpacity ?? 0.5 }}
                                     role="button"
                                     tabIndex={0}
                                     aria-label={`Go to photo ${wrappedIndex + 1}`}
@@ -530,7 +573,7 @@ export default function Lightbox({
                                             />
                                         </div>
                                     )}
-                                </div>
+                                </motion.div>
                             );
                         });
                     })()}
@@ -550,12 +593,20 @@ export default function Lightbox({
                         }}
                         aria-label="Toggle Favorite"
                     >
-                        <Heart
-                            size={28}
-                            fill={isFavorite ? 'var(--color-accent)' : 'rgba(0, 0, 0, 0.4)'}
-                            color={isFavorite ? 'var(--color-accent)' : '#ffffff'}
-                            strokeWidth={1.5}
-                        />
+                        {/* Empty heart — driven by drag progress */}
+                        <motion.div
+                            className="portfolio__lightbox-scrubber-heart-layer"
+                            style={{ opacity: emptyHeartOpacity }}
+                        >
+                            <Heart size={28} fill="rgba(0, 0, 0, 0.4)" color="#ffffff" strokeWidth={1.5} />
+                        </motion.div>
+                        {/* Filled heart — driven by drag progress */}
+                        <motion.div
+                            className="portfolio__lightbox-scrubber-heart-layer"
+                            style={{ opacity: filledHeartOpacity, scale: filledHeartScale }}
+                        >
+                            <Heart size={28} fill="var(--color-accent)" color="var(--color-accent)" strokeWidth={1.5} />
+                        </motion.div>
                     </button>
                     <span className="portfolio__lightbox-scrubber-counter">
                         {index + 1} / {total}

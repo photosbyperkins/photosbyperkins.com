@@ -125,8 +125,7 @@
             height: 80px;
             display: flex;
             align-items: center;
-            overflow-x: clip;
-            overflow-y: visible;
+            overflow: clip;
             pointer-events: none;
             z-index: var(--z-lightbox-controls);
             transition: opacity var(--transition-fast);
@@ -151,23 +150,11 @@
                 box-sizing: border-box;
                 cursor: pointer;
                 pointer-events: auto;
-                opacity: 0.5;
-                transition: opacity 0.15s ease;
                 border-radius: 4px;
                 flex-shrink: 0;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-
-                &.is-active {
-                    opacity: 1;
-                }
-
-                @media (hover: hover) {
-                    &:hover:not(.is-active) {
-                        opacity: 0.8;
-                    }
-                }
             }
 
             &-playhead {
@@ -228,6 +215,15 @@
                 &.is-active {
                     color: var(--color-accent);
                     opacity: 1;
+                }
+
+                &-layer {
+                    position: absolute;
+                    inset: 0;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    pointer-events: none;
                 }
             }
         }
