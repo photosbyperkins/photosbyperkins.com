@@ -14,6 +14,7 @@ const stepsInit = [
 
 // Phase 3: Sequential data pipeline
 const stepsData = [
+    { name: 'Generate Zips', command: 'node scripts/pipeline/generateZips.js' },
     { name: 'Chunk Data', command: 'npm run chunk-data' },
 ];
 
