@@ -1,7 +1,8 @@
-import { useState, useEffect, useMemo, useRef, memo } from 'react';
 import { motion } from 'framer-motion';
-import { usePortfolioStore } from '../../store/usePortfolioStore';
+import { useState, useEffect, useMemo, useRef, memo } from 'react';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { usePortfolioStore } from '../../store/usePortfolioStore';
+
 declare const __BUILD_NUMBER__: string;
 
 // Caches the expensive slices computation across remounts.

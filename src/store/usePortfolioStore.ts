@@ -1,8 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-
-import type { PortfolioStore, FavoriteStoreItem } from '../types';
 import { getPhotoOriginalUrl } from '../utils/formatters';
+import type { PortfolioStore, FavoriteStoreItem } from '../types';
 
 export const usePortfolioStore = create<PortfolioStore>()(
     persist(

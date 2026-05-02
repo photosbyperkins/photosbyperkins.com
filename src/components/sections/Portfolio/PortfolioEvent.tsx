@@ -1,14 +1,14 @@
-import { useState, useEffect, useMemo, useRef, memo } from 'react';
 import { motion, useInView } from 'framer-motion';
 import { Save, Star, Heart, Share2 } from 'lucide-react';
-import ProgressiveImage from '../../ui/ProgressiveImage';
-import { FeaturedGridIcon } from '../../ui/icons';
-import VirtualizedAlbumGrid from './VirtualizedAlbumGrid';
-import { usePortfolioStore } from '../../../store/usePortfolioStore';
-import { formatTeamName, parseEventTitle, resolvePhotoInput } from '../../../utils/formatters';
+import { useState, useEffect, useMemo, useRef, memo } from 'react';
 import { useCanShare } from '../../../hooks/useCanShare';
 import { useEventAlbum } from '../../../hooks/useEventAlbum';
+import { usePortfolioStore } from '../../../store/usePortfolioStore';
 import { buildFavoritesShareUrl } from '../../../utils/favoritesUrl';
+import { formatTeamName, parseEventTitle, resolvePhotoInput } from '../../../utils/formatters';
+import { FeaturedGridIcon } from '../../ui/icons';
+import ProgressiveImage from '../../ui/ProgressiveImage';
+import VirtualizedAlbumGrid from './VirtualizedAlbumGrid';
 import type { EventData, PhotoInput, FavoriteStoreItem } from '../../../types';
 
 declare const __BUILD_NUMBER__: string;

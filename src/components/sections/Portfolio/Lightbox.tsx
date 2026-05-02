@@ -1,10 +1,10 @@
+import { motion, useMotionValue, animate, useTransform, type PanInfo } from 'framer-motion';
+import { X, Download, Share2, Heart } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, useMotionValue, animate, useTransform, type PanInfo } from 'framer-motion';
 import { Helmet } from 'react-helmet-async';
-import { X, Download, Share2, Heart } from 'lucide-react';
-import LightboxSlide, { type LightboxSlideHandle } from './LightboxSlide';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
+import LightboxSlide, { type LightboxSlideHandle } from './LightboxSlide';
 import type { PhotoInput } from '../../../types';
 
 declare const __BUILD_NUMBER__: string;

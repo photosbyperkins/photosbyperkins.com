@@ -1,6 +1,5 @@
 import { TEAM_ABBREVIATIONS } from './constants';
 import type { FavoriteStoreItem, PhotoInput } from '../types';
-
 export function formatTeamName(teamName: string): string {
     let formattedName = teamName;
     for (const [full, abbr] of Object.entries(TEAM_ABBREVIATIONS)) {

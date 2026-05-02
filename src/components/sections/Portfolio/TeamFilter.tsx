@@ -1,6 +1,6 @@
+import { Search, X } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, X } from 'lucide-react';
 import { formatTeamName } from '../../../utils/formatters';
 
 interface TeamMeta {

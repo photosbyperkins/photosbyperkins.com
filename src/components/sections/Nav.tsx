@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import ThemeToggle from '../ui/ThemeToggle';
 import { useAppStore } from '../../store/useAppStore';
+import ThemeToggle from '../ui/ThemeToggle';
 import '../../styles/_nav.scss';
 
 export default function Nav() {

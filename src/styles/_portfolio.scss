@@ -482,58 +482,150 @@
 }
 
 // Shared favorites banner
-.portfolio__shared-banner {
+// Shared Favorites Panel (overlay pattern matching About panel)
+.shared-favorites-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-modal);
+    @include apple-glass;
     display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 16px;
-    margin-bottom: 16px;
-    background: rgba(var(--color-accent-rgb, 214, 64, 69), 0.12);
-    border: 1px solid rgba(var(--color-accent-rgb, 214, 64, 69), 0.3);
-    border-radius: 8px;
-    font-family: var(--font-condensed);
-    font-size: 0.875rem;
-    letter-spacing: 0.03em;
-    color: var(--color-text);
+    flex-direction: column;
+    overflow: hidden;
 
-    span {
-        flex: 1;
-    }
+    &__header-bar {
+        flex: 0 0 auto;
+        width: 100%;
+        z-index: var(--z-sticky);
+        position: sticky;
+        top: 0;
+        padding: 1.5rem 0 1rem;
+        @include apple-glass;
 
-    button {
-        background: none;
-        border: 1px solid var(--color-accent);
-        color: var(--color-accent);
-        padding: 4px 12px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-family: var(--font-condensed);
-        font-weight: 600;
-        font-size: 0.8rem;
-        letter-spacing: 0.05em;
-        text-transform: uppercase;
-        transition:
-            background 0.15s ease,
-            color 0.15s ease;
-        display: flex;
-        align-items: center;
-        gap: 4px;
+        &-inner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
 
-        &:hover {
-            background: var(--color-accent);
-            color: white;
+        .section-label {
+            margin: 0;
+            font-size: 0.85rem;
+            letter-spacing: 0.35em;
+            text-transform: uppercase;
         }
     }
 
-    button[aria-label='Dismiss'] {
+    &__back-btn {
+        background: transparent;
         border: none;
-        padding: 4px;
-        opacity: 0.6;
+        color: var(--color-text);
+        cursor: pointer;
+        padding: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all var(--transition-fast);
 
-        &:hover {
-            opacity: 1;
-            background: none;
+        @media (hover: hover) {
+            &:hover {
+                color: var(--color-accent);
+            }
+        }
+    }
+
+    &__body {
+        flex: 1 1 auto;
+        overflow-y: auto;
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+
+        .portfolio__event {
+            margin-top: 0; // Override inherited :first-child margin from _event.scss
+        }
+    }
+
+    &__footer-bar {
+        flex: 0 0 auto;
+        width: 100%;
+        z-index: var(--z-sticky);
+        position: sticky;
+        bottom: 0;
+        padding: 1rem 0;
+        @include apple-glass;
+
+        &-inner {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+
+            .shared-favorites-overlay__btn {
+                flex: 1;
+                max-width: 220px;
+            }
+        }
+    }
+
+    // Matches portfolio__zip-btn spec from _event.scss
+    &__btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        height: 32px;
+        min-width: 36px;
+        padding: 0 0.6rem;
+        white-space: nowrap;
+        text-decoration: none;
+        background: transparent;
+        border: 1px solid var(--color-border);
+        color: var(--color-text-muted);
+        border-radius: 3px;
+        cursor: pointer;
+        font-family: var(--font-condensed);
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        transition: all var(--transition-fast);
+
+        @media (hover: hover) {
+            &:hover {
+                color: var(--color-text);
+                border-color: var(--color-text-muted);
+            }
+        }
+
+        svg {
+            margin-top: -1px;
+            flex-shrink: 0;
+        }
+
+        &.is-done {
             color: var(--color-accent);
+            border-color: var(--color-accent);
+            opacity: 0.7;
+            cursor: default;
+        }
+
+        &.is-cta {
+            background: var(--color-accent);
+            border-color: var(--color-accent);
+            color: #fff;
+
+            @media (hover: hover) {
+                &:hover {
+                    opacity: 0.85;
+                }
+            }
+
+            &.is-done {
+                background: transparent;
+                color: var(--color-accent);
+                border-color: var(--color-accent);
+                opacity: 0.7;
+            }
         }
     }
 }

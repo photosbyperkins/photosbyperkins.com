@@ -1,21 +1,22 @@
+import { useInView, AnimatePresence, motion } from 'framer-motion';
+import Fuse from 'fuse.js';
+import { Search, X, Heart } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { useInView, AnimatePresence, motion } from 'framer-motion';
 import { matchPath, useLocation, Link } from 'react-router-dom';
-import { Search, X, Heart } from 'lucide-react';
-import Fuse from 'fuse.js';
-import { formatTeamName, parseEventTitle } from '../../../utils/formatters';
-import { decodeFavoritesHash } from '../../../utils/favoritesUrl';
-import PortfolioEvent from './PortfolioEvent';
-import LightboxContainer from './LightboxContainer';
-import TeamFilter from './TeamFilter';
-import Recap from '../Recap';
-import { usePortfolioStore } from '../../../store/usePortfolioStore';
-import { useStickyHeader } from '../../../hooks/useStickyHeader';
 import { usePortfolioData } from '../../../hooks/usePortfolioData';
 import { usePortfolioScroll } from '../../../hooks/usePortfolioScroll';
+import { useStickyHeader } from '../../../hooks/useStickyHeader';
+import { usePortfolioStore } from '../../../store/usePortfolioStore';
+import { decodeFavoritesHash } from '../../../utils/favoritesUrl';
+import { formatTeamName, parseEventTitle } from '../../../utils/formatters';
+import Recap from '../Recap';
+import LightboxContainer from './LightboxContainer';
+import PortfolioEvent from './PortfolioEvent';
+import SharedFavoritesPanel from './SharedFavoritesPanel';
+import TeamFilter from './TeamFilter';
+import type { PhotoInput } from '../../../types';
 import '../../../styles/_portfolio.scss';
-import type { PhotoInput, YearData } from '../../../types';
 
 declare const __BUILD_NUMBER__: string;
 
@@ -148,16 +149,10 @@ export default function Portfolio({ years }: PortfolioProps) {
         }
     }, [initialYear, initialEvent, initialPhoto, years, isTeamRoute, setSharedPhoto]);
 
-    // Shared favorites: detect #photos=... hash on favorites tab
+    // Shared favorites: detect #photos=... hash in the URL (works on any tab)
     const [sharedFavorites, setSharedFavorites] = useState<PhotoInput[] | undefined>(undefined);
-    const [sharedFavoritesCount, setSharedFavoritesCount] = useState(0);
 
     useEffect(() => {
-        if (selectedTab !== 'favorites') {
-            setSharedFavorites(undefined);
-            setSharedFavoritesCount(0);
-            return;
-        }
         const hash = window.location.hash;
         if (!hash.startsWith('#photos=')) return;
 
@@ -165,43 +160,60 @@ export default function Portfolio({ years }: PortfolioProps) {
         const basenames = decodeFavoritesHash(encoded);
         if (basenames.length === 0) return;
 
-        // Fetch the full photo index to resolve basenames to PhotoInput objects
-        fetch(`/data/photos.json?build=${__BUILD_NUMBER__}`)
-            .then((res) => res.json())
-            .then((indexData: Record<string, Record<string, { album?: PhotoInput[] }>>) => {
+        // Resolve basenames → PhotoInput by scanning the chunked album files.
+        // Flow: index.json → each year JSON → each album JSON → match basenames.
+        (async () => {
+            try {
+                const indexRes = await fetch(`/data/index.json?build=${__BUILD_NUMBER__}`);
+                if (!indexRes.ok) return;
+                const indexData: { years: string[] } = await indexRes.json();
+
                 const basenameSet = new Set(basenames);
                 const resolved: PhotoInput[] = [];
 
-                for (const year of Object.keys(indexData)) {
-                    for (const event of Object.keys(indexData[year])) {
-                        const album = indexData[year][event].album || [];
+                for (const year of indexData.years) {
+                    if (basenameSet.size === 0) break;
+
+                    const yearRes = await fetch(`/data/years/${year}.json?build=${__BUILD_NUMBER__}`);
+                    if (!yearRes.ok) continue;
+                    const yearPayload = await yearRes.json();
+                    const events = yearPayload.events || {};
+
+                    for (const [, ev] of Object.entries(events) as [string, { albumSlug?: string }][]) {
+                        if (basenameSet.size === 0) break;
+                        if (!ev.albumSlug) continue;
+
+                        const albumRes = await fetch(
+                            `/data/albums/${year}/${ev.albumSlug}.json?build=${__BUILD_NUMBER__}`
+                        );
+                        if (!albumRes.ok) continue;
+                        const album: PhotoInput[] = await albumRes.json();
+
                         for (const photo of album) {
                             const original = typeof photo === 'string' ? photo : photo.original;
                             const basename = original.split('/').pop() || '';
                             if (basenameSet.has(basename)) {
                                 resolved.push(photo);
-                                basenameSet.delete(basename); // Each basename matched once
+                                basenameSet.delete(basename);
                                 if (basenameSet.size === 0) break;
                             }
                         }
-                        if (basenameSet.size === 0) break;
                     }
-                    if (basenameSet.size === 0) break;
                 }
 
                 if (resolved.length > 0) {
                     setSharedFavorites(resolved);
-                    setSharedFavoritesCount(resolved.length);
                 }
-            })
-            .catch((err) => console.error('Failed to resolve shared favorites:', err));
-    }, [selectedTab]);
+            } catch (err) {
+                console.error('Failed to resolve shared favorites:', err);
+            }
+        })();
+    }, []);
 
     const { yearData, recapCount, recapEvents, setIsRecapLoaded } = usePortfolioData({
         selectedTab,
         years,
         onDataLoadAction: handleDataLoad,
-        sharedFavorites,
     });
 
     const events = Object.entries(yearData);
@@ -343,44 +355,14 @@ export default function Portfolio({ years }: PortfolioProps) {
 
                 {navPortalTarget && createPortal(yearsSelectorContent, navPortalTarget)}
 
-                {sharedFavoritesCount > 0 && (
-                    <div className="portfolio__shared-banner" role="status">
-                        <span>Viewing shared favorites ({sharedFavoritesCount} photos)</span>
-                        <button
-                            onClick={() => {
-                                if (!sharedFavorites) return;
-                                const store = usePortfolioStore.getState();
-                                for (const photo of sharedFavorites) {
-                                    const original = typeof photo === 'string' ? photo : photo.original;
-                                    const isAlreadyFav = store.favorites.some((f) => {
-                                        const fPhoto = f && typeof f === 'object' && 'photo' in f ? f.photo : f;
-                                        const fOrig =
-                                            typeof fPhoto === 'string'
-                                                ? fPhoto
-                                                : (fPhoto as { original: string }).original;
-                                        return fOrig === original;
-                                    });
-                                    if (!isAlreadyFav) store.toggleFavorite(photo);
-                                }
-                                // Clear the shared state and hash
-                                setSharedFavorites(undefined);
-                                setSharedFavoritesCount(0);
-                                window.history.replaceState(null, '', '/portfolio/favorites');
-                            }}
-                        >
-                            Save to My Favorites
-                        </button>
-                        <button
-                            onClick={() => {
-                                setSharedFavorites(undefined);
-                                setSharedFavoritesCount(0);
-                                window.history.replaceState(null, '', '/portfolio/favorites');
-                            }}
-                            aria-label="Dismiss"
-                        >
-                            <X size={14} />
-                        </button>
-                    </div>
+                {sharedFavorites && sharedFavorites.length > 0 && (
+                    <SharedFavoritesPanel
+                        photos={sharedFavorites}
+                        onClose={() => {
+                            setSharedFavorites(undefined);
+                            window.history.replaceState(null, '', window.location.pathname);
+                        }}
+                    />
                 )}
 
                 <div className="portfolio__events" ref={stickyRef}>

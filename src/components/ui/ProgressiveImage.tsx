@@ -1,6 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
-
+import { useState, useRef, useEffect } from 'react';
 declare const __BUILD_NUMBER__: string;
 
 type ProgressiveImageProps = Omit<

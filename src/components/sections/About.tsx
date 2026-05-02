@@ -1,8 +1,7 @@
-import { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
+import { useEffect, useRef } from 'react';
 import { useAppStore } from '../../store/useAppStore';
-
 import '../../styles/_about.scss';
 
 declare const __BUILD_NUMBER__: string;

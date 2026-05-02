@@ -1,6 +1,5 @@
-import type { FavoriteStoreItem } from '../types';
 import { getPhotoOriginalUrl } from '../utils/formatters';
-
+import type { FavoriteStoreItem } from '../types';
 /**
  * Base64url encoding: replaces +/= with URL-safe characters.
  */

@@ -1,7 +1,7 @@
-import { forwardRef, useRef, useState, useCallback, useEffect, useImperativeHandle } from 'react';
 import { motion, useMotionValue, animate } from 'framer-motion';
-import type { PhotoInput } from '../../../types';
+import { forwardRef, useRef, useState, useCallback, useEffect, useImperativeHandle } from 'react';
 import { useDebounce } from '../../../hooks/useDebounce';
+import type { PhotoInput } from '../../../types';
 
 export interface LightboxSlideHandle {
     toggleZoom: (clientX?: number, clientY?: number) => void;

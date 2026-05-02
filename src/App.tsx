@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import Nav from './components/sections/Nav';
 import About from './components/sections/About';
+import Nav from './components/sections/Nav';
 import Portfolio from './components/sections/Portfolio';
 import { GithubIcon, FacebookIcon, InstagramIcon } from './components/ui/icons';
 
