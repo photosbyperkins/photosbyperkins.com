@@ -151,6 +151,20 @@ const PortfolioEvent = memo(function PortfolioEvent({
 
     useEffect(() => {
         if (isSharedEvent && ev.album && ev.album.length > 0 && sharedPhoto) {
+            // Scroll to the event so it's in view
+            setTimeout(() => {
+                const headerOffset = 60;
+                const element = document.getElementById(`event-${eventName.replace(/[^a-zA-Z0-9-]/g, '-')}`);
+                if (element) {
+                    const elementPosition = element.getBoundingClientRect().top;
+                    const offsetPosition = elementPosition + window.scrollY - headerOffset;
+                    window.scrollTo({
+                        top: offsetPosition,
+                        behavior: 'smooth'
+                    });
+                }
+            }, 100);
+
             if (sharedPhoto.photoIndex !== undefined) {
                 openLightbox(albumImages, sharedPhoto.photoIndex, eventName, selectedYear);
             }
@@ -381,6 +395,30 @@ const PortfolioEvent = memo(function PortfolioEvent({
                         >
                             <Save size={16} />
                         </a>
+                    )}
+
+                    {canShare && eventName !== 'Favorites' && (
+                        <button
+                            className="portfolio__zip-btn"
+                            onClick={async () => {
+                                const shareUrl = `${window.location.origin}/portfolio/${encodeURIComponent(selectedYear)}/${encodeURIComponent(eventName)}`;
+                                try {
+                                    await navigator.share({
+                                        title: eventName,
+                                        text: `Check out photos from ${eventName}`,
+                                        url: shareUrl,
+                                    });
+                                } catch (err) {
+                                    if ((err as Error).name !== 'AbortError') {
+                                        console.error('Share failed:', err);
+                                    }
+                                }
+                            }}
+                            title="Share Album"
+                            aria-label="Share Album"
+                        >
+                            <Share2 size={16} />
+                        </button>
                     )}
 
                     {eventName === 'Favorites' && canShare && ev.album && ev.album.length > 0 && (
