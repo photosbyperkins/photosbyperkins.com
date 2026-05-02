@@ -1,5 +1,5 @@
 import { motion, useMotionValue, animate, useTransform, type PanInfo } from 'framer-motion';
-import { X, Download, Share2, Heart } from 'lucide-react';
+import { X, Download, Share2, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Helmet } from 'react-helmet-async';
@@ -470,6 +470,35 @@ export default function Lightbox({
                     content={`Action photography from ${eventName}${year ? `, ${year}` : ''}. ${import.meta.env.VITE_LIGHTBOX_DESC_SUFFIX || ''}`}
                 />
             </Helmet>
+
+            {/* Left/Right Navigation Overlays */}
+            {!isZoomed && (
+                <>
+                    <div
+                        className="portfolio__lightbox-nav-overlay portfolio__lightbox-nav-overlay--left"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            paginate(-1);
+                        }}
+                    >
+                        <button className="portfolio__lightbox-action" aria-label="Previous photo">
+                            <ChevronLeft size={18} />
+                        </button>
+                    </div>
+                    <div
+                        className="portfolio__lightbox-nav-overlay portfolio__lightbox-nav-overlay--right"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            paginate(1);
+                        }}
+                    >
+                        <button className="portfolio__lightbox-action" aria-label="Next photo">
+                            <ChevronRight size={18} />
+                        </button>
+                    </div>
+                </>
+            )}
+
             <div
                 className="portfolio__lightbox-top-bar"
                 onClick={(e) => {
