@@ -45,7 +45,7 @@ export default function Lightbox({
     const recentlyDragged = useRef<{ x: number; y: number } | null>(null);
     const [isAnimating, setIsAnimating] = useState(false);
     const [isZoomed, setIsZoomed] = useState(false);
-    const [canZoom, setCanZoom] = useState(false);
+
     const [isTheaterMode, setIsTheaterMode] = useState(false);
     const [mainImageLoaded, setMainImageLoaded] = useState(false);
     const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
@@ -583,7 +583,6 @@ export default function Lightbox({
                                     : `Photo ${index + 1}`
                             }
                             onZoomChange={setIsZoomed}
-                            onCanZoomChange={setCanZoom}
                             onLoad={() => setMainImageLoaded(true)}
                             onSingleClick={() => setIsTheaterMode((prev) => !prev)}
                         />

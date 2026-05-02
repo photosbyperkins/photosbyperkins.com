@@ -67,6 +67,7 @@ export function usePortfolioData({ selectedTab, years, onDataLoadAction }: UsePo
                 return getTimestamp(b) - getTimestamp(a);
             });
 
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setYearData({
                 Favorites: {
                     album: sorted as unknown as PhotoInput[],

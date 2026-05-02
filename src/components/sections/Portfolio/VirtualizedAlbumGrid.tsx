@@ -3,8 +3,6 @@ import { useRef, useMemo, useCallback } from 'react';
 import ProgressiveImage from '../../ui/ProgressiveImage';
 import type { PhotoInput } from '../../../types';
 
-
-
 const CYCLE_SIZE = 10; // Fibonacci packing: 2 large + 3 medium + 5 small
 
 interface VirtualizedAlbumGridProps {

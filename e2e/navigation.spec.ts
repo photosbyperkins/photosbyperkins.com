@@ -14,7 +14,6 @@ test.describe('Year Navigation', () => {
 
         // Click the second year tab
         const secondYear = yearLinks.nth(1);
-        const secondYearText = await secondYear.textContent();
         await secondYear.click();
         await page.waitForTimeout(500);
 

@@ -50,7 +50,6 @@ test.describe('Search', () => {
         const teamPill = page.locator('.portfolio__team-pill').first();
         if ((await teamPill.count()) === 0) return;
 
-        const teamName = await teamPill.locator('.portfolio__team-name').textContent();
         await teamPill.click();
         await page.waitForTimeout(500);
 

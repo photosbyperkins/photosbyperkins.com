@@ -30,8 +30,6 @@ test.describe('Deep-Link Routing', () => {
         const eventId = await page.locator('.portfolio__event').first().getAttribute('id');
         if (!eventId) return;
 
-        // Extract event name from id (format: event-{name})
-        const eventName = eventId.replace('event-', '').replace(/-/g, ' ');
 
         // Navigate to the deep link with photo index 0
         // Use the raw event name with the original formatting from the URL-safe id

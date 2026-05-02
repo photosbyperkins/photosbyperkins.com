@@ -37,9 +37,6 @@ test.describe('Zip Download Buttons', () => {
     });
 
     test('each event should have its own zip link', async ({ page }) => {
-        // Get all visible events
-        const events = page.locator('.portfolio__event');
-        const eventCount = await events.count();
 
         // Check that at least the first few visible events have zip buttons
         const visibleZipCount = await page.locator('a.portfolio__zip-btn').count();

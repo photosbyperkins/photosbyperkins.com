@@ -44,11 +44,11 @@ const PortfolioEvent = memo(function PortfolioEvent({
     const toggleGridView = useCallback((e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        
+
         if (document.activeElement instanceof HTMLElement) {
             document.activeElement.blur();
         }
-        
+
         setIsGridView((prev: boolean) => !prev);
     }, []);
 

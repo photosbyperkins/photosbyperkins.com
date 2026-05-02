@@ -6,10 +6,7 @@ describe('favoritesUrl', () => {
         it('decodes legacy v1 hash correctly (basenames)', async () => {
             // Encode "photo_1.jpg,photo_2.jpg" using the old v1 format
             const basenames = ['photo_1.jpg', 'photo_2.jpg'];
-            const oldHash = btoa(basenames.join(','))
-                .replace(/\+/g, '-')
-                .replace(/\//g, '_')
-                .replace(/=+$/, '');
+            const oldHash = btoa(basenames.join(',')).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
             const decoded = await decodeFavoritesHash(oldHash);
 
@@ -45,7 +42,7 @@ describe('favoritesUrl', () => {
             ];
 
             const encoded = await encodeFavorites(testFavorites);
-            
+
             expect(encoded.startsWith('2.')).toBe(true);
 
             const decoded = await decodeFavoritesHash(encoded);
@@ -53,14 +50,16 @@ describe('favoritesUrl', () => {
             if (decoded.type === 'groups') {
                 // Should have 2 groups
                 expect(decoded.groups.length).toBe(2);
-                
+
                 // Group 1
-                const group1 = decoded.groups.find(g => g.albumKey === '2025/0412-team-philippines-headshots');
+                const group1 = decoded.groups.find((g) => g.albumKey === '2025/0412-team-philippines-headshots');
                 expect(group1).toBeDefined();
                 expect(group1?.photoIds).toEqual(['1', '2']);
 
                 // Group 2
-                const group2 = decoded.groups.find(g => g.albumKey === '2025/0125-sacramento-roller-derby-bad-habits');
+                const group2 = decoded.groups.find(
+                    (g) => g.albumKey === '2025/0125-sacramento-roller-derby-bad-habits'
+                );
                 expect(group2).toBeDefined();
                 expect(group2?.photoIds).toEqual(['15', 'highlight_1']);
             }
@@ -82,7 +81,7 @@ describe('favoritesUrl', () => {
             const testFavorites = [
                 '/photos/2025/0412-team-philippines-headshots/photo_001.jpg',
                 '/photos/2025/0412-team-philippines-headshots/photo_002.jpg',
-                '/photos/2025/0125-sacramento-roller-derby-bad-habits/photo_015.jpg'
+                '/photos/2025/0125-sacramento-roller-derby-bad-habits/photo_015.jpg',
             ];
 
             const encoded = await encodeFavorites(testFavorites);
@@ -94,26 +93,22 @@ describe('favoritesUrl', () => {
             if (decoded.type === 'groups') {
                 expect(decoded.groups).toEqual([
                     { albumKey: '2025/0412-team-philippines-headshots', photoIds: ['1', '2'] },
-                    { albumKey: '2025/0125-sacramento-roller-derby-bad-habits', photoIds: ['15'] }
+                    { albumKey: '2025/0125-sacramento-roller-derby-bad-habits', photoIds: ['15'] },
                 ]);
             }
         });
 
         it('handles fallback for favorites without "/photos/" prefix', async () => {
             // If the URL doesn't follow the normal pattern, it falls back to the basename
-            const testFavorites = [
-                'https://example.com/some/other/path/DSC_1234.jpg'
-            ];
+            const testFavorites = ['https://example.com/some/other/path/DSC_1234.jpg'];
 
             const encoded = await encodeFavorites(testFavorites);
             const decoded = await decodeFavoritesHash(encoded);
-            
+
             expect(decoded.type).toBe('groups');
             if (decoded.type === 'groups') {
                 // Key should be "_"
-                expect(decoded.groups).toEqual([
-                    { albumKey: '_', photoIds: ['DSC_1234.jpg'] }
-                ]);
+                expect(decoded.groups).toEqual([{ albumKey: '_', photoIds: ['DSC_1234.jpg'] }]);
             }
         });
     });

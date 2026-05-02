@@ -89,11 +89,16 @@ const RecapSliceItem = memo(function RecapSliceItem({
 export default function Recap({ slug, count, events, overlayText, isYear, onRecapLoadComplete }: RecapProps) {
     const [visibleCount, setVisibleCount] = useState(48);
     const [spriteLoaded, setSpriteLoaded] = useState(false);
+    const [prevSlug, setPrevSlug] = useState(slug);
     const reducedMotion = useReducedMotion();
+
+    if (slug !== prevSlug) {
+        setPrevSlug(slug);
+        setSpriteLoaded(false);
+    }
 
     // Preload the sprite image
     useEffect(() => {
-        setSpriteLoaded(false);
         const img = new Image();
         img.onload = () => setSpriteLoaded(true);
         img.onerror = () => setSpriteLoaded(true); // Fallback: still render

@@ -170,9 +170,7 @@ export default function Portfolio({ years }: PortfolioProps) {
                         const [year, slug] = group.albumKey.split('/');
                         if (!year || !slug) continue;
 
-                        const albumRes = await fetch(
-                            `/data/albums/${year}/${slug}.json?build=${__BUILD_NUMBER__}`
-                        );
+                        const albumRes = await fetch(`/data/albums/${year}/${slug}.json?build=${__BUILD_NUMBER__}`);
                         if (!albumRes.ok) continue;
                         const album: PhotoInput[] = await albumRes.json();
 
@@ -184,7 +182,10 @@ export default function Portfolio({ years }: PortfolioProps) {
                             const stem = filename
                                 .replace(/\.jpe?g$/i, '')
                                 .replace(/^photo_0*(\d+)$/, (_, num: string) => num)
-                                .replace(/_(0*)(\d+)$/, (_, _zeros: string, num: string) => '_' + parseInt(_zeros + num));
+                                .replace(
+                                    /_(0*)(\d+)$/,
+                                    (_, _zeros: string, num: string) => '_' + parseInt(_zeros + num)
+                                );
                             if (idSet.has(stem)) {
                                 resolved.push(photo);
                                 idSet.delete(stem);
