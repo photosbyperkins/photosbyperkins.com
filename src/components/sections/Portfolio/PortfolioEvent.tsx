@@ -377,7 +377,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
                             className="portfolio__zip-btn"
                             onClick={async () => {
                                 const favorites = usePortfolioStore.getState().favorites;
-                                const shareUrl = buildFavoritesShareUrl(favorites);
+                                const shareUrl = await buildFavoritesShareUrl(favorites);
                                 try {
                                     await navigator.share({
                                         title: 'My Favorite Photos',

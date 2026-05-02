@@ -157,52 +157,90 @@ export default function Portfolio({ years }: PortfolioProps) {
         if (!hash.startsWith('#photos=')) return;
 
         const encoded = hash.slice('#photos='.length);
-        const basenames = decodeFavoritesHash(encoded);
-        if (basenames.length === 0) return;
-
-        // Resolve basenames → PhotoInput by scanning the chunked album files.
-        // Flow: index.json → each year JSON → each album JSON → match basenames.
         (async () => {
             try {
-                const indexRes = await fetch(`/data/index.json?build=${__BUILD_NUMBER__}`);
-                if (!indexRes.ok) return;
-                const indexData: { years: string[] } = await indexRes.json();
+                const decoded = await decodeFavoritesHash(encoded);
 
-                const basenameSet = new Set(basenames);
-                const resolved: PhotoInput[] = [];
+                if (decoded.type === 'groups') {
+                    // v2 format: album-grouped photo references
+                    // Each group has albumKey ("2025/0412-slug") + photoIds (["1","3","15"])
+                    const resolved: PhotoInput[] = [];
 
-                for (const year of indexData.years) {
-                    if (basenameSet.size === 0) break;
-
-                    const yearRes = await fetch(`/data/years/${year}.json?build=${__BUILD_NUMBER__}`);
-                    if (!yearRes.ok) continue;
-                    const yearPayload = await yearRes.json();
-                    const events = yearPayload.events || {};
-
-                    for (const [, ev] of Object.entries(events) as [string, { albumSlug?: string }][]) {
-                        if (basenameSet.size === 0) break;
-                        if (!ev.albumSlug) continue;
+                    for (const group of decoded.groups) {
+                        const [year, slug] = group.albumKey.split('/');
+                        if (!year || !slug) continue;
 
                         const albumRes = await fetch(
-                            `/data/albums/${year}/${ev.albumSlug}.json?build=${__BUILD_NUMBER__}`
+                            `/data/albums/${year}/${slug}.json?build=${__BUILD_NUMBER__}`
                         );
                         if (!albumRes.ok) continue;
                         const album: PhotoInput[] = await albumRes.json();
 
+                        // Match photos by stem: strip .jpg and leading zeros to match encoder
+                        const idSet = new Set(group.photoIds);
                         for (const photo of album) {
                             const original = typeof photo === 'string' ? photo : photo.original;
-                            const basename = original.split('/').pop() || '';
-                            if (basenameSet.has(basename)) {
+                            const filename = original.split('/').pop() || '';
+                            const stem = filename
+                                .replace(/\.jpe?g$/i, '')
+                                .replace(/^photo_0*(\d+)$/, (_, num: string) => num)
+                                .replace(/_(0*)(\d+)$/, (_, _zeros: string, num: string) => '_' + parseInt(_zeros + num));
+                            if (idSet.has(stem)) {
                                 resolved.push(photo);
-                                basenameSet.delete(basename);
-                                if (basenameSet.size === 0) break;
+                                idSet.delete(stem);
+                                if (idSet.size === 0) break;
                             }
                         }
                     }
-                }
 
-                if (resolved.length > 0) {
-                    setSharedFavorites(resolved);
+                    if (resolved.length > 0) {
+                        setSharedFavorites(resolved);
+                    }
+                } else {
+                    // Legacy v1 format: bare basenames — scan all albums to resolve
+                    const basenames = decoded.basenames;
+                    if (basenames.length === 0) return;
+
+                    const indexRes = await fetch(`/data/index.json?build=${__BUILD_NUMBER__}`);
+                    if (!indexRes.ok) return;
+                    const indexData: { years: string[] } = await indexRes.json();
+
+                    const basenameSet = new Set(basenames);
+                    const resolved: PhotoInput[] = [];
+
+                    for (const year of indexData.years) {
+                        if (basenameSet.size === 0) break;
+
+                        const yearRes = await fetch(`/data/years/${year}.json?build=${__BUILD_NUMBER__}`);
+                        if (!yearRes.ok) continue;
+                        const yearPayload = await yearRes.json();
+                        const events = yearPayload.events || {};
+
+                        for (const [, ev] of Object.entries(events) as [string, { albumSlug?: string }][]) {
+                            if (basenameSet.size === 0) break;
+                            if (!ev.albumSlug) continue;
+
+                            const albumRes = await fetch(
+                                `/data/albums/${year}/${ev.albumSlug}.json?build=${__BUILD_NUMBER__}`
+                            );
+                            if (!albumRes.ok) continue;
+                            const album: PhotoInput[] = await albumRes.json();
+
+                            for (const photo of album) {
+                                const original = typeof photo === 'string' ? photo : photo.original;
+                                const basename = original.split('/').pop() || '';
+                                if (basenameSet.has(basename)) {
+                                    resolved.push(photo);
+                                    basenameSet.delete(basename);
+                                    if (basenameSet.size === 0) break;
+                                }
+                            }
+                        }
+                    }
+
+                    if (resolved.length > 0) {
+                        setSharedFavorites(resolved);
+                    }
                 }
             } catch (err) {
                 console.error('Failed to resolve shared favorites:', err);
