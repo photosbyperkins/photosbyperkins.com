@@ -3,10 +3,9 @@ import { useRef, useMemo, useCallback } from 'react';
 import ProgressiveImage from '../../ui/ProgressiveImage';
 import type { PhotoInput } from '../../../types';
 
-declare const __BUILD_NUMBER__: string;
+
 
 const CYCLE_SIZE = 10; // Fibonacci packing: 2 large + 3 medium + 5 small
-const MOBILE_CYCLE_SIZE = 5; // Mobile: 2 large + 3 small
 
 interface VirtualizedAlbumGridProps {
     photos: PhotoInput[];
@@ -70,7 +69,14 @@ export default function VirtualizedAlbumGrid({
         getScrollElement: () => parentRef.current?.closest('[style*="overflow"]') ?? window.document.documentElement,
         estimateSize: estimateRowSize,
         overscan: 3,
+        // CRITICAL BUGFIX: react-virtual v3 forces a layout-sync scroll to 0 during _willUpdate
+        // when the container height changes drastically. Since we use window-level scrolling,
+        // we NEVER want the virtualizer to hijack the window scroll position.
+        scrollToFn: () => {},
     });
+
+    // Disable item size change adjustments just in case
+    virtualizer.shouldAdjustScrollPositionOnItemSizeChange = () => false;
 
     return (
         <div ref={parentRef} className="portfolio__event-grid--virtual-container">

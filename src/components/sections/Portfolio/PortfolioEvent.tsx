@@ -1,6 +1,6 @@
 import { motion, useInView } from 'framer-motion';
 import { Save, Star, Heart, Share2 } from 'lucide-react';
-import { useState, useEffect, useMemo, useRef, memo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback, memo } from 'react';
 import { useCanShare } from '../../../hooks/useCanShare';
 import { useEventAlbum } from '../../../hooks/useEventAlbum';
 import { usePortfolioStore } from '../../../store/usePortfolioStore';
@@ -40,6 +40,17 @@ const PortfolioEvent = memo(function PortfolioEvent({
 
     const ref = useRef<HTMLDivElement>(null);
     const inView = useInView(ref, { once: true, margin: '400px' });
+
+    const toggleGridView = useCallback((e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        if (document.activeElement instanceof HTMLElement) {
+            document.activeElement.blur();
+        }
+        
+        setIsGridView((prev: boolean) => !prev);
+    }, []);
 
     const isSharedEvent = sharedPhoto?.eventName === eventName;
     const isVisible = inView || (evIdx < 2 && inViewParent) || isSharedEvent || eventName === 'Favorites';
@@ -425,7 +436,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
                         <div className="portfolio__segmented-toggle">
                             <button
                                 className={`portfolio__segment-btn ${!isGridView ? 'active' : ''}`}
-                                onClick={() => setIsGridView((prev) => !prev)}
+                                onClick={toggleGridView}
                                 aria-label="Show Featured Photos"
                                 aria-pressed={!isGridView}
                                 title="Show Featured Photos"
@@ -434,7 +445,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
                             </button>
                             <button
                                 className={`portfolio__segment-btn ${isGridView ? 'active' : ''}`}
-                                onClick={() => setIsGridView((prev) => !prev)}
+                                onClick={toggleGridView}
                                 aria-label="Show Full Album"
                                 aria-pressed={isGridView}
                                 title="Show Full Album"
