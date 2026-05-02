@@ -234,7 +234,7 @@
                 }
             }
 
-            .portfolio__team-name--full {
+            .portfolio__team-name--desktop {
                 display: block;
                 overflow: hidden;
                 text-overflow: ellipsis;
@@ -245,13 +245,24 @@
                 }
             }
 
+            .portfolio__team-name--tablet {
+                display: none;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+
+                @media (max-width: 1024px) and (min-width: 601px) {
+                    display: block;
+                }
+            }
+
             .portfolio__team-name--mobile {
                 display: none;
                 overflow: hidden;
                 text-overflow: ellipsis;
                 white-space: nowrap;
 
-                @media (max-width: 1024px) {
+                @media (max-width: 600px) {
                     display: block;
                 }
             }

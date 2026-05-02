@@ -5,7 +5,14 @@ import { useCanShare } from '../../../hooks/useCanShare';
 import { useEventAlbum } from '../../../hooks/useEventAlbum';
 import { usePortfolioStore } from '../../../store/usePortfolioStore';
 import { buildFavoritesShareUrl } from '../../../utils/favoritesUrl';
-import { formatTeamName, parseEventTitle, resolvePhotoInput } from '../../../utils/formatters';
+import {
+    formatTeamName,
+    getTeamNameFormats,
+    getPhotoDisplayUrl,
+    getPhotoOriginalUrl,
+    parseEventTitle,
+    resolvePhotoInput,
+} from '../../../utils/formatters';
 import { FeaturedGridIcon } from '../../ui/icons';
 import ProgressiveImage from '../../ui/ProgressiveImage';
 import VirtualizedAlbumGrid from './VirtualizedAlbumGrid';
@@ -110,7 +117,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
 
         // Bug 2: use typed albumImages instead of any-cast ev.album
         const urls = albumImages.map((item: PhotoInput) => {
-            return typeof item === 'string' ? item : item.original;
+            return getPhotoOriginalUrl(item);
         });
         worker.postMessage({ urls, filename: 'Favorites.zip' });
     };
@@ -160,7 +167,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
                     const offsetPosition = elementPosition + window.scrollY - headerOffset;
                     window.scrollTo({
                         top: offsetPosition,
-                        behavior: 'smooth'
+                        behavior: 'smooth',
                     });
                 }
             }, 100);
@@ -178,12 +185,12 @@ const PortfolioEvent = memo(function PortfolioEvent({
         let photos: PhotoInput[] = [...highlightImages];
 
         // Build a Set of album URLs for O(n) lookups instead of O(n²) nested .some()
-        const albumUrlSet = new Set(albumImages.map((ai: PhotoInput) => (typeof ai === 'string' ? ai : ai.original)));
+        const albumUrlSet = new Set(albumImages.map((ai: PhotoInput) => getPhotoOriginalUrl(ai)));
 
         // Filter out highlights that don't exist in the album (orphaned highlights)
         if (photos.length > 0 && albumImages.length > 0) {
             photos = photos.filter((h: PhotoInput) => {
-                const hUrl = typeof h === 'string' ? h : h.original;
+                const hUrl = getPhotoOriginalUrl(h);
                 return albumUrlSet.has(hUrl);
             });
         }
@@ -195,9 +202,9 @@ const PortfolioEvent = memo(function PortfolioEvent({
         } else {
             if (photos.length < 10) {
                 const remaining = 10 - photos.length;
-                const featuredUrlSet = new Set(photos.map((f: PhotoInput) => (typeof f === 'string' ? f : f.original)));
+                const featuredUrlSet = new Set(photos.map((f: PhotoInput) => getPhotoOriginalUrl(f)));
                 const extras = albumImages
-                    .filter((a: PhotoInput) => !featuredUrlSet.has(typeof a === 'string' ? a : a.original))
+                    .filter((a: PhotoInput) => !featuredUrlSet.has(getPhotoOriginalUrl(a)))
                     .slice(0, remaining);
                 photos = [...photos, ...extras];
             }
@@ -205,8 +212,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
         // Sort featured photos sequentially by trailing filename number (e.g. photo_042.jpg → 42)
         photos.sort((a: FavoriteStoreItem, b: FavoriteStoreItem) => {
             const getIndex = (src: FavoriteStoreItem) => {
-                const srcInput = typeof src === 'object' && 'photo' in src ? src.photo : src;
-                const url = typeof srcInput === 'string' ? srcInput : srcInput.original;
+                const url = getPhotoOriginalUrl(src);
                 if (!url) return 0;
                 const filename = url.split('/').pop() || '';
                 // Match the last numeric group before the extension to avoid prefix digit collisions
@@ -298,19 +304,21 @@ const PortfolioEvent = memo(function PortfolioEvent({
                 <div className="portfolio__event-teams-row">
                     <div className="portfolio__event-teams">
                         {finalTeams.map((team, i) => {
-                            const formattedTeam = formatTeamName(team);
-                            const hasAbbreviation = formattedTeam !== team;
+                            const formats = getTeamNameFormats(team);
+                            const hasVariations = formats.full !== formats.mid || formats.mid !== formats.short;
+
                             return (
-                                <h3 key={i}>
+                                <h3 key={i} title={team}>
                                     {eventName === 'Favorites' ? (
                                         <>
                                             <span style={{ color: 'var(--color-accent)' }}>YOUR&nbsp;</span>
                                             FAVORITES
                                         </>
-                                    ) : hasAbbreviation ? (
+                                    ) : hasVariations ? (
                                         <>
-                                            <span className="portfolio__team-name--full">{team}</span>
-                                            <span className="portfolio__team-name--mobile">{formattedTeam}</span>
+                                            <span className="portfolio__team-name--desktop">{formats.full}</span>
+                                            <span className="portfolio__team-name--tablet">{formats.mid}</span>
+                                            <span className="portfolio__team-name--mobile">{formats.short}</span>
                                         </>
                                     ) : (
                                         <>{team}</>

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { formatTeamName } from './formatters';
+import { formatTeamName, getTeamNameFormats } from './formatters';
 
 // Inject a known abbreviation map so tests don't depend on VITE_TEAM_ABBREVIATIONS env.
 vi.mock('./constants', () => ({
@@ -30,12 +30,46 @@ describe('formatTeamName', () => {
     });
 
     it('strips "Roller Derby" from names that are not fully abbreviated', () => {
-        expect(formatTeamName('Seattle Roller Derby')).toBe('Seattle ');
-        expect(formatTeamName('Gotham Girls Roller Derby')).toBe('Gotham Girls ');
+        expect(formatTeamName('Seattle Roller Derby')).toBe('Seattle');
+        expect(formatTeamName('Gotham Girls Roller Derby')).toBe('Gotham Girls');
     });
 
     it('leaves names unchanged if no rules apply', () => {
         expect(formatTeamName('Rose City Rollers')).toBe('Rose City Rollers');
         expect(formatTeamName('Texas Rollergirls')).toBe('Texas Rollergirls');
+    });
+});
+
+describe('getTeamNameFormats', () => {
+    beforeEach(() => {
+        vi.resetModules();
+    });
+
+    it('returns progressive truncation formats properly', () => {
+        const formats = getTeamNameFormats('Sacramento Roller Derby Capital Maulstars');
+        expect(formats.full).toBe('Sacramento Roller Derby Capital Maulstars');
+        expect(formats.mid).toBe('SRD Capital Maulstars');
+        expect(formats.short).toBe('Capital Maulstars');
+    });
+
+    it('preserves short names consistently without arbitrary length guards', () => {
+        const formats = getTeamNameFormats('SRD Team');
+        expect(formats.full).toBe('SRD Team');
+        expect(formats.mid).toBe('SRD Team');
+        expect(formats.short).toBe('Team'); // SRD is stripped because it's followed by Team
+    });
+
+    it('preserves generic abbreviation if it is the only word left', () => {
+        const formats = getTeamNameFormats('SRD Round Robin');
+        expect(formats.full).toBe('SRD Round Robin');
+        expect(formats.mid).toBe('SRD Round Robin');
+        expect(formats.short).toBe('SRD');
+    });
+
+    it('does not over-truncate single word teams', () => {
+        const formats = getTeamNameFormats('Juarez All Stars');
+        expect(formats.full).toBe('Juarez All Stars');
+        expect(formats.mid).toBe('Juárez All Stars');
+        expect(formats.short).toBe('Juárez');
     });
 });

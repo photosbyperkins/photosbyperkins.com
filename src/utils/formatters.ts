@@ -1,12 +1,45 @@
 import { TEAM_ABBREVIATIONS } from './constants';
 import type { FavoriteStoreItem, PhotoInput } from '../types';
 export function formatTeamName(teamName: string): string {
-    let formattedName = teamName;
-    for (const [full, abbr] of Object.entries(TEAM_ABBREVIATIONS)) {
-        formattedName = formattedName.replace(full, abbr);
+    return getTeamNameFormats(teamName).mid;
+}
+
+export interface TeamNameFormats {
+    full: string;
+    mid: string;
+    short: string;
+}
+
+export function getTeamNameFormats(teamName: string): TeamNameFormats {
+    const full = teamName;
+
+    // Level 1: Mid
+    let mid = teamName;
+    for (const [f, abbr] of Object.entries(TEAM_ABBREVIATIONS)) {
+        mid = mid.replace(new RegExp(`\\b${f}\\b`, 'g'), abbr);
+    }
+    mid = mid.replace(/\s+Roller Derby\b/gi, '').trim();
+
+    // Level 2: Short (Aggressive)
+    let short = mid;
+
+    // Step 1: Strip generic terms including Round Robin
+    short = short
+        .replace(/\b(Roller Derby|Derby|All Stars|All-Stars|Juniors|Quad Squad|Round Robin)\b/gi, '')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+
+    // Step 2: Strip home league abbreviations if followed by a sub-team name
+    const words = short.split(' ');
+    if (words.length > 1) {
+        // Find if the first word is one of the abbreviation values
+        const abbrValues = Object.values(TEAM_ABBREVIATIONS).filter(Boolean);
+        if (abbrValues.includes(words[0])) {
+            short = words.slice(1).join(' ');
+        }
     }
 
-    return formattedName.replace('Roller Derby', '');
+    return { full, mid, short };
 }
 
 export function parseEventTitle(eventName: string, originalYear?: string, selectedYear?: string) {
