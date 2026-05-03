@@ -24,6 +24,7 @@ const stepsData = [
 const parallelBuildSteps = [
     { name: 'Process & Copy Photos', command: 'node scripts/pipeline/processAndCopyPhotos.js' },
     { name: 'Vite Build', command: 'vite build' },
+    { name: 'Generate Social Cards', command: 'npm run social-cards' },
 ];
 
 // Phase 6: Post-build (both write to dist/)

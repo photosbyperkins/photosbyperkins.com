@@ -32,15 +32,11 @@ function generateSharePages() {
                 firstImgPath = typeof img === 'string' ? img : img.thumb || img.original;
             }
 
-            // Ensure absolute URL for OpenGraph imagery
+            // Use the pre-generated OpenGraph social card instead of the raw thumbnail
             let ogImgUrl = '';
             if (firstImgPath) {
-                // If it already starts with http/https, use it. Otherwise prepend BASE_URL
-                if (firstImgPath.startsWith('http')) {
-                    ogImgUrl = firstImgPath;
-                } else {
-                    ogImgUrl = `${BASE_URL}${firstImgPath.startsWith('/') ? '' : '/'}${firstImgPath}`;
-                }
+                const socialCardPath = `/social-cards/${encodeURIComponent(year)}_${encodeURIComponent(event)}.webp`;
+                ogImgUrl = `${BASE_URL}${socialCardPath}`;
             }
 
             const targetUrl = `${BASE_URL}/?year=${encodeURIComponent(year)}&event=${encodeURIComponent(event)}`;
