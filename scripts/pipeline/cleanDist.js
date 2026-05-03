@@ -9,7 +9,7 @@ if (!fs.existsSync(distDir)) {
 }
 
 // Keep the data and photos folders, clear everything else out
-const keepFolders = ['data', 'photos', 'thumbnails', 'zips', 'webp'];
+const keepFolders = ['data', 'photos', 'thumbnails', 'zips', 'webp', 'recap', 'scrubber'];
 
 console.log('Cleaning dist folder...');
 const files = fs.readdirSync(distDir);
@@ -20,7 +20,7 @@ for (const file of files) {
     }
     const fullPath = path.join(distDir, file);
     if (fs.lstatSync(fullPath).isDirectory()) {
-        fs.rmSync(fullPath, { recursive: true, force: true });
+        fs.rmSync(fullPath, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 });
     } else {
         fs.unlinkSync(fullPath);
     }
