@@ -4,7 +4,7 @@ An incredibly fast, highly automated photography portfolio built for action phot
 
 ## Features
 - **Fully Automated Data Pipeline**: Drop images in folders, and the system automatically extracts metadata, resizes, compresses, and maps faces.
-- **SSIMULACRA 2 Quality Optimization**: Every thumbnail, scrubber sprite, and recap sprite is optimized to the lowest WebP quality that meets a perceptual quality threshold, balancing file size and visual fidelity.
+- **SSIMULACRA 2 Quality Optimization**: Thumbnails are optimized to the lowest WebP quality that meets a perceptual quality threshold, balancing file size and visual fidelity. Sprites (scrubber and recap) use a static, high-performance quality setting for faster builds.
 - **Glassmorphic UI**: A stunning, modern, hardware-accelerated interface.
 - **100% Client-Side**: Once built, it's a completely static site (JSON + Media).
 - **Service Worker PWA**: Works offline, fully cache-enabled using Vite PWA.
@@ -54,32 +54,32 @@ The build pipeline parses your folder names. If it sees `vs` or `versus`, it att
 6. **Profile Photo**: To display your own picture in the "Behind the Lens" popup, simply drop a file named `profile_photo.jpg` into your `photos/` directory (making it available at `/photos/profile_photo.jpg` on your server).
 
 ## 🚀 Build Pipeline (`npm run build`)
-Running `npm run build` is an intense, multi-phase pipeline orchestrated by `scripts/build.js`. All build step scripts live in `scripts/pipeline/`.
+Running `npm run build` is an intense, multi-phase pipeline orchestrated by `scripts/build.ts`. All build step scripts live in `scripts/pipeline/`.
 
-### Phase 1 — Sequential Setup
-1. **Clean** → **Format** → **TypeScript Check** → **Index Photos** (`exifr` EXIF extraction into JSON)
+### Phase 1 — Setup
+1. **Clean** → **Format** → **TypeScript Check**
 
-### Phase 2 — Parallel Image Generation (shared SSIM pool)
-Scripts that need SSIMULACRA 2 quality optimization (thumbnails, scrubber sprites) run **in the same process**, sharing a single worker pool. Non-SSIM steps run as separate parallel processes.
+### Phase 2 — In-Memory Pipeline (Indexing & Master Encoding)
+- **Index Photos**: `exifr` EXIF extraction into a global JSON state.
+- **Master Encoder (`encodePhotos`)**: Generates thumbnails (using a shared SSIM worker pool), WebP conversions, scrubber frames, and processed JPEGs.
+- **Favicon Generation** & **WFTDA Scraping**: Run in parallel.
 
-| In-Process (shared pool)       | Separate Processes         |
-|-------------------------------|---------------------------|
-| `generateThumbnails.js`       | `generateWebp.js`         |
-| `generateScrubberThumbs.js`   | `generateFavicon.js`      |
-|                               | `scrapeWftda.js`          |
-|                               | `detectFaces.py`          |
+### Phase 3 — Python Interop
+- Serializes the state to `data/photos.json`, runs **Face Detection** (`detectFaces.py`), and deserializes state.
 
-### Phase 3 — Data Pipeline
-- **Chunk Data**: Splits `photos.json` into per-year JSON payloads with computed stats
+### Phase 4 — Data Modifiers & Chunking
+- **Generate Zips**: Builds offline ZIP archives.
+- **Chunk Data**: Splits `photos.json` into per-year JSON payloads with computed stats.
 
-### Phase 4 — Recap Sprites (shared SSIM pool)
-- **Generate Recaps**: Composites recap slices into SSIM-optimized sprite sheets
+### Phase 5 — Recap Sprites
+- **Generate Recaps**: Composites pre-cropped highlight slices into sprite sheets.
 
-### Phase 5 — Parallel Build
-- **Process & Copy Photos** and **Vite Build** run simultaneously (both write to non-overlapping subdirectories of `dist/`)
+### Phase 6 — Process & Copy Photos
+- Moves finalized image assets to the `build/` directory for production.
 
-### Phase 6 — Post-Build
-- **Sitemap** → **Share Pages**
+### Phase 7 — Vite Build & External Outputs
+- **Vite Build**
+- **Generate Social Cards**, **Sitemap**, and **Share Pages** run in parallel.
 
 ## 🚢 Deployment (`npm run deploy`)
 Deployment wraps up exactly what is needed into the staging directory and transfers it over SSH via `scp`.
