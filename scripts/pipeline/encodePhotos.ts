@@ -11,32 +11,9 @@ import { logger } from './logger';
 const THUMBNAILS_DIR = path.join(process.cwd(), 'build', 'thumbnails');
 const WEBP_DIR = path.join(process.cwd(), 'build', 'webp');
 const PROCESSED_DIR = path.join(process.cwd(), 'build', 'processed');
-const SCRUBBER_DIR = path.join(process.cwd(), 'build', 'scrubber');
 
 const METRICS_FILE = path.join(process.cwd(), 'data', 'quality_metrics.json');
 const MAX_DIMENSION = 800;
-const FRAME_WIDTH = 72;
-const FRAME_HEIGHT = 48;
-const TARGET_RATIO = FRAME_WIDTH / FRAME_HEIGHT;
-
-function computeFocusCrop(imgWidth, imgHeight, focusX, focusY) {
-    const imgRatio = imgWidth / imgHeight;
-    let cropW, cropH;
-    if (imgRatio > TARGET_RATIO) {
-        cropH = imgHeight;
-        cropW = Math.round(imgHeight * TARGET_RATIO);
-    } else if (imgRatio < TARGET_RATIO) {
-        cropW = imgWidth;
-        cropH = Math.round(imgWidth / TARGET_RATIO);
-    } else {
-        return null;
-    }
-    let left = Math.round(focusX * imgWidth - cropW / 2);
-    let top = Math.round(focusY * imgHeight - cropH / 2);
-    left = Math.max(0, Math.min(left, imgWidth - cropW));
-    top = Math.max(0, Math.min(top, imgHeight - cropH));
-    return { left, top, width: cropW, height: cropH };
-}
 
 export async function encodePhotos(indexData: IndexState) {
     logger.header('Master Encoder: Generating Thumbnails, WebPs, and Processed JPEGs...');
@@ -49,49 +26,16 @@ export async function encodePhotos(indexData: IndexState) {
     const validThumbs = new Set();
     const validWebps = new Set();
     const validProcessed = new Set();
-    const validSprites = new Set();
     const createdDirs = new Set();
 
     const tasks = [];
-    const missingAlbums = {};
     let skippedCount = 0;
-        const queuedSources = new Set();
+    const queuedSources = new Set();
 
     for (const year in indexData) {
         for (const event in indexData[year]) {
             const eventData = indexData[year][event];
             const allPhotos = [...(eventData.album || []), ...(eventData.highlights || [])];
-            
-            // Check Scrubber Sprite validity
-            let missingScrubberSprite = false;
-            let spritePath = '';
-            const albumPhotos = eventData.album || [];
-            if (albumPhotos.length > 0 && albumPhotos[0]?.thumb) {
-                const firstThumb = albumPhotos[0].thumb;
-                const thumbDir = firstThumb.substring(0, firstThumb.lastIndexOf('/'));
-                const spriteRelative = thumbDir.replace(/^\/thumbnails\//, 'scrubber/');
-                spritePath = path.join(process.cwd(), 'build', spriteRelative, 'sprite.webp');
-                validSprites.add(spritePath);
-                
-                const expectedWidth = FRAME_WIDTH * albumPhotos.length;
-                if (!fs.existsSync(spritePath)) {
-                    missingScrubberSprite = true;
-                } else {
-                    try {
-                        const meta = await sharp(spritePath).metadata();
-                        if (meta.width !== expectedWidth) missingScrubberSprite = true;
-                    } catch { missingScrubberSprite = true; }
-                }
-                
-                if (missingScrubberSprite) {
-                    missingAlbums[`${year}_${event}`] = { 
-                        spritePath, 
-                        photos: albumPhotos, 
-                        slug: `${year}_${event.replace(/[^a-z0-9]/gi, '_')}`,
-                        frames: new Array(albumPhotos.length)
-                    };
-                }
-            }
 
             for (const imgObj of allPhotos) {
                 if (typeof imgObj === 'string' || !imgObj.source) continue;
@@ -122,12 +66,8 @@ export async function encodePhotos(indexData: IndexState) {
                 const missingThumb = !fs.existsSync(thumbPath);
                 const missingWebp = !fs.existsSync(webpPath);
                 const missingProcessed = !fs.existsSync(processedPath);
-                
-                // Only album photos get scrubber frames
-                const isAlbumPhoto = (eventData.album || []).includes(imgObj);
-                const missingScrubberFrame = missingScrubberSprite && isAlbumPhoto;
 
-                if (!missingThumb && !missingWebp && !missingProcessed && !missingScrubberFrame) {
+                if (!missingThumb && !missingWebp && !missingProcessed) {
                     skippedCount++;
                     continue;
                 }
@@ -194,32 +134,6 @@ export async function encodePhotos(indexData: IndexState) {
                             );
                         }
 
-                        if (missingScrubberFrame) {
-                            let imgW = imgObj.width;
-                            let imgH = imgObj.height;
-                            if (!imgW || !imgH) {
-                                const meta = await pipeline.metadata();
-                                imgW = meta.width;
-                                imgH = meta.height;
-                            }
-                            
-                            const crop = computeFocusCrop(imgW, imgH, imgObj.focusX ?? 0.5, imgObj.focusY ?? 0.5);
-                            let scrubberPipe = pipeline.clone();
-                            if (crop) scrubberPipe = scrubberPipe.extract(crop);
-                            
-                            const scrubberPromise = scrubberPipe.resize({ width: FRAME_WIDTH, height: FRAME_HEIGHT, fit: 'cover', position: 'center' })
-                                .toFormat('raw')
-                                .toBuffer()
-                                .then(buf => {
-                                    const albumIdx = missingAlbums[`${year}_${event}`].photos.indexOf(imgObj);
-                                    if (albumIdx !== -1) {
-                                        missingAlbums[`${year}_${event}`].frames[albumIdx] = buf;
-                                    }
-                                });
-                            
-                            ops.push(scrubberPromise);
-                        }
-
                         await Promise.all(ops);
                         // logger.info(`Encoded missing targets for ${originalRelative}`);
                     } catch (err: any) {
@@ -257,48 +171,6 @@ export async function encodePhotos(indexData: IndexState) {
     removeStaleFiles(THUMBNAILS_DIR, validThumbs);
     removeStaleFiles(WEBP_DIR, validWebps);
     removeStaleFiles(PROCESSED_DIR, validProcessed);
-    removeStaleFiles(SCRUBBER_DIR, validSprites);
-
-    const albumKeys = Object.keys(missingAlbums);
-    if (albumKeys.length > 0) {
-        logger.step(`Compositing ${albumKeys.length} Scrubber Sprites from memory buffers...`);
-        for (const key of albumKeys) {
-            const { spritePath, photos, slug, frames } = missingAlbums[key];
-            const finalBuffers = [];
-            let failCount = 0;
-            
-            for (let i = 0; i < photos.length; i++) {
-                if (frames[i]) {
-                    finalBuffers.push(frames[i]);
-                } else {
-                    failCount++;
-                    const fallbackBuffer = await sharp({
-                        create: { width: FRAME_WIDTH, height: FRAME_HEIGHT, channels: 3, background: { r: 30, g: 30, b: 30 } },
-                    }).toFormat('raw').toBuffer();
-                    finalBuffers.push(fallbackBuffer);
-                }
-            }
-            
-            const totalWidth = FRAME_WIDTH * finalBuffers.length;
-            const compositeInputs = finalBuffers.map((buf, i) => ({
-                input: buf,
-                raw: { width: FRAME_WIDTH, height: FRAME_HEIGHT, channels: 3 },
-                left: i * FRAME_WIDTH,
-                top: 0,
-            }));
-            
-            fs.mkdirSync(path.dirname(spritePath), { recursive: true });
-            
-            const referenceBuffer = await sharp({
-                create: { width: totalWidth, height: FRAME_HEIGHT, channels: 3, background: { r: 0, g: 0, b: 0 } },
-            }).composite(compositeInputs).png().toBuffer();
-
-            const buffer = await sharp(referenceBuffer).webp({ quality: 80, effort: 6 }).toBuffer();
-            const quality = 80;
-            await fs.promises.writeFile(spritePath, buffer);
-            logger.success(`Sprite: ${path.basename(spritePath)} (Q:${quality}, ${finalBuffers.length} frames)${failCount > 0 ? ` (${failCount} missing frames filled with blank)` : ''}`);
-        }
-    }
 
     logger.success('Master Encoding complete!');
 }

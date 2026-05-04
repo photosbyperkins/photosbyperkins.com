@@ -8,6 +8,7 @@ import { encodePhotos } from './pipeline/encodePhotos.js';
 import { generateZips } from './pipeline/generateZips.js';
 import { chunkData } from './pipeline/chunkData.js';
 import { generateRecaps } from './pipeline/generateRecaps.js';
+import { generateScrubber } from './pipeline/generateScrubber.js';
 import { processAndCopyPhotos } from './pipeline/processAndCopyPhotos.js';
 import { generateSocialCards } from './pipeline/generateSocialCards.js';
 import { scrapeWftda } from './pipeline/scrapeWftda.js';
@@ -101,9 +102,12 @@ async function main() {
         const recapDefinitions = await chunkData(state);
 
         // ---------------------------------------------------------
-        // PHASE 5: Recap Sprites
+        // PHASE 5: Sprites
         // ---------------------------------------------------------
-        await generateRecaps(recapDefinitions);
+        await Promise.all([
+            generateRecaps(recapDefinitions),
+            generateScrubber(state)
+        ]);
 
         // ---------------------------------------------------------
         // PHASE 6: Process and Copy Photos (Final memory drain)

@@ -17,6 +17,7 @@
     "encode": "tsx scripts/pipeline/encodePhotos.ts",
     "recaps": "tsx scripts/pipeline/generateRecaps.ts",
     "favicon": "tsx scripts/pipeline/generateFavicon.ts",
+    "scrubber": "tsx scripts/pipeline/generateScrubber.ts",
     "zips": "tsx scripts/pipeline/generateZips.ts",
     "social-cards": "tsx scripts/pipeline/generateSocialCards.ts",
     "faces": "python scripts/detectFaces.py",

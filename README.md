@@ -61,7 +61,7 @@ Running `npm run build` is an intense, multi-phase pipeline orchestrated by `scr
 
 ### Phase 2 — In-Memory Pipeline (Indexing & Master Encoding)
 - **Index Photos**: `exifr` EXIF extraction into a global JSON state.
-- **Master Encoder (`encodePhotos`)**: Generates thumbnails (using a shared SSIM worker pool), WebP conversions, scrubber frames, and processed JPEGs.
+- **Master Encoder (`encodePhotos`)**: Generates thumbnails (using a shared SSIM worker pool), WebP conversions, and processed JPEGs.
 - **Favicon Generation** & **WFTDA Scraping**: Run in parallel.
 
 ### Phase 3 — Python Interop
@@ -71,11 +71,12 @@ Running `npm run build` is an intense, multi-phase pipeline orchestrated by `scr
 - **Generate Zips**: Builds offline ZIP archives.
 - **Chunk Data**: Splits `photos.json` into per-year JSON payloads with computed stats.
 
-### Phase 5 — Recap Sprites
+### Phase 5 — Sprites
 - **Generate Recaps**: Composites pre-cropped highlight slices into sprite sheets.
+- **Generate Scrubber**: Generates 72x48 lightbox scrubber sprites per album, utilizing the face-detection focus coordinates.
 
 ### Phase 6 — Process & Copy Photos
-- Moves finalized image assets to the `build/` directory for production.
+- Moves finalized image assets to the `dist/` directory for production.
 
 ### Phase 7 — Vite Build & External Outputs
 - **Vite Build**
