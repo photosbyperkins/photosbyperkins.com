@@ -1,20 +1,15 @@
 import fs from 'fs';
 import path from 'path';
 import 'dotenv/config';
+import { IndexState } from './types.js';
+import { logger } from './logger.js';
 
-const INDEX_FILE = path.join(process.cwd(), 'data', 'photos.json');
 const DIST_DIR = path.join(process.cwd(), 'dist');
 const BASE_URL = `https://${process.env.VITE_SITE_DOMAIN || 'localhost'}`;
 
-function generateSitemap() {
-    console.log('🗺️ Generating sitemap.xml...');
+export async function generateSitemap(data: IndexState) {
+    logger.header('Generating sitemap.xml...');
 
-    if (!fs.existsSync(INDEX_FILE)) {
-        console.error('Error: photos.json not found. Run "npm run index" first.');
-        process.exit(1);
-    }
-
-    const data = JSON.parse(fs.readFileSync(INDEX_FILE, 'utf8'));
     let xml = `<?xml version="1.0" encoding="UTF-8"?>\n`;
     xml += `<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n`;
 
@@ -55,7 +50,5 @@ function generateSitemap() {
     }
 
     fs.writeFileSync(sitemapPath, xml);
-    console.log(`✨ Wrote ${sitemapPath}`);
+    logger.success(`Wrote ${sitemapPath}`);
 }
-
-generateSitemap();

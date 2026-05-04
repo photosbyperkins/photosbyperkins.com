@@ -1,10 +1,10 @@
 import fs from 'fs';
 import path from 'path';
 import archiver from 'archiver';
+import { IndexState, EventData } from './types.js';
+import { logger } from './logger.js';
 
-const PHOTOS_DIR = path.join(process.cwd(), 'photos');
 const ZIPS_DIR = path.join(process.cwd(), 'build', 'zips');
-const DATA_FILE = path.join(process.cwd(), 'data', 'photos.json');
 
 // Ensure zips directory exists without nuking it
 function ensureZipsDir() {
@@ -13,7 +13,7 @@ function ensureZipsDir() {
     }
 }
 
-function createZipArchive(sourceFiles, outputPath) {
+function createZipArchive(sourceFiles: any[], outputPath: string): Promise<void> {
     return new Promise((resolve, reject) => {
         const output = fs.createWriteStream(outputPath);
         const archive = archiver('zip', {
@@ -21,13 +21,11 @@ function createZipArchive(sourceFiles, outputPath) {
         });
 
         output.on('close', () => {
-            console.log(
-                `  📦 Generated: ${path.basename(outputPath)} (${(archive.pointer() / 1024 / 1024).toFixed(2)} MB)`
-            );
+            // logger.info(`Generated: ${path.basename(outputPath)} (${(archive.pointer() / 1024 / 1024).toFixed(2)} MB)`);
             resolve();
         });
 
-        archive.on('error', (err) => {
+        archive.on('error', (err: any) => {
             reject(err);
         });
 
@@ -53,7 +51,7 @@ function createZipArchive(sourceFiles, outputPath) {
             if (fs.existsSync(targetPath)) {
                 archive.file(targetPath, { name: path.basename(relativePath) });
             } else {
-                console.warn(`    ⚠️ Warning: File not found for zip: ${targetPath}`);
+                logger.warn(`Warning: File not found for zip: ${targetPath}`);
             }
         }
 
@@ -61,18 +59,11 @@ function createZipArchive(sourceFiles, outputPath) {
     });
 }
 
-async function main() {
-    console.log('🗜️  Generating album zips for all years...\n');
-
-    if (!fs.existsSync(DATA_FILE)) {
-        console.error('❌ Cannot find photos.json! Run `npm run index` first.');
-        process.exit(1);
-    }
+export async function generateZips(indexData: IndexState): Promise<void> {
+    logger.header('Generating album zips for all years...');
 
     ensureZipsDir();
     const validZips = new Set();
-
-    const indexData = JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'));
 
     // Find all numeric years
     const years = Object.keys(indexData)
@@ -80,17 +71,17 @@ async function main() {
         .sort((a, b) => b.localeCompare(a)); // Descending order
 
     if (years.length === 0) {
-        console.log('No valid year folders found in photos.json');
+        logger.warn('No valid year folders found in photos.json');
         return;
     }
 
-    console.log(`📅 Found ${years.length} years to process: ${years.join(', ')}\n`);
+    logger.info(`Found ${years.length} years to process: ${years.join(', ')}`);
 
     for (const year of years) {
-        console.log(`📂 Processing year: ${year}...`);
+        logger.step(`Processing year: ${year}...`);
         const yearData = indexData[year];
 
-        for (const [eventName, eventData] of Object.entries(yearData)) {
+        for (const [eventName, eventData] of Object.entries(yearData as Record<string, EventData>)) {
             if (!eventData.album || eventData.album.length === 0) {
                 continue;
             }
@@ -107,7 +98,7 @@ async function main() {
             validZips.add(zipFilename);
 
             if (fs.existsSync(absZipPath)) {
-                console.log(`  ⏭️  Skipped (already exists): ${zipFilename}`);
+                // logger.info(`Skipped (already exists): ${zipFilename}`);
                 eventData.zip = webZipPath;
                 continue;
             }
@@ -116,30 +107,22 @@ async function main() {
                 await createZipArchive(eventData.album, absZipPath);
                 // Attach the zip path to the event data in photos.json
                 eventData.zip = webZipPath;
-            } catch (e) {
-                console.error(`  ❌ Failed to generate zip for ${eventName}:`, e);
+            } catch (e: any) {
+                logger.error(`Failed to generate zip for ${eventName}:`, e);
             }
         }
     }
 
-    // Save updated index with zip paths
-    fs.writeFileSync(DATA_FILE, JSON.stringify(indexData, null, 2));
-
     // Cleanup old zips
-    console.log('\n🧹 Cleaning up obsolete zips...');
+    logger.step('Cleaning up obsolete zips...');
     if (fs.existsSync(ZIPS_DIR)) {
         for (const file of fs.readdirSync(ZIPS_DIR)) {
             if (file.endsWith('.zip') && !validZips.has(file)) {
                 fs.unlinkSync(path.join(ZIPS_DIR, file));
-                console.log(`  🗑️  Deleted old zip: ${file}`);
+                logger.info(`Deleted old zip: ${file}`);
             }
         }
     }
 
-    console.log(`\n✨ Finished generating zips for all years and updating ${DATA_FILE}`);
+    logger.success('Finished generating zips for all years');
 }
-
-main().catch((e) => {
-    console.error('Fatal error:', e);
-    process.exit(1);
-});

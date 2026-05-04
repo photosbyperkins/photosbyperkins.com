@@ -31,9 +31,14 @@ prototxt_path, model_path = download_model_files()
 
 thread_local = threading.local()
 
+cv2.ocl.setUseOpenCL(True)
+
 def get_net():
     if not hasattr(thread_local, "net"):
-        thread_local.net = cv2.dnn.readNetFromCaffe(prototxt_path, model_path)
+        net = cv2.dnn.readNetFromCaffe(prototxt_path, model_path)
+        net.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
+        net.setPreferableTarget(cv2.dnn.DNN_TARGET_OPENCL)
+        thread_local.net = net
     return thread_local.net
 
 def weighted_median(values, weights):

@@ -1,21 +1,15 @@
 import fs from 'fs';
 import path from 'path';
 import 'dotenv/config';
+import { IndexState } from './types.js';
+import { logger } from './logger.js';
 
-const INDEX_FILE = path.join(process.cwd(), 'data', 'photos.json');
 const DIST_DIR = path.join(process.cwd(), 'dist');
 const BASE_URL = `https://${process.env.VITE_SITE_DOMAIN || 'localhost'}`;
 const APP_TITLE = process.env.VITE_SITE_APP_TITLE || 'Photography Portfolio';
 
-function generateSharePages() {
-    console.log('🔗 Generating static share pages for OpenGraph...');
-
-    if (!fs.existsSync(INDEX_FILE)) {
-        console.error('Error: photos.json not found. Run "npm run index" first.');
-        process.exit(1);
-    }
-
-    const data = JSON.parse(fs.readFileSync(INDEX_FILE, 'utf8'));
+export async function generateSharePages(data: IndexState) {
+    logger.header('Generating static share pages for OpenGraph...');
 
     let count = 0;
 
@@ -80,7 +74,5 @@ function generateSharePages() {
         }
     }
 
-    console.log(`✨ Generated ${count} share pages.`);
+    logger.success(`Generated ${count} share pages.`);
 }
-
-generateSharePages();

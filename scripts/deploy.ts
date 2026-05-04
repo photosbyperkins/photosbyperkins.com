@@ -78,7 +78,7 @@ async function runDeploy() {
                 }
             });
             console.log(`✨ Found ${remoteFilesMap.size} existing files on server.`);
-        } catch (error) {
+        } catch {
             console.log('⚠️ Could not fetch existing files list. Assuming none exist.', error.message);
         }
 
@@ -138,7 +138,7 @@ async function runDeploy() {
             try {
                 execSync(scpCommand, { stdio: 'inherit' });
                 scpSuccess = true;
-            } catch (error) {
+            } catch {
                 console.log(`⚠️ Transfer failed. Retrying in 5 seconds... (Attempt ${scpAttempt})`);
                 await sleep(5000);
                 scpAttempt++;
@@ -155,7 +155,7 @@ async function runDeploy() {
             try {
                 execSync(chmodCommand, { stdio: 'inherit' });
                 chmodSuccess = true;
-            } catch (error) {
+            } catch {
                 console.log(`⚠️ Permission fix failed. Retrying in 5 seconds... (Attempt ${chmodAttempt})`);
                 await sleep(5000);
                 chmodAttempt++;
@@ -190,7 +190,7 @@ async function runDeploy() {
                     execSync(`ssh -o StrictHostKeyChecking=accept-new ${SSH_USER}@${SSH_HOST} "rm -f ${batch}"`, {
                         stdio: 'inherit',
                     });
-                } catch (e) {
+                } catch {
                     console.log('⚠️ Could not delete a batch of stale files.', e.message);
                 }
             }
@@ -200,13 +200,13 @@ async function runDeploy() {
         if (fs.existsSync(stagingDir)) {
             try {
                 fs.rmSync(stagingDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 1000 });
-            } catch (e) {
+            } catch {
                 console.log('Could not clean up staging directory:', e.message);
             }
         }
 
         console.log('✅ Deployment complete!');
-    } catch (error) {
+    } catch {
         console.error('❌ Deployment failed:', error.message);
         process.exit(1);
     }

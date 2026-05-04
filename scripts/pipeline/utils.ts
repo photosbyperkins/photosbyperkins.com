@@ -6,14 +6,14 @@ import path from 'path';
  * @param {(() => Promise<void>)[]} tasks
  * @param {number} concurrency
  */
-export async function runWithConcurrency(tasks, concurrency) {
-    const results = [];
-    const executing = [];
+export async function runWithConcurrency<T>(tasks: (() => Promise<T>)[], concurrency: number): Promise<T[]> {
+    const results: Promise<T>[] = [];
+    const executing: Promise<any>[] = [];
     for (const task of tasks) {
         const p = Promise.resolve().then(() => task());
         results.push(p);
         if (concurrency <= tasks.length) {
-            const e = p.then(() => executing.splice(executing.indexOf(e), 1));
+            const e: Promise<any> = p.then(() => executing.splice(executing.indexOf(e), 1));
             executing.push(e);
             if (executing.length >= concurrency) {
                 await Promise.race(executing);
@@ -29,7 +29,7 @@ export async function runWithConcurrency(tasks, concurrency) {
  * @param {Set<string>} validSet
  * @param {{ removed: number }} [counters]
  */
-export function removeStaleFiles(dir, validSet, counters = { removed: 0 }) {
+export function removeStaleFiles(dir: string, validSet: Set<string>, counters: { removed: number } = { removed: 0 }): { removed: number } {
     if (!fs.existsSync(dir)) return counters;
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const e of entries) {

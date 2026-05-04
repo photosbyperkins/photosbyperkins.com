@@ -1,20 +1,21 @@
+// @ts-nocheck
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import puppeteer from 'puppeteer';
+import { IndexState } from './types';
+import { logger } from './logger';
 
 const URLS_FILE = path.join(process.cwd(), 'data', 'wftda-urls.json');
 const OUTPUT_FILE = path.join(process.cwd(), 'data', 'wftda-matches.json');
-const PHOTOS_FILE = path.join(process.cwd(), 'data', 'photos.json');
 
 /**
  * Builds a stable fingerprint of all event names + years from photos.json.
  * This is content-based, so regenerating photos.json without adding events
  * produces the same fingerprint and correctly skips the scrape.
  */
-function buildEventFingerprint() {
-    if (!fs.existsSync(PHOTOS_FILE)) return null;
-    const photosData = JSON.parse(fs.readFileSync(PHOTOS_FILE, 'utf8'));
+function buildEventFingerprint(photosData: IndexState) {
+    if (!photosData) return null;
     const keys = [];
     for (const [year, events] of Object.entries(photosData)) {
         for (const eventName of Object.keys(events)) {
@@ -25,25 +26,23 @@ function buildEventFingerprint() {
     return crypto.createHash('sha1').update(keys.join('\n')).digest('hex');
 }
 
-async function scrapeWftda() {
+export async function scrapeWftda(photosData?: IndexState) {
     if (!fs.existsSync(URLS_FILE)) {
-        console.log('No wftda-urls.json found, skipping WFTDA scrape.');
+        logger.info('No wftda-urls.json found, skipping WFTDA scrape.');
         return;
     }
 
     // Conditional Scraping: skip if the event list hasn't changed since last scrape
     const forceFlag = process.argv.includes('--force');
-    if (!forceFlag && fs.existsSync(OUTPUT_FILE)) {
-        const currentFingerprint = buildEventFingerprint();
+    if (!forceFlag && fs.existsSync(OUTPUT_FILE) && photosData) {
+        const currentFingerprint = buildEventFingerprint(photosData);
         try {
             const existing = JSON.parse(fs.readFileSync(OUTPUT_FILE, 'utf8'));
             if (currentFingerprint && existing._eventFingerprint === currentFingerprint) {
-                console.log(
-                    '⏱️  No new events since last scrape. Skipping WFTDA integration... (Use --force to override)'
-                );
+                logger.info('No new events since last scrape. Skipping WFTDA integration...');
                 return;
             }
-        } catch (e) {
+        } catch {
             // Corrupt or missing fingerprint — fall through to scrape
         }
     }
@@ -51,15 +50,15 @@ async function scrapeWftda() {
     const urlsData = JSON.parse(fs.readFileSync(URLS_FILE, 'utf8'));
 
     // Filter down to only teams with valid URLs
-    const targets = Object.entries(urlsData).filter(([team, url]) => url !== null);
+    const targets = Object.entries(urlsData).filter(([, url]) => url !== null);
 
-    console.log(`🎯 Found ${targets.length} explicit WFTDA team URLs to scrape.`);
+    logger.info(`Found ${targets.length} explicit WFTDA team URLs to scrape.`);
     if (targets.length === 0) {
         fs.writeFileSync(OUTPUT_FILE, JSON.stringify({ rankings: {}, matches: {} }, null, 2));
         return;
     }
 
-    console.log('🤖 Launching headless browser to scrape results...');
+    logger.step('Launching headless browser to scrape results...');
     const browser = await puppeteer.launch({ headless: 'new' });
     const uniqueMatches = new Map();
     const wftdaAliasMap = new Map();
@@ -67,7 +66,7 @@ async function scrapeWftda() {
     for (const [teamName, url] of targets) {
         const page = await browser.newPage();
         try {
-            console.log(`   Scraping: ${teamName}`);
+            logger.info(`Scraping: ${teamName}`);
             await page.goto(url, { waitUntil: 'networkidle0', timeout: 30000 });
             await page.waitForSelector('.gameRow', { timeout: 5000 }).catch(() => {});
 
@@ -150,9 +149,9 @@ async function scrapeWftda() {
                     uniqueMatches.set(match.href, match);
                 }
             }
-            console.log(`      ...found ${matches.length} matches.`);
-        } catch (err) {
-            console.error(`      ...failed to scrape ${teamName}:`, err.message);
+            logger.substep(`found ${matches.length} matches.`);
+        } catch (err: any) {
+            logger.error(`failed to scrape ${teamName}:`, err.message);
         } finally {
             await page.close();
         }
@@ -160,7 +159,7 @@ async function scrapeWftda() {
 
     await browser.close();
 
-    console.log('🏆 Fetching global rankings...');
+    logger.step('Fetching global rankings...');
     try {
         const rRes = await fetch('https://stats.wftda.com/rankings/gur');
         const rHtml = await rRes.text();
@@ -184,10 +183,8 @@ async function scrapeWftda() {
             }
         }
 
-        const photosFile = path.join(process.cwd(), 'data', 'photos.json');
         let relevantEvents = [];
-        if (fs.existsSync(photosFile)) {
-            const photosData = JSON.parse(fs.readFileSync(photosFile, 'utf8'));
+        if (photosData) {
             for (const [year, evts] of Object.entries(photosData)) {
                 for (const title of Object.keys(evts)) {
                     const m = title.match(/^(\d{2}\.\d{2})\s+(.*)/);
@@ -220,15 +217,24 @@ async function scrapeWftda() {
                 });
             });
 
-        const fingerprint = buildEventFingerprint();
+        const fingerprint = buildEventFingerprint(photosData as any);
         fs.writeFileSync(
             OUTPUT_FILE,
             JSON.stringify({ _eventFingerprint: fingerprint, rankings, matches: matchesArray }, null, 2)
         );
-        console.log('✅ Successfully wrote WFTDA data to', OUTPUT_FILE);
+        logger.success(`Successfully wrote WFTDA data to ${OUTPUT_FILE}`);
     } catch (err) {
-        console.error('Failed ranking fetch:', err);
+        logger.error('Failed ranking fetch:', err);
     }
 }
 
-scrapeWftda();
+if (process.argv[1] && process.argv[1].includes('scrapeWftda')) {
+    import('fs').then(fs => {
+        const p = path.join(process.cwd(), 'data', 'photos.json');
+        if (fs.existsSync(p)) {
+            scrapeWftda(JSON.parse(fs.readFileSync(p, 'utf8'))).catch(console.error);
+        } else {
+            scrapeWftda().catch(console.error);
+        }
+    })
+}

@@ -585,11 +585,5 @@
             width: 100%;
             container-type: inline-size;
         }
-
-        &--virtual-row {
-            // Each virtual row is a self-contained 10-photo Fibonacci cycle.
-            // Re-apply the same grid layout so CSS :nth-child works within each row.
-            // The parent .portfolio__event-grid classes already apply column/row rules.
-        }
     }
 }

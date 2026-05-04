@@ -1,8 +1,15 @@
+// @ts-nocheck
 import { fork } from 'child_process';
 import sharp from 'sharp';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import crypto from 'crypto';
+
+const SSIM_TMP_DIR = path.join(process.cwd(), 'build', 'ssim_tmp');
+if (!fs.existsSync(SSIM_TMP_DIR)) {
+    fs.mkdirSync(SSIM_TMP_DIR, { recursive: true });
+}
 
 // Unified quality settings across all pipelines
 const QUALITY_MAX = 95;
@@ -72,9 +79,8 @@ export function stopPool() {
  * @param {Buffer} referencePngBuffer - Lossless PNG buffer to compare against
  * @param {string} label - Identifier for temp files (e.g. "recap_2025")
  */
-export async function findOptimalQuality(referencePngBuffer, label) {
-    const safeLabel = label.replace(/[^a-z0-9_-]/gi, '_');
-    const refPath = path.join(os.tmpdir(), `s2_ref_${safeLabel}.png`);
+export async function findOptimalQuality(referencePngBuffer: Buffer, label: string) {
+    const refPath = path.join(SSIM_TMP_DIR, `s2_ref_${crypto.randomUUID()}.png`);
     await fs.promises.writeFile(refPath, referencePngBuffer);
 
     let bestQ = QUALITY_STEPS[0];
@@ -86,9 +92,24 @@ export async function findOptimalQuality(referencePngBuffer, label) {
 
     async function evaluate(q) {
         const compBuf = await sharp(referencePngBuffer).webp({ quality: q, effort: 6 }).toBuffer();
-        const compPng = path.join(os.tmpdir(), `s2_comp_${safeLabel}_${q}.png`);
+        const compPng = path.join(SSIM_TMP_DIR, `s2_comp_${crypto.randomUUID()}.png`);
         await sharp(compBuf).png().toFile(compPng);
-        const score = await getScore(refPath, compPng);
+        let score = 0;
+        let retries = 3;
+        while (retries > 0) {
+            try {
+                score = await getScore(refPath, compPng);
+                break;
+            } catch (err: any) {
+                if (err.message.includes('missing') || err.message.includes('ENOENT')) {
+                    retries--;
+                    if (retries === 0) throw err;
+                    await new Promise(r => setTimeout(r, 500));
+                } else {
+                    throw err;
+                }
+            }
+        }
         try { fs.unlinkSync(compPng); } catch {}
         return { score, buffer: compBuf };
     }

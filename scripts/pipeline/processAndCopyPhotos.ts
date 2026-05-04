@@ -1,35 +1,21 @@
 import fs from 'fs';
 import path from 'path';
-import sharp from 'sharp';
-import os from 'os';
-import { execSync } from 'child_process';
-import { runWithConcurrency, removeStaleFiles } from './utils.js';
-
-const INDEX_FILE = path.join(process.cwd(), 'data', 'photos.json');
-const METRICS_FILE = path.join(process.cwd(), 'data', 'quality_metrics.json');
+import crypto from 'crypto';
+import { removeStaleFiles } from './utils.js';
+import { IndexState } from './types.js';
+import { logger } from './logger.js';
 const DIST_DIR = path.join(process.cwd(), 'dist');
 
-async function processPhotos() {
-    if (!fs.existsSync(INDEX_FILE)) {
-        console.error('Error: photos.json not found. Run "npm run index" first.');
-        process.exit(1);
-    }
+export async function processAndCopyPhotos(data: IndexState) {
 
-    const data = JSON.parse(fs.readFileSync(INDEX_FILE, 'utf8'));
-    let qualityMap = {};
-    if (fs.existsSync(METRICS_FILE)) {
-        qualityMap = JSON.parse(fs.readFileSync(METRICS_FILE, 'utf8'));
-    }
-
-    const validDestPaths = new Set();
-    const tasks = [];
-    const copyTasks = [];
+    const validDestPaths = new Set<string>();
+    const copyTasks: { source: string; dest: string }[] = [];
     let processingErrors = 0;
     let filesSkipped = 0;
     let filesCopied = 0;
     let copyErrors = 0;
 
-    console.log('📸 Processing and migrating photos to dist...\n');
+    logger.header('Processing and migrating photos to dist...');
 
     for (const year in data) {
         for (const event in data[year]) {
@@ -38,9 +24,6 @@ async function processPhotos() {
 
             for (const imgObj of allPhotos) {
                 if (typeof imgObj === 'string' || !imgObj.source) continue;
-
-                const sourceRelative = imgObj.source.startsWith('/') ? imgObj.source.slice(1) : imgObj.source;
-                const sourceOrigPath = path.join(process.cwd(), sourceRelative);
 
                 const originalRelative = imgObj.original.startsWith('/') ? imgObj.original.slice(1) : imgObj.original;
 
@@ -55,31 +38,6 @@ async function processPhotos() {
 
                 validDestPaths.add(destOrigPath);
 
-                if (!fs.existsSync(processedPath) && fs.existsSync(sourceOrigPath)) {
-                    tasks.push(async () => {
-                        fs.mkdirSync(path.dirname(processedPath), { recursive: true });
-                        try {
-                            const lookupKey = sourceRelative.replace(/\\/g, '/');
-                            const q = qualityMap[lookupKey] || 95; // fallback to 95 if proxy wasn't tracked
-
-                            await sharp(sourceOrigPath)
-                                .jpeg({
-                                    quality: q,
-                                    mozjpeg: true,
-                                    chromaSubsampling: '4:4:4',
-                                    trellisQuantisation: true,
-                                    overshootDeringing: true,
-                                    optimizeScans: true,
-                                })
-                                .toFile(processedPath);
-
-                            console.log(`  ✅ Processed (Q:${q}): ${originalRelative}`);
-                        } catch (err) {
-                            console.error(`  ❌ Failed processing ${sourceRelative}:`, err.message);
-                            processingErrors++;
-                        }
-                    });
-                }
 
                 // Stage the pipeline output (or existing cache) for copying
                 copyTasks.push({ source: processedPath, dest: destOrigPath });
@@ -87,7 +45,7 @@ async function processPhotos() {
                 // Map Thumbnails, Tinys, and Zips straight to Dist
                 const webPathThumb = typeof imgObj === 'string' ? null : imgObj.thumb;
                 const webPathTiny = typeof imgObj === 'string' ? null : imgObj.tiny;
-                const extraPathsToCopy = [];
+                const extraPathsToCopy: string[] = [];
                 if (webPathThumb) {
                     extraPathsToCopy.push(webPathThumb);
                 }
@@ -117,19 +75,9 @@ async function processPhotos() {
         }
     }
 
-    // Pass 1: Execute Source Encoding
-    if (tasks.length > 0) {
-        const threads = Math.max(1, os.cpus().length);
-        console.log(`🚀 Encoding ${tasks.length} full-res photos across ${threads} threads...`);
 
-        await runWithConcurrency(tasks, threads);
-    } else {
-        console.log(`✅ No new original photos to process.`);
-    }
 
-    // Pass 1.5: Refresh Zips
-    console.log(`\n📦 Triggering Zip archival referencing the new SSIMULACRA payloads...`);
-    execSync('npm run zips', { stdio: 'inherit' });
+    // Note: Zips are generated earlier in the pipeline
 
     // Pass 1.75: Queue dynamically generated zips
     const zipsDir = path.join(process.cwd(), 'build', 'zips');
@@ -147,7 +95,7 @@ async function processPhotos() {
     // Pass 1.8: Queue dynamically generated recaps
     const recapsDir = path.join(process.cwd(), 'build', 'recap');
     if (fs.existsSync(recapsDir)) {
-        function queueRecapFiles(dir) {
+        function queueRecapFiles(dir: string) {
             const entries = fs.readdirSync(dir, { withFileTypes: true });
             for (const entry of entries) {
                 const fullPath = path.join(dir, entry.name);
@@ -167,7 +115,7 @@ async function processPhotos() {
     // Pass 1.9: Queue scrubber sprite sheets
     const scrubberDir = path.join(process.cwd(), 'build', 'scrubber');
     if (fs.existsSync(scrubberDir)) {
-        function queueScrubberFiles(dir) {
+        function queueScrubberFiles(dir: string) {
             const entries = fs.readdirSync(dir, { withFileTypes: true });
             for (const entry of entries) {
                 const fullPath = path.join(dir, entry.name);
@@ -185,7 +133,7 @@ async function processPhotos() {
     }
 
     // Pass 2: Transfer Build Payload
-    console.log(`\n🚀 Copying ${copyTasks.length} mapped photos and assets to dist...`);
+    logger.step(`Copying ${copyTasks.length} mapped photos and assets to dist...`);
     for (const { source, dest } of copyTasks) {
         try {
             if (fs.existsSync(source)) {
@@ -198,11 +146,11 @@ async function processPhotos() {
                     filesSkipped++;
                 }
             } else {
-                console.warn(`  ⚠️  Source photo not found: ${source}`);
+                logger.warn(`Source photo not found: ${source}`);
                 copyErrors++;
             }
-        } catch (err) {
-            console.error(`  ❌  Failed to copy ${source}:`, err.message);
+        } catch (err: any) {
+            logger.error(`Failed to copy ${source}:`, err.message);
             copyErrors++;
         }
     }
@@ -232,13 +180,13 @@ async function processPhotos() {
                 if (shouldCopy) {
                     fs.copyFileSync(sourcePath, distPath);
                     filesCopied++;
-                    console.log(`  ✓  Copied extra file: ${relativePath}`);
+                    // logger.info(`Copied extra file: ${relativePath}`);
                 } else {
                     filesSkipped++;
                 }
             }
-        } catch (err) {
-            console.error(`  ❌  Failed to copy extra file ${sourcePath}:`, err.message);
+        } catch (err: any) {
+            logger.error(`Failed to copy extra file ${sourcePath}:`, err.message);
             copyErrors++;
         }
     }
@@ -247,11 +195,11 @@ async function processPhotos() {
     const distPhotosJson = path.join(DIST_DIR, 'data', 'photos.json');
     if (fs.existsSync(distPhotosJson)) {
         fs.unlinkSync(distPhotosJson);
-        console.log(`🗑️ Removed monolithic photos.json from dist.`);
+        logger.info(`Removed monolithic photos.json from dist.`);
     }
 
     // Clean up obsolete payload content
-    console.log('\n🧹 Cleaning up obsolete files in dist payload folders...');
+    logger.step('Cleaning up obsolete files in dist payload folders...');
     removeStaleFiles(path.join(DIST_DIR, 'photos'), validDestPaths);
     removeStaleFiles(path.join(DIST_DIR, 'thumbnails'), validDestPaths);
     removeStaleFiles(path.join(DIST_DIR, 'scrubber'), validDestPaths);
@@ -259,10 +207,17 @@ async function processPhotos() {
     removeStaleFiles(path.join(DIST_DIR, 'zips'), validDestPaths);
     removeStaleFiles(path.join(DIST_DIR, 'webp'), validDestPaths);
 
-    console.log(`\n✨ Successfully copied ${filesCopied} files to ${DIST_DIR} (skipped ${filesSkipped} unchanged)`);
+    logger.success(`Successfully copied ${filesCopied} files to ${DIST_DIR} (skipped ${filesSkipped} unchanged)`);
     if (processingErrors > 0 || copyErrors > 0) {
-        console.log(`⚠️  Completed with ${processingErrors} encoding errors and ${copyErrors} copy errors.`);
+        logger.warn(`Completed with ${processingErrors} encoding errors and ${copyErrors} copy errors.`);
     }
 }
 
-processPhotos();
+if (process.argv[1] && process.argv[1].includes('processAndCopyPhotos')) {
+    import('fs').then(fs => {
+        const p = path.join(process.cwd(), 'data', 'photos.json');
+        if (fs.existsSync(p)) {
+            processAndCopyPhotos(JSON.parse(fs.readFileSync(p, 'utf8'))).catch(console.error);
+        }
+    })
+}

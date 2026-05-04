@@ -1,16 +1,16 @@
+// @ts-nocheck
 import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
 import 'dotenv/config';
-
-const INDEX_FILE = path.join(process.cwd(), 'data', 'photos.json');
+import { IndexState } from './types';
+import { logger } from './logger';
 const DIST_DIR = path.join(process.cwd(), 'dist');
 const OUTPUT_DIR = path.join(DIST_DIR, 'social-cards');
 
 // Load environment variables for branding
 const LOGO_TEXT = process.env.VITE_NAV_LOGO_TEXT || 'PHOTOS';
 const LOGO_ACCENT = process.env.VITE_NAV_LOGO_ACCENT || 'PERKINS';
-const LOGO_FULL = `${LOGO_TEXT} BY ${LOGO_ACCENT}`; // Usually 'PHOTOS BY PERKINS'
 
 function safeFilename(year, event) {
     return `${encodeURIComponent(year)}_${encodeURIComponent(event)}.webp`;
@@ -47,16 +47,10 @@ function wrapText(text, maxCharsPerLine) {
     return lines;
 }
 
-export async function generateSocialCards() {
-    console.log('\n🔗 Generating Branded OpenGraph Social Cards...');
-
-    if (!fs.existsSync(INDEX_FILE)) {
-        console.error('Error: photos.json not found. Run "npm run index" first.');
-        return;
-    }
+export async function generateSocialCards(data: IndexState) {
+    logger.header('Generating Branded OpenGraph Social Cards...');
 
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
-    const data = JSON.parse(fs.readFileSync(INDEX_FILE, 'utf8'));
     let count = 0;
     const promises = [];
     
@@ -67,8 +61,8 @@ export async function generateSocialCards() {
     if (hasCustomIcon) {
         try {
             iconBuffer = await sharp(ICON_FILE).resize(60, 60).toBuffer();
-        } catch (e) {
-            console.warn('⚠️  Could not resize custom icon.svg:', e.message);
+        } catch (e: any) {
+            logger.warn(`Could not resize custom icon.svg:`, e.message);
             hasCustomIcon = false;
         }
     }
@@ -79,7 +73,7 @@ export async function generateSocialCards() {
     if (envAbbrsStr) {
         try {
             teamAbbrs = JSON.parse(envAbbrsStr);
-        } catch(e) {}
+        } catch {}
     }
 
     function formatTeamName(teamName) {
@@ -137,7 +131,6 @@ export async function generateSocialCards() {
                 continue;
             }
 
-            const safeEvent = escapeXml(event);
             const { datePrefix, mainTitle } = parseEventTitle(event);
             const teams = mainTitle.split(/\s+(?:vs|versus)\s+/i).map(t => formatTeamName(t.trim()));
 
@@ -254,8 +247,8 @@ export async function generateSocialCards() {
                 .then(() => {
                     count++;
                 })
-                .catch((err) => {
-                    console.error(`❌ Failed to generate social card for ${event}:`, err.message);
+                .catch((err: any) => {
+                    logger.error(`Failed to generate social card for ${event}:`, err.message);
                 });
 
             promises.push(generatePromise);
@@ -263,10 +256,15 @@ export async function generateSocialCards() {
     }
 
     await Promise.all(promises);
-    console.log(`✨ Generated ${count} branded social cards.`);
+    logger.success(`Generated ${count} branded social cards.`);
 }
 
 // If run directly
-if (process.argv[1] && process.argv[1].endsWith('generateSocialCards.js')) {
-    generateSocialCards().catch(console.error);
+if (process.argv[1] && process.argv[1].includes('generateSocialCards')) {
+    import('fs').then(fs => {
+        const p = path.join(process.cwd(), 'data', 'photos.json');
+        if (fs.existsSync(p)) {
+            generateSocialCards(JSON.parse(fs.readFileSync(p, 'utf8'))).catch(console.error);
+        }
+    })
 }

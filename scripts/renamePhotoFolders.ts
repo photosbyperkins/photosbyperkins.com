@@ -20,7 +20,6 @@
 import fs from 'fs';
 import path from 'path';
 
-const PHOTOS_DIR = path.join(process.cwd(), 'photos');
 
 function isTargetAlbumDir(name) {
     const n = name.toLowerCase();
@@ -96,7 +95,7 @@ function mergeIntoTarget(srcDir, targetDir) {
     fs.rmdirSync(srcDir);
 }
 
-function processEventDir(eventDir, yearName, eventName) {
+function processEventDir(eventDir) {
     let entries;
     try {
         entries = fs.readdirSync(eventDir, { withFileTypes: true }).filter((e) => e.isDirectory());
@@ -174,7 +173,7 @@ function main() {
             const subs = fs.readdirSync(eventPath, { withFileTypes: true }).filter((e) => e.isDirectory());
             if (subs.length === 0) continue;
             console.log(`  📂 ${event}`);
-            processEventDir(eventPath, year, event);
+            processEventDir(eventPath);
         }
     }
 

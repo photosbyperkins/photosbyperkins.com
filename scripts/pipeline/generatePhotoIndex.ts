@@ -1,3 +1,4 @@
+// @ts-nocheck
 /**
  * generatePhotoIndex.js
  * Scans the photos directory and produces src/data/photos.json for the website.
@@ -18,11 +19,11 @@ import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
 import exifr from 'exifr';
+import { IndexState, PhotoObject } from './types';
+import { logger } from './logger';
 
 const PHOTOS_DIR = path.join(process.cwd(), 'photos');
-const DATA_FILE = path.join(process.cwd(), 'data', 'photos.json');
 const MAX_ALBUM_PER_EVENT = Infinity;
-const MAX_HIGHLIGHTS_PER_EVENT = Infinity;
 
 // Skip these folders entirely – they are intermediate processing artifacts
 const SKIP_DIRS = [
@@ -195,7 +196,7 @@ async function extractExif(absPath) {
             DateTimeOriginal: exifData.DateTimeOriginal,
             exif: hasVisibleData ? exifPayload : undefined,
         };
-    } catch (e) {
+    } catch {
         return null; // File failed or completely empty
     }
 }
@@ -262,12 +263,6 @@ async function processEventDir(eventDir, year, eventSlug) {
             }
         }
     }
-
-    const mapToThumb = (absPath) => {
-        const rel = path.relative(PHOTOS_DIR, absPath);
-        const thumbAbs = path.join(process.cwd(), 'build', 'thumbnails', rel);
-        return toWebPath(thumbAbs, true);
-    };
 
     // 1. Prepare album entries first
     const albumArr = albumFiles
@@ -367,8 +362,8 @@ async function processEventDir(eventDir, year, eventSlug) {
                         exif = extracted.exif;
                     }
                 }
-            } catch (e) {}
-        } catch (e) {
+            } catch {}
+        } catch {
             // fallback if file can't be read
         }
 
@@ -433,9 +428,9 @@ function formatEventLabel(dirName) {
         .trim();
 }
 
-async function main() {
-    console.log('📸 Generating photo index...\n');
-    const output = {};
+export async function generatePhotoIndex(): Promise<IndexState> {
+    logger.header('Generating photo index...');
+    const output: IndexState = {};
 
     const years = fs
         .readdirSync(PHOTOS_DIR, { withFileTypes: true })
@@ -474,7 +469,7 @@ async function main() {
                         if (extracted && extracted.exif) {
                             exif = extracted.exif;
                         }
-                    } catch (e) {}
+                    } catch {}
                     flatAlbumWithDims.push({
                         source: toWebPath(abs),
                         original: `/photos/${year}/all-photos/${cleanName}`,
@@ -505,7 +500,7 @@ async function main() {
                 if (fs.existsSync(scoreFile)) {
                     try {
                         localScore = JSON.parse(fs.readFileSync(scoreFile, 'utf8'));
-                    } catch (e) {
+                    } catch {
                         console.error(`  ⚠️  Failed to parse score.json in ${eventDir}`);
                     }
                 }
@@ -524,12 +519,13 @@ async function main() {
         }
 
         const evCount = Object.keys(output[year]).length;
-        console.log(`  ✅  ${year}: ${evCount} event(s)`);
+        logger.info(`✅  ${year}: ${evCount} event(s)`);
     }
 
-    fs.mkdirSync(path.dirname(DATA_FILE), { recursive: true });
-    fs.writeFileSync(DATA_FILE, JSON.stringify(output, null, 2));
-    console.log(`\n✨ Wrote ${DATA_FILE}`);
+    logger.success('Photo index generated in memory.');
+    return output;
 }
 
-main().catch(console.error);
+if (process.argv[1] && process.argv[1].includes('generatePhotoIndex')) {
+    generatePhotoIndex().catch(console.error);
+}
