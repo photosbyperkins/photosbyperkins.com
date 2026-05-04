@@ -10,6 +10,9 @@ An incredibly fast, highly automated photography portfolio built for action phot
 - **Service Worker PWA**: Works offline, fully cache-enabled using Vite PWA.
 - **Fuzzy Search Engine**: Instantly find teams with typo-tolerant search powered by `fuse.js`.
 - **Favorites & Web Worker Zipping**: Star your favorite photos and batch download them entirely client-side using `jszip` in a background Web Worker!
+- **Shareable Favorites URLs**: Share curated photo selections via lightweight, DEFLATE-compressed, database-free URLs.
+- **WFTDA Stats Integration**: Automatically fetches global rankings and match histories from official WFTDA data if folder names match known bouts.
+- **Automated Social Cards**: Generates beautifully branded OpenGraph images for every single album to ensure rich link previews across social media.
 - **Lightbox Scrubber**: Drag-to-navigate sprite-sheet scrubber for fast album browsing within the lightbox.
 - **Year Recap Sprites**: Animated recap banners composited from focus-cropped album highlights.
 
