@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import archiver from 'archiver';
+import { ZipArchive } from 'archiver';
 import { IndexState, EventData } from './types.js';
 import { logger } from './logger.js';
 
@@ -16,7 +16,7 @@ function ensureZipsDir() {
 function createZipArchive(sourceFiles: any[], outputPath: string): Promise<void> {
     return new Promise((resolve, reject) => {
         const output = fs.createWriteStream(outputPath);
-        const archive = archiver('zip', {
+        const archive = new ZipArchive({
             zlib: { level: 0 }, // Photos are already compressed, store only to save CPU
         });
 
