@@ -17,6 +17,16 @@ export async function generateRecaps(definitions: RecapDefinitions): Promise<voi
         fs.mkdirSync(RECAP_DIR, { recursive: true });
     }
 
+    const CACHE_MANIFEST_PATH = path.join(RECAP_DIR, '.cache.json');
+    let cacheManifest: Record<string, string> = {};
+    if (fs.existsSync(CACHE_MANIFEST_PATH)) {
+        try {
+            cacheManifest = JSON.parse(fs.readFileSync(CACHE_MANIFEST_PATH, 'utf8'));
+        } catch (e) {
+            logger.warn('Could not parse .cache.json, starting fresh.');
+        }
+    }
+
     const validPaths = new Set();
 
     const taskData = [];
@@ -62,7 +72,10 @@ export async function generateRecaps(definitions: RecapDefinitions): Promise<voi
 
         validPaths.add(destPath);
 
-        if (fs.existsSync(destPath)) {
+        const cacheKey = `${sourceRelative}|${task.focusX}|${task.focusY}`;
+        const isCached = cacheManifest[destRelative] === cacheKey;
+
+        if (fs.existsSync(destPath) && isCached) {
             skippedCount++;
             return;
         }
@@ -143,24 +156,32 @@ export async function generateRecaps(definitions: RecapDefinitions): Promise<voi
     for (const [slug, images] of Object.entries(definitions)) {
         if (!Array.isArray(images) || images.length === 0) continue;
 
-        const spriteFile = path.join(RECAP_DIR, slug, 'sprite.webp');
+        const spriteRelative = `recap/${slug}/sprite.webp`;
+        const spriteFile = path.join(process.cwd(), 'build', spriteRelative);
         validPaths.add(spriteFile);
 
-        if (fs.existsSync(spriteFile) && processedCount === 0) {
-            // logger.info(`Sprite exists: ${slug}/sprite.webp`);
-            continue;
-        }
-
         const slicePaths = [];
+        const sliceKeys = [];
         let allExist = true;
-        for (let i = 1; i <= images.length; i++) {
-            const slicePath = path.join(RECAP_DIR, slug, `photo_${i}.webp`);
+        for (let i = 0; i < images.length; i++) {
+            const img = images[i];
+            const sourceRelative = img.src.startsWith('/') ? img.src.slice(1) : img.src;
+            sliceKeys.push(`${sourceRelative}|${img.focusX}|${img.focusY}`);
+
+            const slicePath = path.join(RECAP_DIR, slug, `photo_${i + 1}.webp`);
             if (!fs.existsSync(slicePath)) { allExist = false; break; }
             slicePaths.push(slicePath);
         }
 
         if (!allExist || slicePaths.length === 0) {
             logger.warn(`Skipping sprite for ${slug}: missing slices`);
+            continue;
+        }
+
+        const spriteCacheKey = sliceKeys.join(',');
+        const isSpriteCached = cacheManifest[spriteRelative] === spriteCacheKey;
+
+        if (fs.existsSync(spriteFile) && isSpriteCached) {
             continue;
         }
 
@@ -187,6 +208,7 @@ export async function generateRecaps(definitions: RecapDefinitions): Promise<voi
 
             fs.mkdirSync(path.dirname(spriteFile), { recursive: true });
             await fs.promises.writeFile(spriteFile, buffer);
+            cacheManifest[spriteRelative] = spriteCacheKey;
             const sizeKB = (buffer.length / 1024).toFixed(0);
             logger.info(`Sprite: ${slug}/sprite.webp (Q:${quality}, ${sizeKB} KB, ${slicePaths.length} slices)`);
             spriteCount++;
@@ -194,6 +216,15 @@ export async function generateRecaps(definitions: RecapDefinitions): Promise<voi
             logger.error(`Failed sprite for ${slug}:`, err.message);
         }
     }
+
+    const newManifest: Record<string, string> = {};
+    for (const [key, val] of Object.entries(cacheManifest)) {
+        if (validPaths.has(path.join(process.cwd(), 'build', key))) {
+            newManifest[key] = val;
+        }
+    }
+    fs.writeFileSync(CACHE_MANIFEST_PATH, JSON.stringify(newManifest, null, 2));
+    validPaths.add(CACHE_MANIFEST_PATH);
 
     // Clean up stale recap files
     logger.step('Cleaning up stale recap files...');
