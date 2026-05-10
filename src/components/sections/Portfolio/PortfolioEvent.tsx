@@ -5,17 +5,12 @@ import { useCanShare } from '../../../hooks/useCanShare';
 import { useEventAlbum } from '../../../hooks/useEventAlbum';
 import { usePortfolioStore } from '../../../store/usePortfolioStore';
 import { buildFavoritesShareUrl } from '../../../utils/favoritesUrl';
-import {
-    formatTeamName,
-    getTeamNameFormats,
-    getPhotoDisplayUrl,
-    getPhotoOriginalUrl,
-    parseEventTitle,
-    resolvePhotoInput,
-} from '../../../utils/formatters';
+import { formatTeamName, getPhotoOriginalUrl, parseEventTitle, resolvePhotoInput } from '../../../utils/formatters';
 import { FeaturedGridIcon } from '../../ui/icons';
 import ProgressiveImage from '../../ui/ProgressiveImage';
 import VirtualizedAlbumGrid from './VirtualizedAlbumGrid';
+import PortfolioEventTitle from './PortfolioEventTitle';
+import { useZipWorker } from '../../../hooks/useZipWorker';
 import type { EventData, PhotoInput, FavoriteStoreItem } from '../../../types';
 
 declare const __BUILD_NUMBER__: string;
@@ -68,58 +63,14 @@ const PortfolioEvent = memo(function PortfolioEvent({
         }
     }, [initialEv, eventName]);
 
-    const [isZipping, setIsZipping] = useState(false);
-    const [zipProgress, setZipProgress] = useState(0);
-    const zipWorkerRef = useRef<Worker | null>(null);
-
-    // Terminate the zip worker on unmount to prevent leaks
-    useEffect(() => {
-        return () => {
-            zipWorkerRef.current?.terminate();
-        };
-    }, []);
+    const { isZipping, zipProgress, startZipping } = useZipWorker();
 
     const handleDownloadFavorites = async () => {
-        if (isZipping || !ev.album) return;
-        setIsZipping(true);
-        setZipProgress(0);
-
-        const worker = new Worker(new URL('../../../workers/zipWorker.ts', import.meta.url), { type: 'module' });
-        zipWorkerRef.current = worker;
-
-        worker.onmessage = (e) => {
-            if (e.data.type === 'progress') {
-                setZipProgress(Math.round(e.data.progress));
-            } else if (e.data.type === 'done') {
-                const { blob, filename } = e.data;
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                a.click();
-                URL.revokeObjectURL(url);
-
-                setZipProgress(100);
-                setTimeout(() => {
-                    setIsZipping(false);
-                    setZipProgress(0);
-                }, 1500);
-
-                worker.terminate();
-                zipWorkerRef.current = null;
-            } else if (e.data.type === 'error') {
-                console.error('Zip error:', e.data.error);
-                setIsZipping(false);
-                worker.terminate();
-                zipWorkerRef.current = null;
-            }
-        };
-
-        // Bug 2: use typed albumImages instead of any-cast ev.album
-        const urls = albumImages.map((item: PhotoInput) => {
-            return getPhotoOriginalUrl(item);
-        });
-        worker.postMessage({ urls, filename: 'Favorites.zip' });
+        if (!ev.album) return;
+        const urls = albumImages
+            .map((item: PhotoInput) => getPhotoOriginalUrl(item))
+            .filter((u): u is string => u !== undefined);
+        startZipping(urls, 'Favorites.zip');
     };
 
     useEffect(() => {
@@ -197,11 +148,11 @@ const PortfolioEvent = memo(function PortfolioEvent({
 
         if (photos.length === 0) {
             if (albumImages.length > 0) {
-                photos = albumImages.slice(0, 10);
+                photos = albumImages.slice(0, 18);
             }
         } else {
-            if (photos.length < 10) {
-                const remaining = 10 - photos.length;
+            if (photos.length < 18) {
+                const remaining = 18 - photos.length;
                 const featuredUrlSet = new Set(photos.map((f: PhotoInput) => getPhotoOriginalUrl(f)));
                 const extras = albumImages
                     .filter((a: PhotoInput) => !featuredUrlSet.has(getPhotoOriginalUrl(a)))
@@ -222,7 +173,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
             return getIndex(a) - getIndex(b);
         });
 
-        return photos.slice(0, 10);
+        return photos.slice(0, 18);
     }, [albumImages, highlightImages]);
 
     // Parsing title logic
@@ -250,7 +201,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
     }
 
     const hasLocalScore = ev.localScore && ev.localScore.team1Score !== null && ev.localScore.team2Score !== null;
-    const shouldShowScores = activeSortedTeams.length > 1 && (ev.wftdaMatch || hasLocalScore);
+    const shouldShowScores = activeSortedTeams.length > 1 && !!(ev.wftdaMatch || hasLocalScore);
 
     const finalTeams = shouldShowScores
         ? [...activeSortedTeams].sort((a, b) => {
@@ -281,99 +232,15 @@ const PortfolioEvent = memo(function PortfolioEvent({
           })
         : activeSortedTeams;
 
-    const TitleSideWrapper = ev.wftdaMatch ? 'a' : 'div';
-    const titleSideProps = ev.wftdaMatch
-        ? {
-              href: ev.wftdaMatch.href,
-              target: '_blank',
-              rel: 'noopener noreferrer',
-              className: 'portfolio__event-title-side portfolio__event-title-side--link',
-              title: 'Official WFTDA Match Details',
-          }
-        : { className: 'portfolio__event-title-side' };
-
     const titleBlock = (
-        <TitleSideWrapper {...titleSideProps}>
-            {datePrefix && <div className="portfolio__event-date">{datePrefix}</div>}
-            <div className="portfolio__event-title-stack">
-                {ev.wftdaMatch && (
-                    <div className="portfolio__wftda-badge" title="Official WFTDA Match Details">
-                        <span>WFTDA</span>
-                    </div>
-                )}
-                <div className="portfolio__event-teams-row">
-                    <div className="portfolio__event-teams">
-                        {finalTeams.map((team, i) => {
-                            const formats = getTeamNameFormats(team);
-                            const hasVariations = formats.full !== formats.mid || formats.mid !== formats.short;
-
-                            return (
-                                <h3 key={i} title={team}>
-                                    {eventName === 'Favorites' ? (
-                                        <>
-                                            <span style={{ color: 'var(--color-accent)' }}>YOUR&nbsp;</span>
-                                            FAVORITES
-                                        </>
-                                    ) : hasVariations ? (
-                                        <>
-                                            <span className="portfolio__team-name--desktop">{formats.full}</span>
-                                            <span className="portfolio__team-name--tablet">{formats.mid}</span>
-                                            <span className="portfolio__team-name--mobile">{formats.short}</span>
-                                        </>
-                                    ) : (
-                                        <>{team}</>
-                                    )}
-                                </h3>
-                            );
-                        })}
-                    </div>
-                    {shouldShowScores && (
-                        <div className="portfolio__event-scores">
-                            {finalTeams.map((team, i) => {
-                                let score: number | string = '-';
-                                let isWin = false;
-                                if (ev.wftdaMatch) {
-                                    const t1 = ev.wftdaMatch.team1.toLowerCase();
-                                    const t2 = ev.wftdaMatch.team2.toLowerCase();
-                                    const tCurr = formatTeamName(team).toLowerCase();
-                                    const tRaw = team.toLowerCase();
-                                    if (
-                                        t1.includes(tCurr) ||
-                                        tCurr.includes(t1) ||
-                                        t1.includes(tRaw) ||
-                                        tRaw.includes(t1)
-                                    ) {
-                                        score = ev.wftdaMatch.score1;
-                                        isWin = Number(ev.wftdaMatch.score1) > Number(ev.wftdaMatch.score2);
-                                    } else if (
-                                        t2.includes(tCurr) ||
-                                        tCurr.includes(t2) ||
-                                        t2.includes(tRaw) ||
-                                        tRaw.includes(t2)
-                                    ) {
-                                        score = ev.wftdaMatch.score2;
-                                        isWin = Number(ev.wftdaMatch.score2) > Number(ev.wftdaMatch.score1);
-                                    }
-                                } else if (hasLocalScore) {
-                                    const originalTeams = mainTitle.split(/\s+(?:vs|versus)\s+/i).map((t) => t.trim());
-                                    const isTeam1 = team === originalTeams[0];
-                                    score = isTeam1 ? ev.localScore!.team1Score! : ev.localScore!.team2Score!;
-                                    const otherScore = isTeam1
-                                        ? ev.localScore!.team2Score!
-                                        : ev.localScore!.team1Score!;
-                                    isWin = Number(score) > Number(otherScore);
-                                }
-                                return (
-                                    <span key={i} className={`portfolio__team-score ${isWin ? 'is-win' : ''}`}>
-                                        {score}
-                                    </span>
-                                );
-                            })}
-                        </div>
-                    )}
-                </div>
-            </div>
-        </TitleSideWrapper>
+        <PortfolioEventTitle
+            eventName={eventName}
+            ev={ev}
+            datePrefix={datePrefix}
+            finalTeams={finalTeams}
+            shouldShowScores={shouldShowScores}
+            mainTitle={mainTitle}
+        />
     );
 
     return (
@@ -602,6 +469,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
                         <div className="portfolio__event-featured">
                             {featuredPhotos.length > 0 ? (
                                 featuredPhotos.map((url, i) => {
+                                    const isUltrawideLast = i === 17;
                                     const isDesktopLast = i === 9;
                                     const isMobileLast = i === 4;
                                     const origUrl = typeof url === 'string' ? url : url.original;
@@ -616,7 +484,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
                                     return (
                                         <div
                                             key={origUrl}
-                                            className={`portfolio__featured-item ${isDesktopLast && totalPhotos > 10 ? 'has-overlay-desktop' : ''} ${isMobileLast && totalPhotos > 5 ? 'has-overlay-mobile' : ''}`}
+                                            className={`portfolio__featured-item ${isUltrawideLast && totalPhotos > 18 ? 'has-overlay-ultrawide' : ''} ${isDesktopLast && totalPhotos > 10 ? 'has-overlay-desktop' : ''} ${isMobileLast && totalPhotos > 5 ? 'has-overlay-mobile' : ''}`}
                                             role="button"
                                             tabIndex={0}
                                             aria-label={`View ${eventName} featured photo ${i + 1}`}
@@ -652,6 +520,11 @@ const PortfolioEvent = memo(function PortfolioEvent({
                                                         : 'center'
                                                 }
                                             />
+                                            {isUltrawideLast && totalPhotos > 18 && (
+                                                <div className="portfolio__featured-overlay portfolio__featured-overlay--ultrawide">
+                                                    <span>+{totalPhotos - 18}</span>
+                                                </div>
+                                            )}
                                             {isDesktopLast && totalPhotos > 10 && (
                                                 <div className="portfolio__featured-overlay portfolio__featured-overlay--desktop">
                                                     <span>+{totalPhotos - 10}</span>

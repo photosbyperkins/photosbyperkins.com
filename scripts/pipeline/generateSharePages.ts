@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import 'dotenv/config';
-import { IndexState } from './types.js';
+import type { IndexState } from './types';
 import { logger } from './logger.js';
 
 const DIST_DIR = path.join(process.cwd(), 'dist');

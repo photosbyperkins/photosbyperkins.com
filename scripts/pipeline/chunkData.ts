@@ -1,8 +1,7 @@
-// @ts-nocheck
+// Chunk Data Pipeline
 import fs from 'fs';
 import path from 'path';
-import { z } from 'zod';
-import { IndexState, RecapDefinitions } from './types';
+import type { IndexState, RecapDefinitions } from './types.js';
 import { logger } from './logger';
 
 const WFTDA_FILE = path.join(process.cwd(), 'data', 'wftda-matches.json');
@@ -19,14 +18,14 @@ function slugify(text: string) {
         .replace(/--+/g, '-'); // Replace multiple - with single -
 }
 
-function generateRecapImages(eventsObj) {
+function generateRecapImages(eventsObj: Record<string, any>) {
     const eventsArray = Object.entries(eventsObj);
     const validEvents = eventsArray.filter(([eventName]) => !eventName.toLowerCase().includes('headshot')).reverse();
     
     const images = [];
     const seenSrcs = new Set();
 
-    const formatImage = (photoInput, eventName, ev) => {
+    const formatImage = (photoInput: any, eventName: string, ev: any) => {
         const src = typeof photoInput === 'string' ? photoInput : photoInput.src || photoInput.original;
         if (seenSrcs.has(src)) return null;
         seenSrcs.add(src);
@@ -91,7 +90,7 @@ function generateRecapImages(eventsObj) {
     return images;
 }
 
-function writeChunkedFile(baseDir, baseName, dataEvents, extraPayload, chunkSize = 10) {
+function writeChunkedFile(baseDir: string, baseName: string, dataEvents: Record<string, any>, extraPayload: any, chunkSize = 10) {
     const eventEntries = Object.entries(dataEvents);
     
     if (eventEntries.length === 0) {
@@ -110,12 +109,12 @@ function writeChunkedFile(baseDir, baseName, dataEvents, extraPayload, chunkSize
         const fileName = isFirst ? `${baseName}.json` : `${baseName}_part${i + 1}.json`;
         const nextPart = isLast ? null : `${baseName}_part${i + 2}`;
 
-        const eventsObj = {};
+        const eventsObj: Record<string, any> = {};
         for (const [k, v] of parts[i]) {
             eventsObj[k] = v;
         }
 
-        const payload = {
+        const payload: any = {
             events: eventsObj
         };
         
@@ -138,7 +137,7 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
 
     // 1. Generate Index
     const years = Object.keys(data).sort((a, b) => b.localeCompare(a));
-    const recapDefinitions = {};
+    const recapDefinitions: Record<string, any> = {};
 
     const indexData = {
         years: years,
@@ -166,7 +165,7 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
     }
     fs.mkdirSync(TEAMS_DIR, { recursive: true });
 
-    const globalTeamsList = {};
+    const globalTeamsList: Record<string, any> = {};
 
     let customFilters = [];
     const CUSTOM_FILTERS_FILE = path.join(process.cwd(), 'data', 'customTeamFilters.json');
@@ -174,23 +173,23 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
         try {
             customFilters = JSON.parse(fs.readFileSync(CUSTOM_FILTERS_FILE, 'utf8'));
             logger.info(`Loaded ${customFilters.length} custom team filters.`);
-        } catch (e: any) {
-            logger.error('Failed to parse customTeamFilters.json:', e);
+        } catch (e: unknown) {
+            logger.error('Failed to parse customTeamFilters.json:', e instanceof Error ? e.message : String(e));
         }
     }
 
-    let wftdaData = { rankings: {}, matches: {} };
+    let wftdaData: { rankings: Record<string, any>; matches: any[] } = { rankings: {}, matches: [] };
     if (fs.existsSync(WFTDA_FILE)) {
         try {
             wftdaData = JSON.parse(fs.readFileSync(WFTDA_FILE, 'utf8'));
             logger.info(`Loaded WFTDA data (Rankings: ${Object.keys(wftdaData.rankings || {}).length}, Match logs for: ${Object.keys(wftdaData.matches || {}).length} teams).`);
-        } catch (e: any) {
-            logger.error('Failed to parse wftda configuration:', e);
+        } catch (e: unknown) {
+            logger.error('Failed to parse wftda configuration:', e instanceof Error ? e.message : String(e));
         }
     }
 
     // Helper to find a specific match based on matched team name keys
-    function findWFTDAMatch(year, rawDateStr, teamsArray) {
+    function findWFTDAMatch(year: string, rawDateStr: string, teamsArray: string[]) {
         if (!wftdaData.matches || !Array.isArray(wftdaData.matches) || teamsArray.length < 2) return null;
 
         // Convert "10.22" frontend prefix + year into "2026-10-22"
@@ -229,7 +228,7 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
 
     for (const year of Object.keys(data)) {
         const yearData = data[year];
-        const processedYearData = {};
+        const processedYearData: Record<string, { recapImages?: any[]; hero?: any; highlights?: any[]; wftdaMatch?: any; wftdaRankings?: any; [key: string]: any }> = {};
         const yearAlbumsDir = path.join(ALBUMS_DIR, year);
 
         if (!fs.existsSync(yearAlbumsDir)) {
@@ -312,9 +311,9 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
 
             if (parts.length > 1 || isHeadshots || isSRDRoundRobin) {
                 // It's a matchup, headshots, or Round Robin!
-                let extractedTeams = parts.map((p) => p.trim()).filter(Boolean);
+                const extractedTeams = parts.map((p) => p.trim()).filter(Boolean);
 
-                let finalTeams = [];
+                let finalTeams: string[];
                 if (isSRDRoundRobin) {
                     finalTeams = [
                         'Sacramento Roller Derby White',
@@ -329,22 +328,19 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
                 if (baseDatePrefix) {
                     const wMatch = findWFTDAMatch(year, baseDatePrefix, finalTeams);
                     if (wMatch) {
-                        evMeta.wftdaMatch = wMatch;
+                        (evMeta as any).wftdaMatch = wMatch;
                     }
                 }
 
                 // Grab ranking for teams
-                evMeta.wftdaRankings = {};
+                (evMeta as any).wftdaRankings = {};
                 finalTeams.forEach((tName) => {
-                    // Because there are no explicit aliases for ranking fetches (which load entirely off wftda names),
-                    // we'll just try to cross match them basically. Or if they mapped an explicit URL, it's safer
-                    // to just accept whatever subset match works.
                     for (const [rName, rData] of Object.entries(wftdaData.rankings || {})) {
                         if (
                             rName.toLowerCase().includes(tName.toLowerCase()) ||
                             tName.toLowerCase().includes(rName.toLowerCase())
                         ) {
-                            evMeta.wftdaRankings[tName] = rData;
+                            (evMeta as any).wftdaRankings[tName] = rData;
                         }
                     }
                 });
@@ -353,12 +349,11 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
                     const cleanName = teamRawName.replace(/\s+/g, ' ').trim();
                     const teamSlug = slugify(cleanName);
                     if (!teamSlug) return;
-
                     if (!globalTeamsList[teamSlug]) {
                         globalTeamsList[teamSlug] = {
                             name: cleanName,
                             events: {},
-                        };
+                        } as any;
                     }
 
                     // Uniquely key the event by its original name plus its year to prevent cross-year collisions
@@ -367,7 +362,7 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
             }
 
             // Evaluate custom filters against the full event title
-            customFilters.forEach((filter) => {
+            customFilters.forEach((filter: any) => {
                 const { name, match, notMatch, wftdaOnly } = filter;
                 if (!name) return; // name is required
 
@@ -375,7 +370,7 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
                 const subject = mainTitle.toLowerCase();
 
                 if (wftdaOnly) {
-                    isMatch = !!evMeta.wftdaMatch;
+                    isMatch = !!(evMeta as any).wftdaMatch;
                 } else if (match && Array.isArray(match) && match.length > 0) {
                     isMatch = match.includes('*') || match.some((m) => subject.includes(m.toLowerCase()));
                 }
@@ -389,12 +384,19 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
 
                     const customSlug = slugify(name);
                     if (!globalTeamsList[customSlug]) {
+                        const customEvMeta: any = {
+                            ...event,
+                            wftdaMatch: null,
+                            wftdaRankings: {}
+                        };
                         globalTeamsList[customSlug] = {
                             name: name,
                             events: {},
                         };
+                        globalTeamsList[customSlug].events[`[${year}] ${eventName}`] = customEvMeta;
+                    } else {
+                        globalTeamsList[customSlug].events[`[${year}] ${eventName}`] = evMeta;
                     }
-                    globalTeamsList[customSlug].events[`[${year}] ${eventName}`] = evMeta;
                 }
             });
         }
@@ -425,15 +427,18 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
 
     // Write out Teams Data
     logger.step(`Writing Team Chunks...`);
-    const uniqueTeams = [];
+    const uniqueTeams: any[] = [];
     for (const [teamSlug, teamData] of Object.entries(globalTeamsList)) {
-        uniqueTeams.push({ name: teamData.name, slug: teamSlug, count: Object.keys(teamData.events).length });
+        const anyTeamData = teamData as any;
+        uniqueTeams.push({ name: anyTeamData.name, slug: teamSlug, count: Object.keys(anyTeamData.events).length });
         
         // Sort team events in reverse chronological order across all years
-        const sortedTeamEvents = {};
-        const teamEventEntries = Object.entries(teamData.events).sort((a, b) => {
-            const [keyA, evA] = a;
-            const [keyB, evB] = b;
+        const sortedTeamEvents: Record<string, any> = {};
+        const teamEventEntries = Object.entries(teamData.events).sort((a: [string, any], b: [string, any]) => {
+            const keyA = a[0];
+            const keyB = b[0];
+            const evA = a[1];
+            const evB = b[1];
             
             // Keys look like "[2024] 10.22 Event"
             const yearA = keyA.match(/^\[(\d{4})\]/)?.[1] || '';

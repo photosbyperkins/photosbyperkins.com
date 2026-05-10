@@ -2,7 +2,6 @@ import { motion, useMotionValue, animate, useTransform, type PanInfo } from 'fra
 import { X, Download, Share2, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { Helmet } from 'react-helmet-async';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
 import LightboxSlide, { type LightboxSlideHandle } from './LightboxSlide';
 import type { PhotoInput } from '../../../types';
@@ -23,6 +22,10 @@ import { useCanShare } from '../../../hooks/useCanShare';
 import { useDebounce } from '../../../hooks/useDebounce';
 import { usePortfolioStore } from '../../../store/usePortfolioStore';
 import { getPhotoDisplayUrl } from '../../../utils/formatters';
+import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock';
+import { useFocusTrap } from '../../../hooks/useFocusTrap';
+import { useLightboxNavigation } from '../../../hooks/useLightboxNavigation';
+import { useImagePreloader } from '../../../hooks/useImagePreloader';
 
 export default function Lightbox({
     images,
@@ -36,7 +39,6 @@ export default function Lightbox({
     const canShare = useCanShare();
     const { favorites, toggleFavorite } = usePortfolioStore();
     const reducedMotion = useReducedMotion();
-    const previousFocusRef = useRef<Element | null>(null);
     const lightboxRef = useRef<HTMLDivElement>(null);
 
     const x = useMotionValue(0);
@@ -190,78 +192,15 @@ export default function Lightbox({
         [isAnimating, index, images, x, onSetIndex, spriteUrl, getThumbSrc, reducedMotion]
     );
 
-    useEffect(() => {
-        const handler = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') onClose();
-            if (e.key === 'ArrowLeft') paginate(-1);
-            if (e.key === 'ArrowRight') paginate(1);
-        };
-        window.addEventListener('keydown', handler);
-        return () => window.removeEventListener('keydown', handler);
-    }, [onClose, index, images.length, isAnimating, paginate]);
+    useLightboxNavigation({
+        onClose,
+        onPaginate: paginate,
+        isZoomed,
+        isActive: !isAnimating,
+    });
 
-    // Scroll wheel navigation (debounced)
-    useEffect(() => {
-        let wheelCooldown = false;
-        const handler = (e: WheelEvent) => {
-            if (isZoomed || wheelCooldown) return;
-            const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-            if (Math.abs(delta) < 10) return;
-            e.preventDefault();
-            wheelCooldown = true;
-            paginate(delta > 0 ? 1 : -1);
-            setTimeout(() => {
-                wheelCooldown = false;
-            }, 400);
-        };
-        window.addEventListener('wheel', handler, { passive: false });
-        return () => window.removeEventListener('wheel', handler);
-    }, [paginate, isZoomed]);
-
-    // Lock body scroll when Lightbox is open
-    useEffect(() => {
-        const originalOverflow = document.body.style.overflow;
-        const originalTouchAction = document.body.style.touchAction;
-
-        document.body.style.overflow = 'hidden';
-        document.body.style.touchAction = 'none';
-
-        return () => {
-            document.body.style.overflow = originalOverflow;
-            document.body.style.touchAction = originalTouchAction;
-        };
-    }, []);
-
-    // Focus trap: save previous focus, focus lightbox, restore on unmount
-    useEffect(() => {
-        previousFocusRef.current = document.activeElement;
-        lightboxRef.current?.focus();
-
-        const handleFocusTrap = (e: KeyboardEvent) => {
-            if (e.key !== 'Tab' || !lightboxRef.current) return;
-            const focusable = lightboxRef.current.querySelectorAll<HTMLElement>(
-                'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-            );
-            if (focusable.length === 0) return;
-            const first = focusable[0];
-            const last = focusable[focusable.length - 1];
-            if (e.shiftKey && document.activeElement === first) {
-                e.preventDefault();
-                last.focus();
-            } else if (!e.shiftKey && document.activeElement === last) {
-                e.preventDefault();
-                first.focus();
-            }
-        };
-
-        window.addEventListener('keydown', handleFocusTrap);
-        return () => {
-            window.removeEventListener('keydown', handleFocusTrap);
-            if (previousFocusRef.current instanceof HTMLElement) {
-                previousFocusRef.current.focus();
-            }
-        };
-    }, []);
+    useBodyScrollLock(true);
+    useFocusTrap(lightboxRef, true);
 
     const currentPhoto = images[index];
 
@@ -306,67 +245,12 @@ export default function Lightbox({
         return `${webpUrl}?v=${__BUILD_NUMBER__}`;
     }, []);
 
-    useEffect(() => {
-        if (!mainImageLoaded) return; // Wait for the high-res image the user is staring at to finish loading FIRST!
-
-        let isCancelled = false;
-
-        const preloadAlbum = async () => {
-            if (total <= 1) return;
-
-            // Sort all indices by distance from current index
-            const allIdxs: number[] = [];
-            for (let i = 0; i < total; i++) {
-                if (i !== index) allIdxs.push(i);
-            }
-
-            allIdxs.sort((a, b) => {
-                const distA = Math.min((a - index + total) % total, (index - a + total) % total);
-                const distB = Math.min((b - index + total) % total, (index - b + total) % total);
-                if (distA === distB) {
-                    // Tie-breaker: prioritize forward images
-                    const isAForward = (a - index + total) % total === distA;
-                    return isAForward ? -1 : 1;
-                }
-                return distA - distB;
-            });
-
-            // Fire off immediate next/prev directly into the browser network pipeline
-            const immediate = allIdxs.slice(0, 2);
-            immediate.forEach((idx) => {
-                const src = getDisplaySrc(images[idx]);
-                if (src) {
-                    const img = new Image();
-                    img.src = src;
-                }
-            });
-
-            // Asynchronously trickle-load the rest of the album sequentially
-            const queued = allIdxs.slice(2);
-            for (const idx of queued) {
-                if (isCancelled) break;
-
-                const src = getDisplaySrc(images[idx]);
-                if (!src) continue;
-
-                await new Promise<void>((resolve) => {
-                    const img = new Image();
-                    img.onload = () => resolve();
-                    img.onerror = () => resolve();
-                    img.src = src;
-                });
-
-                // Micro-pause to yield to main UI thread / react rendering
-                await new Promise((r) => setTimeout(r, 10));
-            }
-        };
-
-        preloadAlbum();
-
-        return () => {
-            isCancelled = true;
-        };
-    }, [mainImageLoaded, index, images, total, getDisplaySrc]);
+    useImagePreloader({
+        images,
+        currentIndex: index,
+        mainImageLoaded,
+        getDisplaySrc,
+    });
 
     const handleDownload = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -456,20 +340,17 @@ export default function Lightbox({
                 <div className="portfolio__lightbox-ambient-glass" />
             </div>
 
-            <Helmet>
-                <title>
-                    {eventName} {year ? `(${year})` : ''} |{' '}
-                    {import.meta.env.VITE_SITE_APP_TITLE || 'Photography Portfolio'}
-                </title>
-                <meta
-                    property="og:title"
-                    content={`${eventName} | ${import.meta.env.VITE_SITE_APP_TITLE || 'Photography Portfolio'}`}
-                />
-                <meta
-                    name="description"
-                    content={`Action photography from ${eventName}${year ? `, ${year}` : ''}. ${import.meta.env.VITE_LIGHTBOX_DESC_SUFFIX || ''}`}
-                />
-            </Helmet>
+            <title>
+                {eventName} {year ? `(${year})` : ''} | {import.meta.env.VITE_SITE_APP_TITLE || 'Photography Portfolio'}
+            </title>
+            <meta
+                property="og:title"
+                content={`${eventName} | ${import.meta.env.VITE_SITE_APP_TITLE || 'Photography Portfolio'}`}
+            />
+            <meta
+                name="description"
+                content={`Action photography from ${eventName}${year ? `, ${year}` : ''}. ${import.meta.env.VITE_LIGHTBOX_DESC_SUFFIX || ''}`}
+            />
 
             {/* Left/Right Navigation Overlays */}
             {!isZoomed && (

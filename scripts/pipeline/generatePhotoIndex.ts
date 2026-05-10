@@ -1,4 +1,4 @@
-// @ts-nocheck
+// Generate Photo Index Pipeline
 /**
  * generatePhotoIndex.js
  * Scans the photos directory and produces src/data/photos.json for the website.
@@ -19,7 +19,7 @@ import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
 import exifr from 'exifr';
-import { IndexState, PhotoObject } from './types';
+import type { IndexState } from './types.js';
 import { logger } from './logger';
 
 const PHOTOS_DIR = path.join(process.cwd(), 'photos');
@@ -41,22 +41,22 @@ const SKIP_DIRS = [
     'photo fb',
 ];
 
-function isSkipped(dirName) {
+function isSkipped(dirName: string) {
     const n = dirName.toLowerCase();
     return SKIP_DIRS.some((s) => n === s || n.startsWith(s + ' '));
 }
 
-function isAlbumDir(dirName) {
+function isAlbumDir(dirName: string) {
     const n = dirName.toLowerCase();
     return n.includes('resize') || n.includes('final');
 }
 
-function isHighlightDir(dirName) {
+function isHighlightDir(dirName: string) {
     const n = dirName.toLowerCase();
     return n.includes('highlight') || n.includes('hightlight');
 }
 
-function shuffle(arr) {
+function shuffle<T>(arr: T[]): T[] {
     const a = [...arr];
     for (let i = a.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -65,7 +65,7 @@ function shuffle(arr) {
     return a;
 }
 
-function getJpgs(dir) {
+function getJpgs(dir: string): string[] {
     try {
         return fs
             .readdirSync(dir)
@@ -76,7 +76,7 @@ function getJpgs(dir) {
     }
 }
 
-function getJpgsRecursive(dir, maxDepth = 2) {
+function getJpgsRecursive(dir: string, maxDepth = 2): string[] {
     if (maxDepth <= 0) return getJpgs(dir);
     let result = getJpgs(dir);
     try {
@@ -86,18 +86,18 @@ function getJpgsRecursive(dir, maxDepth = 2) {
                 result = result.concat(getJpgsRecursive(path.join(dir, e.name), maxDepth - 1));
             }
         }
-    } catch {}
+    } catch { /* ignore */ }
     return result;
 }
 
-function toWebPath(absPath, isThumb = false) {
+function toWebPath(absPath: string, isThumb = false) {
     const root = isThumb ? path.join(process.cwd(), 'build', 'thumbnails') : process.cwd();
     const relative = path.relative(root, absPath);
     const prefix = isThumb ? '/thumbnails/' : '/';
     return prefix + relative.split(path.sep).join('/');
 }
 
-function slugify(text) {
+function slugify(text: string) {
     return text
         .toString()
         .toLowerCase()
@@ -107,7 +107,7 @@ function slugify(text) {
         .replace(/--+/g, '-');
 }
 
-function normalizeBasename(filename) {
+function normalizeBasename(filename: string) {
     return filename
         .toLowerCase()
         .replace(/^(_sharpened_|_denoise_)+/, '') // Strip top-level processing prefixes
@@ -120,7 +120,7 @@ function normalizeBasename(filename) {
         .replace(/\.[^/.]+$/, ''); // Strip extension
 }
 
-async function extractExif(absPath) {
+async function extractExif(absPath: string) {
     try {
         const exifData = await exifr.parse(absPath, {
             pick: [
@@ -188,7 +188,7 @@ async function extractExif(absPath) {
         }
 
         const exifPayload = { cameraModel, lens, focalLength, aperture, shutterSpeed, iso, isPrime };
-        Object.keys(exifPayload).forEach((key) => exifPayload[key] === undefined && delete exifPayload[key]);
+        Object.keys(exifPayload).forEach((key) => exifPayload[key as keyof typeof exifPayload] === undefined && delete exifPayload[key as keyof typeof exifPayload]);
 
         const hasVisibleData = Object.keys(exifPayload).some((key) => key !== 'isPrime');
 
@@ -206,7 +206,7 @@ async function extractExif(absPath) {
  *   album      – resized / final / adult images (or flat jpgs if none)
  *   highlights – instagram / ig images
  */
-async function processEventDir(eventDir, year, eventSlug) {
+async function processEventDir(eventDir: string, year: string, eventSlug: string) {
     let subdirs;
     try {
         subdirs = fs
@@ -218,7 +218,7 @@ async function processEventDir(eventDir, year, eventSlug) {
     }
 
     // Highlights: look for IG dirs, recurse 1 level into social-media style dirs
-    let highlightFiles = [];
+    let highlightFiles: string[] = [];
     for (const sub of subdirs) {
         if (isHighlightDir(sub)) {
             const subPath = path.join(eventDir, sub);
@@ -239,13 +239,13 @@ async function processEventDir(eventDir, year, eventSlug) {
                         highlightFiles = highlightFiles.concat(getJpgs(path.join(subPath, ie.name)));
                     }
                 }
-            } catch {}
+            } catch { /* ignore */ }
         }
     }
 
     // Album: prioritize resized/final subdirs; fall back to flat jpgs at root
     const albumDirs = subdirs.filter((s) => !isSkipped(s) && !isHighlightDir(s) && isAlbumDir(s));
-    let albumFiles = [];
+    let albumFiles: string[] = [];
     if (albumDirs.length > 0) {
         for (const sub of albumDirs) {
             albumFiles = albumFiles.concat(getJpgsRecursive(path.join(eventDir, sub), 2));
@@ -315,7 +315,7 @@ async function processEventDir(eventDir, year, eventSlug) {
         const filename = path.basename(abs);
         const norm = normalizeBasename(filename);
         const match = albumArr.find((a) => a.normalized === norm || a.basename === filename.toLowerCase());
-        return { source: match.source, original: match.original, thumb: match.thumb };
+        return { source: match!.source, original: match!.original, thumb: match!.thumb };
     });
 
     // Take random 10 from highlights; fill from album randomly if needed
@@ -335,7 +335,7 @@ async function processEventDir(eventDir, year, eventSlug) {
     // --- ANALYZE DIMENSIONS AND EXIF, AND SLIGHTLY REORDER ---
     // Analyze photo dimensions to reorder the end of the grid for a flatter masonry bottom.
     // We do not pollute the output JSON with aspect ratio data; we just use it during build.
-    const albumWithDims = [];
+    const albumWithDims: any[] = [];
     let earliestTime = null;
 
     for (const item of albumArr) {
@@ -362,10 +362,8 @@ async function processEventDir(eventDir, year, eventSlug) {
                         exif = extracted.exif;
                     }
                 }
-            } catch {}
-        } catch {
-            // fallback if file can't be read
-        }
+            } catch { /* ignore */ }
+        } catch { /* ignore */ }
 
         // Overrides (both manual and face-detected) apply universally now
         // because the 31-column Fibonacci grid utilizes 1:1 squares which unconditionally crops 3:2 photos.
@@ -419,7 +417,7 @@ async function processEventDir(eventDir, year, eventSlug) {
     };
 }
 
-function formatEventLabel(dirName) {
+function formatEventLabel(dirName: string) {
     // Convert folder names like "03_23 Sacramento Roller Derby Bout I" to human-readable
     return dirName
         .replace(/^(\d{2})[-_](\d{2})\s*/, (_, m, d) => `${m}.${d} `)
@@ -449,7 +447,7 @@ export async function generatePhotoIndex(): Promise<IndexState> {
             // Year has no subdirs – flat jpgs directly under year
             const flat = getJpgs(yearPath);
             if (flat.length > 0) {
-                const flatAlbumWithDims = [];
+                const flatAlbumWithDims: any[] = [];
                 for (const [idx, abs] of flat
                     .sort((a, b) => a.localeCompare(b))
                     .slice(0, MAX_ALBUM_PER_EVENT)
@@ -469,7 +467,7 @@ export async function generatePhotoIndex(): Promise<IndexState> {
                         if (extracted && extracted.exif) {
                             exif = extracted.exif;
                         }
-                    } catch {}
+                    } catch { /* ignore */ }
                     flatAlbumWithDims.push({
                         source: toWebPath(abs),
                         original: `/photos/${year}/all-photos/${cleanName}`,

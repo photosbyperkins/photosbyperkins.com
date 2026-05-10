@@ -1,18 +1,19 @@
-import JSZip from 'jszip';
+import * as fflate from 'fflate';
 
 self.onmessage = async (e: MessageEvent<{ urls: string[]; filename: string }>) => {
     const { urls, filename } = e.data;
-    const zip = new JSZip();
 
     try {
         let count = 0;
         const usedNames = new Set<string>();
+        const files: Record<string, Uint8Array> = {};
 
         for (let i = 0; i < urls.length; i++) {
             const url = urls[i];
             const response = await fetch(url);
             if (!response.ok) throw new Error(`Failed to fetch ${url}`);
-            const blob = await response.blob();
+            const arrayBuffer = await response.arrayBuffer();
+            const uint8Array = new Uint8Array(arrayBuffer);
 
             const pathParts = url.split('/');
             const originalFilename = pathParts.pop() || `photo_${i}.jpg`;
@@ -34,16 +35,17 @@ self.onmessage = async (e: MessageEvent<{ urls: string[]; filename: string }>) =
             }
             usedNames.add(name);
 
-            zip.file(name, blob);
+            files[name] = uint8Array;
             count++;
-            self.postMessage({ type: 'progress', progress: (count / urls.length) * 50 });
+            self.postMessage({ type: 'progress', progress: (count / urls.length) * 80 }); // Fetching takes majority of time
         }
 
-        const content = await zip.generateAsync({ type: 'blob' }, (metadata) => {
-            self.postMessage({ type: 'progress', progress: 50 + metadata.percent / 2 });
-        });
+        // Generate zip synchronously in worker thread
+        const zipped = fflate.zipSync(files, { level: 0 }); // Level 0: Store only
 
-        self.postMessage({ type: 'done', blob: content, filename });
+        self.postMessage({ type: 'progress', progress: 100 });
+        const blob = new Blob([zipped as any], { type: 'application/zip' });
+        self.postMessage({ type: 'done', blob, filename });
     } catch (error) {
         self.postMessage({ type: 'error', error: error instanceof Error ? error.message : 'Unknown error' });
     }

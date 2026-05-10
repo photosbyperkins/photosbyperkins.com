@@ -20,8 +20,9 @@
 import fs from 'fs';
 import path from 'path';
 
+const PHOTOS_DIR = path.join(process.cwd(), 'photos');
 
-function isTargetAlbumDir(name) {
+function isTargetAlbumDir(name: string) {
     const n = name.toLowerCase();
     // numbered resize: "3 resize", "3 resize", "3 resized"
     if (/^\d+\s*resize/i.test(n)) return 'resized';
@@ -32,7 +33,7 @@ function isTargetAlbumDir(name) {
     return null;
 }
 
-function isTargetIgDir(name) {
+function isTargetIgDir(name: string) {
     const n = name.toLowerCase().trim();
     if (n === 'instagram' || n === 'ig') return true;
     if (n.startsWith('ig ')) return true;
@@ -40,7 +41,7 @@ function isTargetIgDir(name) {
     return false;
 }
 
-function isSkipDir(name) {
+function isSkipDir(name: string) {
     const n = name.toLowerCase();
     const skip = [
         'original',
@@ -66,7 +67,7 @@ function isSkipDir(name) {
     return skip.some((s) => n === s || n === s.replace(/ /g, '_'));
 }
 
-function safeRename(oldPath, newPath) {
+function safeRename(oldPath: string, newPath: string) {
     if (oldPath === newPath) return;
     if (fs.existsSync(newPath)) {
         console.log(`    ⚠️  Target already exists, skipping: ${path.basename(newPath)}`);
@@ -76,7 +77,7 @@ function safeRename(oldPath, newPath) {
     console.log(`    ✅ Renamed: "${path.basename(oldPath)}" → "${path.basename(newPath)}"`);
 }
 
-function mergeIntoTarget(srcDir, targetDir) {
+function mergeIntoTarget(srcDir: string, targetDir: string) {
     // Move all files from srcDir into targetDir, then remove srcDir
     const files = fs.readdirSync(srcDir);
     for (const f of files) {
@@ -95,7 +96,7 @@ function mergeIntoTarget(srcDir, targetDir) {
     fs.rmdirSync(srcDir);
 }
 
-function processEventDir(eventDir) {
+function processEventDir(eventDir: string) {
     let entries;
     try {
         entries = fs.readdirSync(eventDir, { withFileTypes: true }).filter((e) => e.isDirectory());

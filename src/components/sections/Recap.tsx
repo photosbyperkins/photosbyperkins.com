@@ -5,8 +5,11 @@ import { usePortfolioStore } from '../../store/usePortfolioStore';
 
 declare const __BUILD_NUMBER__: string;
 
+import { useElementSize } from '../../hooks/useElementSize';
+import { LRUCache } from '../../utils/LRUCache';
+
 // Caches the expensive slices computation across remounts.
-const slicesComputeCache = new Map<string, number[]>();
+const slicesComputeCache = new LRUCache<string, number[]>(20);
 
 interface RecapEventMeta {
     eventName: string;
@@ -87,7 +90,10 @@ const RecapSliceItem = memo(function RecapSliceItem({
 });
 
 export default function Recap({ slug, count, events, overlayText, isYear, onRecapLoadComplete }: RecapProps) {
-    const [visibleCount, setVisibleCount] = useState(48);
+    const sectionRef = useRef<HTMLDivElement>(null);
+    const { width } = useElementSize(sectionRef);
+    const visibleCount = Math.max(6, Math.min(48, Math.floor((width || 65 * 6) / 65)));
+
     const [spriteLoaded, setSpriteLoaded] = useState(false);
     const [prevSlug, setPrevSlug] = useState(slug);
     const reducedMotion = useReducedMotion();
@@ -190,37 +196,6 @@ export default function Recap({ slug, count, events, overlayText, isYear, onReca
         slicesComputeCache.set(cacheKey, result);
         return result;
     }, [slug, visibleCount, count, events]);
-
-    const sectionRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const el = sectionRef.current;
-        if (!el) return;
-
-        const updateSliceCount = (width: number) => {
-            const calculatedSlices = Math.floor(width / 65);
-            setVisibleCount(Math.max(6, Math.min(48, calculatedSlices)));
-        };
-
-        // Initial calculation
-        updateSliceCount(el.offsetWidth);
-
-        let rafId = 0;
-        const observer = new ResizeObserver((entries) => {
-            cancelAnimationFrame(rafId);
-            rafId = requestAnimationFrame(() => {
-                for (const entry of entries) {
-                    const w = entry.contentBoxSize?.[0]?.inlineSize ?? entry.contentRect.width;
-                    updateSliceCount(w);
-                }
-            });
-        });
-        observer.observe(el);
-        return () => {
-            cancelAnimationFrame(rafId);
-            observer.disconnect();
-        };
-    }, []);
 
     if (slices.length === 0) {
         if (onRecapLoadComplete) onRecapLoadComplete(); // Signal completion immediately if nothing to load

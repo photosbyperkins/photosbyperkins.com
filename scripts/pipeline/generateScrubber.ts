@@ -3,7 +3,7 @@ import path from 'path';
 import sharp from 'sharp';
 import os from 'os';
 import { runWithConcurrency, removeStaleFiles } from './utils.js';
-import { IndexState, PhotoObject } from './types';
+import type { IndexState } from './types';
 import { logger } from './logger.js';
 
 const SCRUBBER_DIR = path.join(process.cwd(), 'build', 'scrubber');
@@ -56,18 +56,7 @@ export async function generateScrubber(indexData: IndexState) {
             validSprites.add(spritePath);
             
             const expectedWidth = FRAME_WIDTH * albumPhotos.length;
-            let missingScrubberSprite = false;
-            
-            if (!fs.existsSync(spritePath)) {
-                missingScrubberSprite = true;
-            } else {
-                try {
-                    // Try to read via sharp to check if valid and width is expected
-                    // Reading without await in sync logic doesn't work, so just check later or stat
-                    // But we can check sync if we use stats maybe? No, let's just push a task and inside we await sharp
-                    missingScrubberSprite = true; // We'll double check inside the task to be safe and concurrent
-                } catch { missingScrubberSprite = true; }
-            }
+            // Skip sprite checking logic until inside the task where we can safely await sharp
 
             tasks.push(async () => {
                 if (fs.existsSync(spritePath)) {
@@ -77,12 +66,11 @@ export async function generateScrubber(indexData: IndexState) {
                             skippedCount++;
                             return;
                         }
-                    } catch {}
+                    } catch { /* ignore */ }
                 }
 
                 try {
                     const finalBuffers: Buffer[] = [];
-                    let failCount = 0;
 
                     for (const imgObj of albumPhotos) {
                         if (typeof imgObj === 'string') continue;
@@ -114,7 +102,6 @@ export async function generateScrubber(indexData: IndexState) {
                         if (buf) {
                             finalBuffers.push(buf);
                         } else {
-                            failCount++;
                             const fallbackBuffer = await sharp({
                                 create: { width: FRAME_WIDTH, height: FRAME_HEIGHT, channels: 3, background: { r: 30, g: 30, b: 30 } },
                             }).toFormat('raw').toBuffer();
@@ -140,8 +127,8 @@ export async function generateScrubber(indexData: IndexState) {
                     await fs.promises.writeFile(spritePath, buffer);
                     spriteCount++;
                     // logger.success(`Sprite: ${path.basename(spritePath)} (80, ${finalBuffers.length} frames)${failCount > 0 ? ` (${failCount} missing frames filled with blank)` : ''}`);
-                } catch (err: any) {
-                    logger.error(`Failed scrubber sprite for ${event}:`, err.message);
+                } catch (err: unknown) {
+                    logger.error(`Failed scrubber sprite for ${event}:`, err instanceof Error ? err.message : String(err));
                 }
             });
         }

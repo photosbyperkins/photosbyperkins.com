@@ -24,9 +24,9 @@ const stagingDir = path.resolve(__dirname, '../deploy_staging');
 
 console.log('🚀 Starting deployment to Bluehost...');
 
-const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-function copyFilesToStaging(src, dest, remoteMap) {
+function copyFilesToStaging(src: string, dest: string, remoteMap: Map<string, number>) {
     const stats = fs.statSync(src);
     if (stats.isDirectory()) {
         fs.readdirSync(src).forEach((child) => {
@@ -66,7 +66,7 @@ async function runDeploy() {
     try {
         // Retrieve existing files map to skip them
         console.log('🔍 Checking for existing files on the server to skip...');
-        let remoteFilesMap = new Map();
+        const remoteFilesMap = new Map();
         try {
             const sshCmd = `ssh -o StrictHostKeyChecking=accept-new ${SSH_USER}@${SSH_HOST} "cd ${REMOTE_DIR} && find . -type f -not -path './photos/*' -not -path './thumbnails/*' -not -path './webp/*' -not -path './zips/*' -not -path './scrubber/*' -not -path './recap/*' -printf '%P|%s\\n' 2>/dev/null"`;
             const output = execSync(sshCmd, { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 });
@@ -78,13 +78,13 @@ async function runDeploy() {
                 }
             });
             console.log(`✨ Found ${remoteFilesMap.size} existing files on server.`);
-        } catch {
-            console.log('⚠️ Could not fetch existing files list. Assuming none exist.', error.message);
+        } catch (error: unknown) {
+            console.log('⚠️ Could not fetch existing files list. Assuming none exist.', error instanceof Error ? error.message : String(error));
         }
 
         // Build local files set to calculate stale prune list
         const localFilesSet = new Set();
-        function collectLocalFiles(dir) {
+        function collectLocalFiles(dir: string) {
             if (!fs.existsSync(dir)) return;
             fs.readdirSync(dir).forEach((child) => {
                 const fullPath = path.join(dir, child);
@@ -114,7 +114,7 @@ async function runDeploy() {
         }
 
         // Sort items for zero-downtime deployment priority
-        const getPriority = (name) => {
+        const getPriority = (name: string) => {
             if (['favicon.ico', 'favicon.svg', 'favicon.png', 'apple-touch-icon.png'].includes(name)) return 1;
             if (name === 'data') return 2;
             if (name === 'assets') return 3;
@@ -190,8 +190,8 @@ async function runDeploy() {
                     execSync(`ssh -o StrictHostKeyChecking=accept-new ${SSH_USER}@${SSH_HOST} "rm -f ${batch}"`, {
                         stdio: 'inherit',
                     });
-                } catch {
-                    console.log('⚠️ Could not delete a batch of stale files.', e.message);
+                } catch (error: unknown) {
+                    console.log('⚠️ Could not delete a batch of stale files.', error instanceof Error ? error.message : String(error));
                 }
             }
         }
@@ -200,14 +200,14 @@ async function runDeploy() {
         if (fs.existsSync(stagingDir)) {
             try {
                 fs.rmSync(stagingDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 1000 });
-            } catch {
-                console.log('Could not clean up staging directory:', e.message);
+            } catch (error: unknown) {
+                console.log('Could not clean up staging directory:', error instanceof Error ? error.message : String(error));
             }
         }
 
         console.log('✅ Deployment complete!');
-    } catch {
-        console.error('❌ Deployment failed:', error.message);
+    } catch (error: unknown) {
+        console.error('❌ Deployment failed:', error instanceof Error ? error.message : String(error));
         process.exit(1);
     }
 }

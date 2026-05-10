@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAppStore } from '../../store/useAppStore';
+import { useScrollSpy } from '../../hooks/useScrollSpy';
 import ThemeToggle from '../ui/ThemeToggle';
 import '../../styles/_nav.scss';
 
@@ -40,64 +41,27 @@ export default function Nav() {
         }
     }, [location.pathname]);
 
-    // Track active section and sync to URL
-    useEffect(() => {
-        const sections = ['recap', 'portfolio', 'about'];
-        const observed = new Set<string>();
+    const handleSectionChange = React.useCallback(
+        (activeId: string) => {
+            let path = activeId === 'recap' ? '/' : `/${activeId}`;
+            if (activeId === 'portfolio') {
+                path = lastPortfolioRef.current;
+            }
+            const currentPath = locationRef.current;
 
-        const observer = new IntersectionObserver(
-            (entries) => {
-                // Find all entries that are currently laser-intersecting the centerline
-                const visibleEntries = entries.filter((e) => e.isIntersecting);
-                if (visibleEntries.length === 0) return;
-
-                // Pick the top visible entry natively (centerline guarantees accuracy)
-                const bestEntry = visibleEntries[0];
-
-                let path = bestEntry.target.id === 'recap' ? '/' : `/${bestEntry.target.id}`;
-                if (bestEntry.target.id === 'portfolio') {
-                    path = lastPortfolioRef.current;
+            // Only replace state if route has changed and we are ignoring deep portfolio links
+            if (currentPath !== path) {
+                if (activeId === 'portfolio' && currentPath.startsWith('/portfolio/')) {
+                    return;
                 }
-                const currentPath = locationRef.current;
+                locationRef.current = path; // Optimistic lock
+                navigate(path, { replace: true, state: { preventScroll: true } });
+            }
+        },
+        [navigate]
+    );
 
-                // Only replace state if route has changed and we are ignoring deep portfolio links
-                if (currentPath !== path) {
-                    if (bestEntry.target.id === 'portfolio' && currentPath.startsWith('/portfolio/')) {
-                        return;
-                    }
-                    locationRef.current = path; // Optimistic lock
-                    navigate(path, { replace: true, state: { preventScroll: true } });
-                }
-            },
-            { rootMargin: '-49% 0px -49% 0px', threshold: 0 }
-        );
-
-        const observeSections = () => {
-            sections.forEach((id) => {
-                if (!observed.has(id)) {
-                    const el = document.getElementById(id);
-                    if (el) {
-                        observer.observe(el);
-                        observed.add(id);
-                    }
-                }
-            });
-            return observed.size === sections.length;
-        };
-
-        let interval: ReturnType<typeof setInterval>;
-
-        if (!observeSections()) {
-            interval = setInterval(() => {
-                if (observeSections()) clearInterval(interval);
-            }, 500);
-        }
-
-        return () => {
-            if (interval) clearInterval(interval);
-            observer.disconnect();
-        };
-    }, [navigate]);
+    useScrollSpy(['recap', 'portfolio', 'about'], handleSectionChange);
 
     return (
         <>

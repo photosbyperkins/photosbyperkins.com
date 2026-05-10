@@ -22,8 +22,8 @@ function runSync(name: string, command: string) {
     try {
         execSync(command, { stdio: 'inherit', env: process.env });
         logger.success(`Completed: ${name}`);
-    } catch (error: any) {
-        logger.error(`Build Pipeline Failed at Step: ${name}`, error.message);
+    } catch (error: unknown) {
+        logger.error(`Build Pipeline Failed at Step: ${name}`, error instanceof Error ? error.message : String(error));
         process.exit(1);
     }
 }
@@ -44,15 +44,7 @@ function runAsync(name: string, command: string): Promise<void> {
     });
 }
 
-async function runParallel(label: string, steps: {name: string, command: string}[]) {
-    logger.header(`Parallel: ${label}`);
-    try {
-        await Promise.all(steps.map(s => runAsync(s.name, s.command)));
-    } catch (error: any) {
-        logger.error(`Failed Parallel Step`, error.message);
-        process.exit(1);
-    }
-}
+
 
 async function main() {
     logger.header('Starting Full Build Pipeline');

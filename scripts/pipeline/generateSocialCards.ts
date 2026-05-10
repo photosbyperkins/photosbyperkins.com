@@ -1,9 +1,9 @@
-// @ts-nocheck
+// Generate Social Cards Pipeline
 import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
 import 'dotenv/config';
-import { IndexState } from './types';
+import type { IndexState } from './types';
 import { logger } from './logger';
 const DIST_DIR = path.join(process.cwd(), 'dist');
 const OUTPUT_DIR = path.join(DIST_DIR, 'social-cards');
@@ -12,11 +12,11 @@ const OUTPUT_DIR = path.join(DIST_DIR, 'social-cards');
 const LOGO_TEXT = process.env.VITE_NAV_LOGO_TEXT || 'PHOTOS';
 const LOGO_ACCENT = process.env.VITE_NAV_LOGO_ACCENT || 'PERKINS';
 
-function safeFilename(year, event) {
+function safeFilename(year: string, event: string) {
     return `${encodeURIComponent(year)}_${encodeURIComponent(event)}.webp`;
 }
 
-function escapeXml(unsafe) {
+function escapeXml(unsafe: string) {
     return unsafe.replace(/[<>&'"]/g, function (c) {
         switch (c) {
             case '<': return '&lt;';
@@ -30,12 +30,12 @@ function escapeXml(unsafe) {
 }
 
 // Word-wrap function for SVG text
-function wrapText(text, maxCharsPerLine) {
+function wrapText(text: string, maxCharsPerLine: number) {
     const words = text.split(' ');
-    let lines = [];
+    const lines = [];
     let currentLine = '';
 
-    for (let word of words) {
+    for (const word of words) {
         if ((currentLine + word).length > maxCharsPerLine) {
             if (currentLine.trim()) lines.push(currentLine.trim());
             currentLine = word + ' ';
@@ -61,22 +61,22 @@ export async function generateSocialCards(data: IndexState) {
     if (hasCustomIcon) {
         try {
             iconBuffer = await sharp(ICON_FILE).resize(60, 60).toBuffer();
-        } catch (e: any) {
-            logger.warn(`Could not resize custom icon.svg:`, e.message);
+        } catch (e: unknown) {
+            logger.warn(`Could not resize custom icon.svg: ${e instanceof Error ? e.message : String(e)}`);
             hasCustomIcon = false;
         }
     }
 
     // Read abbreviations from .env
     const envAbbrsStr = process.env.VITE_TEAM_ABBREVIATIONS;
-    let teamAbbrs = {};
+    let teamAbbrs: Record<string, string> = {};
     if (envAbbrsStr) {
         try {
             teamAbbrs = JSON.parse(envAbbrsStr);
-        } catch {}
+        } catch { /* ignore */ }
     }
 
-    function formatTeamName(teamName) {
+    function formatTeamName(teamName: string) {
         let short = teamName;
         for (const [f, abbr] of Object.entries(teamAbbrs)) {
             short = short.replace(new RegExp(`\\b${f}\\b`, 'g'), abbr);
@@ -99,7 +99,7 @@ export async function generateSocialCards(data: IndexState) {
     }
 
     // Helper to parse event title exactly like the UI
-    function parseEventTitle(eventName) {
+    function parseEventTitle(eventName: string) {
         const titleMatch = eventName.match(/^(?:\[(\d{4})\]\s*)?(\d{2}\.\d{2})\s+(.*)/);
         const datePrefix = titleMatch ? titleMatch[2] : '';
         const mainTitle = titleMatch ? titleMatch[3] : eventName;
@@ -139,7 +139,7 @@ export async function generateSocialCards(data: IndexState) {
             const fontBase = "font-family=\"'Barlow Condensed', 'Arial Narrow', 'Impact', sans-serif\" font-stretch=\"condensed\"";
             const fontModern = "font-family=\"'Outfit', 'Segoe UI', 'Helvetica Neue', sans-serif\"";
             
-            let eventContent = '';
+            let eventContent;
 
             if (teams.length >= 2) {
                 // Stacked format with vertical rule aligned to favicon
@@ -191,7 +191,7 @@ export async function generateSocialCards(data: IndexState) {
                 </svg>
             `;
 
-            const compositeLayers = [
+            const compositeLayers: any[] = [
                 {
                     input: Buffer.from(svgOverlay),
                     blend: 'over',
@@ -247,8 +247,8 @@ export async function generateSocialCards(data: IndexState) {
                 .then(() => {
                     count++;
                 })
-                .catch((err: any) => {
-                    logger.error(`Failed to generate social card for ${event}:`, err.message);
+                .catch((err: unknown) => {
+                    logger.error(`Failed to generate social card for ${event}:`, err instanceof Error ? err.message : String(err));
                 });
 
             promises.push(generatePromise);

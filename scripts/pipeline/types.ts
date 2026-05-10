@@ -39,7 +39,7 @@ export interface EventData {
     };
     date?: string | null;
     description?: string | null;
-    localScore?: Record<string, any>;
+    localScore?: Record<string, unknown>;
     earliestTime?: number;
 }
 

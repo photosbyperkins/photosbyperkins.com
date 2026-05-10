@@ -1,7 +1,8 @@
 import fs from 'fs';
 import path from 'path';
+// @ts-ignore - types/archiver is outdated for v8
 import { ZipArchive } from 'archiver';
-import { IndexState, EventData } from './types.js';
+import type { IndexState, EventData, PhotoObject } from './types.js';
 import { logger } from './logger.js';
 
 const ZIPS_DIR = path.join(process.cwd(), 'build', 'zips');
@@ -13,7 +14,7 @@ function ensureZipsDir() {
     }
 }
 
-function createZipArchive(sourceFiles: any[], outputPath: string): Promise<void> {
+function createZipArchive(sourceFiles: (PhotoObject | string)[], outputPath: string): Promise<void> {
     return new Promise((resolve, reject) => {
         const output = fs.createWriteStream(outputPath);
         const archive = new ZipArchive({
@@ -25,7 +26,7 @@ function createZipArchive(sourceFiles: any[], outputPath: string): Promise<void>
             resolve();
         });
 
-        archive.on('error', (err: any) => {
+        archive.on('error', (err: Error) => {
             reject(err);
         });
 
@@ -39,10 +40,11 @@ function createZipArchive(sourceFiles: any[], outputPath: string): Promise<void>
             const processedRelative = relativePath.replace(/^photos[\\/]/, '');
             const fullPath = path.join(process.cwd(), 'build', 'processed', processedRelative);
 
-            const sourceRelative = fileObj.source
-                ? fileObj.source.startsWith('/')
-                    ? fileObj.source.slice(1)
-                    : fileObj.source
+            const sourceStr = typeof fileObj === 'string' ? undefined : fileObj.source;
+            const sourceRelative = sourceStr
+                ? sourceStr.startsWith('/')
+                    ? sourceStr.slice(1)
+                    : sourceStr
                 : relativePath;
             const sourcePathOrig = path.join(process.cwd(), sourceRelative);
 
@@ -107,8 +109,8 @@ export async function generateZips(indexData: IndexState): Promise<void> {
                 await createZipArchive(eventData.album, absZipPath);
                 // Attach the zip path to the event data in photos.json
                 eventData.zip = webZipPath;
-            } catch (e: any) {
-                logger.error(`Failed to generate zip for ${eventName}:`, e);
+            } catch (e: unknown) {
+                logger.error(`Failed to generate zip for ${eventName}:`, e instanceof Error ? e.message : String(e));
             }
         }
     }

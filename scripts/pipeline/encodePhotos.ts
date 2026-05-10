@@ -1,11 +1,11 @@
-// @ts-nocheck
+// Encode Photos Pipeline
 import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
 import os from 'os';
 import { findOptimalQuality } from './ssim2Pool.js';
 import { runWithConcurrency, removeStaleFiles } from './utils.js';
-import { IndexState, PhotoObject } from './types';
+import type { IndexState } from './types.js';
 import { logger } from './logger';
 
 const THUMBNAILS_DIR = path.join(process.cwd(), 'build', 'thumbnails');
@@ -13,22 +13,21 @@ const WEBP_DIR = path.join(process.cwd(), 'build', 'webp');
 const PROCESSED_DIR = path.join(process.cwd(), 'build', 'processed');
 
 const METRICS_FILE = path.join(process.cwd(), 'data', 'quality_metrics.json');
-const MAX_DIMENSION = 800;
+const MAX_DIMENSION = 1080;
 
 export async function encodePhotos(indexData: IndexState) {
     logger.header('Master Encoder: Generating Thumbnails, WebPs, and Processed JPEGs...');
 
-    let qualityMap = {};
+    let qualityMap: Record<string, number> = {};
     if (fs.existsSync(METRICS_FILE)) {
-        try { qualityMap = JSON.parse(fs.readFileSync(METRICS_FILE, 'utf8')); } catch {}
+        try { qualityMap = JSON.parse(fs.readFileSync(METRICS_FILE, 'utf8')); } catch { /* ignore */ }
     }
 
-    const validThumbs = new Set();
-    const validWebps = new Set();
-    const validProcessed = new Set();
-    const createdDirs = new Set();
+    const validThumbs = new Set<string>();
+    const validWebps = new Set<string>();
+    const validProcessed = new Set<string>();
 
-    const tasks = [];
+    const tasks: any[] = [];
     let skippedCount = 0;
     const queuedSources = new Set();
 
@@ -136,8 +135,8 @@ export async function encodePhotos(indexData: IndexState) {
 
                         await Promise.all(ops);
                         // logger.info(`Encoded missing targets for ${originalRelative}`);
-                    } catch (err: any) {
-                        logger.error(`Failed to encode ${sourceRelative}:`, err.message);
+                    } catch (err: unknown) {
+                        logger.error(`Failed to encode ${sourceRelative}:`, err instanceof Error ? err.message : String(err));
                     }
                 });
             }

@@ -1,11 +1,10 @@
-// @ts-nocheck
+// Generate Recaps Pipeline
 import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
 import os from 'os';
-import { findOptimalQuality } from './ssim2Pool.js';
 import { runWithConcurrency, removeStaleFiles } from './utils.js';
-import { RecapDefinitions } from './types';
+import type { RecapDefinitions } from './types.js';
 import { logger } from './logger';
 
 const RECAP_DIR = path.join(process.cwd(), 'build', 'recap');
@@ -22,14 +21,14 @@ export async function generateRecaps(definitions: RecapDefinitions): Promise<voi
     if (fs.existsSync(CACHE_MANIFEST_PATH)) {
         try {
             cacheManifest = JSON.parse(fs.readFileSync(CACHE_MANIFEST_PATH, 'utf8'));
-        } catch (e) {
+        } catch { /* ignore */
             logger.warn('Could not parse .cache.json, starting fresh.');
         }
     }
 
-    const validPaths = new Set();
+    const validPaths = new Set<string>();
 
-    const taskData = [];
+    const taskData: any[] = [];
 
     for (const [slug, images] of Object.entries(definitions)) {
         if (Array.isArray(images)) {
@@ -50,11 +49,11 @@ export async function generateRecaps(definitions: RecapDefinitions): Promise<voi
     logger.info(`Found ${taskData.length} recap slice tasks to process.`);
 
     const METRICS_FILE = path.join(process.cwd(), 'data', 'quality_metrics.json');
-    let qualityMap = {};
+    let qualityMap: Record<string, number> = {};
     if (fs.existsSync(METRICS_FILE)) {
         try {
             qualityMap = JSON.parse(fs.readFileSync(METRICS_FILE, 'utf8'));
-        } catch (e) {
+        } catch { /* ignore */
             logger.warn('Could not parse quality_metrics.json, falling back to static quality.');
         }
     }
@@ -138,8 +137,8 @@ export async function generateRecaps(definitions: RecapDefinitions): Promise<voi
 
             processedCount++;
             // logger.info(`Generated recap slice: ${destRelative}`);
-        } catch (err: any) {
-            logger.error(`Failed to process ${sourceRelative}:`, err.message);
+        } catch (err: unknown) {
+            logger.error(`Failed to process ${sourceRelative}:`, err instanceof Error ? err.message : String(err));
             failedCount++;
         }
     });
@@ -212,8 +211,8 @@ export async function generateRecaps(definitions: RecapDefinitions): Promise<voi
             const sizeKB = (buffer.length / 1024).toFixed(0);
             logger.info(`Sprite: ${slug}/sprite.webp (Q:${quality}, ${sizeKB} KB, ${slicePaths.length} slices)`);
             spriteCount++;
-        } catch (err: any) {
-            logger.error(`Failed sprite for ${slug}:`, err.message);
+        } catch (err: unknown) {
+            logger.error(`Failed sprite for ${slug}:`, err instanceof Error ? err.message : String(err));
         }
     }
 

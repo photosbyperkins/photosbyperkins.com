@@ -51,6 +51,11 @@
     // Spacing
     --section-padding: clamp(4rem, 8vw, 8rem);
     --container-width: 1400px;
+
+    @media (min-width: 1441px) {
+        --container-width: 1800px;
+    }
+
     --container-padding: clamp(1.5rem, 5vw, 3rem);
     --nav-height: 44px;
     --nav-height-scrolled: 44px;

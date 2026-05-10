@@ -3,7 +3,6 @@ import type { FavoriteStoreItem } from '../types';
 
 // ── Version prefix ──────────────────────────────────────────────────
 // v2 URLs use a grouped album:numbers format + DEFLATE compression.
-// Legacy (v1) URLs are bare basenames base64url-encoded, no prefix.
 const V2_PREFIX = '2.';
 
 // ── Base64url helpers ───────────────────────────────────────────────
@@ -183,43 +182,18 @@ async function decodeV2Hash(hash: string): Promise<AlbumPhotoGroup[]> {
 }
 
 /**
- * Decode a legacy v1 hash → array of bare basenames.
+ * Decode a favorites hash string. Only supports v2 format.
  */
-function decodeV1Hash(hash: string): string[] {
-    try {
-        const bytes = fromBase64Url(hash);
-        const decoded = new TextDecoder().decode(bytes);
-        return decoded.split(',').filter(Boolean);
-    } catch {
-        console.error('Failed to decode legacy favorites hash');
-        return [];
-    }
-}
-
-/**
- * Result of decoding a favorites hash.
- * - v2: `type: 'groups'` with album-grouped photo references (direct resolution)
- * - v1: `type: 'basenames'` with bare filenames (needs full album scanning)
- */
-export type DecodedFavorites =
-    | { type: 'groups'; groups: AlbumPhotoGroup[] }
-    | { type: 'basenames'; basenames: string[] };
-
-/**
- * Decode a favorites hash string, auto-detecting format version.
- */
-export async function decodeFavoritesHash(hash: string): Promise<DecodedFavorites> {
+export async function decodeFavoritesHash(hash: string): Promise<AlbumPhotoGroup[]> {
     if (hash.startsWith(V2_PREFIX)) {
         try {
-            const groups = await decodeV2Hash(hash);
-            return { type: 'groups', groups };
+            return await decodeV2Hash(hash);
         } catch (err) {
             console.error('Failed to decode v2 favorites hash:', err);
-            return { type: 'basenames', basenames: [] };
+            return [];
         }
     }
 
-    // Legacy v1 format
-    const basenames = decodeV1Hash(hash);
-    return { type: 'basenames', basenames };
+    console.warn('Unsupported or legacy favorites hash format');
+    return [];
 }

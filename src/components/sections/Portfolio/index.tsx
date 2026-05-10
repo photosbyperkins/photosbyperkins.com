@@ -1,4 +1,4 @@
-import { useInView, AnimatePresence, motion } from 'framer-motion';
+import { useInView } from 'framer-motion';
 import Fuse from 'fuse.js';
 import { Search, X, Heart } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
@@ -8,14 +8,13 @@ import { usePortfolioData } from '../../../hooks/usePortfolioData';
 import { usePortfolioScroll } from '../../../hooks/usePortfolioScroll';
 import { useStickyHeader } from '../../../hooks/useStickyHeader';
 import { usePortfolioStore } from '../../../store/usePortfolioStore';
-import { decodeFavoritesHash } from '../../../utils/favoritesUrl';
 import { formatTeamName, parseEventTitle } from '../../../utils/formatters';
 import Recap from '../Recap';
 import LightboxContainer from './LightboxContainer';
 import PortfolioEvent from './PortfolioEvent';
 import SharedFavoritesPanel from './SharedFavoritesPanel';
-import TeamFilter from './TeamFilter';
-import type { PhotoInput } from '../../../types';
+import GlobalSearchOverlay from './GlobalSearchOverlay';
+import { useSharedFavorites } from '../../../hooks/useSharedFavorites';
 import '../../../styles/_portfolio.scss';
 
 declare const __BUILD_NUMBER__: string;
@@ -149,105 +148,7 @@ export default function Portfolio({ years }: PortfolioProps) {
         }
     }, [initialYear, initialEvent, initialPhoto, years, isTeamRoute, setSharedPhoto]);
 
-    // Shared favorites: detect #photos=... hash in the URL (works on any tab)
-    const [sharedFavorites, setSharedFavorites] = useState<PhotoInput[] | undefined>(undefined);
-
-    useEffect(() => {
-        const hash = window.location.hash;
-        if (!hash.startsWith('#photos=')) return;
-
-        const encoded = hash.slice('#photos='.length);
-        (async () => {
-            try {
-                const decoded = await decodeFavoritesHash(encoded);
-
-                if (decoded.type === 'groups') {
-                    // v2 format: album-grouped photo references
-                    // Each group has albumKey ("2025/0412-slug") + photoIds (["1","3","15"])
-                    const resolved: PhotoInput[] = [];
-
-                    for (const group of decoded.groups) {
-                        const [year, slug] = group.albumKey.split('/');
-                        if (!year || !slug) continue;
-
-                        const albumRes = await fetch(`/data/albums/${year}/${slug}.json?build=${__BUILD_NUMBER__}`);
-                        if (!albumRes.ok) continue;
-                        const album: PhotoInput[] = await albumRes.json();
-
-                        // Match photos by stem: strip .jpg and leading zeros to match encoder
-                        const idSet = new Set(group.photoIds);
-                        for (const photo of album) {
-                            const original = typeof photo === 'string' ? photo : photo.original;
-                            const filename = original.split('/').pop() || '';
-                            const stem = filename
-                                .replace(/\.jpe?g$/i, '')
-                                .replace(/^photo_0*(\d+)$/, (_, num: string) => num)
-                                .replace(
-                                    /_(0*)(\d+)$/,
-                                    (_, _zeros: string, num: string) => '_' + parseInt(_zeros + num)
-                                );
-                            if (idSet.has(stem)) {
-                                resolved.push(photo);
-                                idSet.delete(stem);
-                                if (idSet.size === 0) break;
-                            }
-                        }
-                    }
-
-                    if (resolved.length > 0) {
-                        setSharedFavorites(resolved);
-                    }
-                } else {
-                    // Legacy v1 format: bare basenames — scan all albums to resolve
-                    const basenames = decoded.basenames;
-                    if (basenames.length === 0) return;
-
-                    const indexRes = await fetch(`/data/index.json?build=${__BUILD_NUMBER__}`);
-                    if (!indexRes.ok) return;
-                    const indexData: { years: string[] } = await indexRes.json();
-
-                    const basenameSet = new Set(basenames);
-                    const resolved: PhotoInput[] = [];
-
-                    for (const year of indexData.years) {
-                        if (basenameSet.size === 0) break;
-
-                        const yearRes = await fetch(`/data/years/${year}.json?build=${__BUILD_NUMBER__}`);
-                        if (!yearRes.ok) continue;
-                        const yearPayload = await yearRes.json();
-                        const events = yearPayload.events || {};
-
-                        for (const [, ev] of Object.entries(events) as [string, { albumSlug?: string }][]) {
-                            if (basenameSet.size === 0) break;
-                            if (!ev.albumSlug) continue;
-
-                            const albumRes = await fetch(
-                                `/data/albums/${year}/${ev.albumSlug}.json?build=${__BUILD_NUMBER__}`
-                            );
-                            if (!albumRes.ok) continue;
-                            const album: PhotoInput[] = await albumRes.json();
-
-                            for (const photo of album) {
-                                const original = typeof photo === 'string' ? photo : photo.original;
-                                const basename = original.split('/').pop() || '';
-                                if (basenameSet.has(basename)) {
-                                    resolved.push(photo);
-                                    basenameSet.delete(basename);
-                                    if (basenameSet.size === 0) break;
-                                }
-                            }
-                        }
-                    }
-
-                    if (resolved.length > 0) {
-                        setSharedFavorites(resolved);
-                    }
-                }
-            } catch (err) {
-                console.error('Failed to resolve shared favorites:', err);
-            }
-        })();
-    }, []);
+    const { sharedFavorites, clearSharedFavorites } = useSharedFavorites();
 
     const { yearData, recapCount, recapEvents, setIsRecapLoaded } = usePortfolioData({
         selectedTab,
@@ -395,13 +296,7 @@ export default function Portfolio({ years }: PortfolioProps) {
                 {navPortalTarget && createPortal(yearsSelectorContent, navPortalTarget)}
 
                 {sharedFavorites && sharedFavorites.length > 0 && (
-                    <SharedFavoritesPanel
-                        photos={sharedFavorites}
-                        onClose={() => {
-                            setSharedFavorites(undefined);
-                            window.history.replaceState(null, '', window.location.pathname);
-                        }}
-                    />
+                    <SharedFavoritesPanel photos={sharedFavorites} onClose={clearSharedFavorites} />
                 )}
 
                 <div className="portfolio__events" ref={stickyRef}>
@@ -425,34 +320,17 @@ export default function Portfolio({ years }: PortfolioProps) {
                 </div>
             </div>
 
-            {typeof document !== 'undefined' &&
-                createPortal(
-                    <AnimatePresence>
-                        {isGlobalSearchOpen && (
-                            <motion.div
-                                className="portfolio__global-search-overlay"
-                                initial={{ opacity: 0, y: 50 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: 50 }}
-                                transition={{ duration: 0.3, ease: 'easeOut' }}
-                            >
-                                <div className="portfolio__global-search-content">
-                                    <TeamFilter
-                                        teamSearchQuery={teamSearchQuery}
-                                        setTeamSearchQuery={setTeamSearchQuery}
-                                        filteredTeams={filteredTeams}
-                                        teamIndexLoading={teamIndex.length === 0}
-                                        onBack={() => {
-                                            setIsGlobalSearchOpen(false);
-                                            setTeamSearchQuery('');
-                                        }}
-                                    />
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>,
-                    document.body
-                )}
+            <GlobalSearchOverlay
+                isOpen={isGlobalSearchOpen}
+                onClose={() => {
+                    setIsGlobalSearchOpen(false);
+                    setTeamSearchQuery('');
+                }}
+                teamSearchQuery={teamSearchQuery}
+                setTeamSearchQuery={setTeamSearchQuery}
+                filteredTeams={filteredTeams}
+                isTeamIndexLoading={teamIndex.length === 0}
+            />
 
             <LightboxContainer />
 

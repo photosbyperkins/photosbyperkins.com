@@ -23,7 +23,7 @@ try {
     execSync(chmodCommand, { stdio: 'inherit' });
 
     console.log('✅ Permissions fixed successfully!');
-} catch (error) {
-    console.error('❌ Failed to fix permissions:', error.message);
+} catch (error: unknown) {
+    console.error('❌ Failed to fix permissions:', error instanceof Error ? error.message : String(error));
     process.exit(1);
 }

@@ -337,17 +337,11 @@
         &-grid {
             width: 100%;
             display: grid;
-            grid-template-columns: repeat(31, 1fr);
+            grid-template-columns: repeat(5, 1fr);
             grid-auto-flow: dense;
             gap: 4px;
-            /* 31 cols, 30 gaps of 4px = 120px */
-            grid-auto-rows: calc(((100cqw - 120px) / 31) * (2 / 3));
-
-            @media (max-width: 600px) {
-                grid-template-columns: repeat(5, 1fr);
-                /* 5 cols, 4 gaps of 4px = 16px */
-                grid-auto-rows: calc(((100cqw - 16px) / 5) * (2 / 3));
-            }
+            /* 5 cols, 4 gaps of 4px = 16px */
+            grid-auto-rows: calc(((100cqw + 4px) / 5) * (2 / 3) - 4px);
 
             .portfolio__grid-item {
                 position: relative;
@@ -359,45 +353,18 @@
                 justify-content: center;
                 cursor: pointer;
 
-                // Desktop Fibonacci 10-photo cyclic grid packing natively into 31 columns
-                @media (min-width: 601px) {
-                    &:nth-child(10n + 1),
-                    &:nth-child(10n + 2) {
-                        grid-column: 1 / 16;
-                        grid-row: span 15;
-                    }
-
-                    &:nth-child(10n + 3),
-                    &:nth-child(10n + 4),
-                    &:nth-child(10n + 5) {
-                        grid-column: 16 / 26;
-                        grid-row: span 10;
-                    }
-
-                    &:nth-child(10n + 6),
-                    &:nth-child(10n + 7),
-                    &:nth-child(10n + 8),
-                    &:nth-child(10n + 9),
-                    &:nth-child(10n + 10) {
-                        grid-column: 26 / 32;
-                        grid-row: span 6;
-                    }
+                // 5-photo layout natively packed into 5 columns
+                &:nth-child(5n + 1),
+                &:nth-child(5n + 2) {
+                    grid-column: span 3;
+                    grid-row: span 3;
                 }
 
-                // Mobile 5-photo layout natively packed into 5 columns
-                @media (max-width: 600px) {
-                    &:nth-child(5n + 1),
-                    &:nth-child(5n + 2) {
-                        grid-column: span 3;
-                        grid-row: span 3;
-                    }
-
-                    &:nth-child(5n + 3),
-                    &:nth-child(5n + 4),
-                    &:nth-child(5n + 5) {
-                        grid-column: span 2;
-                        grid-row: span 2;
-                    }
+                &:nth-child(5n + 3),
+                &:nth-child(5n + 4),
+                &:nth-child(5n + 5) {
+                    grid-column: span 2;
+                    grid-row: span 2;
                 }
 
                 .progressive-image {
@@ -431,15 +398,11 @@
         &-featured {
             width: 100%;
             display: grid;
-            grid-template-columns: repeat(31, 1fr);
+            grid-template-columns: repeat(5, 1fr);
             grid-auto-flow: dense;
             gap: 4px;
-            grid-auto-rows: calc(((100cqw - 120px) / 31) * (2 / 3));
-
-            @media (max-width: 600px) {
-                grid-template-columns: repeat(5, 1fr);
-                grid-auto-rows: calc(((100cqw - 16px) / 5) * (2 / 3));
-            }
+            /* 5 cols, 4 gaps of 4px = 16px */
+            grid-auto-rows: calc(((100cqw + 4px) / 5) * (2 / 3) - 4px);
 
             .portfolio__featured-item {
                 position: relative;
@@ -449,51 +412,21 @@
                 cursor: pointer;
                 container-type: size;
 
-                @media (min-width: 601px) {
-                    &:nth-child(1),
-                    &:nth-child(2) {
-                        grid-column: 1 / 16;
-                        grid-row: span 15;
-                    }
-
-                    &:nth-child(3),
-                    &:nth-child(4),
-                    &:nth-child(5) {
-                        grid-column: 16 / 26;
-                        grid-row: span 10;
-                    }
-
-                    &:nth-child(6),
-                    &:nth-child(7),
-                    &:nth-child(8),
-                    &:nth-child(9),
-                    &:nth-child(10) {
-                        grid-column: 26 / 32;
-                        grid-row: span 6;
-                    }
+                &:nth-child(1),
+                &:nth-child(2) {
+                    grid-column: span 3;
+                    grid-row: span 3;
                 }
 
-                @media (max-width: 600px) {
-                    &:nth-child(1),
-                    &:nth-child(2) {
-                        grid-column: span 3;
-                        grid-row: span 3;
-                    }
+                &:nth-child(3),
+                &:nth-child(4),
+                &:nth-child(5) {
+                    grid-column: span 2;
+                    grid-row: span 2;
+                }
 
-                    &:nth-child(3),
-                    &:nth-child(4),
-                    &:nth-child(5) {
-                        grid-column: span 2;
-                        grid-row: span 2;
-                    }
-
-                    &:nth-child(6),
-                    &:nth-child(7),
-                    &:nth-child(8),
-                    &:nth-child(9),
-                    &:nth-child(10) {
-                        display: none;
-                    }
+                &:nth-child(n + 6) {
+                    display: none;
                 }
 
                 .progressive-image {
@@ -520,8 +453,22 @@
                     }
                 }
 
+                &.has-overlay-ultrawide {
+                    @media (min-width: 1441px) {
+                        img {
+                            filter: brightness(0.6) saturate(0.8);
+                        }
+
+                        @media (hover: hover) {
+                            &:hover img {
+                                filter: brightness(0.5) saturate(0.8);
+                            }
+                        }
+                    }
+                }
+
                 &.has-overlay-desktop {
-                    @media (min-width: 601px) {
+                    @media (min-width: 601px) and (max-width: 1440px) {
                         img {
                             filter: brightness(0.6) saturate(0.8);
                         }
@@ -557,17 +504,7 @@
                     pointer-events: none; // let clicks pass through to container
                     z-index: var(--z-elevated);
 
-                    &--desktop {
-                        @media (min-width: 601px) {
-                            display: flex;
-                        }
-                    }
-
-                    &--mobile {
-                        @media (max-width: 600px) {
-                            display: flex;
-                        }
-                    }
+                    display: flex;
 
                     span {
                         color: white;

@@ -1,5 +1,6 @@
-// @ts-nocheck
-import { fork } from 'child_process';
+// SSIM2 Pool
+import { fork, ChildProcess } from 'child_process';
+type WorkerProcess = ChildProcess & { currentTask?: any };
 import sharp from 'sharp';
 import fs from 'fs';
 import path from 'path';
@@ -22,18 +23,18 @@ export const QUALITY_STEPS = Array.from(
 export const S2_THRESHOLD = 75.0;
 
 // --- Singleton Worker Pool ---
-let workers = [];
-let idle = [];
-let queue = [];
+let workers: WorkerProcess[] = [];
+let idle: WorkerProcess[] = [];
+let queue: any[] = [];
 let poolActive = false;
 
-export function initPool(workerCount) {
+export function initPool(workerCount?: number) {
     if (poolActive) return;
     poolActive = true;
     const count = workerCount ?? Math.max(16, os.cpus().length * 2);
     for (let i = 0; i < count; i++) {
-        const w = fork('./scripts/pipeline/ssim2Worker.js');
-        w.on('message', (msg) => {
+        const w = fork('./scripts/pipeline/ssim2Worker.js') as WorkerProcess;
+        w.on('message', (msg: any) => {
             const { resolve, reject } = w.currentTask;
             w.currentTask = null;
             if (msg.error) reject(new Error(msg.error));
@@ -46,16 +47,17 @@ export function initPool(workerCount) {
                 idle.push(w);
             }
         });
-        w.on('error', (err) => { if (w.currentTask) w.currentTask.reject(err); });
+        w.on('error', (err: any) => { if (w.currentTask) w.currentTask.reject(err); });
         idle.push(w);
         workers.push(w);
     }
 }
 
-export function getScore(img1, img2) {
+export function getScore(img1: string, img2: string): Promise<number> {
     return new Promise((resolve, reject) => {
         if (idle.length > 0) {
             const w = idle.pop();
+            if (!w) return;
             w.currentTask = { resolve, reject, img1, img2 };
             w.send({ img1, img2 });
         } else {
@@ -79,7 +81,7 @@ export function stopPool() {
  * @param {Buffer} referencePngBuffer - Lossless PNG buffer to compare against
  * @param {string} label - Identifier for temp files (e.g. "recap_2025")
  */
-export async function findOptimalQuality(referencePngBuffer: Buffer, label: string) {
+export async function findOptimalQuality(referencePngBuffer: Buffer, label: string = 's2') {
     const refPath = path.join(SSIM_TMP_DIR, `s2_ref_${crypto.randomUUID()}.png`);
     await fs.promises.writeFile(refPath, referencePngBuffer);
 
@@ -90,7 +92,7 @@ export async function findOptimalQuality(referencePngBuffer: Buffer, label: stri
     const startIdx = QUALITY_STEPS.indexOf(75);
     const initialQ = startIdx >= 0 ? QUALITY_STEPS[startIdx] : QUALITY_STEPS[Math.floor(QUALITY_STEPS.length / 2)];
 
-    async function evaluate(q) {
+    async function evaluate(q: number) {
         const compBuf = await sharp(referencePngBuffer).webp({ quality: q, effort: 6 }).toBuffer();
         const compPng = path.join(SSIM_TMP_DIR, `s2_comp_${crypto.randomUUID()}.png`);
         await sharp(compBuf).png().toFile(compPng);
@@ -100,8 +102,9 @@ export async function findOptimalQuality(referencePngBuffer: Buffer, label: stri
             try {
                 score = await getScore(refPath, compPng);
                 break;
-            } catch (err: any) {
-                if (err.message.includes('missing') || err.message.includes('ENOENT')) {
+            } catch (err: unknown) {
+                const errMsg = err instanceof Error ? err.message : String(err);
+                if (errMsg.includes('missing') || errMsg.includes('ENOENT')) {
                     retries--;
                     if (retries === 0) throw err;
                     await new Promise(r => setTimeout(r, 500));
@@ -110,7 +113,7 @@ export async function findOptimalQuality(referencePngBuffer: Buffer, label: stri
                 }
             }
         }
-        try { fs.unlinkSync(compPng); } catch {}
+        try { fs.unlinkSync(compPng); } catch { /* ignore */ }
         return { score, buffer: compBuf };
     }
 
@@ -151,6 +154,6 @@ export async function findOptimalQuality(referencePngBuffer: Buffer, label: stri
         }
     }
 
-    try { fs.unlinkSync(refPath); } catch {}
+    try { fs.unlinkSync(refPath); } catch { /* ignore */ }
     return { quality: bestQ, buffer: bestBuffer };
 }

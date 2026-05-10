@@ -1,9 +1,7 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { useRef, useMemo, useCallback } from 'react';
+import { useRef, useMemo, useCallback, useState } from 'react';
 import ProgressiveImage from '../../ui/ProgressiveImage';
 import type { PhotoInput } from '../../../types';
-
-const CYCLE_SIZE = 10; // Fibonacci packing: 2 large + 3 medium + 5 small
 
 interface VirtualizedAlbumGridProps {
     photos: PhotoInput[];
@@ -27,39 +25,25 @@ export default function VirtualizedAlbumGrid({
 }: VirtualizedAlbumGridProps) {
     const parentRef = useRef<HTMLDivElement>(null);
 
-    // Group photos into rows of CYCLE_SIZE
+    const [cycleSize] = useState(5);
+
+    // Group photos into responsive rows
     const rows = useMemo(() => {
         const groups: PhotoInput[][] = [];
-        for (let i = 0; i < photos.length; i += CYCLE_SIZE) {
-            groups.push(photos.slice(i, i + CYCLE_SIZE));
+        for (let i = 0; i < photos.length; i += cycleSize) {
+            groups.push(photos.slice(i, i + cycleSize));
         }
         return groups;
-    }, [photos]);
+    }, [photos, cycleSize]);
 
-    // Estimate row height based on the grid math:
-    // Desktop: 31-col grid, each col = (containerWidth - 120px gaps) / 31
-    // A full 10-photo cycle spans 15 rows tall (large) + 10 rows (medium) at row height = colWidth * 2/3
-    // The total CSS height for one cycle ≈ (15 * rowUnit) + (10 * rowUnit) where groups stack
-    // Simplified: roughly 1.5 * containerWidth for desktop cycles, 2.5x for mobile
+    // Estimate row height based on the exact grid math
     const estimateRowSize = useCallback(() => {
         const w = parentRef.current?.clientWidth ?? 1200;
-        const isMobile = w <= 600;
-
-        if (isMobile) {
-            // Mobile: 5-col grid, 2 large (span 3x3) + 3 small (span 2x2)
-            // Each cycle visually spans about 5 rows of (colWidth * 2/3) tall
-            const colW = (w - 16) / 5; // 4 gaps of 4px
-            const rowUnit = colW * (2 / 3);
-            // 2 large items at 3 rows each = 6 rows, 3 small at 2 rows each = 6 rows
-            // But they pack dense, so roughly 5 rows visible height
-            return rowUnit * 5 + 4 * 4; // 5 rowUnits + gaps
-        }
-
-        // Desktop: 31-col grid
-        const colW = (w - 120) / 31; // 30 gaps of 4px
-        const rowUnit = colW * (2 / 3);
-        // Fibonacci cycle packs into ~15 row-units tall (the large items span 15)
-        return rowUnit * 15 + 14 * 4; // 15 rowUnits + gaps
+        // Total height = rows * (rowUnit + 4px gap)
+        // Since rowUnit = ((w + 4) / cols) * (2/3) - 4
+        // rowUnit + 4 = ((w + 4) / cols) * (2/3)
+        // 5-photo cycle takes exactly 6 rows
+        return 6 * (((w + 4) / 5) * (2 / 3));
     }, []);
 
     const virtualizer = useVirtualizer({
@@ -87,7 +71,7 @@ export default function VirtualizedAlbumGrid({
             >
                 {virtualizer.getVirtualItems().map((virtualRow) => {
                     const rowPhotos = rows[virtualRow.index];
-                    const startIndex = virtualRow.index * CYCLE_SIZE;
+                    const startIndex = virtualRow.index * cycleSize;
 
                     return (
                         <div
@@ -100,6 +84,7 @@ export default function VirtualizedAlbumGrid({
                                 top: 0,
                                 left: 0,
                                 width: '100%',
+                                paddingBottom: '4px',
                                 transform: `translateY(${virtualRow.start}px)`,
                             }}
                         >

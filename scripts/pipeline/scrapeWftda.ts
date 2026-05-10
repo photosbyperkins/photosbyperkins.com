@@ -1,9 +1,9 @@
-// @ts-nocheck
+// WFTDA Scraper Pipeline
 import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import puppeteer from 'puppeteer';
-import { IndexState } from './types';
+import type { IndexState } from './types';
 import { logger } from './logger';
 
 const URLS_FILE = path.join(process.cwd(), 'data', 'wftda-urls.json');
@@ -50,7 +50,7 @@ export async function scrapeWftda(photosData?: IndexState) {
     const urlsData = JSON.parse(fs.readFileSync(URLS_FILE, 'utf8'));
 
     // Filter down to only teams with valid URLs
-    const targets = Object.entries(urlsData).filter(([, url]) => url !== null);
+    const targets = Object.entries(urlsData).filter(([, url]) => url !== null) as [string, string][];
 
     logger.info(`Found ${targets.length} explicit WFTDA team URLs to scrape.`);
     if (targets.length === 0) {
@@ -59,7 +59,7 @@ export async function scrapeWftda(photosData?: IndexState) {
     }
 
     logger.step('Launching headless browser to scrape results...');
-    const browser = await puppeteer.launch({ headless: 'new' });
+    const browser = await puppeteer.launch({ headless: true });
     const uniqueMatches = new Map();
     const wftdaAliasMap = new Map();
 
@@ -78,7 +78,7 @@ export async function scrapeWftda(photosData?: IndexState) {
                 for (let i = 0; i < elements.length; i++) {
                     const el = elements[i];
                     if (el.classList.contains('gameRow--gameDate')) {
-                        const rawText = el.innerText.trim();
+                        const rawText = (el as HTMLElement).innerText.trim();
                         const d = new Date(rawText);
                         if (!isNaN(d.valueOf())) {
                             const y = d.getFullYear();
@@ -92,7 +92,7 @@ export async function scrapeWftda(photosData?: IndexState) {
                         const games = el.querySelectorAll('a.gameRow.resultRow');
                         for (let j = 0; j < games.length; j++) {
                             const game = games[j];
-                            const href = game.href || game.getAttribute('href');
+                            const href = (game as HTMLAnchorElement).href || game.getAttribute('href');
                             const teams = game.querySelectorAll('.gameRow--teamTitleRow');
                             const scores = game.querySelectorAll('.gameRow--score.resultRow--score');
 
@@ -101,10 +101,10 @@ export async function scrapeWftda(photosData?: IndexState) {
                                     date: currentDate,
                                     eventInfo: 'Match', // Placeholder for compatibility
                                     href: href,
-                                    team1: teams[0].innerText.trim(),
-                                    score1: parseInt(scores[0].innerText.trim(), 10) || 0,
-                                    team2: teams[1].innerText.trim(),
-                                    score2: parseInt(scores[1].innerText.trim(), 10) || 0,
+                                    team1: (teams[0] as HTMLElement).innerText.trim(),
+                                    score1: parseInt((scores[0] as HTMLElement).innerText.trim(), 10) || 0,
+                                    team2: (teams[1] as HTMLElement).innerText.trim(),
+                                    score2: parseInt((scores[1] as HTMLElement).innerText.trim(), 10) || 0,
                                 });
                             }
                         }
@@ -115,13 +115,13 @@ export async function scrapeWftda(photosData?: IndexState) {
 
             // Determine the WFTDA alias for this team
             if (matches.length > 0) {
-                const tally = {};
+                const tally: Record<string, number> = {};
                 for (const m of matches) {
                     tally[m.team1] = (tally[m.team1] || 0) + 1;
                     tally[m.team2] = (tally[m.team2] || 0) + 1;
                 }
 
-                let candidates = [];
+                let candidates: string[] = [];
                 let maxCount = -1;
                 for (const [name, count] of Object.entries(tally)) {
                     if (count > maxCount) {
@@ -150,8 +150,8 @@ export async function scrapeWftda(photosData?: IndexState) {
                 }
             }
             logger.substep(`found ${matches.length} matches.`);
-        } catch (err: any) {
-            logger.error(`failed to scrape ${teamName}:`, err.message);
+        } catch (err: unknown) {
+            logger.error(`failed to scrape ${teamName}:`, err instanceof Error ? err.message : String(err));
         } finally {
             await page.close();
         }
@@ -165,12 +165,12 @@ export async function scrapeWftda(photosData?: IndexState) {
         const rHtml = await rRes.text();
         const trRegex = /<tr[^>]*>(.*?)<\/tr>/gs;
         let match;
-        const rankings = {};
+        const rankings: Record<string, any> = {};
         while ((match = trRegex.exec(rHtml)) !== null) {
             const trContent = match[1];
             const posMatch = trContent.match(/<td class="rankingsTable--position[^>]*>\s*(\d+)\s*<\/td>/);
             const titleMatch = trContent.match(/<td class="rankingsTable--teamTitleColumn[^>]*>.*?<a[^>]*>(.*?)<\/a>/s);
-            const numbers = [...trContent.matchAll(/<td class="rankingsTable--number[^>]*>\s*([\d\.]+)\s*<\/td>/gs)];
+            const numbers = [...trContent.matchAll(/<td class="rankingsTable--number[^>]*>\s*([\d.]+)\s*<\/td>/gs)];
 
             if (posMatch && titleMatch && numbers.length >= 3) {
                 const name = titleMatch[1].trim().replace(/&amp;/g, '&');
@@ -183,7 +183,7 @@ export async function scrapeWftda(photosData?: IndexState) {
             }
         }
 
-        let relevantEvents = [];
+        const relevantEvents: { date: string, teams: string[] }[] = [];
         if (photosData) {
             for (const [year, evts] of Object.entries(photosData)) {
                 for (const title of Object.keys(evts)) {
@@ -217,7 +217,7 @@ export async function scrapeWftda(photosData?: IndexState) {
                 });
             });
 
-        const fingerprint = buildEventFingerprint(photosData as any);
+        const fingerprint = buildEventFingerprint(photosData as IndexState);
         fs.writeFileSync(
             OUTPUT_FILE,
             JSON.stringify({ _eventFingerprint: fingerprint, rankings, matches: matchesArray }, null, 2)

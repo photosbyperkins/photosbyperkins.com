@@ -1,8 +1,7 @@
 import fs from 'fs';
 import path from 'path';
-import crypto from 'crypto';
 import { removeStaleFiles } from './utils.js';
-import { IndexState } from './types.js';
+import type { IndexState } from './types';
 import { logger } from './logger.js';
 const DIST_DIR = path.join(process.cwd(), 'dist');
 
@@ -10,7 +9,7 @@ export async function processAndCopyPhotos(data: IndexState) {
 
     const validDestPaths = new Set<string>();
     const copyTasks: { source: string; dest: string }[] = [];
-    let processingErrors = 0;
+    const processingErrors = 0;
     let filesSkipped = 0;
     let filesCopied = 0;
     let copyErrors = 0;
@@ -149,8 +148,8 @@ export async function processAndCopyPhotos(data: IndexState) {
                 logger.warn(`Source photo not found: ${source}`);
                 copyErrors++;
             }
-        } catch (err: any) {
-            logger.error(`Failed to copy ${source}:`, err.message);
+        } catch (err: unknown) {
+            logger.error(`Failed to copy ${source}:`, err instanceof Error ? err.message : String(err));
             copyErrors++;
         }
     }
@@ -185,8 +184,8 @@ export async function processAndCopyPhotos(data: IndexState) {
                     filesSkipped++;
                 }
             }
-        } catch (err: any) {
-            logger.error(`Failed to copy extra file ${sourcePath}:`, err.message);
+        } catch (err: unknown) {
+            logger.error(`Failed to copy extra file ${sourcePath}:`, err instanceof Error ? err.message : String(err));
             copyErrors++;
         }
     }

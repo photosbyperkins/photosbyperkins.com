@@ -1,7 +1,7 @@
 export const logger = {
     info: (msg: string) => console.log(`ℹ️  ${msg}`),
     success: (msg: string) => console.log(`✅ ${msg}`),
-    error: (msg: string, err?: any) => {
+    error: (msg: string, err?: unknown) => {
         console.error(`❌ ${msg}`);
         if (err) console.error(err);
     },
