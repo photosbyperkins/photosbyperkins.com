@@ -6,7 +6,7 @@ import { useEventAlbum } from '../../../hooks/useEventAlbum';
 import { usePortfolioStore } from '../../../store/usePortfolioStore';
 import { buildFavoritesShareUrl } from '../../../utils/favoritesUrl';
 import { formatTeamName, getPhotoOriginalUrl, parseEventTitle, resolvePhotoInput } from '../../../utils/formatters';
-import { FeaturedGridIcon } from '../../ui/icons';
+import { FullAlbumIcon } from '../../ui/icons';
 import ProgressiveImage from '../../ui/ProgressiveImage';
 import VirtualizedAlbumGrid from './VirtualizedAlbumGrid';
 import PortfolioEventTitle from './PortfolioEventTitle';
@@ -363,7 +363,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
                                 aria-pressed={isGridView}
                                 title="Show Full Album"
                             >
-                                <FeaturedGridIcon size={16} />
+                                <FullAlbumIcon size={16} />
                             </button>
                         </div>
                     )}

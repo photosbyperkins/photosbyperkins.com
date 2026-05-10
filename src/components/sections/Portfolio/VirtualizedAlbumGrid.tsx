@@ -1,5 +1,5 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { useRef, useMemo, useCallback, useState } from 'react';
+import { useRef, useMemo, useCallback, useState, useEffect } from 'react';
 import ProgressiveImage from '../../ui/ProgressiveImage';
 import type { PhotoInput } from '../../../types';
 
@@ -25,7 +25,24 @@ export default function VirtualizedAlbumGrid({
 }: VirtualizedAlbumGridProps) {
     const parentRef = useRef<HTMLDivElement>(null);
 
-    const [cycleSize] = useState(5);
+    const [cycleSize, setCycleSize] = useState(() => {
+        if (typeof window === 'undefined') return 3;
+        const w = window.innerWidth;
+        if (w < 768) return 3;
+        if (w < 1024) return 4;
+        return 5;
+    });
+
+    useEffect(() => {
+        const handleResize = () => {
+            const w = window.innerWidth;
+            if (w < 768) setCycleSize(3);
+            else if (w < 1024) setCycleSize(4);
+            else setCycleSize(5);
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     // Group photos into responsive rows
     const rows = useMemo(() => {
@@ -39,12 +56,12 @@ export default function VirtualizedAlbumGrid({
     // Estimate row height based on the exact grid math
     const estimateRowSize = useCallback(() => {
         const w = parentRef.current?.clientWidth ?? 1200;
-        // Total height = rows * (rowUnit + 4px gap)
+        // Total height = 1 row * (rowUnit + 4px gap)
         // Since rowUnit = ((w + 4) / cols) * (2/3) - 4
         // rowUnit + 4 = ((w + 4) / cols) * (2/3)
-        // 5-photo cycle takes exactly 6 rows
-        return 6 * (((w + 4) / 5) * (2 / 3));
-    }, []);
+        // A single cycle takes exactly 1 row
+        return 1 * (((w + 4) / cycleSize) * (2 / 3));
+    }, [cycleSize]);
 
     const virtualizer = useVirtualizer({
         count: rows.length,

@@ -54,11 +54,11 @@ export const TikTokIcon = ({ size = 18, className, style, ...props }: IconProps)
 );
 
 /**
- * FeaturedGridIcon
- * Custom SVG icon representing a masonry-style photo grid with a scrollbar indicator.
- * Used in the portfolio event toggle between featured and full-album views.
+ * FullAlbumIcon
+ * Custom SVG icon representing a uniform photo grid with a scrollbar indicator.
+ * Used in the portfolio event toggle for full-album views.
  */
-export const FeaturedGridIcon = ({ size = 24, className = '', style, ...props }: IconProps) => (
+export const FullAlbumIcon = ({ size = 24, className = '', style, ...props }: IconProps) => (
     <svg
         xmlns="http://www.w3.org/2000/svg"
         width={size}
@@ -73,16 +73,18 @@ export const FeaturedGridIcon = ({ size = 24, className = '', style, ...props }:
         style={{ flexShrink: 0, ...style }}
         {...props}
     >
-        {/* Left Column (2 Big) */}
-        <rect x="2" y="2" width="7" height="8.5" rx="1" />
-        <rect x="2" y="13.5" width="7" height="8.5" rx="1" />
-        {/* Middle Column (3 Small) */}
-        <rect x="12" y="2" width="6" height="4.66" rx="1" />
-        <rect x="12" y="9.66" width="6" height="4.66" rx="1" />
-        <rect x="12" y="17.33" width="6" height="4.66" rx="1" />
+        {/* Uniform Grid */}
+        <rect x="3" y="3" width="6" height="4" rx="1" />
+        <rect x="3" y="10" width="6" height="4" rx="1" />
+        <rect x="3" y="17" width="6" height="4" rx="1" />
+
+        <rect x="12" y="3" width="6" height="4" rx="1" />
+        <rect x="12" y="10" width="6" height="4" rx="1" />
+        <rect x="12" y="17" width="6" height="4" rx="1" />
+
         {/* Scrollbar */}
-        <path d="M22 2v20" strokeWidth="1" />
-        <path d="M22 2v6" strokeWidth="2" />
+        <path d="M21 3v18" strokeWidth="1" opacity="0.5" />
+        <path d="M21 3v6" strokeWidth="2" />
     </svg>
 );
 
