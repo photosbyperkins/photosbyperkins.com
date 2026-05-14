@@ -1,5 +1,5 @@
 import { useRef, useMemo, useCallback, useState, useEffect } from 'react';
-import { FixedSizeList as List } from 'react-window';
+import { List } from 'react-window';
 import ProgressiveImage from '../../ui/ProgressiveImage';
 import type { PhotoInput } from '../../../types';
 
@@ -32,9 +32,7 @@ export default function VirtualizedAlbumGrid({
         return 5;
     });
 
-    const [windowHeight, setWindowHeight] = useState(
-        typeof window !== 'undefined' ? window.innerHeight : 800
-    );
+    const [windowHeight, setWindowHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 800);
 
     useEffect(() => {
         const handleResize = () => {
@@ -77,22 +75,20 @@ export default function VirtualizedAlbumGrid({
     }, [cycleSize, windowHeight]);
 
     // Window scroll sync state
-    const listRef = useRef<List>(null);
+    const listRef = useRef<any>(null);
     const [offsetY, setOffsetY] = useState(0);
 
     useEffect(() => {
         const handleScroll = () => {
             if (parentRef.current && listRef.current) {
                 const rect = parentRef.current.getBoundingClientRect();
-                // Calculate offset from top of the wrapper
-                // If rect.top > 0, we haven't scrolled down to it yet.
-                // If rect.top < 0, we are scrolling through it.
-                // We cap it so we don't scroll past the bottom.
                 const maxOffset = Math.max(0, actualRowSize * rows.length - windowHeight);
                 const offset = Math.max(0, Math.min(-rect.top, maxOffset));
-                
+
                 setOffsetY(offset);
-                listRef.current.scrollTo(offset);
+                if (listRef.current.element) {
+                    listRef.current.element.scrollTop = offset;
+                }
             }
         };
 
@@ -129,10 +125,16 @@ export default function VirtualizedAlbumGrid({
                                 key={origUrl}
                                 className="portfolio__grid-item"
                                 aria-label={`View ${eventName} photo ${globalIdx + 1}`}
-                                onClick={() =>
-                                    openLightbox(photos, globalIdx, eventName, selectedYear, maxExifChars)
-                                }
-                                style={{ border: 'none', background: 'none', padding: 0, margin: 0, cursor: 'pointer', textAlign: 'left', outline: 'none' }}
+                                onClick={() => openLightbox(photos, globalIdx, eventName, selectedYear, maxExifChars)}
+                                style={{
+                                    border: 'none',
+                                    background: 'none',
+                                    padding: 0,
+                                    margin: 0,
+                                    cursor: 'pointer',
+                                    textAlign: 'left',
+                                    outline: 'none',
+                                }}
                             >
                                 <ProgressiveImage
                                     src={thumbUrl}
@@ -157,19 +159,21 @@ export default function VirtualizedAlbumGrid({
     );
 
     return (
-        <div ref={parentRef} className="portfolio__event-grid--virtual-container" style={{ height: totalHeight, position: 'relative' }}>
+        <div
+            ref={parentRef}
+            className="portfolio__event-grid--virtual-container"
+            style={{ height: totalHeight, position: 'relative' }}
+        >
             <div style={{ position: 'absolute', top: offsetY, left: 0, right: 0, height: windowHeight, zIndex: 1 }}>
                 <List
-                    ref={listRef}
-                    width="100%"
-                    height={windowHeight}
-                    itemCount={rows.length}
-                    itemSize={actualRowSize}
-                    style={{ overflow: 'hidden' }}
+                    listRef={listRef}
+                    rowCount={rows.length}
+                    rowHeight={actualRowSize}
+                    style={{ width: '100%', height: windowHeight, overflow: 'hidden' }}
                     overscanCount={3}
-                >
-                    {Row}
-                </List>
+                    rowComponent={Row as any}
+                    rowProps={{} as any}
+                />
             </div>
         </div>
     );
