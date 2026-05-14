@@ -35,12 +35,12 @@ export default function About() {
                     closeAbout();
                 }
             };
-            document.addEventListener('keydown', handleKeyDown);
+            window.addEventListener('keydown', handleKeyDown);
 
             return () => {
                 document.body.style.overflow = '';
                 document.body.style.paddingRight = '';
-                document.removeEventListener('keydown', handleKeyDown);
+                window.removeEventListener('keydown', handleKeyDown);
                 if (previousFocusRef.current instanceof HTMLElement) {
                     previousFocusRef.current.focus();
                 }
