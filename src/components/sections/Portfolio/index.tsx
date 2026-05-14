@@ -1,7 +1,7 @@
 import { useInView } from 'framer-motion';
 import Fuse from 'fuse.js';
 import { Search, X, Heart } from 'lucide-react';
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { matchPath, useLocation, Link } from 'react-router-dom';
 import { usePortfolioData } from '../../../hooks/usePortfolioData';
@@ -10,10 +10,12 @@ import { useStickyHeader } from '../../../hooks/useStickyHeader';
 import { usePortfolioStore } from '../../../store/usePortfolioStore';
 import { formatTeamName, parseEventTitle } from '../../../utils/formatters';
 import Recap from '../Recap';
-import LightboxContainer from './LightboxContainer';
 import PortfolioEvent from './PortfolioEvent';
 import SharedFavoritesPanel from './SharedFavoritesPanel';
-import GlobalSearchOverlay from './GlobalSearchOverlay';
+
+const LightboxContainer = React.lazy(() => import('./LightboxContainer'));
+const GlobalSearchOverlay = React.lazy(() => import('./GlobalSearchOverlay'));
+
 import { useSharedFavorites } from '../../../hooks/useSharedFavorites';
 import '../../../styles/_portfolio.scss';
 
@@ -109,7 +111,10 @@ export default function Portfolio({ years }: PortfolioProps) {
         if (hasFetchedTeams.current) return;
         hasFetchedTeams.current = true;
         fetch(`/data/teams/index.json?build=${__BUILD_NUMBER__}`)
-            .then((res) => res.json())
+            .then((res) => {
+                if (!res.ok) throw new Error('Failed to fetch teams index');
+                return res.json();
+            })
             .then((data) => setTeamIndex(data))
             .catch((err) => console.error('Failed to load teams index:', err));
     }, []);
@@ -320,19 +325,25 @@ export default function Portfolio({ years }: PortfolioProps) {
                 </div>
             </div>
 
-            <GlobalSearchOverlay
-                isOpen={isGlobalSearchOpen}
-                onClose={() => {
-                    setIsGlobalSearchOpen(false);
-                    setTeamSearchQuery('');
-                }}
-                teamSearchQuery={teamSearchQuery}
-                setTeamSearchQuery={setTeamSearchQuery}
-                filteredTeams={filteredTeams}
-                isTeamIndexLoading={teamIndex.length === 0}
-            />
+            <Suspense fallback={null}>
+                {isGlobalSearchOpen && (
+                    <GlobalSearchOverlay
+                        isOpen={isGlobalSearchOpen}
+                        onClose={() => {
+                            setIsGlobalSearchOpen(false);
+                            setTeamSearchQuery('');
+                        }}
+                        teamSearchQuery={teamSearchQuery}
+                        setTeamSearchQuery={setTeamSearchQuery}
+                        filteredTeams={filteredTeams}
+                        isTeamIndexLoading={teamIndex.length === 0}
+                    />
+                )}
+            </Suspense>
 
-            <LightboxContainer />
+            <Suspense fallback={null}>
+                <LightboxContainer />
+            </Suspense>
 
             {!isGlobalSearchOpen && selectedTab !== 'favorites' && (
                 <div className="portfolio__global-floating-container">

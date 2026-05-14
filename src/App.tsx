@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense, lazy } from 'react';
 import { useLocation } from 'react-router-dom';
-import About from './components/sections/About';
 import Nav from './components/sections/Nav';
-import Portfolio from './components/sections/Portfolio';
 import { GithubIcon, FacebookIcon, InstagramIcon } from './components/ui/icons';
+
+const About = lazy(() => import('./components/sections/About'));
+const Portfolio = lazy(() => import('./components/sections/Portfolio'));
 
 function Footer() {
     return (
@@ -90,7 +91,10 @@ export default function App() {
 
     useEffect(() => {
         fetch(`/data/index.json?build=${__BUILD_NUMBER__}`)
-            .then((res) => res.json())
+            .then((res) => {
+                if (!res.ok) throw new Error('Network response was not ok');
+                return res.json();
+            })
             .then((data) => setIndexData(data))
             .catch((err) => console.error('Failed to load photo index:', err));
     }, []);
@@ -100,10 +104,16 @@ export default function App() {
             <ScrollToMountTarget />
             <main>
                 <Nav />
-                {indexData && <Portfolio years={indexData.years} />}
+                {indexData && (
+                    <Suspense fallback={null}>
+                        <Portfolio years={indexData.years} />
+                    </Suspense>
+                )}
             </main>
             <Footer />
-            <About />
+            <Suspense fallback={null}>
+                <About />
+            </Suspense>
         </>
     );
 }

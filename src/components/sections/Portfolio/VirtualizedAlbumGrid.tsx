@@ -1,5 +1,5 @@
-import { useVirtualizer } from '@tanstack/react-virtual';
 import { useRef, useMemo, useCallback, useState, useEffect } from 'react';
+import { FixedSizeList as List } from 'react-window';
 import ProgressiveImage from '../../ui/ProgressiveImage';
 import type { PhotoInput } from '../../../types';
 
@@ -12,9 +12,8 @@ interface VirtualizedAlbumGridProps {
 }
 
 /**
- * Renders a virtualized album grid for large albums (50+ photos).
- * Groups photos into rows of 10 (matching the Fibonacci cycle in CSS)
- * and only renders rows that are visible in the viewport.
+ * Renders a virtualized album grid using react-window.
+ * Handles window-level scrolling via a custom wrapper.
  */
 export default function VirtualizedAlbumGrid({
     photos,
@@ -33,18 +32,22 @@ export default function VirtualizedAlbumGrid({
         return 5;
     });
 
+    const [windowHeight, setWindowHeight] = useState(
+        typeof window !== 'undefined' ? window.innerHeight : 800
+    );
+
     useEffect(() => {
         const handleResize = () => {
             const w = window.innerWidth;
             if (w < 768) setCycleSize(3);
             else if (w < 1024) setCycleSize(4);
             else setCycleSize(5);
+            setWindowHeight(window.innerHeight);
         };
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Group photos into responsive rows
     const rows = useMemo(() => {
         const groups: PhotoInput[][] = [];
         for (let i = 0; i < photos.length; i += cycleSize) {
@@ -53,98 +56,120 @@ export default function VirtualizedAlbumGrid({
         return groups;
     }, [photos, cycleSize]);
 
-    // Estimate row height based on the exact grid math
-    const estimateRowSize = useCallback(() => {
-        const w = parentRef.current?.clientWidth ?? 1200;
-        // Total height = 1 row * (rowUnit + 4px gap)
-        // Since rowUnit = ((w + 4) / cols) * (2/3) - 4
-        // rowUnit + 4 = ((w + 4) / cols) * (2/3)
-        // A single cycle takes exactly 1 row
+    // Calculate row height
+    const rowSize = useMemo(() => {
+        const w = typeof window !== 'undefined' ? window.innerWidth : 1200;
+        // Approximation of the container width (container has max-width and padding usually)
+        // For simplicity we estimate based on window width or a ref if available.
+        // Let's use a dynamic getter in the render or a fixed estimate.
+        // The original logic used parentRef.current?.clientWidth ?? 1200
+        // We will compute it on mount/resize.
         return 1 * (((w + 4) / cycleSize) * (2 / 3));
     }, [cycleSize]);
 
-    const virtualizer = useVirtualizer({
-        count: rows.length,
-        getScrollElement: () => parentRef.current?.closest('[style*="overflow"]') ?? window.document.documentElement,
-        estimateSize: estimateRowSize,
-        overscan: 3,
-        // CRITICAL BUGFIX: react-virtual v3 forces a layout-sync scroll to 0 during _willUpdate
-        // when the container height changes drastically. Since we use window-level scrolling,
-        // we NEVER want the virtualizer to hijack the window scroll position.
-        scrollToFn: () => {},
-    });
+    // Calculate actual row size after mount to be precise
+    const [actualRowSize, setActualRowSize] = useState(rowSize);
+    useEffect(() => {
+        if (parentRef.current) {
+            const w = parentRef.current.clientWidth;
+            setActualRowSize(1 * (((w + 4) / cycleSize) * (2 / 3)));
+        }
+    }, [cycleSize, windowHeight]);
 
-    // Disable item size change adjustments just in case
-    virtualizer.shouldAdjustScrollPositionOnItemSizeChange = () => false;
+    // Window scroll sync state
+    const listRef = useRef<List>(null);
+    const [offsetY, setOffsetY] = useState(0);
+
+    useEffect(() => {
+        const handleScroll = () => {
+            if (parentRef.current && listRef.current) {
+                const rect = parentRef.current.getBoundingClientRect();
+                // Calculate offset from top of the wrapper
+                // If rect.top > 0, we haven't scrolled down to it yet.
+                // If rect.top < 0, we are scrolling through it.
+                // We cap it so we don't scroll past the bottom.
+                const maxOffset = Math.max(0, actualRowSize * rows.length - windowHeight);
+                const offset = Math.max(0, Math.min(-rect.top, maxOffset));
+                
+                setOffsetY(offset);
+                listRef.current.scrollTo(offset);
+            }
+        };
+
+        window.addEventListener('scroll', handleScroll, { passive: true });
+        handleScroll(); // Initialize
+        return () => window.removeEventListener('scroll', handleScroll);
+    }, [actualRowSize, rows.length, windowHeight]);
+
+    const totalHeight = actualRowSize * rows.length;
+
+    const Row = useCallback(
+        ({ index, style }: { index: number; style: React.CSSProperties }) => {
+            const rowPhotos = rows[index];
+            const startIndex = index * cycleSize;
+
+            return (
+                <div
+                    className="portfolio__event-grid portfolio__event-grid--virtual-row"
+                    style={{
+                        ...style,
+                        width: '100%',
+                        paddingBottom: '4px',
+                    }}
+                >
+                    {rowPhotos.map((url, i) => {
+                        const globalIdx = startIndex + i;
+                        const origUrl = typeof url === 'string' ? url : url.original;
+                        const thumbUrl = typeof url === 'string' ? url : url.thumb || url.original;
+                        const focusX = typeof url === 'string' ? undefined : url.focusX;
+                        const focusY = typeof url === 'string' ? undefined : url.focusY;
+
+                        return (
+                            <button
+                                key={origUrl}
+                                className="portfolio__grid-item"
+                                aria-label={`View ${eventName} photo ${globalIdx + 1}`}
+                                onClick={() =>
+                                    openLightbox(photos, globalIdx, eventName, selectedYear, maxExifChars)
+                                }
+                                style={{ border: 'none', background: 'none', padding: 0, margin: 0, cursor: 'pointer', textAlign: 'left', outline: 'none' }}
+                            >
+                                <ProgressiveImage
+                                    src={thumbUrl}
+                                    placeholder={null}
+                                    alt={`${eventName} photo ${globalIdx + 1}`}
+                                    onClick={() =>
+                                        openLightbox(photos, globalIdx, eventName, selectedYear, maxExifChars)
+                                    }
+                                    objectPosition={
+                                        focusX != null && focusY != null
+                                            ? `${focusX * 100}% ${focusY * 100}%`
+                                            : 'center'
+                                    }
+                                />
+                            </button>
+                        );
+                    })}
+                </div>
+            );
+        },
+        [rows, cycleSize, eventName, selectedYear, maxExifChars, photos, openLightbox]
+    );
 
     return (
-        <div ref={parentRef} className="portfolio__event-grid--virtual-container">
-            <div
-                style={{
-                    height: `${virtualizer.getTotalSize()}px`,
-                    width: '100%',
-                    position: 'relative',
-                }}
-            >
-                {virtualizer.getVirtualItems().map((virtualRow) => {
-                    const rowPhotos = rows[virtualRow.index];
-                    const startIndex = virtualRow.index * cycleSize;
-
-                    return (
-                        <div
-                            key={virtualRow.key}
-                            data-index={virtualRow.index}
-                            ref={virtualizer.measureElement}
-                            className="portfolio__event-grid portfolio__event-grid--virtual-row"
-                            style={{
-                                position: 'absolute',
-                                top: 0,
-                                left: 0,
-                                width: '100%',
-                                paddingBottom: '4px',
-                                transform: `translateY(${virtualRow.start}px)`,
-                            }}
-                        >
-                            {rowPhotos.map((url, i) => {
-                                const globalIdx = startIndex + i;
-                                const origUrl = typeof url === 'string' ? url : url.original;
-                                const thumbUrl = typeof url === 'string' ? url : url.thumb || url.original;
-                                const focusX = typeof url === 'string' ? undefined : url.focusX;
-                                const focusY = typeof url === 'string' ? undefined : url.focusY;
-
-                                return (
-                                    <div
-                                        key={origUrl}
-                                        className="portfolio__grid-item"
-                                        role="button"
-                                        tabIndex={0}
-                                        aria-label={`View ${eventName} photo ${globalIdx + 1}`}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter' || e.key === ' ') {
-                                                e.preventDefault();
-                                                openLightbox(photos, globalIdx, eventName, selectedYear, maxExifChars);
-                                            }
-                                        }}
-                                    >
-                                        <ProgressiveImage
-                                            src={thumbUrl}
-                                            placeholder={null}
-                                            alt={`${eventName} photo ${globalIdx + 1}`}
-                                            onClick={() =>
-                                                openLightbox(photos, globalIdx, eventName, selectedYear, maxExifChars)
-                                            }
-                                            objectPosition={
-                                                focusX != null && focusY != null
-                                                    ? `${focusX * 100}% ${focusY * 100}%`
-                                                    : 'center'
-                                            }
-                                        />
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    );
-                })}
+        <div ref={parentRef} className="portfolio__event-grid--virtual-container" style={{ height: totalHeight, position: 'relative' }}>
+            <div style={{ position: 'absolute', top: offsetY, left: 0, right: 0, height: windowHeight, zIndex: 1 }}>
+                <List
+                    ref={listRef}
+                    width="100%"
+                    height={windowHeight}
+                    itemCount={rows.length}
+                    itemSize={actualRowSize}
+                    style={{ overflow: 'hidden' }}
+                    overscanCount={3}
+                >
+                    {Row}
+                </List>
             </div>
         </div>
     );
