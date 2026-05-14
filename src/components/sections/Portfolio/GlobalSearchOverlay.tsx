@@ -1,4 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
+import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import TeamFilter from './TeamFilter';
 
@@ -25,6 +26,17 @@ export default function GlobalSearchOverlay({
     filteredTeams,
     isTeamIndexLoading,
 }: GlobalSearchOverlayProps) {
+    useEffect(() => {
+        if (!isOpen) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                onClose();
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, onClose]);
+
     if (typeof document === 'undefined') return null;
 
     return createPortal(
