@@ -4,12 +4,19 @@
     width: 100vw;
     margin-left: calc(50% - 50vw);
     margin-right: calc(50% - 50vw);
-    padding: 0 0 2rem 0;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     background-color: transparent;
+
+    &__footer {
+        width: 100%;
+        max-width: 1400px;
+        padding: 0 1rem;
+        margin-top: 1rem;
+        margin-bottom: 2rem;
+    }
 
     &__grid {
         position: relative;

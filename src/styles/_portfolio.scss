@@ -479,6 +479,98 @@
             -webkit-backface-visibility: hidden;
         }
     }
+
+    &__season-summary {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+    }
+
+    &__season-strip {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        padding: 0;
+        gap: 2rem;
+
+        &::before,
+        &::after {
+            content: '';
+            height: 1px;
+            flex: 1;
+            background: linear-gradient(to right, transparent, var(--color-border));
+        }
+
+        &::after {
+            background: linear-gradient(to left, transparent, var(--color-border));
+        }
+
+        @media (max-width: 900px) {
+            gap: 1rem;
+
+            &::before,
+            &::after {
+                // Keep the lines on mobile, but let them shrink as needed
+                min-width: 1rem;
+            }
+        }
+        
+        @media (max-width: 400px) {
+            &::before,
+            &::after {
+                display: none; // Only drop lines on tiny screens
+            }
+        }
+    }
+
+    &__season-stat-compact {
+        display: flex;
+        align-items: baseline;
+        justify-content: center;
+        gap: 0.4rem;
+        white-space: nowrap;
+
+        &--lens {
+            @media (max-width: 1000px) {
+                display: none;
+            }
+        }
+        
+        &--camera {
+            @media (max-width: 800px) {
+                display: none;
+            }
+        }
+        
+        &--first-seen {
+            @media (max-width: 650px) {
+                display: none;
+            }
+        }
+        
+        &--photos {
+            @media (max-width: 500px) {
+                display: none;
+            }
+        }
+
+        .portfolio__season-stat-label {
+            font-family: var(--font-condensed);
+            font-size: 0.8rem;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--color-text-muted);
+        }
+
+        .portfolio__season-stat-value {
+            font-family: var(--font-condensed);
+            font-size: 1.15rem;
+            letter-spacing: 0.05em;
+            color: var(--color-text);
+            font-weight: 600;
+        }
+    }
 }
 
 // Shared favorites banner

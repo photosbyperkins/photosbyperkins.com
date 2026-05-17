@@ -226,7 +226,10 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
         return bestMatch;
     }
 
-    for (const year of Object.keys(data)) {
+    const sortedGlobalYears = Object.keys(data).sort((a, b) => parseInt(a) - parseInt(b));
+    const globalSeenTeams = new Set<string>();
+
+    for (const year of sortedGlobalYears) {
         const yearData = data[year];
         const processedYearData: Record<string, { recapImages?: any[]; hero?: any; highlights?: any[]; wftdaMatch?: any; wftdaRankings?: any; [key: string]: any }> = {};
         const yearAlbumsDir = path.join(ALBUMS_DIR, year);
@@ -234,6 +237,11 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
         if (!fs.existsSync(yearAlbumsDir)) {
             fs.mkdirSync(yearAlbumsDir, { recursive: true });
         }
+
+        const teamCounts: Record<string, number> = {};
+        const cameraCounts: Record<string, number> = {};
+        const lensCounts: Record<string, number> = {};
+        const firstSeenTeams = new Set<string>();
 
         const sortedYearEntries = Object.entries(yearData).sort((a, b) => {
             const [nameA, eventA] = a;
@@ -273,10 +281,12 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
             });
             fs.writeFileSync(albumFile, JSON.stringify(cleanAlbum, null, 0));
 
-            // Pre-compute the widest EXIF string length so the Lightbox never scans at runtime
             let maxExifChars = 0;
             for (const img of (event.album || [])) {
                 if (img && typeof img === 'object' && img.exif) {
+                    if (img.exif.cameraModel) cameraCounts[img.exif.cameraModel] = (cameraCounts[img.exif.cameraModel] || 0) + 1;
+                    if (img.exif.lens) lensCounts[img.exif.lens] = (lensCounts[img.exif.lens] || 0) + 1;
+
                     const top = [img.exif.cameraModel, img.exif.lens].filter(Boolean).join(' \u2022 ');
                     const bottom = [img.exif.focalLength, img.exif.aperture, img.exif.shutterSpeed, img.exif.iso].filter(Boolean).join(' \u2022 ');
                     if (top.length > maxExifChars) maxExifChars = top.length;
@@ -347,6 +357,20 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
 
                 finalTeams.forEach((teamRawName) => {
                     const cleanName = teamRawName.replace(/\s+/g, ' ').trim();
+                    const isHomeTeam = cleanName.toLowerCase().includes('sacramento');
+
+                    if (!isHomeTeam) {
+                        teamCounts[cleanName] = (teamCounts[cleanName] || 0) + 1;
+                        
+                        if (!globalSeenTeams.has(cleanName)) {
+                            globalSeenTeams.add(cleanName);
+                            // Do not track "First Seen" for the very first baseline year, as every team would be new.
+                            if (year !== sortedGlobalYears[0]) {
+                                firstSeenTeams.add(cleanName);
+                            }
+                        }
+                    }
+                    
                     const teamSlug = slugify(cleanName);
                     if (!teamSlug) return;
                     if (!globalTeamsList[teamSlug]) {
@@ -421,7 +445,29 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
             }
         }
 
-        writeChunkedFile(YEARS_DIR, year, processedYearData, { recapCount: recapImages.length, recapEvents });
+        const getMostFrequent = (counts: Record<string, number>, requireMultiple: boolean = false) => {
+            let maxCount = 0;
+            let mostFrequent = null;
+            for (const [item, count] of Object.entries(counts)) {
+                if (count > maxCount) {
+                    maxCount = count;
+                    mostFrequent = item;
+                }
+            }
+            if (requireMultiple && maxCount <= 1) {
+                return null;
+            }
+            return mostFrequent;
+        };
+
+        const yearStats = {
+            mostSeenTeam: getMostFrequent(teamCounts, true),
+            mostUsedCamera: getMostFrequent(cameraCounts),
+            mostUsedLens: getMostFrequent(lensCounts),
+            firstSeenTeams: Array.from(firstSeenTeams),
+        };
+
+        writeChunkedFile(YEARS_DIR, year, processedYearData, { recapCount: recapImages.length, recapEvents, stats: yearStats });
         // logger.info(`Chunked year: ${year} into parts with ${Object.keys(processedYearData).length} albums`);
     }
 

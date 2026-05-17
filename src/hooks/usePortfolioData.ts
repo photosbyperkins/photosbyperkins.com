@@ -11,6 +11,7 @@ interface CachedYearPayload {
     recapCount: number;
     recapEvents: { eventName: string; photoIndex: number }[];
     nextPart: string | null;
+    stats?: { mostSeenTeam?: string | null; mostUsedCamera?: string | null; mostUsedLens?: string | null; firstSeenTeams?: string[] };
 }
 const yearDataCache: Record<string, CachedYearPayload> = {};
 
@@ -19,6 +20,7 @@ interface FetchPayload {
     recapCount?: number;
     recapEvents?: { eventName: string; photoIndex: number }[];
     nextPart?: string | null;
+    stats?: { mostSeenTeam?: string | null; mostUsedCamera?: string | null; mostUsedLens?: string | null; firstSeenTeams?: string[] };
 }
 
 declare const __BUILD_NUMBER__: string;
@@ -33,6 +35,9 @@ export function usePortfolioData({ selectedTab, years, onDataLoadAction }: UsePo
     const [yearData, setYearData] = useState<YearData>({});
     const [recapCount, setRecapCount] = useState<number>(0);
     const [recapEvents, setRecapEvents] = useState<{ eventName: string; photoIndex: number }[]>([]);
+    const [stats, setStats] = useState<
+        { mostSeenTeam?: string | null; mostUsedCamera?: string | null; mostUsedLens?: string | null; firstSeenTeams?: string[] } | undefined
+    >();
 
     // Performance locking mechanism to pause background loading while Recap loads
     const [isRecapLoaded, setIsRecapLoaded] = useState(true);
@@ -77,6 +82,7 @@ export function usePortfolioData({ selectedTab, years, onDataLoadAction }: UsePo
             });
             setRecapCount(0);
             setRecapEvents([]);
+            setStats(undefined);
             setIsRecapLoaded(true);
         }
     }, [selectedTab, displayFavorites]);
@@ -98,6 +104,7 @@ export function usePortfolioData({ selectedTab, years, onDataLoadAction }: UsePo
                     setYearData(cached.events);
                     setRecapCount(cached.recapCount);
                     setRecapEvents(cached.recapEvents);
+                    setStats(cached.stats);
                     setIsRecapLoaded(true);
                     if (cached.nextPart) setPendingNextPart(cached.nextPart);
                     if (onDataLoadAction) onDataLoadAction();
@@ -120,6 +127,7 @@ export function usePortfolioData({ selectedTab, years, onDataLoadAction }: UsePo
                             if (!accumulate) {
                                 setRecapCount(data.recapCount || 0);
                                 setRecapEvents(data.recapEvents || []);
+                                setStats(data.stats);
 
                                 // Store first-part result so future switches are instant.
                                 yearDataCache[tabSlug] = {
@@ -127,6 +135,7 @@ export function usePortfolioData({ selectedTab, years, onDataLoadAction }: UsePo
                                     recapCount: data.recapCount || 0,
                                     recapEvents: data.recapEvents || [],
                                     nextPart: data.nextPart ?? null,
+                                    stats: data.stats,
                                 };
 
                                 // If there is no recap, unlock background fetching immediately
@@ -152,6 +161,7 @@ export function usePortfolioData({ selectedTab, years, onDataLoadAction }: UsePo
                                     recapCount: data.recapCount || 0,
                                     recapEvents: data.recapEvents || [],
                                     nextPart: data.nextPart ?? null,
+                                    stats: data.stats,
                                 };
                             }
                         }
@@ -239,6 +249,7 @@ export function usePortfolioData({ selectedTab, years, onDataLoadAction }: UsePo
         yearData,
         recapCount,
         recapEvents,
+        stats,
         setIsRecapLoaded,
     };
 }

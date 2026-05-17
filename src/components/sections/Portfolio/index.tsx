@@ -1,6 +1,6 @@
 import { useInView } from 'framer-motion';
 import Fuse from 'fuse.js';
-import { Search, X, Heart } from 'lucide-react';
+import { Search, X, Heart, Users, Camera, Aperture } from 'lucide-react';
 import React, { useState, useRef, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { matchPath, useLocation, Link } from 'react-router-dom';
@@ -8,7 +8,7 @@ import { usePortfolioData } from '../../../hooks/usePortfolioData';
 import { usePortfolioScroll } from '../../../hooks/usePortfolioScroll';
 import { useStickyHeader } from '../../../hooks/useStickyHeader';
 import { usePortfolioStore } from '../../../store/usePortfolioStore';
-import { formatTeamName, parseEventTitle } from '../../../utils/formatters';
+import { formatTeamName, getTeamNameFormats, parseEventTitle } from '../../../utils/formatters';
 import Recap from '../Recap';
 import PortfolioEvent from './PortfolioEvent';
 import SharedFavoritesPanel from './SharedFavoritesPanel';
@@ -155,7 +155,7 @@ export default function Portfolio({ years }: PortfolioProps) {
 
     const { sharedFavorites, clearSharedFavorites } = useSharedFavorites();
 
-    const { yearData, recapCount, recapEvents, setIsRecapLoaded } = usePortfolioData({
+    const { yearData, recapCount, recapEvents, stats, setIsRecapLoaded } = usePortfolioData({
         selectedTab,
         years,
         onDataLoadAction: handleDataLoad,
@@ -164,6 +164,23 @@ export default function Portfolio({ years }: PortfolioProps) {
     const events = Object.entries(yearData);
 
     const isTeamMode = !years.includes(selectedTab);
+
+    const totalPhotos = useMemo(() => {
+        return events.reduce((sum, [, ev]) => sum + ((ev as any).photoCount || 0), 0);
+    }, [events]);
+
+    const firstSeenTeam = useMemo(() => {
+        if (!stats?.firstSeenTeams || stats.firstSeenTeams.length === 0) return null;
+        // Seeded by selectedTab (year string) so it doesn't flicker on re-renders but is random per year
+        const seed = parseInt(selectedTab) || Math.random();
+        const index = Math.floor(Math.abs(Math.sin(seed) * 10000)) % stats.firstSeenTeams.length;
+        return stats.firstSeenTeams[index];
+    }, [stats?.firstSeenTeams, selectedTab]);
+
+    // If there are very few events in a year (like 2020 or 2024), "Most Seen" is not 
+    // statistically meaningful because almost every team is only seen once.
+    // In these cases, we swap the stat out for "First Seen".
+    const hasEnoughEventsForMostSeen = events.length > 5;
 
     // In team mode, build a list of rows: either an event entry or a year-divider string.
     type EventRow =
@@ -293,7 +310,57 @@ export default function Portfolio({ years }: PortfolioProps) {
                             overlayText={selectedTab}
                             isYear={true}
                             onRecapLoadComplete={() => setIsRecapLoaded(true)}
-                        />
+                        >
+                            {stats && (
+                                <div className="portfolio__season-summary">
+                                    <div className="portfolio__season-strip">
+                                        <div className="portfolio__season-stat-compact portfolio__season-stat-compact--events">
+                                            <span className="portfolio__season-stat-label">Events</span>
+                                            <span className="portfolio__season-stat-value">{events.length}</span>
+                                        </div>
+                                        {totalPhotos > 0 && (
+                                            <div className="portfolio__season-stat-compact portfolio__season-stat-compact--photos">
+                                                <span className="portfolio__season-stat-label">Photos</span>
+                                                <span className="portfolio__season-stat-value">{totalPhotos.toLocaleString()}</span>
+                                            </div>
+                                        )}
+                                        {hasEnoughEventsForMostSeen && stats.mostSeenTeam ? (
+                                            <div className="portfolio__season-stat-compact portfolio__season-stat-compact--team">
+                                                <span className="portfolio__season-stat-label">Most Seen</span>
+                                                <span className="portfolio__season-stat-value" title={stats.mostSeenTeam}>
+                                                    {getTeamNameFormats(stats.mostSeenTeam).short || stats.mostSeenTeam}
+                                                </span>
+                                            </div>
+                                        ) : firstSeenTeam ? (
+                                            <div className="portfolio__season-stat-compact portfolio__season-stat-compact--first-seen">
+                                                <span className="portfolio__season-stat-label">First Seen</span>
+                                                <span className="portfolio__season-stat-value" title={firstSeenTeam}>
+                                                    {getTeamNameFormats(firstSeenTeam).short || firstSeenTeam}
+                                                </span>
+                                            </div>
+                                        ) : null}
+                                        {stats.mostUsedCamera && (
+                                            <div className="portfolio__season-stat-compact portfolio__season-stat-compact--camera">
+                                                <span className="portfolio__season-stat-label">
+                                                    <Heart size={10} style={{ display: 'inline', marginRight: '4px', transform: 'translateY(-1px)' }} fill="var(--color-text-muted)" />
+                                                    Camera
+                                                </span>
+                                                <span className="portfolio__season-stat-value">{stats.mostUsedCamera}</span>
+                                            </div>
+                                        )}
+                                        {stats.mostUsedLens && (
+                                            <div className="portfolio__season-stat-compact portfolio__season-stat-compact--lens">
+                                                <span className="portfolio__season-stat-label">
+                                                    <Heart size={10} style={{ display: 'inline', marginRight: '4px', transform: 'translateY(-1px)' }} fill="var(--color-text-muted)" />
+                                                    Lens
+                                                </span>
+                                                <span className="portfolio__season-stat-value">{stats.mostUsedLens}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+                        </Recap>
                     </div>
                 )}
                 <div ref={sentinelRef} style={{ height: '1px' }} aria-hidden="true" />

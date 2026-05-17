@@ -23,6 +23,7 @@ interface RecapProps {
     overlayText?: string;
     isYear?: boolean;
     onRecapLoadComplete?: () => void;
+    children?: React.ReactNode;
 }
 interface RecapSliceItemProps {
     sliceIndex: number;
@@ -89,7 +90,7 @@ const RecapSliceItem = memo(function RecapSliceItem({
     );
 });
 
-export default function Recap({ slug, count, events, overlayText, isYear, onRecapLoadComplete }: RecapProps) {
+export default function Recap({ slug, count, events, overlayText, isYear, onRecapLoadComplete, children }: RecapProps) {
     const sectionRef = useRef<HTMLDivElement>(null);
     const { width } = useElementSize(sectionRef);
     const visibleCount = Math.max(6, Math.min(48, Math.floor((width || 65 * 6) / 65)));
@@ -229,6 +230,7 @@ export default function Recap({ slug, count, events, overlayText, isYear, onReca
                     </div>
                 )}
             </div>
+            {children && <div className="recap__footer">{children}</div>}
         </section>
     );
 }
