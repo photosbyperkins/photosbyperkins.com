@@ -515,7 +515,7 @@
                 min-width: 1rem;
             }
         }
-        
+
         @media (max-width: 400px) {
             &::before,
             &::after {
@@ -536,19 +536,19 @@
                 display: none;
             }
         }
-        
+
         &--camera {
             @media (max-width: 800px) {
                 display: none;
             }
         }
-        
+
         &--first-seen {
             @media (max-width: 650px) {
                 display: none;
             }
         }
-        
+
         &--photos {
             @media (max-width: 500px) {
                 display: none;

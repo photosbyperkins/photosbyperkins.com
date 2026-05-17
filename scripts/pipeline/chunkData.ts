@@ -445,25 +445,22 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
             }
         }
 
-        const getMostFrequent = (counts: Record<string, number>, requireMultiple: boolean = false) => {
+        const getMostFrequent = (counts: Record<string, number>): string[] => {
             let maxCount = 0;
-            let mostFrequent = null;
-            for (const [item, count] of Object.entries(counts)) {
-                if (count > maxCount) {
-                    maxCount = count;
-                    mostFrequent = item;
-                }
+            for (const count of Object.values(counts)) {
+                if (count > maxCount) maxCount = count;
             }
-            if (requireMultiple && maxCount <= 1) {
-                return null;
-            }
-            return mostFrequent;
+            if (maxCount === 0) return [];
+            
+            return Object.entries(counts)
+                .filter(([, count]) => count === maxCount)
+                .map(([item]) => item);
         };
 
         const yearStats = {
-            mostSeenTeam: getMostFrequent(teamCounts, true),
-            mostUsedCamera: getMostFrequent(cameraCounts),
-            mostUsedLens: getMostFrequent(lensCounts),
+            mostSeenTeams: getMostFrequent(teamCounts),
+            mostUsedCamera: getMostFrequent(cameraCounts)[0] || null,
+            mostUsedLens: getMostFrequent(lensCounts)[0] || null,
             firstSeenTeams: Array.from(firstSeenTeams),
         };
 

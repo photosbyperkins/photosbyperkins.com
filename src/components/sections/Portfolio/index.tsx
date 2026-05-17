@@ -177,7 +177,14 @@ export default function Portfolio({ years }: PortfolioProps) {
         return stats.firstSeenTeams[index];
     }, [stats?.firstSeenTeams, selectedTab]);
 
-    // If there are very few events in a year (like 2020 or 2024), "Most Seen" is not 
+    const mostSeenTeam = useMemo(() => {
+        if (!stats?.mostSeenTeams || stats.mostSeenTeams.length === 0) return null;
+        const seed = parseInt(selectedTab) || Math.random();
+        const index = Math.floor(Math.abs(Math.sin(seed) * 10000)) % stats.mostSeenTeams.length;
+        return stats.mostSeenTeams[index];
+    }, [stats?.mostSeenTeams, selectedTab]);
+
+    // If there are very few events in a year (like 2020 or 2024), "Most Seen" is not
     // statistically meaningful because almost every team is only seen once.
     // In these cases, we swap the stat out for "First Seen".
     const hasEnoughEventsForMostSeen = events.length > 5;
@@ -321,14 +328,16 @@ export default function Portfolio({ years }: PortfolioProps) {
                                         {totalPhotos > 0 && (
                                             <div className="portfolio__season-stat-compact portfolio__season-stat-compact--photos">
                                                 <span className="portfolio__season-stat-label">Photos</span>
-                                                <span className="portfolio__season-stat-value">{totalPhotos.toLocaleString()}</span>
+                                                <span className="portfolio__season-stat-value">
+                                                    {totalPhotos.toLocaleString()}
+                                                </span>
                                             </div>
                                         )}
-                                        {hasEnoughEventsForMostSeen && stats.mostSeenTeam ? (
+                                        {hasEnoughEventsForMostSeen && mostSeenTeam ? (
                                             <div className="portfolio__season-stat-compact portfolio__season-stat-compact--team">
                                                 <span className="portfolio__season-stat-label">Most Seen</span>
-                                                <span className="portfolio__season-stat-value" title={stats.mostSeenTeam}>
-                                                    {getTeamNameFormats(stats.mostSeenTeam).short || stats.mostSeenTeam}
+                                                <span className="portfolio__season-stat-value" title={mostSeenTeam}>
+                                                    {getTeamNameFormats(mostSeenTeam).short || mostSeenTeam}
                                                 </span>
                                             </div>
                                         ) : firstSeenTeam ? (
@@ -342,19 +351,39 @@ export default function Portfolio({ years }: PortfolioProps) {
                                         {stats.mostUsedCamera && (
                                             <div className="portfolio__season-stat-compact portfolio__season-stat-compact--camera">
                                                 <span className="portfolio__season-stat-label">
-                                                    <Heart size={10} style={{ display: 'inline', marginRight: '4px', transform: 'translateY(-1px)' }} fill="var(--color-text-muted)" />
+                                                    <Heart
+                                                        size={10}
+                                                        style={{
+                                                            display: 'inline',
+                                                            marginRight: '4px',
+                                                            transform: 'translateY(-1px)',
+                                                        }}
+                                                        fill="var(--color-text-muted)"
+                                                    />
                                                     Camera
                                                 </span>
-                                                <span className="portfolio__season-stat-value">{stats.mostUsedCamera}</span>
+                                                <span className="portfolio__season-stat-value">
+                                                    {stats.mostUsedCamera}
+                                                </span>
                                             </div>
                                         )}
                                         {stats.mostUsedLens && (
                                             <div className="portfolio__season-stat-compact portfolio__season-stat-compact--lens">
                                                 <span className="portfolio__season-stat-label">
-                                                    <Heart size={10} style={{ display: 'inline', marginRight: '4px', transform: 'translateY(-1px)' }} fill="var(--color-text-muted)" />
+                                                    <Heart
+                                                        size={10}
+                                                        style={{
+                                                            display: 'inline',
+                                                            marginRight: '4px',
+                                                            transform: 'translateY(-1px)',
+                                                        }}
+                                                        fill="var(--color-text-muted)"
+                                                    />
                                                     Lens
                                                 </span>
-                                                <span className="portfolio__season-stat-value">{stats.mostUsedLens}</span>
+                                                <span className="portfolio__season-stat-value">
+                                                    {stats.mostUsedLens}
+                                                </span>
                                             </div>
                                         )}
                                     </div>

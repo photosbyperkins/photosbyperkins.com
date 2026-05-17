@@ -11,7 +11,12 @@ interface CachedYearPayload {
     recapCount: number;
     recapEvents: { eventName: string; photoIndex: number }[];
     nextPart: string | null;
-    stats?: { mostSeenTeam?: string | null; mostUsedCamera?: string | null; mostUsedLens?: string | null; firstSeenTeams?: string[] };
+    stats?: {
+        mostSeenTeams?: string[];
+        mostUsedCamera?: string | null;
+        mostUsedLens?: string | null;
+        firstSeenTeams?: string[];
+    };
 }
 const yearDataCache: Record<string, CachedYearPayload> = {};
 
@@ -20,7 +25,12 @@ interface FetchPayload {
     recapCount?: number;
     recapEvents?: { eventName: string; photoIndex: number }[];
     nextPart?: string | null;
-    stats?: { mostSeenTeam?: string | null; mostUsedCamera?: string | null; mostUsedLens?: string | null; firstSeenTeams?: string[] };
+    stats?: {
+        mostSeenTeams?: string[];
+        mostUsedCamera?: string | null;
+        mostUsedLens?: string | null;
+        firstSeenTeams?: string[];
+    };
 }
 
 declare const __BUILD_NUMBER__: string;
@@ -36,7 +46,13 @@ export function usePortfolioData({ selectedTab, years, onDataLoadAction }: UsePo
     const [recapCount, setRecapCount] = useState<number>(0);
     const [recapEvents, setRecapEvents] = useState<{ eventName: string; photoIndex: number }[]>([]);
     const [stats, setStats] = useState<
-        { mostSeenTeam?: string | null; mostUsedCamera?: string | null; mostUsedLens?: string | null; firstSeenTeams?: string[] } | undefined
+        | {
+              mostSeenTeams?: string[];
+              mostUsedCamera?: string | null;
+              mostUsedLens?: string | null;
+              firstSeenTeams?: string[];
+          }
+        | undefined
     >();
 
     // Performance locking mechanism to pause background loading while Recap loads
