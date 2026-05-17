@@ -125,8 +125,8 @@ export default function Lightbox({
     // Map the horizontal swipe down to a 72px physical tracking shift
     const dragShift = useTransform(x, [-windowWidth, 0, windowWidth], [-72, 0, 72]);
 
-    // How many slices to render (enough to fill the viewport + generous buffer)
-    const visibleSlices = Math.max(5, Math.ceil(windowWidth / 72) + 6);
+    // How many slices to render (enough to fill the viewport + massive buffer for drag panning)
+    const visibleSlices = Math.max(5, Math.ceil(windowWidth / 72) + 100);
     // Ensure odd number so there's a perfectly centered item
     const sliceCount = visibleSlices % 2 === 0 ? visibleSlices + 1 : visibleSlices;
     const maxDist = Math.floor(sliceCount / 2);
@@ -325,9 +325,9 @@ export default function Lightbox({
                             paginate(-1);
                         }}
                     >
-                        <button className="portfolio__lightbox-action" aria-label="Previous photo">
-                            <ChevronLeft size={18} />
-                        </button>
+                        <div className="portfolio__lightbox-nav-btn">
+                            <ChevronLeft size={32} />
+                        </div>
                     </div>
                     <div
                         className="portfolio__lightbox-nav-overlay portfolio__lightbox-nav-overlay--right"
@@ -336,9 +336,9 @@ export default function Lightbox({
                             paginate(1);
                         }}
                     >
-                        <button className="portfolio__lightbox-action" aria-label="Next photo">
-                            <ChevronRight size={18} />
-                        </button>
+                        <div className="portfolio__lightbox-nav-btn">
+                            <ChevronRight size={32} />
+                        </div>
                     </div>
                 </>
             )}

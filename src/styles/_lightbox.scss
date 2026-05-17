@@ -437,28 +437,43 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            opacity: 0;
-            transition: opacity var(--transition-fast);
             pointer-events: auto;
-
-            @media (hover: hover) {
-                &:hover {
-                    opacity: 1;
-                }
-            }
 
             &--left {
                 left: 0;
-                justify-content: flex-start;
-                padding-left: 2rem;
-                background: linear-gradient(to right, rgba(0, 0, 0, 0.4) 0%, transparent 100%);
             }
 
             &--right {
                 right: 0;
-                justify-content: flex-end;
-                padding-right: 2rem;
-                background: linear-gradient(to left, rgba(0, 0, 0, 0.4) 0%, transparent 100%);
+            }
+
+            @media (hover: hover) {
+                &:hover .portfolio__lightbox-nav-btn {
+                    opacity: 1;
+                    transform: scale(1.05);
+                    background: rgba(var(--color-bg-rgb), 0.85);
+                }
+            }
+        }
+
+        &-nav-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: rgba(var(--color-bg-rgb), 0.5);
+            -webkit-backdrop-filter: blur(8px);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--glass-border);
+            color: var(--color-text);
+            opacity: 0;
+            transform: scale(0.95);
+            transition: all var(--transition-fast) cubic-bezier(0.2, 0.8, 0.2, 1);
+            
+            svg {
+                transition: transform var(--transition-fast);
             }
         }
 
