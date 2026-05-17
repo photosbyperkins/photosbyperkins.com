@@ -457,7 +457,12 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
                 .map(([item]) => item);
         };
 
+        const totalEvents = Object.keys(processedYearData).length;
+        const totalPhotos = Object.values(processedYearData).reduce((sum, ev: any) => sum + (ev.photoCount || 0), 0);
+
         const yearStats = {
+            totalEvents,
+            totalPhotos,
             mostSeenTeams: getMostFrequent(teamCounts),
             mostUsedCamera: getMostFrequent(cameraCounts)[0] || null,
             mostUsedLens: getMostFrequent(lensCounts)[0] || null,

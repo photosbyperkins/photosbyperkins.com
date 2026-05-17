@@ -165,9 +165,9 @@ export default function Portfolio({ years }: PortfolioProps) {
 
     const isTeamMode = !years.includes(selectedTab);
 
-    const totalPhotos = useMemo(() => {
-        return events.reduce((sum, [, ev]) => sum + (ev.photoCount || 0), 0);
-    }, [events]);
+    const totalEvents = stats?.totalEvents || events.length;
+
+    const totalPhotos = stats?.totalPhotos || events.reduce((sum, [, ev]) => sum + (ev.photoCount || 0), 0);
 
     const firstSeenTeam = useMemo(() => {
         if (!stats?.firstSeenTeams || stats.firstSeenTeams.length === 0) return null;
@@ -323,7 +323,7 @@ export default function Portfolio({ years }: PortfolioProps) {
                                     <div className="portfolio__season-strip">
                                         <div className="portfolio__season-stat-compact portfolio__season-stat-compact--events">
                                             <span className="portfolio__season-stat-label">Events</span>
-                                            <span className="portfolio__season-stat-value">{events.length}</span>
+                                            <span className="portfolio__season-stat-value">{totalEvents}</span>
                                         </div>
                                         {totalPhotos > 0 && (
                                             <div className="portfolio__season-stat-compact portfolio__season-stat-compact--photos">

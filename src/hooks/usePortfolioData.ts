@@ -12,6 +12,8 @@ interface CachedYearPayload {
     recapEvents: { eventName: string; photoIndex: number }[];
     nextPart: string | null;
     stats?: {
+        totalEvents?: number;
+        totalPhotos?: number;
         mostSeenTeams?: string[];
         mostUsedCamera?: string | null;
         mostUsedLens?: string | null;
@@ -26,6 +28,8 @@ interface FetchPayload {
     recapEvents?: { eventName: string; photoIndex: number }[];
     nextPart?: string | null;
     stats?: {
+        totalEvents?: number;
+        totalPhotos?: number;
         mostSeenTeams?: string[];
         mostUsedCamera?: string | null;
         mostUsedLens?: string | null;
@@ -47,6 +51,8 @@ export function usePortfolioData({ selectedTab, years, onDataLoadAction }: UsePo
     const [recapEvents, setRecapEvents] = useState<{ eventName: string; photoIndex: number }[]>([]);
     const [stats, setStats] = useState<
         | {
+              totalEvents?: number;
+              totalPhotos?: number;
               mostSeenTeams?: string[];
               mostUsedCamera?: string | null;
               mostUsedLens?: string | null;
