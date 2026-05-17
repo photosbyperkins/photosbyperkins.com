@@ -61,7 +61,7 @@ export default function LightboxScrubber({
                                 onSetIndex(newIndex);
                             });
                         }
-                        
+
                         // We must offset the instant jump of the track re-render
                         localDragX.set(info.offset.x + shiftPhotos * 72);
                         animate(localDragX, 0, { type: 'spring', stiffness: 400, damping: 40 });

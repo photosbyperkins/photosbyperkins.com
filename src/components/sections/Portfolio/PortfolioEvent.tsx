@@ -3,7 +3,7 @@ import { Save, Star, Heart, Share2 } from 'lucide-react';
 import { useState, useEffect, useMemo, useRef, useCallback, memo } from 'react';
 import { useCanShare } from '../../../hooks/useCanShare';
 import { useEventAlbum } from '../../../hooks/useEventAlbum';
-import { usePortfolioStore } from '../../../store/usePortfolioStore';
+import { useAppStore } from '../../../store/useAppStore';
 import { buildFavoritesShareUrl } from '../../../utils/favoritesUrl';
 import { formatTeamName, getPhotoOriginalUrl, parseEventTitle, resolvePhotoInput } from '../../../utils/formatters';
 import { FullAlbumIcon } from '../../ui/icons';
@@ -33,9 +33,9 @@ const PortfolioEvent = memo(function PortfolioEvent({
     activeTeamName,
 }: PortfolioEventProps) {
     const canShare = useCanShare();
-    const openLightbox = usePortfolioStore((state) => state.openLightbox);
-    const sharedPhoto = usePortfolioStore((state) => state.sharedPhoto);
-    const setSharedPhoto = usePortfolioStore((state) => state.setSharedPhoto);
+    const openLightbox = useAppStore((state) => state.openLightbox);
+    const sharedPhoto = useAppStore((state) => state.sharedPhoto);
+    const setSharedPhoto = useAppStore((state) => state.setSharedPhoto);
 
     const [ev, setEv] = useState<EventData>(initialEv);
     const [isGridView, setIsGridView] = useState(false);
@@ -300,7 +300,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
                         <button
                             className="portfolio__zip-btn"
                             onClick={async () => {
-                                const favorites = usePortfolioStore.getState().favorites;
+                                const favorites = useAppStore.getState().favorites;
                                 const shareUrl = await buildFavoritesShareUrl(favorites);
                                 try {
                                     await navigator.share({

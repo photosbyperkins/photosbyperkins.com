@@ -1,13 +1,13 @@
 import { useInView } from 'framer-motion';
 import Fuse from 'fuse.js';
-import { Search, X, Heart, Users, Camera, Aperture } from 'lucide-react';
+import { Search, X, Heart } from 'lucide-react';
 import React, { useState, useRef, useEffect, useCallback, useMemo, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { matchPath, useLocation, Link } from 'react-router-dom';
 import { usePortfolioData } from '../../../hooks/usePortfolioData';
 import { usePortfolioScroll } from '../../../hooks/usePortfolioScroll';
 import { useStickyHeader } from '../../../hooks/useStickyHeader';
-import { usePortfolioStore } from '../../../store/usePortfolioStore';
+import { useAppStore } from '../../../store/useAppStore';
 import { formatTeamName, getTeamNameFormats, parseEventTitle } from '../../../utils/formatters';
 import Recap from '../Recap';
 import PortfolioEvent from './PortfolioEvent';
@@ -94,7 +94,7 @@ export default function Portfolio({ years }: PortfolioProps) {
     const initialEvent = deepLinkMatch?.params.event || eventDeepMatch?.params.event || params?.get('event');
     const initialPhoto = deepLinkMatch?.params.photo || params?.get('photo');
 
-    const setSharedPhoto = usePortfolioStore((state) => state.setSharedPhoto);
+    const setSharedPhoto = useAppStore((state) => state.setSharedPhoto);
 
     const selectedTab = (() => {
         if (isTeamRoute && activeRouteSlug) return activeRouteSlug;
@@ -166,7 +166,7 @@ export default function Portfolio({ years }: PortfolioProps) {
     const isTeamMode = !years.includes(selectedTab);
 
     const totalPhotos = useMemo(() => {
-        return events.reduce((sum, [, ev]) => sum + ((ev as any).photoCount || 0), 0);
+        return events.reduce((sum, [, ev]) => sum + (ev.photoCount || 0), 0);
     }, [events]);
 
     const firstSeenTeam = useMemo(() => {

@@ -71,15 +71,3 @@ export interface SharedPhotoState {
     eventName: string;
     photoIndex?: number;
 }
-
-export interface PortfolioStore {
-    lightbox: LightboxState;
-    sharedPhoto: SharedPhotoState | null;
-    favorites: FavoriteStoreItem[];
-    openLightbox: (images: PhotoInput[], index: number, eventName: string, year: string, maxExifChars?: number) => void;
-    closeLightbox: () => void;
-    setLightboxIndex: (index: number) => void;
-    setSharedPhoto: (sharedPhoto: SharedPhotoState | null) => void;
-    toggleFavorite: (item: FavoriteStoreItem) => void;
-    clearFavorites: () => void;
-}

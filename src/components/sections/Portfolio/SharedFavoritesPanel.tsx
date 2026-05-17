@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { X, Save, Heart } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useCanShare } from '../../../hooks/useCanShare';
-import { usePortfolioStore } from '../../../store/usePortfolioStore';
+import { useAppStore } from '../../../store/useAppStore';
 import ProgressiveImage from '../../ui/ProgressiveImage';
 import type { PhotoInput } from '../../../types';
 
@@ -18,8 +18,8 @@ interface SharedFavoritesPanelProps {
 
 export default function SharedFavoritesPanel({ photos, onClose }: SharedFavoritesPanelProps) {
     const canShare = useCanShare();
-    const openLightbox = usePortfolioStore((state) => state.openLightbox);
-    const isLightboxOpen = usePortfolioStore((state) => state.lightbox.isOpen);
+    const openLightbox = useAppStore((state) => state.openLightbox);
+    const isLightboxOpen = useAppStore((state) => state.lightbox.isOpen);
     const closeBtnRef = useRef<HTMLButtonElement>(null);
 
     // Zip download state
@@ -55,7 +55,7 @@ export default function SharedFavoritesPanel({ photos, onClose }: SharedFavorite
     }, [isLightboxOpen]);
 
     const handleAddToFavorites = useCallback(() => {
-        const store = usePortfolioStore.getState();
+        const store = useAppStore.getState();
         for (const photo of photos) {
             const original = typeof photo === 'string' ? photo : photo.original;
             const isAlreadyFav = store.favorites.some((f) => {

@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion';
 import { useState, useEffect, useMemo, useRef, memo } from 'react';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
-import { usePortfolioStore } from '../../store/usePortfolioStore';
+import { useAppStore } from '../../store/useAppStore';
 
 declare const __BUILD_NUMBER__: string;
 
@@ -46,7 +46,7 @@ const RecapSliceItem = memo(function RecapSliceItem({
     reducedMotion,
     spriteLoaded,
 }: RecapSliceItemProps) {
-    const setSharedPhoto = usePortfolioStore((state) => state.setSharedPhoto);
+    const setSharedPhoto = useAppStore((state) => state.setSharedPhoto);
 
     // Each frame fills the slice exactly — bgSize stretches the sprite so each
     // frame = container width, bgPosition picks the right one via percentage.

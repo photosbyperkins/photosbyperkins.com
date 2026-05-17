@@ -23,7 +23,7 @@ interface LightboxProps {
 
 import { useCanShare } from '../../../hooks/useCanShare';
 import { useDebounce } from '../../../hooks/useDebounce';
-import { usePortfolioStore } from '../../../store/usePortfolioStore';
+import { useAppStore } from '../../../store/useAppStore';
 import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock';
 import { useFocusTrap } from '../../../hooks/useFocusTrap';
 import { useLightboxNavigation } from '../../../hooks/useLightboxNavigation';
@@ -39,7 +39,7 @@ export default function Lightbox({
     onSetIndex,
 }: LightboxProps) {
     const canShare = useCanShare();
-    const { favorites, toggleFavorite } = usePortfolioStore();
+    const { favorites, toggleFavorite } = useAppStore();
     const reducedMotion = useReducedMotion();
     const lightboxRef = useRef<HTMLDivElement>(null);
 

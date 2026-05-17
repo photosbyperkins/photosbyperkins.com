@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { usePortfolioStore } from '../store/usePortfolioStore';
+import { useAppStore } from '../store/useAppStore';
 import { parseEventTitle } from '../utils/formatters';
 import type { YearData, PhotoInput, FavoriteStoreItem } from '../types';
 
@@ -61,8 +61,8 @@ export function usePortfolioData({ selectedTab, years, onDataLoadAction }: UsePo
 
     const activeRequestRef = useRef<number>(0);
 
-    const favorites = usePortfolioStore((state) => state.favorites);
-    const isLightboxOpen = usePortfolioStore((state) => state.lightbox.isOpen);
+    const favorites = useAppStore((state) => state.favorites);
+    const isLightboxOpen = useAppStore((state) => state.lightbox.isOpen);
     const [displayFavorites, setDisplayFavorites] = useState(favorites);
 
     useEffect(() => {

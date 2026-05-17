@@ -1,13 +1,13 @@
 import { motion } from 'framer-motion';
 import { useState, useEffect, useId } from 'react';
-import { useThemeStore } from '../../store/useThemeStore';
+import { useAppStore } from '../../store/useAppStore';
 
 interface ThemeToggleProps {
     variant?: 'floating' | 'nav';
 }
 
 export default function ThemeToggle({ variant = 'floating' }: ThemeToggleProps) {
-    const { activeTheme, setTheme } = useThemeStore();
+    const { activeTheme, setTheme } = useAppStore();
     const [scrolled, setScrolled] = useState(false);
     const uniqueId = useId();
 
