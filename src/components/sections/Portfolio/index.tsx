@@ -172,17 +172,17 @@ export default function Portfolio({ years }: PortfolioProps) {
     const firstSeenTeam = useMemo(() => {
         if (!stats?.firstSeenTeams || stats.firstSeenTeams.length === 0) return null;
         // Seeded by selectedTab (year string) so it doesn't flicker on re-renders but is random per year
-        const seed = parseInt(selectedTab) || Math.random();
+        const seed = parseInt(selectedTab) || 42;
         const index = Math.floor(Math.abs(Math.sin(seed) * 10000)) % stats.firstSeenTeams.length;
         return stats.firstSeenTeams[index];
-    }, [stats?.firstSeenTeams, selectedTab]);
+    }, [stats, selectedTab]);
 
     const mostSeenTeam = useMemo(() => {
         if (!stats?.mostSeenTeams || stats.mostSeenTeams.length === 0) return null;
-        const seed = parseInt(selectedTab) || Math.random();
+        const seed = parseInt(selectedTab) || 42;
         const index = Math.floor(Math.abs(Math.sin(seed) * 10000)) % stats.mostSeenTeams.length;
         return stats.mostSeenTeams[index];
-    }, [stats?.mostSeenTeams, selectedTab]);
+    }, [stats, selectedTab]);
 
     // If there are very few events in a year (like 2020 or 2024), "Most Seen" is not
     // statistically meaningful because almost every team is only seen once.

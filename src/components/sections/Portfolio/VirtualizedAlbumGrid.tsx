@@ -75,6 +75,7 @@ export default function VirtualizedAlbumGrid({
     }, [cycleSize, windowHeight]);
 
     // Window scroll sync state
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const listRef = useRef<any>(null);
     const [offsetY, setOffsetY] = useState(0);
 
@@ -171,7 +172,9 @@ export default function VirtualizedAlbumGrid({
                     rowHeight={actualRowSize}
                     style={{ width: '100%', height: windowHeight, overflow: 'hidden' }}
                     overscanCount={3}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     rowComponent={Row as any}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     rowProps={{} as any}
                 />
             </div>

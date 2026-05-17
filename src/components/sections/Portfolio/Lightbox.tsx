@@ -1,9 +1,12 @@
 import { motion, useMotionValue, animate, useTransform, type PanInfo } from 'framer-motion';
-import { X, Download, Share2, Heart, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
 import LightboxSlide, { type LightboxSlideHandle } from './LightboxSlide';
+import LightboxAmbient from './LightboxAmbient';
+import LightboxHeader from './LightboxHeader';
+import LightboxScrubber from './LightboxScrubber';
 import type { PhotoInput } from '../../../types';
 
 declare const __BUILD_NUMBER__: string;
@@ -21,7 +24,6 @@ interface LightboxProps {
 import { useCanShare } from '../../../hooks/useCanShare';
 import { useDebounce } from '../../../hooks/useDebounce';
 import { usePortfolioStore } from '../../../store/usePortfolioStore';
-import { getPhotoDisplayUrl } from '../../../utils/formatters';
 import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock';
 import { useFocusTrap } from '../../../hooks/useFocusTrap';
 import { useLightboxNavigation } from '../../../hooks/useLightboxNavigation';
@@ -141,9 +143,6 @@ export default function Lightbox({
     const thumbOpacityPrev = useTransform(x, [0, windowWidth], [0.5, 1]);
     // Next thumb (offset +1) brightens when dragging left (going to next)
     const thumbOpacityNext = useTransform(x, [-windowWidth, 0], [1, 0.5]);
-
-    const total = images.length;
-
     const paginate = useCallback(
         async (newDirection: number) => {
             if (isAnimating) return;
@@ -252,18 +251,12 @@ export default function Lightbox({
         getDisplaySrc,
     });
 
-    const handleDownload = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        const obj = images[index];
-        if (!obj) return;
-        const src = typeof obj === 'string' ? obj : obj.original;
-        const link = document.createElement('a');
-        link.href = `${src}?v=${__BUILD_NUMBER__}`;
-        link.download = src.split('/').pop() || 'photo.jpg';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
+    useImagePreloader({
+        images,
+        currentIndex: index,
+        mainImageLoaded,
+        getDisplaySrc,
+    });
 
     const onDragEnd = (_e: MouseEvent | TouchEvent | PointerEvent, { offset, velocity }: PanInfo) => {
         const swipeThreshold = 50;
@@ -276,23 +269,6 @@ export default function Lightbox({
             animate(x, 0, { type: 'spring', stiffness: 450, damping: 40 });
         }
     };
-    const exif = typeof currentPhoto === 'object' ? currentPhoto.exif : null;
-
-    const dataDisplayUI = (
-        <div className="portfolio__lightbox-data-display">
-            <div
-                className="portfolio__lightbox-data-info"
-                style={exif && maxExifChars > 0 ? { minWidth: `${maxExifChars * 5.0}px` } : undefined}
-            >
-                <span className="portfolio__lightbox-data-row-top">
-                    {[exif?.cameraModel, exif?.lens].filter(Boolean).join(' • ')}
-                </span>
-                <span className="portfolio__lightbox-data-row-bottom">
-                    {[exif?.focalLength, exif?.aperture, exif?.shutterSpeed, exif?.iso].filter(Boolean).join(' • ')}
-                </span>
-            </div>
-        </div>
-    );
 
     const content = (
         <motion.div
@@ -318,27 +294,14 @@ export default function Lightbox({
                 onClose();
             }}
         >
-            <div className="portfolio__lightbox-ambient">
-                <motion.div
-                    className="portfolio__lightbox-ambient-img"
-                    style={{
-                        ...getAmbientBg(images[(index - 1 + images.length) % images.length]),
-                        opacity: prevOpacity,
-                    }}
-                />
-                <motion.div
-                    className="portfolio__lightbox-ambient-img"
-                    style={{ ...getAmbientBg(currentPhoto), opacity: currentOpacity }}
-                />
-                <motion.div
-                    className="portfolio__lightbox-ambient-img"
-                    style={{
-                        ...getAmbientBg(images[(index + 1) % images.length]),
-                        opacity: nextOpacity,
-                    }}
-                />
-                <div className="portfolio__lightbox-ambient-glass" />
-            </div>
+            <LightboxAmbient
+                images={images}
+                index={index}
+                getAmbientBg={getAmbientBg}
+                prevOpacity={prevOpacity}
+                currentOpacity={currentOpacity}
+                nextOpacity={nextOpacity}
+            />
 
             <title>
                 {eventName} {year ? `(${year})` : ''} | {import.meta.env.VITE_SITE_APP_TITLE || 'Photography Portfolio'}
@@ -380,84 +343,15 @@ export default function Lightbox({
                 </>
             )}
 
-            <div
-                className="portfolio__lightbox-top-bar"
-                onClick={(e) => {
-                    e.stopPropagation();
-                }}
-            >
-                <div className="portfolio__lightbox-top-left">
-                    <div className="portfolio__lightbox-action-group">
-                        {canShare ? (
-                            <button
-                                className="portfolio__lightbox-action"
-                                onClick={async (e) => {
-                                    e.stopPropagation();
-                                    if (year && eventName) {
-                                        // Build path-based deep link: /portfolio/:year/:event/:photo
-                                        const shareUrl = `${window.location.origin}/portfolio/${encodeURIComponent(year)}/${encodeURIComponent(eventName)}/${index}`;
-
-                                        try {
-                                            const obj = images[index];
-                                            const originalSrc = typeof obj === 'string' ? obj : obj.original;
-                                            const webpSrc = getPhotoDisplayUrl(originalSrc);
-                                            const filename = webpSrc.split('/').pop() || 'photo.webp';
-                                            const response = await fetch(webpSrc);
-                                            const blob = await response.blob();
-                                            const file = new File([blob], filename, {
-                                                type: blob.type || 'image/webp',
-                                            });
-
-                                            const shareData: ShareData = {
-                                                title: `Photo from ${eventName}`,
-                                                url: shareUrl.toString(),
-                                            };
-
-                                            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                                                shareData.files = [file];
-                                            }
-
-                                            await navigator.share(shareData);
-                                        } catch (err) {
-                                            console.error('Error sharing:', err);
-                                        }
-                                    }
-                                }}
-                                aria-label="Share"
-                            >
-                                <Share2 size={18} />
-                            </button>
-                        ) : (
-                            <button
-                                className="portfolio__lightbox-action"
-                                onClick={handleDownload}
-                                aria-label="Download"
-                            >
-                                <Download size={18} />
-                            </button>
-                        )}
-                    </div>
-                </div>
-
-                {exif && (
-                    <div className="portfolio__lightbox-top-center" onClick={(e) => e.stopPropagation()}>
-                        {dataDisplayUI}
-                    </div>
-                )}
-
-                <div className="portfolio__lightbox-top-right">
-                    <button
-                        className="portfolio__lightbox-action"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onClose();
-                        }}
-                        aria-label="Close"
-                    >
-                        <X size={18} />
-                    </button>
-                </div>
-            </div>
+            <LightboxHeader
+                images={images}
+                index={index}
+                year={year}
+                eventName={eventName}
+                maxExifChars={maxExifChars}
+                canShare={canShare}
+                onClose={onClose}
+            />
 
             <div
                 className="portfolio__lightbox-track-container"
@@ -509,103 +403,30 @@ export default function Lightbox({
                 </motion.div>
             </div>
 
-            <div className="portfolio__lightbox-scrubber" onClick={(e) => e.stopPropagation()}>
-                {/* Sliding track — thumbnails slide under the fixed playhead */}
-                <motion.div className="portfolio__lightbox-scrubber-track" style={{ x: trackX }}>
-                    {(() => {
-                        const offsets: number[] = [];
-                        for (let o = -maxDist; o <= maxDist; o++) {
-                            offsets.push(o);
-                        }
-
-                        return offsets.map((offset) => {
-                            const wrappedIndex = (((index + offset) % images.length) + images.length) % images.length;
-                            const img = images[wrappedIndex];
-                            const isImgFavorite = checkIfFavorite(img);
-                            const isActive = offset === 0;
-
-                            // Determine drag-driven opacity for this thumb
-                            const thumbOpacity =
-                                offset === 0
-                                    ? thumbOpacity0
-                                    : offset === -1
-                                      ? thumbOpacityPrev
-                                      : offset === 1
-                                        ? thumbOpacityNext
-                                        : undefined;
-
-                            const bgStyle =
-                                spriteUrl && typeof img !== 'string' && img.spriteIndex != null
-                                    ? {
-                                          backgroundImage: `url("${spriteUrl}")`,
-                                          backgroundPosition: `${-(img.spriteIndex * 72)}px 0`,
-                                          backgroundSize: `auto 48px`,
-                                      }
-                                    : { backgroundImage: `url("${getThumbSrc(img)}")` };
-
-                            return (
-                                <motion.div
-                                    key={`${offset}`}
-                                    className={`portfolio__lightbox-scrubber-thumb${isActive ? ' is-active' : ''}`}
-                                    onClick={() => onSetIndex(wrappedIndex)}
-                                    style={{ ...bgStyle, opacity: thumbOpacity ?? 0.5 }}
-                                    role="button"
-                                    tabIndex={0}
-                                    aria-label={`Go to photo ${wrappedIndex + 1}`}
-                                >
-                                    {isImgFavorite && (
-                                        <div
-                                            className="portfolio__lightbox-scrubber-heart is-active"
-                                            style={{ pointerEvents: 'none' }}
-                                        >
-                                            <Heart
-                                                size={28}
-                                                fill="var(--color-accent)"
-                                                color="var(--color-accent)"
-                                                strokeWidth={1.5}
-                                            />
-                                        </div>
-                                    )}
-                                </motion.div>
-                            );
-                        });
-                    })()}
-                </motion.div>
-
-                {/* Fixed playhead — outline + heart, always centered */}
-                <div className="portfolio__lightbox-scrubber-playhead">
-                    <button
-                        className={`portfolio__lightbox-scrubber-heart${isFavorite ? ' is-active' : ''}`}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            toggleFavorite({
-                                photo: images[index],
-                                eventName: eventName || '',
-                                year: year || '',
-                            });
-                        }}
-                        aria-label="Toggle Favorite"
-                    >
-                        {/* Empty heart — driven by drag progress */}
-                        <motion.div
-                            className="portfolio__lightbox-scrubber-heart-layer"
-                            style={{ opacity: emptyHeartOpacity }}
-                        >
-                            <Heart size={28} fill="rgba(0, 0, 0, 0.4)" color="#ffffff" strokeWidth={1.5} />
-                        </motion.div>
-                        {/* Filled heart — driven by drag progress */}
-                        <motion.div
-                            className="portfolio__lightbox-scrubber-heart-layer"
-                            style={{ opacity: filledHeartOpacity, scale: filledHeartScale }}
-                        >
-                            <Heart size={28} fill="var(--color-accent)" color="var(--color-accent)" strokeWidth={1.5} />
-                        </motion.div>
-                    </button>
-                    <span className="portfolio__lightbox-scrubber-counter">
-                        {index + 1} / {total}
-                    </span>
-                </div>
-            </div>
+            <LightboxScrubber
+                images={images}
+                index={index}
+                maxDist={maxDist}
+                spriteUrl={spriteUrl}
+                getThumbSrc={getThumbSrc}
+                checkIfFavorite={checkIfFavorite}
+                trackX={trackX}
+                thumbOpacity0={thumbOpacity0}
+                thumbOpacityPrev={thumbOpacityPrev}
+                thumbOpacityNext={thumbOpacityNext}
+                emptyHeartOpacity={emptyHeartOpacity}
+                filledHeartOpacity={filledHeartOpacity}
+                filledHeartScale={filledHeartScale}
+                onSetIndex={onSetIndex}
+                isFavorite={isFavorite}
+                toggleFavorite={() =>
+                    toggleFavorite({
+                        photo: images[index],
+                        eventName: eventName || '',
+                        year: year || '',
+                    })
+                }
+            />
         </motion.div>
     );
 

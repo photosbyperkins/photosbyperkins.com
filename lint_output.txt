@@ -1,0 +1,130 @@
+
+> photosbyperkins@1.6.2 lint C:\Users\micha\OneDrive\Code\Photo Website
+> eslint .
+
+
+C:\Users\micha\OneDrive\Code\Photo Website\scripts\pipeline\chunkData.ts
+   21:56   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   28:38   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   28:66   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   93:89   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   93:109  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  112:41   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  117:24   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  140:44   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  168:43   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  181:47   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  181:62   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  234:65   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  234:79   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  234:97   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  234:117  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  234:138  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  234:158  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  341:36   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  346:28   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  353:40   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  380:30   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  389:44   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  397:44   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  411:45   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  473:24   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  475:41   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  479:48   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  480:84   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  480:102  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\micha\OneDrive\Code\Photo Website\scripts\pipeline\encodePhotos.ts
+  30:18  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\micha\OneDrive\Code\Photo Website\scripts\pipeline\generatePhotoIndex.ts
+  338:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  450:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\micha\OneDrive\Code\Photo Website\scripts\pipeline\generateRecaps.ts
+  31:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\micha\OneDrive\Code\Photo Website\scripts\pipeline\generateSocialCards.ts
+  194:36  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\micha\OneDrive\Code\Photo Website\scripts\pipeline\generateZips.ts
+  3:1  error  Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+
+C:\Users\micha\OneDrive\Code\Photo Website\scripts\pipeline\scrapeWftda.ts
+  168:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\micha\OneDrive\Code\Photo Website\scripts\pipeline\ssim2Pool.ts
+   3:53  error  Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+  28:12  error  Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+  37:31  error  Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+  50:29  error  Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+  84:70  error  'label' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\micha\OneDrive\Code\Photo Website\src\components\sections\Portfolio\Lightbox.tsx
+  147:11  error  'total' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  275:11  error  'exif' is assigned a value but never used   @typescript-eslint/no-unused-vars
+
+C:\Users\micha\OneDrive\Code\Photo Website\src\components\sections\Portfolio\VirtualizedAlbumGrid.tsx
+   78:28  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  174:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  175:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\micha\OneDrive\Code\Photo Website\src\components\sections\Portfolio\index.tsx
+    3:28  error  'Users' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 @typescript-eslint/no-unused-vars
+    3:35  error  'Camera' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+    3:43  error  'Aperture' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+  169:61  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-explicit-any
+  172:35  error  Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `stats`, but the source dependencies were [stats?.firstSeenTeams, selectedTab]. Inferred less specific property than source.
+
+C:\Users\micha\OneDrive\Code\Photo Website\src\components\sections\Portfolio\index.tsx:172:35
+  170 |     }, [events]);
+  171 |
+> 172 |     const firstSeenTeam = useMemo(() => {
+      |                                   ^^^^^^^
+> 173 |         if (!stats?.firstSeenTeams || stats.firstSeenTeams.length === 0) return null;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 174 |         // Seeded by selectedTab (year string) so it doesn't flicker on re-renders but is random per year
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 175 |         const seed = parseInt(selectedTab) || Math.random();
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 176 |         const index = Math.floor(Math.abs(Math.sin(seed) * 10000)) % stats.firstSeenTeams.length;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 177 |         return stats.firstSeenTeams[index];
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 178 |     }, [stats?.firstSeenTeams, selectedTab]);
+      | ^^^^^^ Could not preserve existing manual memoization
+  179 |
+  180 |     const mostSeenTeam = useMemo(() => {
+  181 |         if (!stats?.mostSeenTeams || stats.mostSeenTeams.length === 0) return null;  react-hooks/preserve-manual-memoization
+  175:47  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+C:\Users\micha\OneDrive\Code\Photo Website\src\components\sections\Portfolio\index.tsx:175:47
+  173 |         if (!stats?.firstSeenTeams || stats.firstSeenTeams.length === 0) return null;
+  174 |         // Seeded by selectedTab (year string) so it doesn't flicker on re-renders but is random per year
+> 175 |         const seed = parseInt(selectedTab) || Math.random();
+      |                                               ^^^^^^^^^^^^^ Cannot call impure function
+  176 |         const index = Math.floor(Math.abs(Math.sin(seed) * 10000)) % stats.firstSeenTeams.length;
+  177 |         return stats.firstSeenTeams[index];
+  178 |     }, [stats?.firstSeenTeams, selectedTab]);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          react-hooks/purity
+  182:47  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+C:\Users\micha\OneDrive\Code\Photo Website\src\components\sections\Portfolio\index.tsx:182:47
+  180 |     const mostSeenTeam = useMemo(() => {
+  181 |         if (!stats?.mostSeenTeams || stats.mostSeenTeams.length === 0) return null;
+> 182 |         const seed = parseInt(selectedTab) || Math.random();
+      |                                               ^^^^^^^^^^^^^ Cannot call impure function
+  183 |         const index = Math.floor(Math.abs(Math.sin(seed) * 10000)) % stats.mostSeenTeams.length;
+  184 |         return stats.mostSeenTeams[index];
+  185 |     }, [stats?.mostSeenTeams, selectedTab]);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                react-hooks/purity
+
+C:\Users\micha\OneDrive\Code\Photo Website\src\workers\zipWorker.ts
+  47:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 54 problems (54 errors, 0 warnings)
+

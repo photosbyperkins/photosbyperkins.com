@@ -44,7 +44,7 @@ self.onmessage = async (e: MessageEvent<{ urls: string[]; filename: string }>) =
         const zipped = fflate.zipSync(files, { level: 0 }); // Level 0: Store only
 
         self.postMessage({ type: 'progress', progress: 100 });
-        const blob = new Blob([zipped as any], { type: 'application/zip' });
+        const blob = new Blob([zipped as unknown as BlobPart], { type: 'application/zip' });
         self.postMessage({ type: 'done', blob, filename });
     } catch (error) {
         self.postMessage({ type: 'error', error: error instanceof Error ? error.message : 'Unknown error' });
