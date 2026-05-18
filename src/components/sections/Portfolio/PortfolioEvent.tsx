@@ -111,15 +111,9 @@ const PortfolioEvent = memo(function PortfolioEvent({
         if (isSharedEvent && ev.album && ev.album.length > 0 && sharedPhoto) {
             // Scroll to the event so it's in view
             setTimeout(() => {
-                const headerOffset = 60;
                 const element = document.getElementById(`event-${eventName.replace(/[^a-zA-Z0-9-]/g, '-')}`);
                 if (element) {
-                    const elementPosition = element.getBoundingClientRect().top;
-                    const offsetPosition = elementPosition + window.scrollY - headerOffset;
-                    window.scrollTo({
-                        top: offsetPosition,
-                        behavior: 'smooth',
-                    });
+                    element.scrollIntoView({ behavior: 'smooth' });
                 }
             }, 100);
 

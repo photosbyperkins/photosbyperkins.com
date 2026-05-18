@@ -3,6 +3,7 @@
 .portfolio {
     &__event {
         container-type: inline-size;
+        scroll-margin-top: 70px;
 
         &--highlights {
             min-height: auto;

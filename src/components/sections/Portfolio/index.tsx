@@ -346,18 +346,10 @@ export default function Portfolio({ years }: PortfolioProps) {
                                                             }
                                                         }
                                                         if (foundEventName) {
-                                                            const headerOffset = 60;
                                                             const elementId = `event-${foundEventName.replace(/[^a-zA-Z0-9-]/g, '-')}`;
                                                             const element = document.getElementById(elementId);
                                                             if (element) {
-                                                                const elementPosition =
-                                                                    element.getBoundingClientRect().top;
-                                                                const offsetPosition =
-                                                                    elementPosition + window.scrollY - headerOffset;
-                                                                window.scrollTo({
-                                                                    top: offsetPosition,
-                                                                    behavior: 'smooth',
-                                                                });
+                                                                element.scrollIntoView({ behavior: 'smooth' });
                                                             }
                                                         }
                                                     }}

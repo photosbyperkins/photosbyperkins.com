@@ -48,6 +48,7 @@ public/apple-touch-icon.png
 
 # Agent Directories
 .agent/
+.agents/
 .gemini/
 
 # Scripts
