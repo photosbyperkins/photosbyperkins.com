@@ -340,10 +340,7 @@ export default function Portfolio({ years }: PortfolioProps) {
                                                         // Search backwards to find the chronologically first event
                                                         for (let i = events.length - 1; i >= 0; i--) {
                                                             const [eName] = events[i];
-                                                            const titleMatch = eName.match(/^(\d{2}\.\d{2})\s+(.*)/);
-                                                            const mainTitle = titleMatch ? titleMatch[2] : eName;
-                                                            const parts = mainTitle.split(/\s+(?:vs\.?|versus)\s+/i);
-                                                            if (parts.some((p) => p.trim().toLowerCase() === target)) {
+                                                            if (eName.toLowerCase().includes(target)) {
                                                                 foundEventName = eName;
                                                                 break;
                                                             }
