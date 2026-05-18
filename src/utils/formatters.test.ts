@@ -52,11 +52,11 @@ describe('getTeamNameFormats', () => {
         expect(formats.short).toBe('Capital Maulstars');
     });
 
-    it('preserves short names consistently without arbitrary length guards', () => {
+    it('preserves short names consistently due to length guards', () => {
         const formats = getTeamNameFormats('SRD Team');
         expect(formats.full).toBe('SRD Team');
         expect(formats.mid).toBe('SRD Team');
-        expect(formats.short).toBe('Team'); // SRD is stripped because it's followed by Team
+        expect(formats.short).toBe('SRD Team'); // SRD Team is < 15 chars so it skips aggressive truncation
     });
 
     it('preserves generic abbreviation if it is the only word left', () => {

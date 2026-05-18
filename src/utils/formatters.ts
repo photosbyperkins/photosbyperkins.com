@@ -23,6 +23,11 @@ export function getTeamNameFormats(teamName: string): TeamNameFormats {
     // Level 2: Short (Aggressive)
     let short = mid;
 
+    // Protect short team names (e.g. Arizona Rising) from being aggressively stripped
+    if (full.length < 15) {
+        return { full, mid, short };
+    }
+
     // Step 1: Strip generic terms including Round Robin
     short = short
         .replace(/\b(Roller Derby|Derby|All Stars|All-Stars|Juniors|Quad Squad|Round Robin)\b/gi, '')

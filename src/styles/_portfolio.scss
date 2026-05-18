@@ -507,8 +507,6 @@
         }
 
         @media (max-width: 900px) {
-            gap: 1rem;
-
             &::before,
             &::after {
                 // Keep the lines on mobile, but let them shrink as needed
@@ -531,26 +529,16 @@
         gap: 0.4rem;
         white-space: nowrap;
 
+        &--camera,
         &--lens {
             @media (max-width: 1000px) {
                 display: none;
             }
         }
 
-        &--camera {
-            @media (max-width: 800px) {
-                display: none;
-            }
-        }
-
+        &--team,
         &--first-seen {
             @media (max-width: 650px) {
-                display: none;
-            }
-        }
-
-        &--photos {
-            @media (max-width: 500px) {
                 display: none;
             }
         }
