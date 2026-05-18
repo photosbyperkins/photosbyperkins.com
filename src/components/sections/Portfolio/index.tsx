@@ -184,11 +184,6 @@ export default function Portfolio({ years }: PortfolioProps) {
         return stats.mostSeenTeams[index];
     }, [stats, selectedTab]);
 
-    // If there are very few events in a year (like 2020 or 2024), "Most Seen" is not
-    // statistically meaningful because almost every team is only seen once.
-    // In these cases, we swap the stat out for "First Seen".
-    const hasEnoughEventsForMostSeen = events.length > 5;
-
     // In team mode, build a list of rows: either an event entry or a year-divider string.
     type EventRow =
         | { type: 'event'; eventName: string; ev: (typeof yearData)[string]; evIdx: number }
@@ -333,18 +328,18 @@ export default function Portfolio({ years }: PortfolioProps) {
                                                 </span>
                                             </div>
                                         )}
-                                        {hasEnoughEventsForMostSeen && mostSeenTeam ? (
-                                            <div className="portfolio__season-stat-compact portfolio__season-stat-compact--team">
-                                                <span className="portfolio__season-stat-label">Most Seen</span>
-                                                <span className="portfolio__season-stat-value" title={mostSeenTeam}>
-                                                    {getTeamNameFormats(mostSeenTeam).short || mostSeenTeam}
-                                                </span>
-                                            </div>
-                                        ) : firstSeenTeam ? (
+                                        {firstSeenTeam ? (
                                             <div className="portfolio__season-stat-compact portfolio__season-stat-compact--first-seen">
                                                 <span className="portfolio__season-stat-label">First Seen</span>
                                                 <span className="portfolio__season-stat-value" title={firstSeenTeam}>
                                                     {getTeamNameFormats(firstSeenTeam).short || firstSeenTeam}
+                                                </span>
+                                            </div>
+                                        ) : mostSeenTeam ? (
+                                            <div className="portfolio__season-stat-compact portfolio__season-stat-compact--team">
+                                                <span className="portfolio__season-stat-label">Most Seen</span>
+                                                <span className="portfolio__season-stat-value" title={mostSeenTeam}>
+                                                    {getTeamNameFormats(mostSeenTeam).short || mostSeenTeam}
                                                 </span>
                                             </div>
                                         ) : null}
