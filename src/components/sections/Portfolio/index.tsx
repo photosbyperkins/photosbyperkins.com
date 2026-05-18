@@ -331,7 +331,39 @@ export default function Portfolio({ years }: PortfolioProps) {
                                         {firstSeenTeam ? (
                                             <div className="portfolio__season-stat-compact portfolio__season-stat-compact--first-seen">
                                                 <span className="portfolio__season-stat-label">First Seen</span>
-                                                <span className="portfolio__season-stat-value" title={firstSeenTeam}>
+                                                <span 
+                                                    className="portfolio__season-stat-value" 
+                                                    title={`Scroll to event: ${firstSeenTeam}`}
+                                                    onClick={() => {
+                                                        const target = firstSeenTeam.toLowerCase();
+                                                        let foundEventName = null;
+                                                        // Search backwards to find the chronologically first event
+                                                        for (let i = events.length - 1; i >= 0; i--) {
+                                                            const [eName] = events[i];
+                                                            const titleMatch = eName.match(/^(\d{2}\.\d{2})\s+(.*)/);
+                                                            const mainTitle = titleMatch ? titleMatch[2] : eName;
+                                                            const parts = mainTitle.split(/\s+(?:vs\.?|versus)\s+/i);
+                                                            if (parts.some((p) => p.trim().toLowerCase() === target)) {
+                                                                foundEventName = eName;
+                                                                break;
+                                                            }
+                                                        }
+                                                        if (foundEventName) {
+                                                            const headerOffset = 60;
+                                                            const elementId = `event-${foundEventName.replace(/[^a-zA-Z0-9-]/g, '-')}`;
+                                                            const element = document.getElementById(elementId);
+                                                            if (element) {
+                                                                const elementPosition = element.getBoundingClientRect().top;
+                                                                const offsetPosition = elementPosition + window.scrollY - headerOffset;
+                                                                window.scrollTo({
+                                                                    top: offsetPosition,
+                                                                    behavior: 'smooth',
+                                                                });
+                                                            }
+                                                        }
+                                                    }}
+                                                    style={{ cursor: 'pointer' }}
+                                                >
                                                     {getTeamNameFormats(firstSeenTeam).short || firstSeenTeam}
                                                 </span>
                                             </div>
