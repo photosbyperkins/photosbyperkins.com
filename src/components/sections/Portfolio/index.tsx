@@ -317,7 +317,7 @@ export default function Portfolio({ years }: PortfolioProps) {
                                 <div className="portfolio__season-summary">
                                     <div className="portfolio__season-strip">
                                         <div className="portfolio__season-stat-compact portfolio__season-stat-compact--events">
-                                            <span className="portfolio__season-stat-label">Events</span>
+                                            <span className="portfolio__season-stat-label">Games</span>
                                             <span className="portfolio__season-stat-value">{totalEvents}</span>
                                         </div>
                                         {totalPhotos > 0 && (
