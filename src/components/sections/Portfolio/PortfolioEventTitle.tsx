@@ -1,5 +1,6 @@
 import { formatTeamName, getTeamNameFormats } from '../../../utils/formatters';
 import type { EventData } from '../../../types';
+import { useAppStore } from '../../../store/useAppStore';
 
 interface PortfolioEventTitleProps {
     eventName: string;
@@ -18,13 +19,19 @@ export default function PortfolioEventTitle({
     shouldShowScores,
     mainTitle,
 }: PortfolioEventTitleProps) {
+    const openIframe = useAppStore((state) => state.openIframe);
+
     const hasLocalScore = ev.localScore && ev.localScore.team1Score !== null && ev.localScore.team2Score !== null;
     const TitleSideWrapper = ev.wftdaMatch ? 'a' : 'div';
     const titleSideProps = ev.wftdaMatch
         ? {
               href: ev.wftdaMatch.href,
-              target: '_blank',
-              rel: 'noopener noreferrer',
+              onClick: (e: React.MouseEvent) => {
+                  e.preventDefault();
+                  if (ev.wftdaMatch?.href) {
+                      openIframe(ev.wftdaMatch.href);
+                  }
+              },
               className: 'portfolio__event-title-side portfolio__event-title-side--link',
               title: 'Official WFTDA Match Details',
           }

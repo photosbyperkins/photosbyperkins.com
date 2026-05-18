@@ -331,8 +331,8 @@ export default function Portfolio({ years }: PortfolioProps) {
                                         {firstSeenTeam ? (
                                             <div className="portfolio__season-stat-compact portfolio__season-stat-compact--first-seen">
                                                 <span className="portfolio__season-stat-label">First Seen</span>
-                                                <span 
-                                                    className="portfolio__season-stat-value" 
+                                                <span
+                                                    className="portfolio__season-stat-value"
                                                     title={`Scroll to event: ${firstSeenTeam}`}
                                                     onClick={() => {
                                                         const target = firstSeenTeam.toLowerCase();
@@ -353,8 +353,10 @@ export default function Portfolio({ years }: PortfolioProps) {
                                                             const elementId = `event-${foundEventName.replace(/[^a-zA-Z0-9-]/g, '-')}`;
                                                             const element = document.getElementById(elementId);
                                                             if (element) {
-                                                                const elementPosition = element.getBoundingClientRect().top;
-                                                                const offsetPosition = elementPosition + window.scrollY - headerOffset;
+                                                                const elementPosition =
+                                                                    element.getBoundingClientRect().top;
+                                                                const offsetPosition =
+                                                                    elementPosition + window.scrollY - headerOffset;
                                                                 window.scrollTo({
                                                                     top: offsetPosition,
                                                                     behavior: 'smooth',

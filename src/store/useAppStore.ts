@@ -11,6 +11,10 @@ export interface AppStore {
     openAbout: () => void;
     closeAbout: () => void;
 
+    iframeUrl: string | null;
+    openIframe: (url: string) => void;
+    closeIframe: () => void;
+
     // Theme Slice
     theme: ThemePreference;
     activeTheme: 'light' | 'dark';
@@ -104,6 +108,10 @@ export const useAppStore = create<AppStore>()(
             isAboutOpen: false,
             openAbout: () => set({ isAboutOpen: true }),
             closeAbout: () => set({ isAboutOpen: false }),
+
+            iframeUrl: null,
+            openIframe: (url: string) => set({ iframeUrl: url }),
+            closeIframe: () => set({ iframeUrl: null }),
 
             // --- THEME SLICE ---
             // Fallback to legacy theme if it exists during first init

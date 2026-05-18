@@ -5,6 +5,7 @@ import { GithubIcon, FacebookIcon, InstagramIcon } from './components/ui/icons';
 
 const About = lazy(() => import('./components/sections/About'));
 const Portfolio = lazy(() => import('./components/sections/Portfolio'));
+const IframeOverlay = lazy(() => import('./components/ui/IframeOverlay'));
 
 function Footer() {
     return (
@@ -113,6 +114,7 @@ export default function App() {
             <Footer />
             <Suspense fallback={null}>
                 <About />
+                <IframeOverlay />
             </Suspense>
         </>
     );
