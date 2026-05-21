@@ -406,7 +406,8 @@ const PortfolioEvent = memo(function PortfolioEvent({
                             <div className="portfolio__event-grid">
                                 {albumImages.map((url: PhotoInput, i) => {
                                     const origUrl = typeof url === 'string' ? url : url.original;
-                                    const thumbUrl = typeof url === 'string' ? url : url.thumb || url.original;
+                                    const rawThumbUrl = typeof url === 'string' ? url : url.thumb || url.original;
+                                    const thumbUrl = rawThumbUrl.includes('?v=') ? rawThumbUrl : `${rawThumbUrl}?v=${__BUILD_NUMBER__}`;
 
                                     const focusX = typeof url === 'string' ? undefined : url.focusX;
                                     const focusY = typeof url === 'string' ? undefined : url.focusY;
@@ -467,7 +468,8 @@ const PortfolioEvent = memo(function PortfolioEvent({
                                     const isDesktopLast = i === 9;
                                     const isMobileLast = i === 4;
                                     const origUrl = typeof url === 'string' ? url : url.original;
-                                    const thumbUrl = typeof url === 'string' ? url : url.thumb || url.original;
+                                    const rawThumbUrl = typeof url === 'string' ? url : url.thumb || url.original;
+                                    const thumbUrl = rawThumbUrl.includes('?v=') ? rawThumbUrl : `${rawThumbUrl}?v=${__BUILD_NUMBER__}`;
                                     const albumIndex = albumImages.findIndex(
                                         (ai: PhotoInput) => (typeof ai === 'string' ? ai : ai.original) === origUrl
                                     );

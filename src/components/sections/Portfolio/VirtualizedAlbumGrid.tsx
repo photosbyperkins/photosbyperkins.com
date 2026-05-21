@@ -3,6 +3,8 @@ import { List } from 'react-window';
 import ProgressiveImage from '../../ui/ProgressiveImage';
 import type { PhotoInput } from '../../../types';
 
+declare const __BUILD_NUMBER__: string;
+
 interface VirtualizedAlbumGridProps {
     photos: PhotoInput[];
     eventName: string;
@@ -117,7 +119,8 @@ export default function VirtualizedAlbumGrid({
                     {rowPhotos.map((url, i) => {
                         const globalIdx = startIndex + i;
                         const origUrl = typeof url === 'string' ? url : url.original;
-                        const thumbUrl = typeof url === 'string' ? url : url.thumb || url.original;
+                        const rawThumbUrl = typeof url === 'string' ? url : url.thumb || url.original;
+                        const thumbUrl = rawThumbUrl.includes('?v=') ? rawThumbUrl : `${rawThumbUrl}?v=${__BUILD_NUMBER__}`;
                         const focusX = typeof url === 'string' ? undefined : url.focusX;
                         const focusY = typeof url === 'string' ? undefined : url.focusY;
 

@@ -6,6 +6,8 @@ import { useAppStore } from '../../../store/useAppStore';
 import ProgressiveImage from '../../ui/ProgressiveImage';
 import type { PhotoInput } from '../../../types';
 
+declare const __BUILD_NUMBER__: string;
+
 const fadeUp = {
     hidden: { opacity: 0, y: 10 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.23, 1, 0.32, 1] as const } },
@@ -149,7 +151,8 @@ export default function SharedFavoritesPanel({ photos, onClose }: SharedFavorite
                         <div className="portfolio__event-grid">
                             {photos.map((photo, i) => {
                                 const origUrl = typeof photo === 'string' ? photo : photo.original;
-                                const thumbUrl = typeof photo === 'string' ? photo : photo.thumb || photo.original;
+                                const rawThumbUrl = typeof photo === 'string' ? photo : photo.thumb || photo.original;
+                                const thumbUrl = rawThumbUrl.includes('?v=') ? rawThumbUrl : `${rawThumbUrl}?v=${__BUILD_NUMBER__}`;
                                 const focusX = typeof photo === 'string' ? undefined : photo.focusX;
                                 const focusY = typeof photo === 'string' ? undefined : photo.focusY;
 
