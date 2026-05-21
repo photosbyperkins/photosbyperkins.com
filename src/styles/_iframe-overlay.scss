@@ -43,7 +43,7 @@
     }
 
     &__action-btn {
-        background: none;
+        background: transparent;
         border: none;
         color: var(--color-text);
         cursor: pointer;
@@ -51,14 +51,13 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        transition:
-            color 0.2s ease,
-            transform 0.2s ease;
-        border-radius: 50%;
+        gap: 0.5rem;
+        transition: all var(--transition-fast);
 
-        &:hover {
-            color: var(--color-accent);
-            transform: scale(1.1);
+        @media (hover: hover) {
+            &:hover {
+                color: var(--color-accent);
+            }
         }
 
         &:focus-visible {
