@@ -26,14 +26,12 @@ test.describe('Deep-Link Routing', () => {
         await page.goto('/portfolio/2025');
         await page.locator('.portfolio__event').first().waitFor({ timeout: 15000 });
 
-        // Get the first event's name from its id attribute
-        const eventId = await page.locator('.portfolio__event').first().getAttribute('id');
-        if (!eventId) return;
-
+        // Get the first event's name from its data-event-name attribute
+        const eventName = await page.locator('.portfolio__event').first().getAttribute('data-event-name');
+        if (!eventName) return;
 
         // Navigate to the deep link with photo index 0
-        // Use the raw event name with the original formatting from the URL-safe id
-        const encodedEvent = encodeURIComponent(eventId.replace('event-', ''));
+        const encodedEvent = encodeURIComponent(eventName);
         await page.goto(`/portfolio/2025/${encodedEvent}/0`);
 
         // Lightbox should open

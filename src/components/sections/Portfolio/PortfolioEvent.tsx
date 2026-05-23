@@ -241,6 +241,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
         <motion.article
             ref={ref}
             id={`event-${eventName.replace(/[^a-zA-Z0-9-]/g, '-')}`}
+            data-event-name={eventName}
             className="portfolio__event"
             initial={{ opacity: 0, y: 20 }}
             animate={inViewParent ? { opacity: 1, y: 0 } : {}}
