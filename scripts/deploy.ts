@@ -190,7 +190,9 @@ async function runDeploy() {
             }
         }
 
-        const dirsToPrune = ['data', 'assets', 'hero', 'share'];
+        // We no longer prune 'assets' immediately to ensure clients with a cached index.html
+        // (like from the PWA Service Worker) don't break when requesting old hashed chunks.
+        const dirsToPrune = ['data', 'hero', 'share'];
         const staleFiles = [];
         for (const [remotePath] of remoteFilesMap) {
             if (!localFilesSet.has(remotePath)) {
