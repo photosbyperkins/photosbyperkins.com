@@ -124,13 +124,19 @@ async function runDeploy() {
 
         itemsToCopy.sort((a, b) => getPriority(a) - getPriority(b));
 
+        const remoteTmpDir = `${REMOTE_DIR}_deploy_tmp_${Date.now()}`;
+
+        // Create remote temporary directory
+        console.log(`📂 Creating remote temporary directory: ${remoteTmpDir}`);
+        execSync(`ssh -o StrictHostKeyChecking=accept-new ${SSH_USER}@${SSH_HOST} "mkdir -p ${remoteTmpDir}"`, { stdio: 'inherit' });
+
         // Map top level files into paths for SCP
         // We use double quotes to handle spaces in paths
         const scpArgs = itemsToCopy.map((item) => `"${path.join(stagingDir, item)}"`).join(' ');
-        const scpCommand = `scp -r -p ${scpArgs} ${SSH_USER}@${SSH_HOST}:${REMOTE_DIR}`;
+        const scpCommand = `scp -r -p ${scpArgs} ${SSH_USER}@${SSH_HOST}:${remoteTmpDir}`;
 
         // Use scp to securely copy the staging directory contents to the remote server
-        console.log(`🌐 Transferring new and updated files to ${SSH_USER}@${SSH_HOST}...`);
+        console.log(`🌐 Transferring new and updated files to temporary directory on ${SSH_USER}@${SSH_HOST}...`);
 
         let scpAttempt = 1;
         let scpSuccess = false;
@@ -142,6 +148,20 @@ async function runDeploy() {
                 console.log(`⚠️ Transfer failed. Retrying in 5 seconds... (Attempt ${scpAttempt})`);
                 await sleep(5000);
                 scpAttempt++;
+            }
+        }
+
+        console.log(`⚡ Atomically moving files to the live directory...`);
+        let mvAttempt = 1;
+        let mvSuccess = false;
+        while (!mvSuccess) {
+            try {
+                execSync(`ssh -o StrictHostKeyChecking=accept-new ${SSH_USER}@${SSH_HOST} "cp -a ${remoteTmpDir}/. ${REMOTE_DIR}/ && rm -rf ${remoteTmpDir}"`, { stdio: 'inherit' });
+                mvSuccess = true;
+            } catch {
+                console.log(`⚠️ Move failed. Retrying in 5 seconds... (Attempt ${mvAttempt})`);
+                await sleep(5000);
+                mvAttempt++;
             }
         }
 
