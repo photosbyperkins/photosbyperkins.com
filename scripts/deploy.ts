@@ -156,7 +156,7 @@ async function runDeploy() {
         let mvSuccess = false;
         while (!mvSuccess) {
             try {
-                execSync(`ssh -o StrictHostKeyChecking=accept-new ${SSH_USER}@${SSH_HOST} "cp -a ${remoteTmpDir}/. ${REMOTE_DIR}/ && rm -rf ${remoteTmpDir}"`, { stdio: 'inherit' });
+                execSync(`ssh -o StrictHostKeyChecking=accept-new ${SSH_USER}@${SSH_HOST} "cp -a ${remoteTmpDir}/. ${REMOTE_DIR}/ && chmod -R u+w ${remoteTmpDir} && rm -rf ${remoteTmpDir}"`, { stdio: 'inherit' });
                 mvSuccess = true;
             } catch {
                 console.log(`⚠️ Move failed. Retrying in 5 seconds... (Attempt ${mvAttempt})`);
