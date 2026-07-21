@@ -335,12 +335,23 @@ export default function Portfolio({ years }: PortfolioProps) {
                                                     className="portfolio__season-stat-value"
                                                     title={`Scroll to event: ${firstSeenTeam}`}
                                                     onClick={() => {
-                                                        const target = firstSeenTeam.toLowerCase();
-                                                        let foundEventName = null;
-                                                        // Search backwards to find the chronologically first event
+                                                        // Build word tokens from the team name for robust matching
+                                                        const targetWords = firstSeenTeam
+                                                            .toLowerCase()
+                                                            .split(/\s+/)
+                                                            .filter(Boolean);
+                                                        let foundEventName: string | null = null;
+                                                        // Search backwards (events are chronological) to get the earliest occurrence
                                                         for (let i = events.length - 1; i >= 0; i--) {
-                                                            const [eName] = events[i];
-                                                            if (eName.toLowerCase().includes(target)) {
+                                                            const [eName, eData] = events[i];
+                                                            // Prefer albumSlug match if available (deterministic, no false positives)
+                                                            const slug = eData?.albumSlug || '';
+                                                            const nameToCheck = (slug + ' ' + eName).toLowerCase();
+                                                            const matchCount = targetWords.filter((w) =>
+                                                                nameToCheck.includes(w)
+                                                            ).length;
+                                                            // Require at least half the words to match to avoid very short names
+                                                            if (matchCount >= Math.ceil(targetWords.length / 2)) {
                                                                 foundEventName = eName;
                                                                 break;
                                                             }

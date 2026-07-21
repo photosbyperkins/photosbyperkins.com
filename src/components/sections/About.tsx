@@ -1,3 +1,4 @@
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useEffect, useRef } from 'react';
@@ -5,6 +6,34 @@ import { useAppStore } from '../../store/useAppStore';
 import '../../styles/_about.scss';
 
 declare const __BUILD_NUMBER__: string;
+
+// Lightweight inline markdown renderer: **bold**, *italic*, [text](url)
+function parseInline(text: string): React.ReactNode[] {
+    const pattern = /(\*\*(.+?)\*\*|\*(.+?)\*|\[(.+?)\]\((.+?)\))/g;
+    const nodes: React.ReactNode[] = [];
+    let lastIdx = 0;
+    let match: RegExpExecArray | null;
+    let key = 0;
+    while ((match = pattern.exec(text)) !== null) {
+        if (match.index > lastIdx) {
+            nodes.push(text.slice(lastIdx, match.index));
+        }
+        if (match[2]) {
+            nodes.push(<strong key={key++}>{match[2]}</strong>);
+        } else if (match[3]) {
+            nodes.push(<em key={key++}>{match[3]}</em>);
+        } else if (match[4] && match[5]) {
+            nodes.push(
+                <a key={key++} href={match[5]} target="_blank" rel="noopener noreferrer">
+                    {match[4]}
+                </a>
+            );
+        }
+        lastIdx = match.index + match[0].length;
+    }
+    if (lastIdx < text.length) nodes.push(text.slice(lastIdx));
+    return nodes;
+}
 
 const fadeUp = {
     hidden: { opacity: 0, y: 30 },
@@ -118,7 +147,7 @@ export default function About() {
                                             import.meta.env.VITE_ABOUT_ME.split('\n').map(
                                                 (paragraph: string, i: number) => {
                                                     if (!paragraph.trim()) return null;
-                                                    return <p key={i}>{paragraph}</p>;
+                                                    return <p key={i}>{parseInline(paragraph)}</p>;
                                                 }
                                             )
                                         ) : (

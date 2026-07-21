@@ -95,6 +95,11 @@
             user-select: none;
             cursor: default;
             position: relative;
+
+            &--empty {
+                opacity: 0.4;
+                font-style: italic;
+            }
         }
 
         &-data-info {

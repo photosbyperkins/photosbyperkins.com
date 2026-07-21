@@ -251,12 +251,17 @@ export default function Lightbox({
         getDisplaySrc,
     });
 
-    useImagePreloader({
-        images,
-        currentIndex: index,
-        mainImageLoaded,
-        getDisplaySrc,
-    });
+    // Update document title when the lightbox is open (correct approach for portal dialogs)
+    useEffect(() => {
+        const appTitle = import.meta.env.VITE_SITE_APP_TITLE || 'Photography Portfolio';
+        const prevTitle = document.title;
+        if (eventName) {
+            document.title = `${eventName}${year ? ` (${year})` : ''} | ${appTitle}`;
+        }
+        return () => {
+            document.title = prevTitle;
+        };
+    }, [eventName, year]);
 
     const onDragEnd = (_e: MouseEvent | TouchEvent | PointerEvent, { offset, velocity }: PanInfo) => {
         const swipeThreshold = 50;
@@ -301,18 +306,6 @@ export default function Lightbox({
                 prevOpacity={prevOpacity}
                 currentOpacity={currentOpacity}
                 nextOpacity={nextOpacity}
-            />
-
-            <title>
-                {eventName} {year ? `(${year})` : ''} | {import.meta.env.VITE_SITE_APP_TITLE || 'Photography Portfolio'}
-            </title>
-            <meta
-                property="og:title"
-                content={`${eventName} | ${import.meta.env.VITE_SITE_APP_TITLE || 'Photography Portfolio'}`}
-            />
-            <meta
-                name="description"
-                content={`Action photography from ${eventName}${year ? `, ${year}` : ''}. ${import.meta.env.VITE_LIGHTBOX_DESC_SUFFIX || ''}`}
             />
 
             {/* Left/Right Navigation Overlays */}

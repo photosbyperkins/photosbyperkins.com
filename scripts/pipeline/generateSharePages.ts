@@ -35,6 +35,22 @@ export async function generateSharePages(data: IndexState) {
 
             const targetUrl = `${BASE_URL}/?year=${encodeURIComponent(year)}&event=${encodeURIComponent(event)}`;
 
+            const photoCount = eventData.photoCount || eventData.album?.length || 0;
+            const jsonLd = {
+                '@context': 'https://schema.org',
+                '@type': 'ImageGallery',
+                'name': `${event} — ${year}`,
+                'description': `Photo gallery for ${event} (${year}) on ${APP_TITLE}.`,
+                'url': `${BASE_URL}/share/${encodeURIComponent(year)}/${encodeURIComponent(event)}`,
+                'numberOfItems': photoCount,
+                ...(ogImgUrl ? { 'image': ogImgUrl } : {}),
+                'publisher': {
+                    '@type': 'Organization',
+                    'name': APP_TITLE,
+                    'url': BASE_URL,
+                },
+            };
+
             const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -54,6 +70,9 @@ export async function generateSharePages(data: IndexState) {
     <meta name="twitter:title" content="${event} - ${APP_TITLE}">
     <meta name="twitter:description" content="View the photo gallery for ${event}.">
     ${ogImgUrl ? `<meta name="twitter:image" content="${ogImgUrl}">` : ''}
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
 
     <!-- Fallback Redirection -->
     <meta http-equiv="refresh" content="0; url=${targetUrl}" />

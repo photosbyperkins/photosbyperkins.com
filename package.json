@@ -46,7 +46,7 @@
     "prettier": "^3.8.3",
     "puppeteer": "^24.43.0",
     "sharp": "^0.34.5",
-    "tsx": "^4.21.0",
+    "tsx": "^4.23.1",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.59.2",
     "vite": "^8.0.11",

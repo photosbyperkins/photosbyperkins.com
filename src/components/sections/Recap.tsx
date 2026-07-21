@@ -58,7 +58,7 @@ const RecapSliceItem = memo(function RecapSliceItem({
         <motion.div
             id={`recap-slice-${idx}`}
             layout
-            className="recap__slice"
+            className={`recap__slice${!spriteLoaded ? ' recap__slice--skeleton' : ''}`}
             aria-label={`View recap image ${sliceIndex + 1}`}
             onClick={() => {
                 if (events && events[eventIdx]) {
@@ -73,18 +73,22 @@ const RecapSliceItem = memo(function RecapSliceItem({
                         ? { opacity: 1 }
                         : { rotateY: 0, opacity: 1 }
                     : reducedMotion
-                      ? { opacity: 0 }
-                      : { rotateY: -180, opacity: 0 }
+                      ? { opacity: 0.4 }
+                      : { rotateY: -180, opacity: 0.4 }
             }
             transition={reducedMotion ? { duration: 0 } : { duration: 0.8, type: 'spring', bounce: 0.3 }}
         >
             <div
                 className="recap__sprite-slice"
-                style={{
-                    backgroundImage: `url(/recap/${slug}/sprite.webp?v=${__BUILD_NUMBER__})`,
-                    backgroundPosition: bgPosition,
-                    backgroundSize: bgSize,
-                }}
+                style={
+                    spriteLoaded
+                        ? {
+                              backgroundImage: `url(/recap/${slug}/sprite.webp?v=${__BUILD_NUMBER__})`,
+                              backgroundPosition: bgPosition,
+                              backgroundSize: bgSize,
+                          }
+                        : {}
+                }
             />
         </motion.div>
     );

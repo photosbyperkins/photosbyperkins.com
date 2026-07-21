@@ -126,6 +126,17 @@ const PortfolioEvent = memo(function PortfolioEvent({
 
     const totalPhotos = ev.photoCount || albumImages.length;
 
+    // Pre-compute a O(1) map from original URL → album index.
+    // Replaces the repeated O(n) findIndex call inside featuredPhotos.map.
+    const albumIndexMap = useMemo(() => {
+        const m = new Map<string, number>();
+        albumImages.forEach((ai: PhotoInput, i: number) => {
+            const url = typeof ai === 'string' ? ai : ai.original;
+            m.set(url, i);
+        });
+        return m;
+    }, [albumImages]);
+
     const featuredPhotos: PhotoInput[] = useMemo(() => {
         let photos: PhotoInput[] = [...highlightImages];
 
@@ -389,7 +400,9 @@ const PortfolioEvent = memo(function PortfolioEvent({
                             </p>
                         </div>
                     ) : isGridView || eventName === 'Favorites' ? (
-                        albumImages.length > 50 && eventName !== 'Favorites' ? (
+                        albumImages.length >
+                            (parseInt(import.meta.env.VITE_VIRTUAL_GRID_THRESHOLD || '50', 10) || 50) &&
+                        eventName !== 'Favorites' ? (
                             <>
                                 <VirtualizedAlbumGrid
                                     photos={albumImages}
@@ -475,9 +488,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
                                     const thumbUrl = rawThumbUrl.includes('?v=')
                                         ? rawThumbUrl
                                         : `${rawThumbUrl}?v=${__BUILD_NUMBER__}`;
-                                    const albumIndex = albumImages.findIndex(
-                                        (ai: PhotoInput) => (typeof ai === 'string' ? ai : ai.original) === origUrl
-                                    );
+                                    const albumIndex = albumIndexMap.get(origUrl) ?? -1;
 
                                     const focusX = typeof url === 'string' ? undefined : url.focusX;
                                     const focusY = typeof url === 'string' ? undefined : url.focusY;

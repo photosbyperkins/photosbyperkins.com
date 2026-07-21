@@ -17,10 +17,12 @@
 
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import sharp from 'sharp';
 import exifr from 'exifr';
 import type { IndexState } from './types.js';
 import { logger } from './logger';
+import { runWithConcurrency } from './utils.js';
 
 const PHOTOS_DIR = path.join(process.cwd(), 'photos');
 const MAX_ALBUM_PER_EVENT = Infinity;
@@ -436,6 +438,9 @@ export async function generatePhotoIndex(): Promise<IndexState> {
         .map((e) => e.name)
         .sort();
 
+    // Use all available CPUs for parallelizing per-event processing
+    const concurrency = Math.max(4, os.cpus().length);
+
     for (const year of years) {
         const yearPath = path.join(PHOTOS_DIR, year);
         const yearEntries = fs.readdirSync(yearPath, { withFileTypes: true });
@@ -485,7 +490,8 @@ export async function generatePhotoIndex(): Promise<IndexState> {
                 };
             }
         } else {
-            for (const eventDir of eventDirs) {
+            // Parallelize per-event processing across all CPU cores
+            const eventTasks = eventDirs.map((eventDir) => async () => {
                 const eventPath = path.join(yearPath, eventDir);
 
                 const label = formatEventLabel(eventDir);
@@ -503,6 +509,12 @@ export async function generatePhotoIndex(): Promise<IndexState> {
                     }
                 }
 
+                return { label, result, localScore };
+            });
+
+            const results = await runWithConcurrency(eventTasks, concurrency);
+
+            for (const { label, result, localScore } of results) {
                 if (result.album.length > 0 || result.highlights.length > 0) {
                     output[year][label] = {
                         ...result,
@@ -511,7 +523,7 @@ export async function generatePhotoIndex(): Promise<IndexState> {
                         description: null,
                     };
                 } else {
-                    console.warn(`  ⚠️  No usable photos found in ${year}/${eventDir}`);
+                    console.warn(`  ⚠️  No usable photos found for event: ${label}`);
                 }
             }
         }

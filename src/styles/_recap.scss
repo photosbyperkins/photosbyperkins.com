@@ -91,6 +91,19 @@
             filter: brightness(1.15) saturate(1.05);
         }
 
+        // Shimmer skeleton while the sprite is loading
+        &--skeleton {
+            background: linear-gradient(
+                90deg,
+                var(--color-bg-2) 25%,
+                rgba(var(--color-text-rgb), 0.06) 50%,
+                var(--color-bg-2) 75%
+            );
+            background-size: 200% 100%;
+            animation: recap-shimmer 1.5s ease-in-out infinite;
+            cursor: default;
+        }
+
         .recap__sprite-slice {
             width: 100%;
             height: 100%;
@@ -113,5 +126,14 @@
             height: 8px;
             z-index: 2;
         }
+    }
+}
+
+@keyframes recap-shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
     }
 }

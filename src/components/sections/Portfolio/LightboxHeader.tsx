@@ -26,6 +26,9 @@ export default function LightboxHeader({
     const currentPhoto = images[index];
     const exif = typeof currentPhoto === 'object' ? currentPhoto.exif : null;
 
+    // Determine if any photo in the album has EXIF (so we know whether to show a placeholder)
+    const albumHasExif = images.some((img) => typeof img === 'object' && img.exif);
+
     const handleDownload = (e: React.MouseEvent) => {
         e.stopPropagation();
         const obj = images[index];
@@ -92,8 +95,8 @@ export default function LightboxHeader({
                 </div>
             </div>
 
-            {exif && (
-                <div className="portfolio__lightbox-top-center" onClick={(e) => e.stopPropagation()}>
+            <div className="portfolio__lightbox-top-center" onClick={(e) => e.stopPropagation()}>
+                {exif ? (
                     <div className="portfolio__lightbox-data-display">
                         <div
                             className="portfolio__lightbox-data-info"
@@ -109,8 +112,14 @@ export default function LightboxHeader({
                             </span>
                         </div>
                     </div>
-                </div>
-            )}
+                ) : albumHasExif ? (
+                    <div className="portfolio__lightbox-data-display portfolio__lightbox-data-display--empty">
+                        <div className="portfolio__lightbox-data-info">
+                            <span className="portfolio__lightbox-data-row-bottom">No camera data</span>
+                        </div>
+                    </div>
+                ) : null}
+            </div>
 
             <div className="portfolio__lightbox-top-right">
                 <button

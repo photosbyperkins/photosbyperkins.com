@@ -7,6 +7,7 @@ import type { IndexState } from './types';
 import { logger } from './logger';
 const DIST_DIR = path.join(process.cwd(), 'dist');
 const OUTPUT_DIR = path.join(DIST_DIR, 'social-cards');
+const CACHE_MANIFEST_PATH = path.join(OUTPUT_DIR, '.cache.json');
 
 // Load environment variables for branding
 const LOGO_TEXT = process.env.VITE_NAV_LOGO_TEXT || 'PHOTOS';
@@ -51,7 +52,16 @@ export async function generateSocialCards(data: IndexState) {
     logger.header('Generating Branded OpenGraph Social Cards...');
 
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+
+    // Load cache manifest
+    let cacheManifest: Record<string, string> = {};
+    if (fs.existsSync(CACHE_MANIFEST_PATH)) {
+        try { cacheManifest = JSON.parse(fs.readFileSync(CACHE_MANIFEST_PATH, 'utf8')); } catch { /* ignore */ }
+    }
+    const newManifest: Record<string, string> = {};
+
     let count = 0;
+    let skipped = 0;
     const promises = [];
     
     const ICON_FILE = path.join(process.cwd(), 'icon.svg');
@@ -131,6 +141,18 @@ export async function generateSocialCards(data: IndexState) {
                 continue;
             }
 
+            // Check cache — skip if source, focusX, focusY haven't changed
+            const outputFile = path.join(OUTPUT_DIR, safeFilename(year, event));
+            const focusXCached = typeof img === 'object' ? img.focusX : undefined;
+            const focusYCached = typeof img === 'object' ? img.focusY : undefined;
+            const cacheKey = `${firstImgPath}|${focusXCached ?? ''}|${focusYCached ?? ''}`;
+            const relKey = safeFilename(year, event);
+            newManifest[relKey] = cacheKey;
+            if (cacheManifest[relKey] === cacheKey && fs.existsSync(outputFile)) {
+                skipped++;
+                continue;
+            }
+
             const { datePrefix, mainTitle } = parseEventTitle(event);
             const teams = mainTitle.split(/\s+(?:vs|versus)\s+/i).map(t => formatTeamName(t.trim()));
 
@@ -207,8 +229,6 @@ export async function generateSocialCards(data: IndexState) {
                 });
             }
 
-            const outputFile = path.join(OUTPUT_DIR, safeFilename(year, event));
-            
             let pipeline = sharp(sourceFile);
             
             if (img && img.width && img.height && typeof img.focusX !== 'undefined' && typeof img.focusY !== 'undefined') {
@@ -256,7 +276,9 @@ export async function generateSocialCards(data: IndexState) {
     }
 
     await Promise.all(promises);
-    logger.success(`Generated ${count} branded social cards.`);
+    // Persist updated cache manifest
+    fs.writeFileSync(CACHE_MANIFEST_PATH, JSON.stringify(newManifest, null, 2));
+    logger.success(`Generated ${count} branded social cards (${skipped} cached, skipped).`);
 }
 
 // If run directly

@@ -113,3 +113,55 @@ Because media generation produces massive directories, `npm run deploy` intentio
 - `/zips`
 
 **You must manually upload your finalized media!** Once you finish a sprint of editing and run `npm run build`, open an FTP client (like **FileZilla** or **Cyberduck**) and manually drag those directories from your local `dist/` into your server's `public_html` directory to sync them.
+
+## 🔧 Standalone Utilities
+
+These scripts live in `scripts/` and can be run independently — they are **not** invoked by the main build pipeline. Run them with `npx tsx scripts/<name>.ts`.
+
+---
+
+### `renamePhotoFolders.ts`
+
+Standardises subfolder names inside every event directory under `/photos` so the indexer can reliably find album and highlight photos.
+
+**Rules applied automatically:**
+- `Album` folders (contain "resize" or match `/^\d+\s*(final|resize)/i`) → renamed to `resized`
+- `Highlight / IG` folders (start with "ig ", "ig adults", or contain "instagram") → renamed to `instagram`
+- Multiple IG folders are **merged**: files moved into a single `instagram/` directory
+
+**Skipped entirely:** `original`, `denoise`, `sharpen`, `rescued`, `process improvements`, `reddit`, `facebook`
+
+```bash
+npx tsx scripts/renamePhotoFolders.ts
+```
+
+> Run this **before** `npm run build` after adding a new shoot.
+
+---
+
+### `populateEventScores.ts`
+
+Scans all event directories under `/photos` and creates a `score.json` stub in any event folder that doesn't already have one. This is a convenience scaffold — fill in the generated stubs with the actual scores before building.
+
+**Generated `score.json` structure:**
+```json
+{ "team1Score": null, "team2Score": null }
+```
+
+```bash
+npx tsx scripts/populateEventScores.ts
+```
+
+---
+
+### `benchmark.ts`
+
+Clears all build caches (`build/`, `dist/`, `.eslintcache`, Vite cache, face detection cache) and then runs the full `npm run build` pipeline from scratch, timing the total duration.
+
+Results are appended to `.benchmark_results.json` in the project root, allowing you to track build performance over time. Build step telemetry (per-step timings) is also written to `data/build_stats.json` during each run.
+
+```bash
+npx tsx scripts/benchmark.ts
+```
+
+> Useful after major pipeline changes to verify regressions or improvements.
