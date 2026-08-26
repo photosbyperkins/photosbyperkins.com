@@ -1,11 +1,11 @@
-import { motion } from 'framer-motion';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
+
 declare const __BUILD_NUMBER__: string;
 
-type ProgressiveImageProps = Omit<
-    React.ImgHTMLAttributes<HTMLImageElement>,
-    'onAnimationStart' | 'onDragStart' | 'onDragEnd' | 'onDrag'
->;
+type ProgressiveImageProps = React.ImgHTMLAttributes<HTMLImageElement> & {
+    placeholder?: string | null;
+    objectPosition?: string;
+};
 
 export default function ProgressiveImage({
     src,
@@ -14,14 +14,16 @@ export default function ProgressiveImage({
     className,
     style,
     objectPosition,
+    onLoad,
     ...props
-}: ProgressiveImageProps & { placeholder?: string | null; objectPosition?: string }) {
+}: ProgressiveImageProps) {
     const [isLoaded, setIsLoaded] = useState(false);
     const [shouldLoad, setShouldLoad] = useState(false);
-    const ref = useRef<HTMLDivElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const imgRef = useRef<HTMLImageElement>(null);
 
     useEffect(() => {
-        if (!ref.current || shouldLoad) return;
+        if (!containerRef.current || shouldLoad) return;
 
         const observer = new IntersectionObserver(
             ([entry]) => {
@@ -30,24 +32,46 @@ export default function ProgressiveImage({
                     observer.disconnect();
                 }
             },
-            { rootMargin: '200px' }
+            { rootMargin: '400px' }
         );
 
-        observer.observe(ref.current);
+        observer.observe(containerRef.current);
         return () => observer.disconnect();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [shouldLoad]);
+
+    // Check if image is already cached / completed
+    useEffect(() => {
+        if (imgRef.current?.complete && imgRef.current.naturalWidth > 0) {
+            setIsLoaded(true);
+        }
+    }, [shouldLoad, src]);
+
+    const handleLoad = useCallback(
+        (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+            setIsLoaded(true);
+            onLoad?.(e);
+        },
+        [onLoad]
+    );
+
+    const imageSrc = shouldLoad && src ? (src.includes('?v=') ? src : `${src}?v=${__BUILD_NUMBER__}`) : undefined;
+    const placeholderSrc = placeholder
+        ? placeholder.includes('?v=')
+            ? placeholder
+            : `${placeholder}?v=${__BUILD_NUMBER__}`
+        : null;
 
     return (
         <div
-            ref={ref}
+            ref={containerRef}
             className={`progressive-image ${className || ''}`}
             style={{ ...style, position: 'relative', overflow: 'hidden' }}
         >
-            {placeholder && !isLoaded && (
+            {placeholderSrc && !isLoaded && (
                 <img
-                    src={`${placeholder}?v=${__BUILD_NUMBER__}`}
+                    src={placeholderSrc}
                     alt=""
+                    aria-hidden="true"
                     className="progressive-image__placeholder"
                     style={{
                         position: 'absolute',
@@ -57,23 +81,23 @@ export default function ProgressiveImage({
                         height: '100%',
                         objectFit: 'cover',
                         objectPosition: objectPosition || 'center',
-                        filter: 'blur(10px)',
-                        transform: 'scale(1.1)',
                     }}
                 />
             )}
-            <motion.img
-                src={shouldLoad && src ? `${src}?v=${__BUILD_NUMBER__}` : undefined}
+            <img
+                ref={imgRef}
+                src={imageSrc}
                 alt={alt}
                 loading="lazy"
-                onLoad={() => setIsLoaded(true)}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: isLoaded ? 1 : 0 }}
-                transition={{ duration: 0.4, ease: 'easeOut' }}
-                className="progressive-image__img"
-                style={{ position: 'relative', zIndex: 1, objectPosition: objectPosition || 'center' }}
+                decoding="async"
+                onLoad={handleLoad}
+                className={`progressive-image__img ${isLoaded ? 'is-loaded' : ''}`}
+                style={{
+                    position: 'relative',
+                    zIndex: 1,
+                    objectPosition: objectPosition || 'center',
+                }}
                 {...props}
-                key={src || 'empty'}
             />
         </div>
     );

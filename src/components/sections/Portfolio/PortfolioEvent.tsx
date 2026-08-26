@@ -255,8 +255,8 @@ const PortfolioEvent = memo(function PortfolioEvent({
             data-event-name={eventName}
             className="portfolio__event"
             initial={{ opacity: 0, y: 20 }}
-            animate={inViewParent ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.5, delay: Math.min(evIdx * 0.05, 0.5) }} // Cap delay
+            animate={isVisible ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.4 }}
             style={{ minHeight: isVisible ? 'auto' : '350px' }}
         >
             <div className="portfolio__event-header">
