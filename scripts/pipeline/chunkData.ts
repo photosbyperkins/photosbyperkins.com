@@ -223,7 +223,7 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
                 if (bestScore === 2) break; // Found exact match
             }
         }
-        return bestMatch;
+        return bestScore === 2 ? bestMatch : null;
     }
 
     const sortedGlobalYears = Object.keys(data).sort((a, b) => parseInt(a) - parseInt(b));
