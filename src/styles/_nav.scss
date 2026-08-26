@@ -72,12 +72,12 @@
         &-icon {
             width: 1.1em;
             height: 1.1em;
-            display: block;
+            display: inline-block;
             transform: translateY(0.05em);
-
-            html[data-theme='light'] & {
-                filter: invert(1);
-            }
+            background-color: var(--color-text);
+            -webkit-mask: url('/favicon.svg?v=2') no-repeat center / contain;
+            mask: url('/favicon.svg?v=2') no-repeat center / contain;
+            transition: background-color var(--transition-fast);
         }
 
         &-accent {

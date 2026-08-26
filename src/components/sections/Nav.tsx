@@ -70,7 +70,7 @@ export default function Nav() {
                 <div className="container">
                     <div className="nav__inner">
                         <button className="nav__logo" onClick={openAbout} aria-label="About Me">
-                            <img src="/favicon.svg?v=2" alt="" className="nav__logo-icon" />
+                            <span className="nav__logo-icon" aria-hidden="true" />
                             <span className="nav__logo-text">
                                 {import.meta.env.VITE_NAV_LOGO_TEXT || 'JANE'}{' '}
                                 <span className="nav__logo-accent">

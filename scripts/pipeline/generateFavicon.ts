@@ -3,10 +3,16 @@ import path from 'path';
 import sharp from 'sharp';
 
 // Default Generic Placeholder Favicon 
-// A widely recognized, permissive open-source camera icon outline.
+// A widely recognized, permissive open-source camera icon outline with theme adaptability.
 const DEFAULT_FAVICON_SVG = `
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <path d="M149.1 64.8L138.7 96H64C28.7 96 0 124.7 0 160V416c0 35.3 28.7 64 64 64H448c35.3 0 64-28.7 64-64V160c0-35.3-28.7-64-64-64H373.3L362.9 64.8C356.4 45.2 338.1 32 317.4 32H194.6c-20.7 0-39 13.2-45.5 32.8zM256 192a96 96 0 1 1 0 192 96 96 0 1 1 0-192z" fill="white"/>
+  <style>
+    path { fill: #1a1a24; }
+    @media (prefers-color-scheme: dark) {
+      path { fill: #ffffff; }
+    }
+  </style>
+  <path d="M149.1 64.8L138.7 96H64C28.7 96 0 124.7 0 160V416c0 35.3 28.7 64 64 64H448c35.3 0 64-28.7 64-64V160c0-35.3-28.7-64-64-64H373.3L362.9 64.8C356.4 45.2 338.1 32 317.4 32H194.6c-20.7 0-39 13.2-45.5 32.8zM256 192a96 96 0 1 1 0 192 96 96 0 1 1 0-192z"/>
 </svg>
 `;
 
@@ -14,7 +20,7 @@ async function generateIcons() {
     try {
         let faviconSvg = DEFAULT_FAVICON_SVG;
         const customSvgPath = path.join(process.cwd(), 'icon.svg');
-        
+
         if (fs.existsSync(customSvgPath)) {
             console.log('✨ Using custom user-provided icon.svg');
             faviconSvg = fs.readFileSync(customSvgPath, 'utf8');
@@ -25,10 +31,17 @@ async function generateIcons() {
         fs.writeFileSync('public/favicon.svg', faviconSvg);
         const faviconBuffer = Buffer.from(faviconSvg);
 
-        // 1. Standard 32x32 favicon.png
+        // 1. Standard 32x32 favicon.png (raster fallback)
         await sharp(faviconBuffer).resize(32, 32).png().toFile('public/favicon.png');
 
         // 2. 180x180 apple-touch-icon.png (opaque with black background for iOS)
+        // Ensure icon drawn onto black background has white stroke/fill
+        const whiteSvg = faviconSvg
+            .replace(/--icon-color:\s*#[0-9a-fA-F]+;/g, '--icon-color: #ffffff;')
+            .replace(/fill="#[0-9a-fA-F]+"/g, 'fill="#ffffff"')
+            .replace(/stroke="#[0-9a-fA-F]+"/g, 'stroke="#ffffff"');
+        const appleIconBuffer = Buffer.from(whiteSvg);
+
         await sharp({
             create: {
                 width: 180,
@@ -39,7 +52,7 @@ async function generateIcons() {
         })
             .composite([
                 {
-                    input: await sharp(faviconBuffer).resize(160, 160).toBuffer(),
+                    input: await sharp(appleIconBuffer).resize(160, 160).toBuffer(),
                     gravity: 'center',
                 },
             ])
