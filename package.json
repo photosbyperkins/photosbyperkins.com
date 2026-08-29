@@ -25,7 +25,8 @@
     "populate-scores": "tsx scripts/populateEventScores.ts",
     "rename": "tsx scripts/renamePhotoFolders.ts",
     "fix-permissions": "tsx scripts/fixPermissions.ts",
-    "benchmark": "tsx scripts/benchmark.ts"
+    "benchmark": "tsx scripts/benchmark.ts",
+    "sync-media": "tsx scripts/syncMedia.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

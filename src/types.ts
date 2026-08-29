@@ -1,25 +1,27 @@
-export type PhotoInput =
-    | string
-    | {
-          original: string;
-          thumb: string;
-          tiny?: string;
-          src?: string;
-          focusX?: number;
-          focusY?: number;
-          width?: number;
-          height?: number;
-          spriteIndex?: number;
-          exif?: {
-              cameraModel?: string;
-              lens?: string;
-              focalLength?: string;
-              aperture?: string;
-              shutterSpeed?: string;
-              iso?: string;
-              isPrime?: boolean;
-          };
-      };
+export interface ExifData {
+    cameraModel?: string;
+    lens?: string;
+    focalLength?: string;
+    aperture?: string;
+    shutterSpeed?: string;
+    iso?: string;
+    isPrime?: boolean;
+}
+
+export interface PhotoRecord {
+    original: string;
+    thumb: string;
+    tiny?: string;
+    src?: string;
+    focusX?: number;
+    focusY?: number;
+    width?: number;
+    height?: number;
+    spriteIndex?: number;
+    exif?: ExifData;
+}
+
+export type PhotoInput = string | PhotoRecord;
 
 export interface WftdaMatch {
     href: string;
@@ -27,6 +29,20 @@ export interface WftdaMatch {
     team2: string;
     score1: number | string;
     score2: number | string;
+}
+
+export interface EventScore {
+    team1Score: number | string | null;
+    team2Score: number | string | null;
+}
+
+export interface SeasonStats {
+    totalEvents?: number;
+    totalPhotos?: number;
+    mostSeenTeams?: string[];
+    mostUsedCamera?: string | null;
+    mostUsedLens?: string | null;
+    firstSeenTeams?: string[];
 }
 
 export type EventData = {
@@ -40,10 +56,7 @@ export type EventData = {
     originalYear?: string;
     maxExifChars?: number;
     wftdaMatch?: WftdaMatch;
-    localScore?: {
-        team1Score: number | string | null;
-        team2Score: number | string | null;
-    };
+    localScore?: EventScore;
 };
 
 export type YearData = Record<string, EventData>;
@@ -71,3 +84,4 @@ export interface SharedPhotoState {
     eventName: string;
     photoIndex?: number;
 }
+

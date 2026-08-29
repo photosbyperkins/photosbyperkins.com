@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { parseEventTitle } from '../utils/formatters';
-import type { YearData, PhotoInput, FavoriteStoreItem } from '../types';
+import type { YearData, PhotoInput, FavoriteStoreItem, SeasonStats } from '../types';
 
 // Module-level cache — persists for the lifetime of the page session.
 // Pre-fetched and actively-fetched year data is stored here so that
@@ -11,14 +11,7 @@ interface CachedYearPayload {
     recapCount: number;
     recapEvents: { eventName: string; photoIndex: number }[];
     nextPart: string | null;
-    stats?: {
-        totalEvents?: number;
-        totalPhotos?: number;
-        mostSeenTeams?: string[];
-        mostUsedCamera?: string | null;
-        mostUsedLens?: string | null;
-        firstSeenTeams?: string[];
-    };
+    stats?: SeasonStats;
 }
 const yearDataCache: Record<string, CachedYearPayload> = {};
 
@@ -27,14 +20,7 @@ interface FetchPayload {
     recapCount?: number;
     recapEvents?: { eventName: string; photoIndex: number }[];
     nextPart?: string | null;
-    stats?: {
-        totalEvents?: number;
-        totalPhotos?: number;
-        mostSeenTeams?: string[];
-        mostUsedCamera?: string | null;
-        mostUsedLens?: string | null;
-        firstSeenTeams?: string[];
-    };
+    stats?: SeasonStats;
 }
 
 declare const __BUILD_NUMBER__: string;
@@ -49,17 +35,7 @@ export function usePortfolioData({ selectedTab, years, onDataLoadAction }: UsePo
     const [yearData, setYearData] = useState<YearData>({});
     const [recapCount, setRecapCount] = useState<number>(0);
     const [recapEvents, setRecapEvents] = useState<{ eventName: string; photoIndex: number }[]>([]);
-    const [stats, setStats] = useState<
-        | {
-              totalEvents?: number;
-              totalPhotos?: number;
-              mostSeenTeams?: string[];
-              mostUsedCamera?: string | null;
-              mostUsedLens?: string | null;
-              firstSeenTeams?: string[];
-          }
-        | undefined
-    >();
+    const [stats, setStats] = useState<SeasonStats | undefined>();
 
     // Performance locking mechanism to pause background loading while Recap loads
     const [isRecapLoaded, setIsRecapLoaded] = useState(true);

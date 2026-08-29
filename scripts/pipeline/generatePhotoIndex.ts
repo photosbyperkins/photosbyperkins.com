@@ -23,6 +23,7 @@ import exifr from 'exifr';
 import type { IndexState } from './types.js';
 import { logger } from './logger';
 import { runWithConcurrency } from './utils.js';
+import { loadBuildCache, saveBuildCache, computeDirHash, setAlbumCache } from './cache.js';
 
 const PHOTOS_DIR = path.join(process.cwd(), 'photos');
 const MAX_ALBUM_PER_EVENT = Infinity;
@@ -124,6 +125,14 @@ function normalizeBasename(filename: string) {
 
 async function extractExif(absPath: string) {
     try {
+        const stat = fs.statSync(absPath);
+        const cache = loadBuildCache();
+        const cachedEntry = cache.exif[absPath];
+
+        if (cachedEntry && cachedEntry.mtime === stat.mtimeMs && cachedEntry.size === stat.size) {
+            return cachedEntry.exif as { DateTimeOriginal?: string; exif?: Record<string, unknown> };
+        }
+
         const exifData = await exifr.parse(absPath, {
             pick: [
                 'DateTimeOriginal',
@@ -194,10 +203,19 @@ async function extractExif(absPath: string) {
 
         const hasVisibleData = Object.keys(exifPayload).some((key) => key !== 'isPrime');
 
-        return {
+        const result = {
             DateTimeOriginal: exifData.DateTimeOriginal,
             exif: hasVisibleData ? exifPayload : undefined,
         };
+
+        // Cache result
+        cache.exif[absPath] = {
+            mtime: stat.mtimeMs,
+            size: stat.size,
+            exif: result,
+        };
+
+        return result;
     } catch {
         return null; // File failed or completely empty
     }
@@ -522,6 +540,18 @@ export async function generatePhotoIndex(): Promise<IndexState> {
                         date: null,
                         description: null,
                     };
+
+                    const albumKey = `${year}/${slugify(label)}`;
+                    const eventDir = eventDirs.find((d) => formatEventLabel(d) === label);
+                    if (eventDir) {
+                        const eventPath = path.join(yearPath, eventDir);
+                        const hash = computeDirHash(eventPath);
+                        setAlbumCache(albumKey, {
+                            hash,
+                            photoCount: result.album.length,
+                            lastBuilt: new Date().toISOString(),
+                        });
+                    }
                 } else {
                     console.warn(`  ⚠️  No usable photos found for event: ${label}`);
                 }
@@ -532,6 +562,7 @@ export async function generatePhotoIndex(): Promise<IndexState> {
         logger.info(`✅  ${year}: ${evCount} event(s)`);
     }
 
+    saveBuildCache();
     logger.success('Photo index generated in memory.');
     return output;
 }
