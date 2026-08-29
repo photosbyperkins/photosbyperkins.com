@@ -64,4 +64,3 @@ self.onmessage = async (e: MessageEvent<{ urls: string[]; filename: string }>) =
         self.postMessage({ type: 'error', error: error instanceof Error ? error.message : 'Unknown error' });
     }
 };
-

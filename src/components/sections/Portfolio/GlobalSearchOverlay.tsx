@@ -74,4 +74,3 @@ export default function GlobalSearchOverlay({
         document.body
     );
 }
-

@@ -63,7 +63,7 @@ const RecapSliceItem = memo(function RecapSliceItem({
             onClick={() => {
                 if (events && events[eventIdx]) {
                     const meta = events[eventIdx];
-                    setSharedPhoto({ eventName: meta.eventName, photoIndex: meta.photoIndex });
+                    setSharedPhoto({ eventName: meta.eventName, photoIndex: meta.photoIndex, preventScroll: true });
                 }
             }}
             initial={reducedMotion ? { opacity: 0 } : { rotateY: -180, opacity: 0 }}

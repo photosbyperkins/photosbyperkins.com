@@ -64,16 +64,7 @@ export function useLightboxNavigation({
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [
-        onClose,
-        onPaginate,
-        isActive,
-        onToggleFavorite,
-        onToggleZoom,
-        onToggleTheater,
-        onDownload,
-        onToggleHelp,
-    ]);
+    }, [onClose, onPaginate, isActive, onToggleFavorite, onToggleZoom, onToggleTheater, onDownload, onToggleHelp]);
 
     useEffect(() => {
         if (!isActive) return;
@@ -99,4 +90,3 @@ export function useLightboxNavigation({
         return () => window.removeEventListener('wheel', handleWheel);
     }, [onPaginate, isZoomed, isActive]);
 }
-

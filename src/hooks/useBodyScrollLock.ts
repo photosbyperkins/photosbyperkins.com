@@ -23,4 +23,3 @@ export function useBodyScrollLock(lock: boolean = true) {
         };
     }, [lock]);
 }
-

@@ -83,5 +83,5 @@ export interface LightboxState {
 export interface SharedPhotoState {
     eventName: string;
     photoIndex?: number;
+    preventScroll?: boolean;
 }
-

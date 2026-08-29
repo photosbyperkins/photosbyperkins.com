@@ -3,9 +3,7 @@ import { WifiOff, Wifi } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
 export default function PwaStatusToast() {
-    const [isOffline, setIsOffline] = useState(
-        typeof navigator !== 'undefined' ? !navigator.onLine : false
-    );
+    const [isOffline, setIsOffline] = useState(typeof navigator !== 'undefined' ? !navigator.onLine : false);
     const [showBackOnline, setShowBackOnline] = useState(false);
 
     useEffect(() => {

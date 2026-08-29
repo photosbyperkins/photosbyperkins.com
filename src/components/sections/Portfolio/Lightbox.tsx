@@ -473,10 +473,7 @@ export default function Lightbox({
                             setIsHelpOpen(false);
                         }}
                     >
-                        <div
-                            className="portfolio__lightbox-help-card"
-                            onClick={(e) => e.stopPropagation()}
-                        >
+                        <div className="portfolio__lightbox-help-card" onClick={(e) => e.stopPropagation()}>
                             <div className="portfolio__lightbox-help-header">
                                 <h3>Keyboard Shortcuts</h3>
                                 <button

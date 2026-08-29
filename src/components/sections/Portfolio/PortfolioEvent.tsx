@@ -109,13 +109,15 @@ const PortfolioEvent = memo(function PortfolioEvent({
 
     useEffect(() => {
         if (isSharedEvent && ev.album && ev.album.length > 0 && sharedPhoto) {
-            // Scroll to the event so it's in view
-            setTimeout(() => {
-                const element = document.getElementById(`event-${eventName.replace(/[^a-zA-Z0-9-]/g, '-')}`);
-                if (element) {
-                    element.scrollIntoView({ behavior: 'smooth' });
-                }
-            }, 100);
+            // Scroll to the event so it's in view (only if not prevented, e.g. when opening from Recap slices)
+            if (!sharedPhoto.preventScroll) {
+                setTimeout(() => {
+                    const element = document.getElementById(`event-${eventName.replace(/[^a-zA-Z0-9-]/g, '-')}`);
+                    if (element) {
+                        element.scrollIntoView({ behavior: 'smooth' });
+                    }
+                }, 100);
+            }
 
             if (sharedPhoto.photoIndex !== undefined) {
                 openLightbox(albumImages, sharedPhoto.photoIndex, eventName, selectedYear);

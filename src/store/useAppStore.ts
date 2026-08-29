@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { getPhotoOriginalUrl } from '../utils/formatters';
-import type { PhotoInput, FavoriteStoreItem } from '../types';
+import type { PhotoInput, FavoriteStoreItem, SharedPhotoState } from '../types';
 
 export type ThemePreference = 'light' | 'dark' | 'system';
 
@@ -29,13 +29,13 @@ export interface AppStore {
         isOpen: boolean;
         maxExifChars?: number;
     };
-    sharedPhoto: { eventName: string; photoIndex?: number } | null;
+    sharedPhoto: SharedPhotoState | null;
     favorites: FavoriteStoreItem[];
 
     openLightbox: (images: PhotoInput[], index: number, eventName: string, year: string, maxExifChars?: number) => void;
     closeLightbox: () => void;
     setLightboxIndex: (index: number) => void;
-    setSharedPhoto: (sharedPhoto: { eventName: string; photoIndex?: number } | null) => void;
+    setSharedPhoto: (sharedPhoto: SharedPhotoState | null) => void;
     toggleFavorite: (item: FavoriteStoreItem) => void;
     clearFavorites: () => void;
 }
