@@ -60,7 +60,7 @@
     flex: 1 1 auto;
     width: 100%;
     overflow-y: auto; // Let the entire container scroll naturally
-    padding-bottom: 4rem;
+    padding-bottom: max(4rem, env(safe-area-inset-bottom));
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -108,11 +108,14 @@
     }
 
     &__photo-frame {
-        border-radius: 6px;
+        border-radius: 8px;
         overflow: hidden;
         position: relative;
         z-index: 1;
-        box-shadow: 0 15px 40px rgba(0, 0, 0, 0.4);
+        border: 1px solid var(--glass-border);
+        box-shadow:
+            0 4px 12px rgba(0, 0, 0, 0.2),
+            0 16px 48px var(--glass-shadow);
         width: 100%;
         aspect-ratio: 3/4; // Strictly maintain rectangular ratio
     }

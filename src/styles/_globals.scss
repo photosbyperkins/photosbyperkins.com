@@ -13,7 +13,9 @@
 @mixin apple-glass-panel {
     @include apple-glass;
     border: 1px solid var(--glass-border);
-    box-shadow: 0 4px 30px var(--glass-shadow);
+    box-shadow:
+        0 1px 3px rgba(0, 0, 0, 0.04),
+        0 8px 30px var(--glass-shadow);
 }
 // CSS Custom Properties & Reset
 *,
@@ -41,7 +43,7 @@
     // Text
     --color-text: #f0f0f8;
     --color-text-muted: #8888aa;
-    --color-text-dim: #555580;
+    --color-text-dim: #6b6b99;
 
     // Typography
     --font-condensed: 'Barlow Condensed', 'Arial Narrow', 'Roboto Condensed', sans-serif;
@@ -88,9 +90,9 @@
     --color-bg-rgb: 250, 250, 250;
     --color-bg-2: #f0f0f0;
     --color-bg-3: #e4e4e4;
-    --color-border: rgba(0, 0, 0, 0.1);
-    --glass-border: rgba(0, 0, 0, 0.1);
-    --glass-shadow: rgba(0, 0, 0, 0.1);
+    --color-border: rgba(0, 0, 0, 0.08);
+    --glass-border: rgba(0, 0, 0, 0.08);
+    --glass-shadow: rgba(0, 0, 0, 0.06);
 
     // Accent
     --color-accent: #e60000;
@@ -99,9 +101,9 @@
     // Text
     --color-text: #1a1a24;
     --color-text-muted: #555566;
-    --color-text-dim: #888899;
+    --color-text-dim: #6e6e85;
 
-    --color-sticky-bg: rgba(var(--color-bg-rgb), 0.75);
+    --color-sticky-bg: rgba(var(--color-bg-rgb), 0.8);
 }
 
 $nav-height: 44px;
@@ -411,4 +413,3 @@ main {
         }
     }
 }
-

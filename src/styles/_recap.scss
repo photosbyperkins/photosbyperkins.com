@@ -46,18 +46,26 @@
             padding: 2rem;
             font-weight: 800;
 
-            // Simple transparent text watermark
+            // Refined soft text watermark
             color: #ffffff;
-            opacity: 0.6;
+            opacity: 0.38;
+            mix-blend-mode: overlay;
             text-shadow:
-                0 4px 32px rgba(0, 0, 0, 0.8),
-                0 2px 12px rgba(0, 0, 0, 0.6);
+                0 4px 24px rgba(0, 0, 0, 0.5),
+                0 2px 8px rgba(0, 0, 0, 0.4);
 
             text-transform: uppercase;
             pointer-events: none;
             z-index: var(--z-overlay);
             margin: 0;
             line-height: 1;
+
+            html[data-theme='light'] & {
+                color: #1a1a24;
+                opacity: 0.22;
+                mix-blend-mode: multiply;
+                text-shadow: none;
+            }
 
             &--year {
                 font-size: 220px;
