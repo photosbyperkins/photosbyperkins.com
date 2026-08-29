@@ -153,34 +153,35 @@ const PortfolioEvent = memo(function PortfolioEvent({
             });
         }
 
+        const getIndex = (src: FavoriteStoreItem) => {
+            const url = getPhotoOriginalUrl(src);
+            if (!url) return 0;
+            const filename = url.split('/').pop() || '';
+            // Match the last numeric group before the extension to avoid prefix digit collisions
+            const match = filename.match(/(\d+)\.[^.]+$/);
+            return match ? parseInt(match[1], 10) : 0;
+        };
+
         if (photos.length === 0) {
             if (albumImages.length > 0) {
-                photos = albumImages.slice(0, 18);
+                photos = albumImages.slice(0, 5);
             }
         } else {
-            if (photos.length < 18) {
-                const remaining = 18 - photos.length;
+            // Sort existing highlights sequentially
+            photos.sort((a: FavoriteStoreItem, b: FavoriteStoreItem) => getIndex(a) - getIndex(b));
+
+            if (photos.length < 5 && albumImages.length > 0) {
+                const remaining = 5 - photos.length;
                 const featuredUrlSet = new Set(photos.map((f: PhotoInput) => getPhotoOriginalUrl(f)));
                 const extras = albumImages
                     .filter((a: PhotoInput) => !featuredUrlSet.has(getPhotoOriginalUrl(a)))
                     .slice(0, remaining);
+                extras.sort((a: FavoriteStoreItem, b: FavoriteStoreItem) => getIndex(a) - getIndex(b));
                 photos = [...photos, ...extras];
             }
         }
-        // Sort featured photos sequentially by trailing filename number (e.g. photo_042.jpg → 42)
-        photos.sort((a: FavoriteStoreItem, b: FavoriteStoreItem) => {
-            const getIndex = (src: FavoriteStoreItem) => {
-                const url = getPhotoOriginalUrl(src);
-                if (!url) return 0;
-                const filename = url.split('/').pop() || '';
-                // Match the last numeric group before the extension to avoid prefix digit collisions
-                const match = filename.match(/(\d+)\.[^.]+$/);
-                return match ? parseInt(match[1], 10) : 0;
-            };
-            return getIndex(a) - getIndex(b);
-        });
 
-        return photos.slice(0, 18);
+        return photos.slice(0, 5);
     }, [albumImages, highlightImages]);
 
     // Parsing title logic
@@ -482,9 +483,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
                         <div className="portfolio__event-featured">
                             {featuredPhotos.length > 0 ? (
                                 featuredPhotos.map((url, i) => {
-                                    const isUltrawideLast = i === 17;
-                                    const isDesktopLast = i === 9;
-                                    const isMobileLast = i === 4;
+                                    const isLast = i === 4;
                                     const origUrl = typeof url === 'string' ? url : url.original;
                                     const rawThumbUrl = typeof url === 'string' ? url : url.thumb || url.original;
                                     const thumbUrl = rawThumbUrl.includes('?v=')
@@ -498,7 +497,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
                                     return (
                                         <div
                                             key={origUrl}
-                                            className={`portfolio__featured-item ${isUltrawideLast && totalPhotos > 18 ? 'has-overlay-ultrawide' : ''} ${isDesktopLast && totalPhotos > 10 ? 'has-overlay-desktop' : ''} ${isMobileLast && totalPhotos > 5 ? 'has-overlay-mobile' : ''}`}
+                                            className={`portfolio__featured-item ${isLast && totalPhotos > 5 ? 'has-overlay-mobile' : ''}`}
                                             role="button"
                                             tabIndex={0}
                                             aria-label={`View ${eventName} featured photo ${i + 1}`}
@@ -534,17 +533,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
                                                         : 'center'
                                                 }
                                             />
-                                            {isUltrawideLast && totalPhotos > 18 && (
-                                                <div className="portfolio__featured-overlay portfolio__featured-overlay--ultrawide">
-                                                    <span>+{totalPhotos - 18}</span>
-                                                </div>
-                                            )}
-                                            {isDesktopLast && totalPhotos > 10 && (
-                                                <div className="portfolio__featured-overlay portfolio__featured-overlay--desktop">
-                                                    <span>+{totalPhotos - 10}</span>
-                                                </div>
-                                            )}
-                                            {isMobileLast && totalPhotos > 5 && (
+                                            {isLast && totalPhotos > 5 && (
                                                 <div className="portfolio__featured-overlay portfolio__featured-overlay--mobile">
                                                     <span>+{totalPhotos - 5}</span>
                                                 </div>

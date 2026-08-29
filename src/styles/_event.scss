@@ -455,44 +455,14 @@
                     }
                 }
 
-                &.has-overlay-ultrawide {
-                    @media (min-width: 1441px) {
-                        img {
-                            filter: brightness(0.6) saturate(0.8);
-                        }
-
-                        @media (hover: hover) {
-                            &:hover img {
-                                filter: brightness(0.5) saturate(0.8);
-                            }
-                        }
-                    }
-                }
-
-                &.has-overlay-desktop {
-                    @media (min-width: 601px) and (max-width: 1440px) {
-                        img {
-                            filter: brightness(0.6) saturate(0.8);
-                        }
-
-                        @media (hover: hover) {
-                            &:hover img {
-                                filter: brightness(0.5) saturate(0.8);
-                            }
-                        }
-                    }
-                }
-
                 &.has-overlay-mobile {
-                    @media (max-width: 600px) {
-                        img {
-                            filter: brightness(0.6) saturate(0.8);
-                        }
+                    img {
+                        filter: brightness(0.6) saturate(0.8);
+                    }
 
-                        @media (hover: hover) {
-                            &:hover img {
-                                filter: brightness(0.5) saturate(0.8);
-                            }
+                    @media (hover: hover) {
+                        &:hover img {
+                            filter: brightness(0.5) saturate(0.8);
                         }
                     }
                 }
