@@ -80,7 +80,7 @@ function photosMiddleware(): { name: string; configureServer: (server: ViteDevSe
     }
 }
 
-const buildJsonPath = path.resolve(__dirname, 'build.json');
+const buildJsonPath = path.resolve(import.meta.dirname, 'build.json');
 let buildNumber = '0';
 
 try {
@@ -168,7 +168,7 @@ export default defineConfig(({ mode }) => {
     },
     resolve: {
         alias: {
-            '@': path.resolve(__dirname, './src'),
+            '@': path.resolve(import.meta.dirname, './src'),
         },
     },
     build: {

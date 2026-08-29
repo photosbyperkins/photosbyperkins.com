@@ -9,11 +9,16 @@ export default function IframeOverlay() {
     const closeIframe = useAppStore((state) => state.closeIframe);
     const closeBtnRef = useRef<HTMLButtonElement>(null);
     const previousFocusRef = useRef<Element | null>(null);
+    const [prevUrl, setPrevUrl] = useState(iframeUrl);
     const [isLoading, setIsLoading] = useState(true);
+
+    if (iframeUrl !== prevUrl) {
+        setPrevUrl(iframeUrl);
+        setIsLoading(true);
+    }
 
     useEffect(() => {
         if (iframeUrl) {
-            setIsLoading(true);
             previousFocusRef.current = document.activeElement;
             document.body.style.overflow = 'hidden';
             document.body.style.paddingRight = '8px'; // Prevent jumping from scrollbar disappearing
