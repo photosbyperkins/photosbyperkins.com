@@ -146,9 +146,6 @@ export default function VirtualizedAlbumGrid({
                                     src={thumbUrl}
                                     placeholder={null}
                                     alt={`${eventName} photo ${globalIdx + 1}`}
-                                    onClick={() =>
-                                        openLightbox(photos, globalIdx, eventName, selectedYear, maxExifChars)
-                                    }
                                     objectPosition={
                                         focusX != null && focusY != null
                                             ? `${focusX * 100}% ${focusY * 100}%`

@@ -1,4 +1,4 @@
-import { X, Download, Share2 } from 'lucide-react';
+import { X, Download, Share2, HelpCircle } from 'lucide-react';
 import type { PhotoInput } from '../../../types';
 import { getPhotoDisplayUrl } from '../../../utils/formatters';
 
@@ -12,6 +12,7 @@ interface LightboxHeaderProps {
     maxExifChars?: number;
     canShare: boolean;
     onClose: () => void;
+    onToggleHelp?: () => void;
 }
 
 export default function LightboxHeader({
@@ -22,6 +23,7 @@ export default function LightboxHeader({
     maxExifChars = 0,
     canShare,
     onClose,
+    onToggleHelp,
 }: LightboxHeaderProps) {
     const currentPhoto = images[index];
     const exif = typeof currentPhoto === 'object' ? currentPhoto.exif : null;
@@ -122,6 +124,19 @@ export default function LightboxHeader({
             </div>
 
             <div className="portfolio__lightbox-top-right">
+                {onToggleHelp && (
+                    <button
+                        className="portfolio__lightbox-action portfolio__lightbox-help-btn"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onToggleHelp();
+                        }}
+                        aria-label="Keyboard Shortcuts"
+                        title="Keyboard Shortcuts (?)"
+                    >
+                        <HelpCircle size={18} />
+                    </button>
+                )}
                 <button
                     className="portfolio__lightbox-action"
                     onClick={(e) => {

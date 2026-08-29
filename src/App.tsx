@@ -1,6 +1,7 @@
 import { useState, useEffect, Suspense, lazy } from 'react';
 import { useLocation } from 'react-router-dom';
 import Nav from './components/sections/Nav';
+import PwaStatusToast from './components/ui/PwaStatusToast';
 import { GithubIcon, FacebookIcon, InstagramIcon } from './components/ui/icons';
 
 const About = lazy(() => import('./components/sections/About'));
@@ -112,6 +113,7 @@ export default function App() {
                 )}
             </main>
             <Footer />
+            <PwaStatusToast />
             <Suspense fallback={null}>
                 <About />
                 <IframeOverlay />

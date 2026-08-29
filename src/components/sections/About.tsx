@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useEffect, useRef } from 'react';
+import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { useAppStore } from '../../store/useAppStore';
 import '../../styles/_about.scss';
 
@@ -50,11 +51,11 @@ export default function About() {
     const closeBtnRef = useRef<HTMLButtonElement>(null);
     const previousFocusRef = useRef<Element | null>(null);
 
+    useBodyScrollLock(isAboutOpen);
+
     useEffect(() => {
         if (isAboutOpen) {
             previousFocusRef.current = document.activeElement;
-            document.body.style.overflow = 'hidden';
-            document.body.style.paddingRight = '8px'; // Prevent jumping from scrollbar disappearing
 
             // Auto-focus close button after render
             requestAnimationFrame(() => closeBtnRef.current?.focus());
@@ -67,16 +68,11 @@ export default function About() {
             window.addEventListener('keydown', handleKeyDown);
 
             return () => {
-                document.body.style.overflow = '';
-                document.body.style.paddingRight = '';
                 window.removeEventListener('keydown', handleKeyDown);
                 if (previousFocusRef.current instanceof HTMLElement) {
                     previousFocusRef.current.focus();
                 }
             };
-        } else {
-            document.body.style.overflow = '';
-            document.body.style.paddingRight = '';
         }
     }, [isAboutOpen, closeAbout]);
 

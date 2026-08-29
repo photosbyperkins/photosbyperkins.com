@@ -143,7 +143,7 @@ export default defineConfig(({ mode }) => {
                         },
                     },
                     {
-                        urlPattern: /\/(?:photos|thumbnails|scrubber|recap)\/.*\.(?:png|jpg|jpeg|svg|webp|avif)(?:\?.*)?$/i,
+                        urlPattern: /\/(?:photos|thumbnails|scrubber|recap|webp)\/.*\.(?:png|jpg|jpeg|svg|webp|avif)(?:\?.*)?$/i,
                         handler: 'CacheFirst',
                         options: {
                             cacheName: 'image-cache',

@@ -7,6 +7,7 @@ import { matchPath, useLocation, Link } from 'react-router-dom';
 import { usePortfolioData } from '../../../hooks/usePortfolioData';
 import { usePortfolioScroll } from '../../../hooks/usePortfolioScroll';
 import { useStickyHeader } from '../../../hooks/useStickyHeader';
+import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock';
 import { useAppStore } from '../../../store/useAppStore';
 import { formatTeamName, getTeamNameFormats, parseEventTitle } from '../../../utils/formatters';
 import Recap from '../Recap';
@@ -49,22 +50,7 @@ export default function Portfolio({ years }: PortfolioProps) {
         setIsGlobalSearchOpen(false);
     }, [location.pathname]);
 
-    useEffect(() => {
-        if (isGlobalSearchOpen) {
-            document.documentElement.style.overflow = 'hidden';
-            document.body.style.overflow = 'hidden';
-            document.body.style.paddingRight = '8px';
-        } else {
-            document.documentElement.style.overflow = '';
-            document.body.style.overflow = '';
-            document.body.style.paddingRight = '';
-        }
-        return () => {
-            document.documentElement.style.overflow = '';
-            document.body.style.overflow = '';
-            document.body.style.paddingRight = '';
-        };
-    }, [isGlobalSearchOpen]);
+    useBodyScrollLock(isGlobalSearchOpen);
 
     const [lastPortfolioPath, setLastPortfolioPath] = useState(location.pathname);
 

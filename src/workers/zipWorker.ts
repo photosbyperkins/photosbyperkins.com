@@ -4,11 +4,27 @@ self.onmessage = async (e: MessageEvent<{ urls: string[]; filename: string }>) =
     const { urls, filename } = e.data;
 
     try {
-        let count = 0;
+        const outChunks: Uint8Array[] = [];
+        let errorOccurred: Error | null = null;
+
+        const zip = new fflate.Zip((err, chunk, final) => {
+            if (err) {
+                errorOccurred = err;
+                return;
+            }
+            outChunks.push(chunk);
+            if (final) {
+                self.postMessage({ type: 'progress', progress: 100 });
+                const blob = new Blob(outChunks as unknown as BlobPart[], { type: 'application/zip' });
+                self.postMessage({ type: 'done', blob, filename });
+            }
+        });
+
         const usedNames = new Set<string>();
-        const files: Record<string, Uint8Array> = {};
 
         for (let i = 0; i < urls.length; i++) {
+            if (errorOccurred) throw errorOccurred;
+
             const url = urls[i];
             const response = await fetch(url);
             if (!response.ok) throw new Error(`Failed to fetch ${url}`);
@@ -35,18 +51,17 @@ self.onmessage = async (e: MessageEvent<{ urls: string[]; filename: string }>) =
             }
             usedNames.add(name);
 
-            files[name] = uint8Array;
-            count++;
-            self.postMessage({ type: 'progress', progress: (count / urls.length) * 80 }); // Fetching takes majority of time
+            // Stream file to zip without retaining memory
+            const fileStream = new fflate.ZipPassThrough(name);
+            zip.add(fileStream);
+            fileStream.push(uint8Array, true);
+
+            self.postMessage({ type: 'progress', progress: Math.round(((i + 1) / urls.length) * 95) });
         }
 
-        // Generate zip synchronously in worker thread
-        const zipped = fflate.zipSync(files, { level: 0 }); // Level 0: Store only
-
-        self.postMessage({ type: 'progress', progress: 100 });
-        const blob = new Blob([zipped as unknown as BlobPart], { type: 'application/zip' });
-        self.postMessage({ type: 'done', blob, filename });
+        zip.end();
     } catch (error) {
         self.postMessage({ type: 'error', error: error instanceof Error ? error.message : 'Unknown error' });
     }
 };
+

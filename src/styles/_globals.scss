@@ -151,6 +151,7 @@ main {
     overflow: hidden;
     width: 100%;
     height: 100%;
+    background-color: var(--color-bg-2);
 
     &__placeholder {
         position: absolute;
@@ -377,3 +378,37 @@ main {
         top: 0;
     }
 }
+
+// Floating PWA Status Toast
+.pwa-status-toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: var(--z-floating);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 1.1rem;
+    border-radius: 20px;
+    @include apple-glass-panel;
+    font-family: var(--font-body);
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--color-text);
+    pointer-events: none;
+    white-space: nowrap;
+
+    &__icon {
+        flex-shrink: 0;
+
+        &--offline {
+            color: var(--color-accent);
+        }
+
+        &--online {
+            color: #10b981;
+        }
+    }
+}
+

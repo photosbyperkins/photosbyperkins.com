@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
+import { useFocusTrap } from '../../../hooks/useFocusTrap';
 import TeamFilter from './TeamFilter';
 
 interface TeamMeta {
@@ -26,6 +27,10 @@ export default function GlobalSearchOverlay({
     filteredTeams,
     isTeamIndexLoading,
 }: GlobalSearchOverlayProps) {
+    const overlayRef = useRef<HTMLDivElement>(null);
+
+    useFocusTrap(overlayRef, isOpen);
+
     useEffect(() => {
         if (!isOpen) return;
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -43,7 +48,12 @@ export default function GlobalSearchOverlay({
         <AnimatePresence>
             {isOpen && (
                 <motion.div
+                    ref={overlayRef}
                     className="portfolio__global-search-overlay"
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label="Search teams"
+                    tabIndex={-1}
                     initial={{ opacity: 0, y: 50 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 50 }}
@@ -64,3 +74,4 @@ export default function GlobalSearchOverlay({
         document.body
     );
 }
+

@@ -1,5 +1,5 @@
-import { motion, useMotionValue, animate, useTransform, type PanInfo } from 'framer-motion';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { motion, AnimatePresence, useMotionValue, animate, useTransform, type PanInfo } from 'framer-motion';
+import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
@@ -191,11 +191,49 @@ export default function Lightbox({
         [isAnimating, index, images, x, onSetIndex, spriteUrl, getThumbSrc, reducedMotion]
     );
 
+    const handleToggleFavorite = useCallback(() => {
+        toggleFavorite({
+            photo: images[index],
+            eventName: eventName || '',
+            year: year || '',
+        });
+    }, [toggleFavorite, images, index, eventName, year]);
+
+    const handleToggleZoom = useCallback(() => {
+        slideRef.current?.toggleZoom();
+    }, []);
+
+    const handleToggleTheater = useCallback(() => {
+        setIsTheaterMode((prev) => !prev);
+    }, []);
+
+    const handleDownload = useCallback(() => {
+        const obj = images[index];
+        if (!obj) return;
+        const src = typeof obj === 'string' ? obj : obj.original;
+        const link = document.createElement('a');
+        link.href = `${src}?v=${__BUILD_NUMBER__}`;
+        link.download = src.split('/').pop() || 'photo.jpg';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }, [images, index]);
+
+    const [isHelpOpen, setIsHelpOpen] = useState(false);
+    const handleToggleHelp = useCallback(() => {
+        setIsHelpOpen((prev) => !prev);
+    }, []);
+
     useLightboxNavigation({
-        onClose,
+        onClose: isHelpOpen ? () => setIsHelpOpen(false) : onClose,
         onPaginate: paginate,
         isZoomed,
         isActive: !isAnimating,
+        onToggleFavorite: handleToggleFavorite,
+        onToggleZoom: handleToggleZoom,
+        onToggleTheater: handleToggleTheater,
+        onDownload: handleDownload,
+        onToggleHelp: handleToggleHelp,
     });
 
     useBodyScrollLock(true);
@@ -344,6 +382,7 @@ export default function Lightbox({
                 maxExifChars={maxExifChars}
                 canShare={canShare}
                 onClose={onClose}
+                onToggleHelp={handleToggleHelp}
             />
 
             <div
@@ -420,6 +459,72 @@ export default function Lightbox({
                     })
                 }
             />
+
+            <AnimatePresence>
+                {isHelpOpen && (
+                    <motion.div
+                        className="portfolio__lightbox-help-overlay"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.95 }}
+                        transition={{ duration: 0.2 }}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setIsHelpOpen(false);
+                        }}
+                    >
+                        <div
+                            className="portfolio__lightbox-help-card"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="portfolio__lightbox-help-header">
+                                <h3>Keyboard Shortcuts</h3>
+                                <button
+                                    className="portfolio__lightbox-help-close"
+                                    onClick={() => setIsHelpOpen(false)}
+                                    aria-label="Close shortcuts"
+                                >
+                                    <X size={16} />
+                                </button>
+                            </div>
+                            <div className="portfolio__lightbox-help-grid">
+                                <div className="portfolio__lightbox-help-item">
+                                    <kbd>→</kbd> / <kbd>Space</kbd>
+                                    <span>Next photo</span>
+                                </div>
+                                <div className="portfolio__lightbox-help-item">
+                                    <kbd>←</kbd>
+                                    <span>Previous photo</span>
+                                </div>
+                                <div className="portfolio__lightbox-help-item">
+                                    <kbd>F</kbd> / <kbd>L</kbd>
+                                    <span>Toggle favorite</span>
+                                </div>
+                                <div className="portfolio__lightbox-help-item">
+                                    <kbd>Z</kbd>
+                                    <span>Toggle 100% zoom</span>
+                                </div>
+                                <div className="portfolio__lightbox-help-item">
+                                    <kbd>T</kbd>
+                                    <span>Toggle theater mode</span>
+                                </div>
+                                <div className="portfolio__lightbox-help-item">
+                                    <kbd>D</kbd>
+                                    <span>Download original photo</span>
+                                </div>
+                                <div className="portfolio__lightbox-help-item">
+                                    <kbd>Esc</kbd>
+                                    <span>Close lightbox</span>
+                                </div>
+                                <div className="portfolio__lightbox-help-item">
+                                    <kbd>?</kbd>
+                                    <span>Toggle this help</span>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </motion.div>
     );
 
