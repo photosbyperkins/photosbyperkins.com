@@ -221,8 +221,9 @@ export default function Lightbox({
 
     const [isHelpOpen, setIsHelpOpen] = useState(false);
     const handleToggleHelp = useCallback(() => {
+        if (canShare) return;
         setIsHelpOpen((prev) => !prev);
-    }, []);
+    }, [canShare]);
 
     useLightboxNavigation({
         onClose: isHelpOpen ? () => setIsHelpOpen(false) : onClose,
@@ -233,7 +234,7 @@ export default function Lightbox({
         onToggleZoom: handleToggleZoom,
         onToggleTheater: handleToggleTheater,
         onDownload: handleDownload,
-        onToggleHelp: handleToggleHelp,
+        onToggleHelp: canShare ? undefined : handleToggleHelp,
     });
 
     useBodyScrollLock(true);
@@ -382,7 +383,7 @@ export default function Lightbox({
                 maxExifChars={maxExifChars}
                 canShare={canShare}
                 onClose={onClose}
-                onToggleHelp={handleToggleHelp}
+                onToggleHelp={canShare ? undefined : handleToggleHelp}
             />
 
             <div
@@ -461,7 +462,7 @@ export default function Lightbox({
             />
 
             <AnimatePresence>
-                {isHelpOpen && (
+                {!canShare && isHelpOpen && (
                     <motion.div
                         className="portfolio__lightbox-help-overlay"
                         initial={{ opacity: 0, scale: 0.95 }}
