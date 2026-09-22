@@ -7,7 +7,7 @@
     right: 0;
     bottom: 0;
     background-color: var(--color-bg);
-    z-index: 1000;
+    z-index: var(--z-modal);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -20,7 +20,9 @@
         backdrop-filter: blur(8px);
         -webkit-backdrop-filter: blur(8px);
         border-bottom: 1px solid var(--color-border);
-        height: 60px;
+        min-height: 60px;
+        padding-top: max(0.5rem, env(safe-area-inset-top));
+        padding-bottom: 0.5rem;
         display: flex;
         align-items: center;
     }

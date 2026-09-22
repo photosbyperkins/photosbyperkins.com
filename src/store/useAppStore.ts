@@ -16,7 +16,9 @@ export interface AppStore {
     closeAiPolicy: () => void;
 
     iframeUrl: string | null;
-    openIframe: (url: string) => void;
+    iframeTitle: string;
+    iframeExternalUrl: string | null;
+    openIframe: (url: string, title?: string, externalUrl?: string) => void;
     closeIframe: () => void;
 
     // Theme Slice
@@ -118,8 +120,11 @@ export const useAppStore = create<AppStore>()(
             closeAiPolicy: () => set({ isAiPolicyOpen: false }),
 
             iframeUrl: null,
-            openIframe: (url: string) => set({ iframeUrl: url }),
-            closeIframe: () => set({ iframeUrl: null }),
+            iframeTitle: 'WFTDA STATS',
+            iframeExternalUrl: null,
+            openIframe: (url: string, title: string = 'WFTDA STATS', externalUrl?: string) =>
+                set({ iframeUrl: url, iframeTitle: title, iframeExternalUrl: externalUrl || url }),
+            closeIframe: () => set({ iframeUrl: null, iframeTitle: 'WFTDA STATS', iframeExternalUrl: null }),
 
             // --- THEME SLICE ---
             // Fallback to legacy theme if it exists during first init

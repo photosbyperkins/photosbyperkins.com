@@ -6,6 +6,8 @@ import '../../styles/_iframe-overlay.scss';
 
 export default function IframeOverlay() {
     const iframeUrl = useAppStore((state) => state.iframeUrl);
+    const iframeTitle = useAppStore((state) => state.iframeTitle);
+    const iframeExternalUrl = useAppStore((state) => state.iframeExternalUrl);
     const closeIframe = useAppStore((state) => state.closeIframe);
     const closeBtnRef = useRef<HTMLButtonElement>(null);
     const previousFocusRef = useRef<Element | null>(null);
@@ -54,7 +56,7 @@ export default function IframeOverlay() {
                     className="iframe-overlay"
                     role="dialog"
                     aria-modal="true"
-                    aria-label="External Link Overlay"
+                    aria-label={iframeTitle || 'External Link Overlay'}
                     initial={{ opacity: 0, y: 50 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 50 }}
@@ -62,10 +64,10 @@ export default function IframeOverlay() {
                 >
                     <div className="iframe-overlay__header-bar">
                         <div className="container iframe-overlay__header-bar-inner">
-                            <h2 className="section-label">WFTDA STATS</h2>
+                            <h2 className="section-label">{iframeTitle || 'WFTDA STATS'}</h2>
                             <div className="iframe-overlay__actions">
                                 <a
-                                    href={iframeUrl}
+                                    href={iframeExternalUrl || iframeUrl || '#'}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="iframe-overlay__action-btn"
@@ -90,7 +92,7 @@ export default function IframeOverlay() {
                             src={iframeUrl}
                             className={`iframe-overlay__iframe ${isLoading ? 'iframe-overlay__iframe--loading' : ''}`}
                             onLoad={() => setIsLoading(false)}
-                            title="External content"
+                            title={iframeTitle || 'External content'}
                         />
                     </div>
                 </motion.div>

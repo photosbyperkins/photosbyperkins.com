@@ -6,13 +6,38 @@ test.describe('AI Policy Overlay', () => {
         await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
     });
 
-    test('should display AI Policy button in footer next to License', async ({ page }) => {
-        const licenseLink = page.locator('.footer__license');
-        const aiPolicyBtn = page.locator('button.footer__ai-policy-btn');
+    test('should display footer links in order: 1. AI Policy, 2. Code License, 3. Photo License', async ({ page }) => {
+        const links = page.locator('.footer__links button');
+        await expect(links).toHaveCount(3);
+        await expect(links.nth(0)).toHaveText('AI Policy');
+        await expect(links.nth(1)).toContainText('Code License');
+        await expect(links.nth(2)).toContainText('Photo License');
+    });
 
-        await expect(licenseLink).toBeVisible();
-        await expect(aiPolicyBtn).toBeVisible();
-        await expect(aiPolicyBtn).toHaveText('AI Policy');
+    test('should open Code License in iframe modal', async ({ page }) => {
+        const codeLicenseBtn = page.locator('button.footer__code-license-btn');
+        await codeLicenseBtn.click();
+
+        const overlay = page.locator('.iframe-overlay');
+        await expect(overlay).toBeVisible({ timeout: 3000 });
+        await expect(overlay.locator('.section-label')).toHaveText('CODE LICENSE');
+
+        const closeBtn = overlay.locator('button[aria-label="Close"]');
+        await closeBtn.click();
+        await expect(overlay).not.toBeVisible({ timeout: 3000 });
+    });
+
+    test('should open Photos License in iframe modal', async ({ page }) => {
+        const photosLicenseBtn = page.locator('button.footer__license-btn');
+        await photosLicenseBtn.click();
+
+        const overlay = page.locator('.iframe-overlay');
+        await expect(overlay).toBeVisible({ timeout: 3000 });
+        await expect(overlay.locator('.section-label')).toHaveText('PHOTO LICENSE');
+
+        const closeBtn = overlay.locator('button[aria-label="Close"]');
+        await closeBtn.click();
+        await expect(overlay).not.toBeVisible({ timeout: 3000 });
     });
 
     test('should open AI Policy overlay when clicking the footer button', async ({ page }) => {
