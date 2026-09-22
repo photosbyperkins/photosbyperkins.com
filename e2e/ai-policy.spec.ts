@@ -29,6 +29,7 @@ test.describe('AI Policy Overlay', () => {
 
         const overlay = page.locator('[role="dialog"][aria-label="AI Policy"]');
         await expect(overlay).toBeVisible({ timeout: 3000 });
+        await page.waitForTimeout(500);
 
         const closeBtn = overlay.locator('button[aria-label="Close"]');
         await closeBtn.click();
@@ -41,6 +42,7 @@ test.describe('AI Policy Overlay', () => {
 
         const overlay = page.locator('[role="dialog"][aria-label="AI Policy"]');
         await expect(overlay).toBeVisible({ timeout: 3000 });
+        await page.waitForTimeout(500);
 
         await page.keyboard.press('Escape');
         await expect(overlay).not.toBeVisible({ timeout: 3000 });
@@ -63,6 +65,7 @@ test.describe('AI Policy Overlay', () => {
 
         const overlay = page.locator('[role="dialog"][aria-label="AI Policy"]');
         await expect(overlay).toBeVisible({ timeout: 3000 });
+        await page.waitForTimeout(500);
 
         const closeBtn = overlay.locator('button[aria-label="Close"]');
         await closeBtn.click();
