@@ -3,12 +3,16 @@ import { useLocation } from 'react-router-dom';
 import Nav from './components/sections/Nav';
 import PwaStatusToast from './components/ui/PwaStatusToast';
 import { GithubIcon, FacebookIcon, InstagramIcon } from './components/ui/icons';
+import { useAppStore } from './store/useAppStore';
 
 const About = lazy(() => import('./components/sections/About'));
 const Portfolio = lazy(() => import('./components/sections/Portfolio'));
 const IframeOverlay = lazy(() => import('./components/ui/IframeOverlay'));
+const AiPolicyModal = lazy(() => import('./components/ui/AiPolicyModal'));
 
 function Footer() {
+    const openAiPolicy = useAppStore((state) => state.openAiPolicy);
+
     return (
         <footer className="footer">
             <div className="container">
@@ -53,14 +57,25 @@ function Footer() {
                             © {new Date().getFullYear()}{' '}
                             {import.meta.env.VITE_COPYRIGHT_NAME || import.meta.env.VITE_SITE_APP_TITLE || 'Jane Doe'}
                         </span>
-                        <a
-                            href={import.meta.env.VITE_LICENSE_URL || 'https://creativecommons.org/licenses/by-sa/4.0/'}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="footer__license"
-                        >
-                            {import.meta.env.VITE_LICENSE_LABEL || 'Photos licensed under CC BY-SA 4.0'}
-                        </a>
+                        <div className="footer__links">
+                            <a
+                                href={
+                                    import.meta.env.VITE_LICENSE_URL ||
+                                    'https://creativecommons.org/licenses/by-sa/4.0/'
+                                }
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="footer__license footer__link"
+                            >
+                                {import.meta.env.VITE_LICENSE_LABEL || 'Photos licensed under CC BY-SA 4.0'}
+                            </a>
+                            <span className="footer__link-divider" aria-hidden="true">
+                                •
+                            </span>
+                            <button type="button" onClick={openAiPolicy} className="footer__link footer__ai-policy-btn">
+                                AI Policy
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -117,6 +132,7 @@ export default function App() {
             <Suspense fallback={null}>
                 <About />
                 <IframeOverlay />
+                <AiPolicyModal />
             </Suspense>
         </>
     );

@@ -11,6 +11,10 @@ export interface AppStore {
     openAbout: () => void;
     closeAbout: () => void;
 
+    isAiPolicyOpen: boolean;
+    openAiPolicy: () => void;
+    closeAiPolicy: () => void;
+
     iframeUrl: string | null;
     openIframe: (url: string) => void;
     closeIframe: () => void;
@@ -108,6 +112,10 @@ export const useAppStore = create<AppStore>()(
             isAboutOpen: false,
             openAbout: () => set({ isAboutOpen: true }),
             closeAbout: () => set({ isAboutOpen: false }),
+
+            isAiPolicyOpen: false,
+            openAiPolicy: () => set({ isAiPolicyOpen: true }),
+            closeAiPolicy: () => set({ isAiPolicyOpen: false }),
 
             iframeUrl: null,
             openIframe: (url: string) => set({ iframeUrl: url }),
