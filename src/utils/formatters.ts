@@ -30,7 +30,7 @@ export function getTeamNameFormats(teamName: string): TeamNameFormats {
 
     // Step 1: Strip generic terms including Round Robin
     short = short
-        .replace(/\b(Roller Derby|Derby|All Stars|All-Stars|Juniors|Quad Squad|Round Robin)\b/gi, '')
+        .replace(/\b(Roller Derby|Derby|All Stars|All-Stars|Juniors|Junior|Quad Squad|Round Robin)\b/gi, '')
         .replace(/\s{2,}/g, ' ')
         .trim();
 

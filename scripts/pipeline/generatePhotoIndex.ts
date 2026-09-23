@@ -464,6 +464,8 @@ function formatEventLabel(dirName: string) {
         .replace(/^(\d{2})[-_](\d{2})\s*/, (_, m, d) => `${m}.${d} `)
         .replace(/^(\d{4}[-_]\d{2})\s*/, '$1 ')
         .replace(/\bSRD\b/g, 'Sacramento Roller Derby')
+        .replace(/\bSLOCO Junior Roller Derby\b/g, 'San Luis Obispo County Junior Roller Derby')
+        .replace(/\bSLOCO\b/g, 'San Luis Obispo County')
         .trim();
 }
 
@@ -589,5 +591,12 @@ export async function generatePhotoIndex(): Promise<IndexState> {
 }
 
 if (process.argv[1] && process.argv[1].includes('generatePhotoIndex')) {
-    generatePhotoIndex().catch(console.error);
+    generatePhotoIndex()
+        .then((state) => {
+            const p = path.join(process.cwd(), 'data', 'photos.json');
+            fs.mkdirSync(path.dirname(p), { recursive: true });
+            fs.writeFileSync(p, JSON.stringify(state, null, 2));
+            logger.success(`Wrote photo index to ${p}`);
+        })
+        .catch(console.error);
 }

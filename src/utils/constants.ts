@@ -14,6 +14,10 @@ export const TEAM_ABBREVIATIONS: Record<string, string> = (() => {
         'My Local Roller Derby': 'MLRD',
         'Rival City Roller Derby': 'Rival City',
         'Long Name League': 'LNL',
+        'San Luis Obispo County Junior Roller Derby': 'SLOCO Juniors',
+        'San Luis Obispo County Roller Derby': 'SLOCO',
+        'SLOCO Junior Roller Derby': 'SLOCO Juniors',
+        'SLOCO Roller Derby': 'SLOCO',
         Headshots: '',
     };
 })();

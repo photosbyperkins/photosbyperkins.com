@@ -9,6 +9,8 @@ vi.mock('./constants', () => ({
         'Bay Area Derby': 'BAD',
         'Carson Junior Victory Rollers': 'Carson Jr. Victory Rollers',
         'Happy Valley Derby Darlins': 'HVDD',
+        'San Luis Obispo County Junior Roller Derby': 'SLOCO Juniors',
+        'San Luis Obispo County Roller Derby': 'SLOCO',
         Juarez: 'Juárez',
         Headshots: '',
     },
@@ -71,5 +73,12 @@ describe('getTeamNameFormats', () => {
         expect(formats.full).toBe('Juarez All Stars');
         expect(formats.mid).toBe('Juárez All Stars');
         expect(formats.short).toBe('Juárez');
+    });
+
+    it('formats San Luis Obispo County Junior Roller Derby correctly with SLOCO short mode', () => {
+        const formats = getTeamNameFormats('San Luis Obispo County Junior Roller Derby');
+        expect(formats.full).toBe('San Luis Obispo County Junior Roller Derby');
+        expect(formats.mid).toBe('SLOCO Juniors');
+        expect(formats.short).toBe('SLOCO');
     });
 });

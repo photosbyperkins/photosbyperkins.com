@@ -93,7 +93,7 @@ export async function generateSocialCards(data: IndexState) {
         }
         short = short.replace(/\s+Roller Derby\b/gi, '').trim();
         short = short
-            .replace(/\b(Roller Derby|Derby|All Stars|All-Stars|Juniors|Quad Squad|Round Robin)\b/gi, '')
+            .replace(/\b(Roller Derby|Derby|All Stars|All-Stars|Juniors|Junior|Quad Squad|Round Robin)\b/gi, '')
             .replace(/\s{2,}/g, ' ')
             .trim();
             
