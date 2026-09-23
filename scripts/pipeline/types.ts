@@ -6,6 +6,7 @@ export interface PhotoExif {
     shutterSpeed?: string;
     iso?: string;
     isPrime?: boolean;
+    gearLensId?: string;
 }
 
 export interface PhotoObject {

@@ -139,6 +139,8 @@ async function extractExif(absPath: string) {
                 'Make',
                 'Model',
                 'LensModel',
+                'LensID',
+                'LensProfileName',
                 'FocalLength',
                 'FNumber',
                 'ExposureTime',
@@ -150,6 +152,25 @@ async function extractExif(absPath: string) {
 
         const rawCamera = exifData.Model || exifData.Make;
         const rawLens = exifData.LensModel;
+
+        // Accurate gear disambiguation prior to string truncation
+        let gearLensId: string | undefined = undefined;
+        const rawLensLower = (rawLens || '').toLowerCase();
+        const lensProfileLower = (typeof exifData.LensProfileName === 'string' ? exifData.LensProfileName : '').toLowerCase();
+        const lensId = exifData.LensID;
+
+        if (lensProfileLower.includes('sigma') || rawLensLower.includes('sigma') || lensId === 136 || lensId === 200 || lensId === 202) {
+            if (rawLensLower.includes('50') || lensId === 136) gearLensId = 'sigma-50mm-art';
+            else if (rawLensLower.includes('135') || lensId === 202) gearLensId = 'sigma-135mm-art';
+            else if (rawLensLower.includes('85') || lensId === 200) gearLensId = 'sigma-85mm-art';
+            else if (rawLensLower.includes('35')) gearLensId = 'sigma-35mm-art';
+        } else if (rawLensLower.includes('plena')) {
+            gearLensId = 'nikon-135mm-plena';
+        } else if (rawLensLower.includes('120-300')) {
+            gearLensId = 'nikon-120-300mm';
+        } else if (rawLensLower.includes('85mm') && (rawLensLower.includes('1.8') || rawLensLower.includes('af-s'))) {
+            gearLensId = 'nikon-85mm-18g';
+        }
 
         const cameraModel = rawCamera
             ? rawCamera
@@ -198,7 +219,7 @@ async function extractExif(absPath: string) {
             isPrime = true;
         }
 
-        const exifPayload = { cameraModel, lens, focalLength, aperture, shutterSpeed, iso, isPrime };
+        const exifPayload = { cameraModel, lens, focalLength, aperture, shutterSpeed, iso, isPrime, gearLensId };
         Object.keys(exifPayload).forEach((key) => exifPayload[key as keyof typeof exifPayload] === undefined && delete exifPayload[key as keyof typeof exifPayload]);
 
         const hasVisibleData = Object.keys(exifPayload).some((key) => key !== 'isPrime');

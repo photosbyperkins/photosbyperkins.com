@@ -25,8 +25,9 @@ dist-ssr
 *.sw?
 
 # Media and generated data
-data/
-build/
+/data/
+/build/
+public/data/
 build.json
 public/hero/
 deploy_staging*

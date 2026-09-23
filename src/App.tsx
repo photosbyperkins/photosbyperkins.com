@@ -9,6 +9,7 @@ const About = lazy(() => import('./components/sections/About'));
 const Portfolio = lazy(() => import('./components/sections/Portfolio'));
 const IframeOverlay = lazy(() => import('./components/ui/IframeOverlay'));
 const AiPolicyModal = lazy(() => import('./components/ui/AiPolicyModal'));
+const GearModal = lazy(() => import('./components/ui/GearModal'));
 
 function Footer() {
     const openAiPolicy = useAppStore((state) => state.openAiPolicy);
@@ -147,6 +148,7 @@ export default function App() {
                 <About />
                 <IframeOverlay />
                 <AiPolicyModal />
+                <GearModal />
             </Suspense>
         </>
     );

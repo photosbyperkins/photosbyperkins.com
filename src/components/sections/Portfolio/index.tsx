@@ -10,6 +10,7 @@ import { useStickyHeader } from '../../../hooks/useStickyHeader';
 import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock';
 import { useAppStore } from '../../../store/useAppStore';
 import { formatTeamName, getTeamNameFormats, parseEventTitle } from '../../../utils/formatters';
+import { getGearItem } from '../../../data/gearData';
 import Recap from '../Recap';
 import PortfolioEvent from './PortfolioEvent';
 import SharedFavoritesPanel from './SharedFavoritesPanel';
@@ -81,6 +82,7 @@ export default function Portfolio({ years }: PortfolioProps) {
     const initialPhoto = deepLinkMatch?.params.photo || params?.get('photo');
 
     const setSharedPhoto = useAppStore((state) => state.setSharedPhoto);
+    const openGearModal = useAppStore((state) => state.openGearModal);
 
     const selectedTab = (() => {
         if (isTeamRoute && activeRouteSlug) return activeRouteSlug;
@@ -169,6 +171,16 @@ export default function Portfolio({ years }: PortfolioProps) {
         const index = Math.floor(Math.abs(Math.sin(seed) * 10000)) % stats.mostSeenTeams.length;
         return stats.mostSeenTeams[index];
     }, [stats, selectedTab]);
+
+    const cameraGear = useMemo(
+        () => getGearItem(stats?.mostUsedCameraId || stats?.mostUsedCamera, selectedTab, 'camera'),
+        [stats?.mostUsedCameraId, stats?.mostUsedCamera, selectedTab]
+    );
+
+    const lensGear = useMemo(
+        () => getGearItem(stats?.mostUsedLensId || stats?.mostUsedLens, selectedTab, 'lens'),
+        [stats?.mostUsedLensId, stats?.mostUsedLens, selectedTab]
+    );
 
     // In team mode, build a list of rows: either an event entry or a year-divider string.
     type EventRow =
@@ -317,9 +329,11 @@ export default function Portfolio({ years }: PortfolioProps) {
                                         {firstSeenTeam ? (
                                             <div className="portfolio__season-stat-compact portfolio__season-stat-compact--first-seen">
                                                 <span className="portfolio__season-stat-label">First Seen</span>
-                                                <span
-                                                    className="portfolio__season-stat-value"
+                                                <button
+                                                    type="button"
+                                                    className="portfolio__season-stat-value portfolio__season-stat-btn"
                                                     title={`Scroll to event: ${firstSeenTeam}`}
+                                                    aria-label={`Scroll to event: ${firstSeenTeam}`}
                                                     onClick={() => {
                                                         // Build word tokens from the team name for robust matching
                                                         const targetWords = firstSeenTeam
@@ -350,10 +364,9 @@ export default function Portfolio({ years }: PortfolioProps) {
                                                             }
                                                         }
                                                     }}
-                                                    style={{ cursor: 'pointer' }}
                                                 >
                                                     {getTeamNameFormats(firstSeenTeam).short || firstSeenTeam}
-                                                </span>
+                                                </button>
                                             </div>
                                         ) : mostSeenTeam ? (
                                             <div className="portfolio__season-stat-compact portfolio__season-stat-compact--team">
@@ -377,9 +390,19 @@ export default function Portfolio({ years }: PortfolioProps) {
                                                     />
                                                     Camera
                                                 </span>
-                                                <span className="portfolio__season-stat-value">
+                                                <button
+                                                    type="button"
+                                                    className="portfolio__season-stat-value portfolio__season-stat-btn"
+                                                    title={`View ${cameraGear?.name || stats.mostUsedCamera} specifications`}
+                                                    aria-label={`View ${cameraGear?.name || stats.mostUsedCamera} specifications`}
+                                                    onClick={() => {
+                                                        if (cameraGear) {
+                                                            openGearModal(cameraGear);
+                                                        }
+                                                    }}
+                                                >
                                                     {stats.mostUsedCamera}
-                                                </span>
+                                                </button>
                                             </div>
                                         )}
                                         {stats.mostUsedLens && (
@@ -396,9 +419,19 @@ export default function Portfolio({ years }: PortfolioProps) {
                                                     />
                                                     Lens
                                                 </span>
-                                                <span className="portfolio__season-stat-value">
+                                                <button
+                                                    type="button"
+                                                    className="portfolio__season-stat-value portfolio__season-stat-btn"
+                                                    title={`View ${lensGear?.name || stats.mostUsedLens} specifications`}
+                                                    aria-label={`View ${lensGear?.name || stats.mostUsedLens} specifications`}
+                                                    onClick={() => {
+                                                        if (lensGear) {
+                                                            openGearModal(lensGear);
+                                                        }
+                                                    }}
+                                                >
                                                     {stats.mostUsedLens}
-                                                </span>
+                                                </button>
                                             </div>
                                         )}
                                     </div>

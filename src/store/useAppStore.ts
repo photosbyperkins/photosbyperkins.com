@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { getPhotoOriginalUrl } from '../utils/formatters';
 import type { PhotoInput, FavoriteStoreItem, SharedPhotoState } from '../types';
+import type { GearItem } from '../data/gearData';
 
 export type ThemePreference = 'light' | 'dark' | 'system';
 
@@ -14,6 +15,10 @@ export interface AppStore {
     isAiPolicyOpen: boolean;
     openAiPolicy: () => void;
     closeAiPolicy: () => void;
+
+    activeGear: GearItem | null;
+    openGearModal: (gear: GearItem) => void;
+    closeGearModal: () => void;
 
     iframeUrl: string | null;
     iframeTitle: string;
@@ -118,6 +123,10 @@ export const useAppStore = create<AppStore>()(
             isAiPolicyOpen: false,
             openAiPolicy: () => set({ isAiPolicyOpen: true }),
             closeAiPolicy: () => set({ isAiPolicyOpen: false }),
+
+            activeGear: null,
+            openGearModal: (gear: GearItem) => set({ activeGear: gear }),
+            closeGearModal: () => set({ activeGear: null }),
 
             iframeUrl: null,
             iframeTitle: 'WFTDA STATS',

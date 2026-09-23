@@ -15,6 +15,7 @@ An incredibly fast, highly automated photography portfolio built for action phot
 - **Fuzzy Search Engine**: Instantly find teams with typo-tolerant search powered by `fuse.js`.
 - **WFTDA Stats Integration**: Automatically fetches global rankings and match histories from official WFTDA data if folder names match known bouts.
 - **Year Recap Sprites**: Animated recap banners composited from focus-cropped album highlights.
+- **Favorite Camera & Lens Modals**: Interactive badges in the season recap banner showcasing each season's primary camera and lens with technical specifications and direct links to official manufacturer product pages.
 - **Automated Social Cards**: Generates beautifully branded OpenGraph images for every single album to ensure rich link previews across social media.
 
 ---
@@ -62,6 +63,7 @@ The build pipeline intelligently parses your folder names. If it sees `vs` or `v
   - *Example*: `VITE_TEAM_ABBREVIATIONS='{"Sacramento Roller Derby":"SRD"}'`
 - **About Me Blurb**: To customize the text in the "Behind the Lens" popup, define `VITE_ABOUT_ME` in your `.env`. You can use `\n\n` to automatically create new paragraphs.
 - **Profile Photo**: To display your own picture in the "Behind the Lens" popup, simply drop a file named `profile_photo.jpg` into your `photos/` directory (making it available at `/photos/profile_photo.jpg` on your server).
+- **Favorite Camera & Lens Modals**: In the Season Recap strip, the photographer's favorite camera body and favorite lens for each season are featured with heart badges. Clicking either badge opens a native Apple-glass modal (`GearModal.tsx`) showcasing detailed technical specifications (sensor, mount, aperture, optical elements, autofocus, weight), and an external button navigating directly to the official product page on Nikon USA or Sigma Photo.
 
 ## 🚀 Build Pipeline (`npm run build`)
 

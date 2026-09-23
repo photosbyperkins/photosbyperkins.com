@@ -6,6 +6,7 @@ export interface ExifData {
     shutterSpeed?: string;
     iso?: string;
     isPrime?: boolean;
+    gearLensId?: string;
 }
 
 export interface PhotoRecord {
@@ -41,7 +42,9 @@ export interface SeasonStats {
     totalPhotos?: number;
     mostSeenTeams?: string[];
     mostUsedCamera?: string | null;
+    mostUsedCameraId?: string | null;
     mostUsedLens?: string | null;
+    mostUsedLensId?: string | null;
     firstSeenTeams?: string[];
 }
 

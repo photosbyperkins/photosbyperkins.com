@@ -241,6 +241,7 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
         const teamCounts: Record<string, number> = {};
         const cameraCounts: Record<string, number> = {};
         const lensCounts: Record<string, number> = {};
+        const lensIdCounts: Record<string, number> = {};
         const firstSeenTeams = new Set<string>();
 
         const sortedYearEntries = Object.entries(yearData).sort((a, b) => {
@@ -286,6 +287,7 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
                 if (img && typeof img === 'object' && img.exif) {
                     if (img.exif.cameraModel) cameraCounts[img.exif.cameraModel] = (cameraCounts[img.exif.cameraModel] || 0) + 1;
                     if (img.exif.lens) lensCounts[img.exif.lens] = (lensCounts[img.exif.lens] || 0) + 1;
+                    if ((img.exif as any).gearLensId) lensIdCounts[(img.exif as any).gearLensId] = (lensIdCounts[(img.exif as any).gearLensId] || 0) + 1;
 
                     const top = [img.exif.cameraModel, img.exif.lens].filter(Boolean).join(' \u2022 ');
                     const bottom = [img.exif.focalLength, img.exif.aperture, img.exif.shutterSpeed, img.exif.iso].filter(Boolean).join(' \u2022 ');
@@ -460,12 +462,26 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
         const totalEvents = Object.keys(processedYearData).length;
         const totalPhotos = Object.values(processedYearData).reduce((sum, ev: any) => sum + (ev.photoCount || 0), 0);
 
+        const mostUsedCamera = getMostFrequent(cameraCounts)[0] || null;
+        const mostUsedLens = getMostFrequent(lensCounts)[0] || null;
+        const mostUsedLensId = getMostFrequent(lensIdCounts)[0] || null;
+
+        let mostUsedCameraId: string | null = null;
+        if (mostUsedCamera) {
+            const camLower = mostUsedCamera.toLowerCase();
+            if (camLower.includes('z8') || camLower.includes('ℤ8')) mostUsedCameraId = 'nikon-z8';
+            else if (camLower.includes('d850')) mostUsedCameraId = 'nikon-d850';
+            else if (camLower.includes('d750')) mostUsedCameraId = 'nikon-d750';
+        }
+
         const yearStats = {
             totalEvents,
             totalPhotos,
             mostSeenTeams: getMostFrequent(teamCounts),
-            mostUsedCamera: getMostFrequent(cameraCounts)[0] || null,
-            mostUsedLens: getMostFrequent(lensCounts)[0] || null,
+            mostUsedCamera,
+            mostUsedCameraId,
+            mostUsedLens,
+            mostUsedLensId,
             firstSeenTeams: Array.from(firstSeenTeams),
         };
 
