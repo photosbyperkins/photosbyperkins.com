@@ -10,14 +10,14 @@ const Portfolio = lazy(() => import('./components/sections/Portfolio'));
 const IframeOverlay = lazy(() => import('./components/ui/IframeOverlay'));
 const AiPolicyModal = lazy(() => import('./components/ui/AiPolicyModal'));
 const CodeLicenseModal = lazy(() => import('./components/ui/CodeLicenseModal'));
+const PhotoLicenseModal = lazy(() => import('./components/ui/PhotoLicenseModal'));
 const GearModal = lazy(() => import('./components/ui/GearModal'));
 
 function Footer() {
     const openAiPolicy = useAppStore((state) => state.openAiPolicy);
     const openCodeLicense = useAppStore((state) => state.openCodeLicense);
-    const openIframe = useAppStore((state) => state.openIframe);
+    const openPhotoLicense = useAppStore((state) => state.openPhotoLicense);
 
-    const photosLicenseUrl = import.meta.env.VITE_LICENSE_URL || 'https://creativecommons.org/licenses/by-sa/4.0/';
     const photosLicenseLabel = import.meta.env.VITE_LICENSE_LABEL || 'Photo License';
     const codeLicenseLabel = import.meta.env.VITE_CODE_LICENSE_LABEL || 'Code License';
 
@@ -84,7 +84,7 @@ function Footer() {
                             </span>
                             <button
                                 type="button"
-                                onClick={() => openIframe(photosLicenseUrl, 'PHOTO LICENSE')}
+                                onClick={openPhotoLicense}
                                 className="footer__link footer__license footer__license-btn"
                             >
                                 {photosLicenseLabel}
@@ -148,6 +148,7 @@ export default function App() {
                 <IframeOverlay />
                 <AiPolicyModal />
                 <CodeLicenseModal />
+                <PhotoLicenseModal />
                 <GearModal />
             </Suspense>
         </>

@@ -20,6 +20,10 @@ export interface AppStore {
     openCodeLicense: () => void;
     closeCodeLicense: () => void;
 
+    isPhotoLicenseOpen: boolean;
+    openPhotoLicense: () => void;
+    closePhotoLicense: () => void;
+
     activeGear: GearItem | null;
     openGearModal: (gear: GearItem) => void;
     closeGearModal: () => void;
@@ -131,6 +135,10 @@ export const useAppStore = create<AppStore>()(
             isCodeLicenseOpen: false,
             openCodeLicense: () => set({ isCodeLicenseOpen: true }),
             closeCodeLicense: () => set({ isCodeLicenseOpen: false }),
+
+            isPhotoLicenseOpen: false,
+            openPhotoLicense: () => set({ isPhotoLicenseOpen: true }),
+            closePhotoLicense: () => set({ isPhotoLicenseOpen: false }),
 
             activeGear: null,
             openGearModal: (gear: GearItem) => set({ activeGear: gear }),
