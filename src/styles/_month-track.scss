@@ -16,9 +16,10 @@
     border: none !important;
     box-shadow: none !important;
     transition: opacity var(--transition-normal);
+    margin-left: calc(-50px - 1.5rem);
 
-    // Hide on tablet and mobile viewports (< 1024px)
-    @media (max-width: 1024px) {
+    // Hide when viewport is too narrow to fit the track without overflowing (< 1350px)
+    @media (max-width: 1350px) {
         display: none !important;
     }
 

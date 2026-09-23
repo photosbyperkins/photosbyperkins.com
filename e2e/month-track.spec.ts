@@ -1,8 +1,10 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Portfolio Month Calendar Track', () => {
-    test('renders on desktop and shows 12 months in DEC -> JAN order', async ({ page }) => {
-        await page.setViewportSize({ width: 1280, height: 800 });
+    test('renders on desktop and shows 12 months in DEC -> JAN order', async ({ page, isMobile }) => {
+        test.skip(isMobile, 'Month track is only visible on desktop');
+
+        await page.setViewportSize({ width: 1440, height: 800 });
         await page.goto('/');
         await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
 
@@ -17,8 +19,10 @@ test.describe('Portfolio Month Calendar Track', () => {
         await expect(monthItems.last().locator('.portfolio__month-label')).toHaveText('JAN');
     });
 
-    test('has distinct states: current, populated, and empty', async ({ page }) => {
-        await page.setViewportSize({ width: 1280, height: 800 });
+    test('has distinct states: current, populated, and empty', async ({ page, isMobile }) => {
+        test.skip(isMobile, 'Month track is only visible on desktop');
+
+        await page.setViewportSize({ width: 1440, height: 800 });
         await page.goto('/');
         await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
 
@@ -37,8 +41,10 @@ test.describe('Portfolio Month Calendar Track', () => {
         expect(await emptyMonths.count()).toBeGreaterThan(0);
     });
 
-    test('clicking a populated month triggers scroll navigation', async ({ page }) => {
-        await page.setViewportSize({ width: 1280, height: 800 });
+    test('clicking a populated month triggers scroll navigation', async ({ page, isMobile }) => {
+        test.skip(isMobile, 'Month track is only visible on desktop');
+
+        await page.setViewportSize({ width: 1440, height: 800 });
         await page.goto('/');
         await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
 
@@ -58,13 +64,32 @@ test.describe('Portfolio Month Calendar Track', () => {
         }
     });
 
-    test('is hidden on mobile viewports (< 768px)', async ({ page }) => {
-        await page.setViewportSize({ width: 375, height: 667 });
+    test('is hidden on viewports <= 1350px to prevent horizontal overflow', async ({ page }) => {
+        // Test at 1280px (where gutter < 50px)
+        await page.setViewportSize({ width: 1280, height: 800 });
         await page.goto('/');
         await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
 
         const track = page.locator('.portfolio__month-track');
         await expect(track).not.toBeVisible();
+
+        // Check for horizontal overflow
+        const hasOverflow1280 = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+        expect(hasOverflow1280).toBe(false);
+
+        // Test on mobile
+        await page.setViewportSize({ width: 375, height: 667 });
+        await page.waitForTimeout(200);
+        await expect(track).not.toBeVisible();
+        const hasOverflow375 = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+        expect(hasOverflow375).toBe(false);
+
+        // Test at 1366px (laptop where track fits comfortably)
+        await page.setViewportSize({ width: 1366, height: 768 });
+        await page.waitForTimeout(200);
+        await expect(track).toBeVisible();
+        const hasOverflow1366 = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+        expect(hasOverflow1366).toBe(false);
     });
 
     test('is positioned as a dedicated sticky sidebar to the left of events with zero drop shadow', async ({ page }) => {
@@ -105,7 +130,7 @@ test.describe('Portfolio Month Calendar Track', () => {
 
     test('never overlaps the recap section on short windows', async ({ page }) => {
         // Test short viewport (e.g. 600px tall)
-        await page.setViewportSize({ width: 1280, height: 600 });
+        await page.setViewportSize({ width: 1440, height: 600 });
         await page.goto('/portfolio/2025');
         await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
 
@@ -124,26 +149,29 @@ test.describe('Portfolio Month Calendar Track', () => {
         }
     });
 
-    test('is positioned on the left side of the events with clear clearance', async ({ page }) => {
+    test('left edge of portfolio__events aligns with the left edge of years selector with 1.5rem gap to month track', async ({ page }) => {
         await page.setViewportSize({ width: 1440, height: 900 });
         await page.goto('/');
         await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
 
         const track = page.locator('.portfolio__month-track');
         const events = page.locator('.portfolio__events');
+        const yearsNav = page.locator('.portfolio__years');
 
         const trackBox = await track.boundingBox();
         const eventsBox = await events.boundingBox();
+        const yearsBox = await yearsNav.boundingBox();
 
         expect(trackBox).not.toBeNull();
         expect(eventsBox).not.toBeNull();
+        expect(yearsBox).not.toBeNull();
 
-        // Track is to the left of the events
-        expect(trackBox!.x).toBeLessThan(eventsBox!.x);
+        // Left edge of portfolio__events aligns with the left edge of years selector (within 1px subpixel tolerance)
+        expect(Math.abs(eventsBox!.x - yearsBox!.x)).toBeLessThanOrEqual(1);
 
-        // Clearance between right edge of sidebar and left edge of events is generous
-        const clearance = eventsBox!.x - (trackBox!.x + trackBox!.width);
-        expect(clearance).toBeGreaterThanOrEqual(20);
+        // Gap between right edge of month track and left edge of portfolio__events is 24px (1.5rem, within 1px subpixel tolerance)
+        const gap = eventsBox!.x - (trackBox!.x + trackBox!.width);
+        expect(Math.abs(gap - 24)).toBeLessThanOrEqual(1);
     });
 
     test('renders micro density meters on populated months with aligned left edges', async ({ page }) => {
@@ -184,7 +212,7 @@ test.describe('Portfolio Month Calendar Track', () => {
     test('clicking a month lands accurately at the target event without drift', async ({ page, isMobile }) => {
         test.skip(isMobile, 'Month track is only visible on desktop');
 
-        await page.setViewportSize({ width: 1280, height: 800 });
+        await page.setViewportSize({ width: 1440, height: 800 });
         await page.goto('/portfolio/2025');
         await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
 
@@ -212,7 +240,7 @@ test.describe('Portfolio Month Calendar Track', () => {
     test('clicking First Seen in recap summary scrolls accurately to the event', async ({ page, isMobile }) => {
         test.skip(isMobile, 'Recap season strip is desktop-only');
 
-        await page.setViewportSize({ width: 1280, height: 800 });
+        await page.setViewportSize({ width: 1440, height: 800 });
         await page.goto('/portfolio/2025');
         await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
 
@@ -234,7 +262,7 @@ test.describe('Portfolio Month Calendar Track', () => {
     test('clicking the month of the first event when scrolled down scrolls to top 0', async ({ page, isMobile }) => {
         test.skip(isMobile, 'Month track is only visible on desktop');
 
-        await page.setViewportSize({ width: 1280, height: 800 });
+        await page.setViewportSize({ width: 1440, height: 800 });
         await page.goto('/portfolio/2025');
         await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
 
@@ -260,7 +288,7 @@ test.describe('Portfolio Month Calendar Track', () => {
     test('track top is never higher than the first event portfolio__event-header at scroll 0 and during scroll', async ({ page, isMobile }) => {
         test.skip(isMobile, 'Month track is only visible on desktop');
 
-        await page.setViewportSize({ width: 1280, height: 800 });
+        await page.setViewportSize({ width: 1440, height: 800 });
         await page.goto('/portfolio/2026');
         await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
 
@@ -297,7 +325,7 @@ test.describe('Portfolio Month Calendar Track', () => {
     test('track bottom is never lower than the bottom of the last event portfolio__event', async ({ page, isMobile }) => {
         test.skip(isMobile, 'Month track is only visible on desktop');
 
-        await page.setViewportSize({ width: 1280, height: 800 });
+        await page.setViewportSize({ width: 1440, height: 800 });
         await page.goto('/portfolio/2024');
         await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
 
@@ -322,7 +350,7 @@ test.describe('Portfolio Month Calendar Track', () => {
     test('hovering over the current month shows the tooltip and scales the meter', async ({ page, isMobile }) => {
         test.skip(isMobile, 'Month track is only visible on desktop');
 
-        await page.setViewportSize({ width: 1280, height: 800 });
+        await page.setViewportSize({ width: 1440, height: 800 });
         await page.goto('/portfolio/2026');
         await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
 
