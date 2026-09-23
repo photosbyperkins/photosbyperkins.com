@@ -9,9 +9,7 @@ export default function GearModal() {
     const titleNode = activeGear ? (
         <>
             <span className="gear-modal__name-full">{activeGear.name}</span>
-            <span className="gear-modal__name-compact">
-                {activeGear.compactName || activeGear.name}
-            </span>
+            <span className="gear-modal__name-compact">{activeGear.compactName || activeGear.name}</span>
         </>
     ) : (
         ''

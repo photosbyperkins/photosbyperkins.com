@@ -12,8 +12,7 @@ export default function PhotoLicenseModal() {
     const [copied, setCopied] = useState(false);
 
     const copyrightName = import.meta.env.VITE_COPYRIGHT_NAME || 'Michael Perkins';
-    const photosLicenseUrl =
-        import.meta.env.VITE_LICENSE_URL || 'https://creativecommons.org/licenses/by-sa/4.0/';
+    const photosLicenseUrl = import.meta.env.VITE_LICENSE_URL || 'https://creativecommons.org/licenses/by-sa/4.0/';
     const attributionSnippet = `Photo by ${copyrightName} / photosbyperkins.com (CC BY-SA 4.0)`;
 
     const handleCopy = async () => {
@@ -49,8 +48,8 @@ export default function PhotoLicenseModal() {
                     <h1>CC BY-SA 4.0</h1>
                     <p className="photo-license__subtitle">
                         All photography featured on photosbyperkins.com is openly licensed under the{' '}
-                        <strong>Creative Commons Attribution-ShareAlike 4.0 International</strong>{' '}
-                        license unless otherwise indicated.
+                        <strong>Creative Commons Attribution-ShareAlike 4.0 International</strong> license unless
+                        otherwise indicated.
                     </p>
                 </motion.div>
 
@@ -72,14 +71,16 @@ export default function PhotoLicenseModal() {
                                 <Share2 size={18} className="photo-license__item-icon" />
                                 <div className="photo-license__item-content">
                                     <strong>Share &amp; Redistribute</strong>
-                                    Copy and redistribute the material in any medium or format for any purpose, including commercial uses.
+                                    Copy and redistribute the material in any medium or format for any purpose,
+                                    including commercial uses.
                                 </div>
                             </div>
                             <div className="photo-license__item">
                                 <RefreshCw size={18} className="photo-license__item-icon" />
                                 <div className="photo-license__item-content">
                                     <strong>Adapt &amp; Remix</strong>
-                                    Remix, transform, crop, and build upon the material for any purpose, even commercially.
+                                    Remix, transform, crop, and build upon the material for any purpose, even
+                                    commercially.
                                 </div>
                             </div>
                         </div>
@@ -96,14 +97,16 @@ export default function PhotoLicenseModal() {
                                 <UserCheck size={18} className="photo-license__item-icon" />
                                 <div className="photo-license__item-content">
                                     <strong>Attribution (BY)</strong>
-                                    Give appropriate credit, provide a link to the license, and indicate if changes were made.
+                                    Give appropriate credit, provide a link to the license, and indicate if changes were
+                                    made.
                                 </div>
                             </div>
                             <div className="photo-license__item">
                                 <RefreshCw size={18} className="photo-license__item-icon" />
                                 <div className="photo-license__item-content">
                                     <strong>ShareAlike (SA)</strong>
-                                    If you remix or build upon the photos, you must distribute your contributions under the same license.
+                                    If you remix or build upon the photos, you must distribute your contributions under
+                                    the same license.
                                 </div>
                             </div>
                         </div>
@@ -120,7 +123,8 @@ export default function PhotoLicenseModal() {
                 >
                     <h3>Recommended Attribution Credit</h3>
                     <p>
-                        When sharing on social media, blogs, websites, or editorial publications, please use the following credit line:
+                        When sharing on social media, blogs, websites, or editorial publications, please use the
+                        following credit line:
                     </p>
                     <div className="photo-license__snippet-box">
                         <code>{attributionSnippet}</code>

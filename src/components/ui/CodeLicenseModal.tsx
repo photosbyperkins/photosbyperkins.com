@@ -94,7 +94,8 @@ SOFTWARE.`;
                                 <Share2 size={18} className="code-license__item-icon" />
                                 <div className="code-license__item-content">
                                     <strong>Commercial &amp; Private Use</strong>
-                                    Use, run, copy, merge, publish, and sell the software for any personal or commercial project.
+                                    Use, run, copy, merge, publish, and sell the software for any personal or commercial
+                                    project.
                                 </div>
                             </div>
                             <div className="code-license__item">
@@ -118,14 +119,16 @@ SOFTWARE.`;
                                 <UserCheck size={18} className="code-license__item-icon" />
                                 <div className="code-license__item-content">
                                     <strong>License &amp; Copyright Notice</strong>
-                                    Include the original copyright and permission notice in all copies or substantial portions.
+                                    Include the original copyright and permission notice in all copies or substantial
+                                    portions.
                                 </div>
                             </div>
                             <div className="code-license__item">
                                 <ShieldAlert size={18} className="code-license__item-icon" />
                                 <div className="code-license__item-content">
                                     <strong>No Warranty (As-Is)</strong>
-                                    The software is provided "as is" without warranty, and the author cannot be held liable.
+                                    The software is provided "as is" without warranty, and the author cannot be held
+                                    liable.
                                 </div>
                             </div>
                         </div>

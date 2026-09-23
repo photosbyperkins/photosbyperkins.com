@@ -113,16 +113,12 @@ export default function ModalShell({
                     </header>
 
                     <div ref={contentRef} className={`modal-shell__content ${contentClassName}`}>
-                        <div className={`container modal-shell__container ${containerMaxWidthClass}`}>
-                            {children}
-                        </div>
+                        <div className={`container modal-shell__container ${containerMaxWidthClass}`}>{children}</div>
                     </div>
 
                     {footer && (
                         <footer className="modal-shell__footer-bar">
-                            <div className="container modal-shell__footer-bar-inner">
-                                {footer}
-                            </div>
+                            <div className="container modal-shell__footer-bar-inner">{footer}</div>
                         </footer>
                     )}
                 </motion.div>

@@ -77,12 +77,10 @@ export default function About() {
                             variants={modalFadeUp}
                         >
                             {import.meta.env.VITE_ABOUT_ME ? (
-                                import.meta.env.VITE_ABOUT_ME.split('\n').map(
-                                    (paragraph: string, i: number) => {
-                                        if (!paragraph.trim()) return null;
-                                        return <p key={i}>{parseInline(paragraph)}</p>;
-                                    }
-                                )
+                                import.meta.env.VITE_ABOUT_ME.split('\n').map((paragraph: string, i: number) => {
+                                    if (!paragraph.trim()) return null;
+                                    return <p key={i}>{parseInline(paragraph)}</p>;
+                                })
                             ) : (
                                 <p>Welcome to my photography portfolio!</p>
                             )}

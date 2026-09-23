@@ -132,7 +132,8 @@
             }
 
             code {
-                font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+                font-family:
+                    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
                 font-size: clamp(0.8rem, 1.8vw, 0.875rem);
                 color: var(--color-text);
                 word-break: break-all;

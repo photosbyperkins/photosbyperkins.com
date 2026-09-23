@@ -27,10 +27,9 @@ export default function AiPolicyModal() {
                     variants={modalFadeUp}
                 >
                     <p>
-                        Photos featured on this site are authentic records of live sporting and
-                        community events. As the sole photographer and creator of this site, I believe
-                        in complete transparency regarding how technology, including artificial
-                        intelligence, is used in my photography and website workflow.
+                        Photos featured on this site are authentic records of live sporting and community events. As the
+                        sole photographer and creator of this site, I believe in complete transparency regarding how
+                        technology, including artificial intelligence, is used in my photography and website workflow.
                     </p>
                 </motion.div>
 
@@ -50,10 +49,9 @@ export default function AiPolicyModal() {
                             <h4>Sharpening & Denoising Only</h4>
                             <p>
                                 I may use AI-assisted tools solely for{' '}
-                                <strong>technical image quality enhancements</strong>, specifically
-                                noise reduction (denoising) and detail sharpening. These adjustments
-                                help manage high digital noise and motion clarity when shooting
-                                fast-paced action in challenging indoor or low-light sports
+                                <strong>technical image quality enhancements</strong>, specifically noise reduction
+                                (denoising) and detail sharpening. These adjustments help manage high digital noise and
+                                motion clarity when shooting fast-paced action in challenging indoor or low-light sports
                                 environments.
                             </p>
                         </div>
@@ -73,10 +71,9 @@ export default function AiPolicyModal() {
                         <div className="ai-policy__card-content">
                             <h4>No Generative Alterations or Scene Creation</h4>
                             <p>
-                                I <strong>never</strong> use AI to substantially alter photos, remove
-                                elements or people, add synthetic objects, or invent scenes. What you
-                                see is the genuine moment captured through my lens—preserving the
-                                authenticity and reality of the event.
+                                I <strong>never</strong> use AI to substantially alter photos, remove elements or
+                                people, add synthetic objects, or invent scenes. What you see is the genuine moment
+                                captured through my lens—preserving the authenticity and reality of the event.
                             </p>
                         </div>
                     </motion.div>
@@ -95,11 +92,10 @@ export default function AiPolicyModal() {
                         <div className="ai-policy__card-content">
                             <h4>Build-Time Focal Area Detection</h4>
                             <p>
-                                During the build process of this website, automated computer vision is
-                                used solely to <strong>identify faces to establish focal areas</strong>{' '}
-                                for optimal subject centering and smart cropping across thumbnails and
-                                responsive layouts. No facial recognition, identity tracking, or
-                                biometric profiling is ever performed.
+                                During the build process of this website, automated computer vision is used solely to{' '}
+                                <strong>identify faces to establish focal areas</strong> for optimal subject centering
+                                and smart cropping across thumbnails and responsive layouts. No facial recognition,
+                                identity tracking, or biometric profiling is ever performed.
                             </p>
                         </div>
                     </motion.div>
@@ -118,11 +114,10 @@ export default function AiPolicyModal() {
                         <div className="ai-policy__card-content">
                             <h4>Website Development & Coding Assistance</h4>
                             <p>
-                                For full transparency, AI coding tools and assistants may be used to
-                                help write, refactor, optimize, and maintain the{' '}
-                                <strong>underlying source code for this website</strong>. All code,
-                                infrastructure, and deployment pipelines remain curated, tested, and
-                                engineered by me.
+                                For full transparency, AI coding tools and assistants may be used to help write,
+                                refactor, optimize, and maintain the{' '}
+                                <strong>underlying source code for this website</strong>. All code, infrastructure, and
+                                deployment pipelines remain curated, tested, and engineered by me.
                             </p>
                         </div>
                     </motion.div>
@@ -136,9 +131,9 @@ export default function AiPolicyModal() {
                     variants={modalFadeUp}
                 >
                     <p>
-                        <strong>My Commitment to Honest Photography:</strong> While AI aids in technical
-                        refinement and code engineering, every photograph remains an uncompromised,
-                        authentic record of the moment as I captured it in real time.
+                        <strong>My Commitment to Honest Photography:</strong> While AI aids in technical refinement and
+                        code engineering, every photograph remains an uncompromised, authentic record of the moment as I
+                        captured it in real time.
                     </p>
                 </motion.div>
             </div>

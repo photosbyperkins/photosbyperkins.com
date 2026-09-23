@@ -122,8 +122,7 @@ export default function SharedFavoritesPanel({ photos, onClose }: SharedFavorite
                         backgroundSize: `100% ${isZipping ? zipProgress : 0}%`,
                         backgroundRepeat: 'no-repeat',
                         backgroundPosition: 'top center',
-                        transition:
-                            'background-size 0.2s ease-out, border-color 0.2s ease-out, color 0.2s ease-out',
+                        transition: 'background-size 0.2s ease-out, border-color 0.2s ease-out, color 0.2s ease-out',
                         borderColor: isZipping ? 'var(--color-accent)' : undefined,
                         color: isZipping ? (zipProgress > 50 ? '#fff' : 'var(--color-accent)') : undefined,
                     }}
