@@ -4,6 +4,7 @@ import Nav from './components/sections/Nav';
 import PwaStatusToast from './components/ui/PwaStatusToast';
 import { GithubIcon, FacebookIcon, InstagramIcon } from './components/ui/icons';
 import { useAppStore } from './store/useAppStore';
+import { scrollToElement } from './utils/scroll';
 
 const About = lazy(() => import('./components/sections/About'));
 const Portfolio = lazy(() => import('./components/sections/Portfolio'));
@@ -108,10 +109,20 @@ function ScrollToMountTarget() {
         const state = location.state as { preventScroll?: boolean } | null;
         if (state?.preventScroll) return;
 
+        // If the route specifies a direct event (e.g. /portfolio/:year/:event or with :photo),
+        // let the event component handle scrolling to avoid competing with fallback #portfolio
+        const segments = location.pathname.split('/').filter(Boolean);
+        if (segments[0] === 'portfolio' && segments.length >= 3 && segments[1] !== 'team') {
+            return;
+        }
+
         setTimeout(() => {
-            let targetId = location.pathname.split('/')[1] || 'recap';
+            let targetId = segments[0] || 'recap';
             if (location.pathname.startsWith('/portfolio')) targetId = 'portfolio';
-            document.getElementById(targetId)?.scrollIntoView({ behavior: 'auto' });
+            const el = document.getElementById(targetId);
+            if (el) {
+                scrollToElement(el, { behavior: 'instant', offset: 0 });
+            }
         }, 100);
     }, [location]);
     return null;

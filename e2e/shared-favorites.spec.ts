@@ -1,18 +1,22 @@
 import { test, expect } from '@playwright/test';
+import zlib from 'zlib';
 
 /**
- * Build a #photos= hash from an array of basenames using base64url encoding.
+ * Build a #photos= v2 hash using grouped album:numbers format + DEFLATE.
  * Mirrors src/utils/favoritesUrl.ts → encodeFavorites().
  */
-function encodePhotosHash(basenames: string[]): string {
-    const raw = basenames.join(',');
-    const b64 = Buffer.from(raw).toString('base64');
-    return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+function encodeV2Hash(grouped: string): string {
+    const raw = Buffer.from(grouped, 'utf-8');
+    const compressed = zlib.deflateRawSync(raw);
+    const b64 = compressed.toString('base64');
+    const b64url = b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    return '2.' + b64url;
 }
 
-// Use real basenames from the first 2025 album
-const TEST_BASENAMES = ['photo_001.jpg', 'photo_002.jpg', 'photo_003.jpg'];
-const TEST_HASH = encodePhotosHash(TEST_BASENAMES);
+// Real photos from 2025/0412-team-philippines-headshots (photos 1, 2, 3)
+const TEST_GROUPED = '2025/0412-team-philippines-headshots:1,2,3';
+const TEST_HASH = encodeV2Hash(TEST_GROUPED);
+const TEST_COUNT = 3;
 
 test.describe('Shared Favorites Panel', () => {
     test('should open the panel when URL has #photos= hash', async ({ page }) => {
@@ -36,7 +40,7 @@ test.describe('Shared Favorites Panel', () => {
 
         // The grid should contain exactly 3 photos
         const gridItems = overlay.locator('.portfolio__grid-item');
-        await expect(gridItems).toHaveCount(TEST_BASENAMES.length, { timeout: 10000 });
+        await expect(gridItems).toHaveCount(TEST_COUNT, { timeout: 10000 });
     });
 
     test('should close the panel via close button', async ({ page }) => {
@@ -104,7 +108,7 @@ test.describe('Shared Favorites Panel', () => {
 
         // Wait for the grid to load
         const gridItems = overlay.locator('.portfolio__grid-item');
-        await expect(gridItems).toHaveCount(TEST_BASENAMES.length, { timeout: 10000 });
+        await expect(gridItems).toHaveCount(TEST_COUNT, { timeout: 10000 });
 
         // Click "Add to Your Favorites"
         const addBtn = overlay.locator('button.is-cta');
@@ -118,7 +122,7 @@ test.describe('Shared Favorites Panel', () => {
 
         // Verify favorites in localStorage
         const favCount = await page.evaluate(() => {
-            const data = localStorage.getItem('portfolio-favorites');
+            const data = localStorage.getItem('photo-app-store') || localStorage.getItem('portfolio-favorites');
             if (!data) return 0;
             try {
                 return JSON.parse(data)?.state?.favorites?.length || 0;
@@ -126,7 +130,7 @@ test.describe('Shared Favorites Panel', () => {
                 return 0;
             }
         });
-        expect(favCount).toBe(TEST_BASENAMES.length);
+        expect(favCount).toBe(TEST_COUNT);
     });
 
     test('should open the lightbox when clicking a shared photo', async ({ page }) => {
@@ -180,7 +184,7 @@ test.describe('Shared Favorites Panel', () => {
 
         // Verify photos resolved correctly
         const gridItems = overlay.locator('.portfolio__grid-item');
-        await expect(gridItems).toHaveCount(TEST_BASENAMES.length, { timeout: 10000 });
+        await expect(gridItems).toHaveCount(TEST_COUNT, { timeout: 10000 });
     });
 
     test('should show footer bar with action buttons', async ({ page }) => {
@@ -190,7 +194,7 @@ test.describe('Shared Favorites Panel', () => {
         await expect(overlay).toBeVisible({ timeout: 15000 });
 
         // Footer bar should be visible
-        const footer = overlay.locator('.shared-favorites-overlay__footer-bar');
+        const footer = overlay.locator('.modal-shell__footer-bar, .shared-favorites-overlay__footer-bar');
         await expect(footer).toBeVisible();
 
         // "Add to Your Favorites" CTA button should be present

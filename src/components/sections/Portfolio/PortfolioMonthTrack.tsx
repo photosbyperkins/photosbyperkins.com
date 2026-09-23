@@ -5,6 +5,7 @@ import {
     formatEventElementId,
     type MonthData,
 } from '../../../utils/monthTrack';
+import { scrollToElement } from '../../../utils/scroll';
 import type { EventData } from '../../../types';
 
 interface PortfolioMonthTrackProps {
@@ -39,6 +40,15 @@ export const PortfolioMonthTrack: React.FC<PortfolioMonthTrackProps> = ({ events
         let ticking = false;
 
         const updateActiveMonth = () => {
+            if (window.scrollY <= 10 && events.length > 0) {
+                const firstMonth = getEventMonth(events[0][0]);
+                if (firstMonth !== null) {
+                    setActiveMonth((prev) => (prev !== firstMonth ? firstMonth : prev));
+                    ticking = false;
+                    return;
+                }
+            }
+
             const viewportAnchor = window.innerHeight * 0.35;
             let detectedMonth: number | null = null;
 
@@ -93,14 +103,11 @@ export const PortfolioMonthTrack: React.FC<PortfolioMonthTrackProps> = ({ events
 
     const handleMonthClick = useCallback(
         (m: MonthData) => {
-            // Do nothing if month has no photos or if already in that month
+            // Do nothing if month has no photos or if already in that month and at the top
             if (!m.hasPhotos || !m.firstEventId) return;
-            if (m.num === activeMonth) return;
+            if (m.num === activeMonth && window.scrollY <= 10) return;
 
-            const target = document.getElementById(m.firstEventId);
-            if (target) {
-                target.scrollIntoView({ behavior: 'smooth' });
-            }
+            scrollToElement(m.firstEventId);
         },
         [activeMonth]
     );

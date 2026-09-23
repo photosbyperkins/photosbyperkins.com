@@ -1,5 +1,5 @@
 import { Search, X } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { formatTeamName } from '../../../utils/formatters';
 
@@ -27,6 +27,13 @@ export default function TeamFilter({
     onBack,
 }: TeamFilterProps) {
     const [sortMode, setSortMode] = useState<SortMode>('alpha');
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    useEffect(() => {
+        if (!teamIndexLoading) {
+            inputRef.current?.focus();
+        }
+    }, [teamIndexLoading]);
 
     const sortedTeams = useMemo(() => {
         return [...filteredTeams].sort((a, b) => {
@@ -54,6 +61,7 @@ export default function TeamFilter({
                             <div className="portfolio__search-input-wrap">
                                 <Search size={16} className="portfolio__search-input-icon" />
                                 <input
+                                    ref={inputRef}
                                     type="search"
                                     enterKeyHint="search"
                                     placeholder="Search Teams..."
@@ -110,6 +118,7 @@ export default function TeamFilter({
                                         className={`portfolio__team-pill ${
                                             team.slug === 'wftda-sanctioned' ? 'is-wftda' : ''
                                         }`}
+                                        onClick={() => onBack?.()}
                                     >
                                         <span className="portfolio__team-name">{displayName}</span>
                                         <span className="portfolio__team-count">{team.count}</span>

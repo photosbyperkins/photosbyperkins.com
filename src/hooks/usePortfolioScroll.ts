@@ -1,4 +1,5 @@
 import { useRef, useCallback } from 'react';
+import { scrollToElement } from '../utils/scroll';
 
 export function usePortfolioScroll(portfolioRef: React.RefObject<HTMLDivElement | null>) {
     const scrollOnNextDataLoadRef = useRef(false);
@@ -9,7 +10,7 @@ export function usePortfolioScroll(portfolioRef: React.RefObject<HTMLDivElement 
             // Add a small delay to ensure DOM has updated with new data before scrolling
             setTimeout(() => {
                 if (portfolioRef.current) {
-                    portfolioRef.current.scrollIntoView({ behavior: 'smooth' });
+                    scrollToElement(portfolioRef.current, { offset: 0 });
                 }
             }, 100);
         }

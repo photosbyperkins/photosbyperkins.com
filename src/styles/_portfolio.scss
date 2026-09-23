@@ -431,10 +431,12 @@
         align-items: flex-start;
         position: relative;
         width: 100%;
+        gap: 1.5rem;
+        margin-top: 1.25rem;
+        margin-bottom: 2rem;
 
-        // Provide clearance for the fixed left sidebar on medium desktop displays
-        @media (min-width: 1024px) and (max-width: 1399px) {
-            padding-left: 2.5rem;
+        @media (max-width: 1024px) {
+            gap: 0;
         }
     }
 
@@ -443,7 +445,7 @@
         min-width: 0;
         display: flex;
         flex-direction: column;
-        padding-bottom: 2rem;
+        padding-bottom: 0;
         gap: 3rem;
         container-type: inline-size;
     }

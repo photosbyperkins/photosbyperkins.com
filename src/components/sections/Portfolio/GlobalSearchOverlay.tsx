@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useFocusTrap } from '../../../hooks/useFocusTrap';
+import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock';
 import TeamFilter from './TeamFilter';
 
 interface TeamMeta {
@@ -30,16 +31,20 @@ export default function GlobalSearchOverlay({
     const overlayRef = useRef<HTMLDivElement>(null);
 
     useFocusTrap(overlayRef, isOpen);
+    useBodyScrollLock(isOpen);
 
     useEffect(() => {
         if (!isOpen) return;
+
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
                 onClose();
             }
         };
         window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
     }, [isOpen, onClose]);
 
     if (typeof document === 'undefined') return null;

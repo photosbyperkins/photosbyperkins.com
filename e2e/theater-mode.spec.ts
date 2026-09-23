@@ -18,7 +18,7 @@ test.describe('Lightbox Theater Mode', () => {
         const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
 
         // Click on the image area (single click toggles theater mode)
-        const imageContainer = lightbox.locator('.portfolio__lightbox-image-container').first();
+        const imageContainer = lightbox.locator('.portfolio__lightbox-slide--current .portfolio__lightbox-image-container');
         await imageContainer.click();
         await page.waitForTimeout(500);
 
@@ -30,7 +30,7 @@ test.describe('Lightbox Theater Mode', () => {
         const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
 
         // Enter theater mode
-        const imageContainer = lightbox.locator('.portfolio__lightbox-image-container').first();
+        const imageContainer = lightbox.locator('.portfolio__lightbox-slide--current .portfolio__lightbox-image-container');
         await imageContainer.click();
         await page.waitForTimeout(500);
 
@@ -44,7 +44,7 @@ test.describe('Lightbox Theater Mode', () => {
 
     test('should exit Theater Mode when clicking the photo again', async ({ page }) => {
         const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        const imageContainer = lightbox.locator('.portfolio__lightbox-image-container').first();
+        const imageContainer = lightbox.locator('.portfolio__lightbox-slide--current .portfolio__lightbox-image-container');
 
         // Enter theater mode
         await imageContainer.click();
@@ -62,7 +62,7 @@ test.describe('Lightbox Theater Mode', () => {
 
     test('should still allow Escape to close lightbox during Theater Mode', async ({ page }) => {
         const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        const imageContainer = lightbox.locator('.portfolio__lightbox-image-container').first();
+        const imageContainer = lightbox.locator('.portfolio__lightbox-slide--current .portfolio__lightbox-image-container');
 
         // Enter theater mode
         await imageContainer.click();
@@ -76,7 +76,7 @@ test.describe('Lightbox Theater Mode', () => {
 
     test('should still allow arrow key navigation during Theater Mode', async ({ page }) => {
         const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        const imageContainer = lightbox.locator('.portfolio__lightbox-image-container').first();
+        const imageContainer = lightbox.locator('.portfolio__lightbox-slide--current .portfolio__lightbox-image-container');
 
         // Enter theater mode
         await imageContainer.click();

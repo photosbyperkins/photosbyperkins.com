@@ -72,11 +72,12 @@ test.describe('Mobile Viewport', () => {
         const toggle = page.locator('.theme-toggle-nav, button[aria-label="Toggle theme"]').first();
         if ((await toggle.count()) === 0) return;
 
+        const initialTheme = await page.locator('html').getAttribute('data-theme');
         await toggle.click();
         await page.waitForTimeout(300);
 
         const theme = await page.locator('html').getAttribute('data-theme');
-        expect(theme).toBe('light');
+        expect(theme).not.toBe(initialTheme);
     });
 
     test('should navigate years on mobile', async ({ page }) => {

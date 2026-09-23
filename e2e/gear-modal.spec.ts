@@ -42,7 +42,7 @@ test.describe('Favorite Camera & Lens Manufacturer Modals', () => {
         await expect(overlay.locator('.gear-modal__spec-grid')).toBeVisible();
 
         // External link button points directly to Nikon USA product page
-        const externalLink = overlay.locator('a.gear-modal__action-btn');
+        const externalLink = overlay.locator('a.modal-shell__action-btn, a.gear-modal__action-btn');
         await expect(externalLink).toHaveAttribute('href', 'https://www.nikonusa.com/p/z-8/1695');
 
         // Close via close button
@@ -68,7 +68,7 @@ test.describe('Favorite Camera & Lens Manufacturer Modals', () => {
         await expect(overlay.locator('.gear-modal__spec-grid')).toBeVisible();
 
         // External link button points directly to Nikon USA product page
-        const externalLink = overlay.locator('a.gear-modal__action-btn');
+        const externalLink = overlay.locator('a.modal-shell__action-btn, a.gear-modal__action-btn');
         await expect(externalLink).toHaveAttribute('href', 'https://www.nikonusa.com/p/af-s-nikkor-120-300mm-f28e-fl-ed-sr-vr/20088/overview');
 
         // Close via Escape key
@@ -127,7 +127,7 @@ test.describe('Favorite Camera & Lens Manufacturer Modals', () => {
         await expect(overlay.locator('.gear-modal__spec-grid')).toBeVisible();
 
         // External link button points directly to Sigma Photo product page
-        const externalLink = overlay.locator('a.gear-modal__action-btn');
+        const externalLink = overlay.locator('a.modal-shell__action-btn, a.gear-modal__action-btn');
         await expect(externalLink).toHaveAttribute('href', 'https://www.sigmaphoto.com/50mm-f1-4-dg-hsm-a');
 
         // Close via close button

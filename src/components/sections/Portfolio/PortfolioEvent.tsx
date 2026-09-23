@@ -11,6 +11,7 @@ import ProgressiveImage from '../../ui/ProgressiveImage';
 import VirtualizedAlbumGrid from './VirtualizedAlbumGrid';
 import PortfolioEventTitle from './PortfolioEventTitle';
 import { useZipWorker } from '../../../hooks/useZipWorker';
+import { scrollToElement } from '../../../utils/scroll';
 import type { EventData, PhotoInput, FavoriteStoreItem } from '../../../types';
 
 declare const __BUILD_NUMBER__: string;
@@ -111,12 +112,8 @@ const PortfolioEvent = memo(function PortfolioEvent({
         if (isSharedEvent && ev.album && ev.album.length > 0 && sharedPhoto) {
             // Scroll to the event so it's in view (only if not prevented, e.g. when opening from Recap slices)
             if (!sharedPhoto.preventScroll) {
-                setTimeout(() => {
-                    const element = document.getElementById(`event-${eventName.replace(/[^a-zA-Z0-9-]/g, '-')}`);
-                    if (element) {
-                        element.scrollIntoView({ behavior: 'smooth' });
-                    }
-                }, 100);
+                const elementId = `event-${eventName.replace(/[^a-zA-Z0-9-]/g, '-')}`;
+                scrollToElement(elementId);
             }
 
             if (sharedPhoto.photoIndex !== undefined) {
@@ -260,7 +257,6 @@ const PortfolioEvent = memo(function PortfolioEvent({
             initial={{ opacity: 0, y: 20 }}
             animate={isVisible ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.4 }}
-            style={{ minHeight: isVisible ? 'auto' : '350px' }}
         >
             <div className="portfolio__event-header">
                 {titleBlock}
@@ -550,7 +546,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
                     )}
                 </>
             ) : (
-                <div className="portfolio__event-placeholder portfolio__event-placeholder--full"></div>
+                <div className="portfolio__event-placeholder portfolio__event-placeholder--featured" aria-hidden="true" />
             )}
         </motion.article>
     );

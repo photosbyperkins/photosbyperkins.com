@@ -18,7 +18,14 @@ export function useFocusTrap(
             if (initialFocusRef?.current) {
                 initialFocusRef.current.focus();
             } else if (containerRef.current) {
-                containerRef.current.focus();
+                const autoFocusEl = containerRef.current.querySelector<HTMLElement>(
+                    '[autofocus], input:not([disabled]), button:not([disabled])'
+                );
+                if (autoFocusEl) {
+                    autoFocusEl.focus();
+                } else {
+                    containerRef.current.focus();
+                }
             }
         }, 10);
 

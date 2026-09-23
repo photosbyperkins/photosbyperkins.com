@@ -2,8 +2,9 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Theme Switching', () => {
     test.beforeEach(async ({ page }) => {
+        await page.emulateMedia({ colorScheme: 'dark' });
         await page.goto('/');
-        await page.evaluate(() => localStorage.removeItem('theme'));
+        await page.evaluate(() => localStorage.clear());
         await page.reload();
     });
 

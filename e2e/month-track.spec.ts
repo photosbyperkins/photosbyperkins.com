@@ -67,18 +67,26 @@ test.describe('Portfolio Month Calendar Track', () => {
         await expect(track).not.toBeVisible();
     });
 
-    test('is pinned as a dedicated sidebar to the left of the screen with zero drop shadow', async ({ page }) => {
+    test('is positioned as a dedicated sticky sidebar to the left of events with zero drop shadow', async ({ page }) => {
         await page.setViewportSize({ width: 1440, height: 900 });
         await page.goto('/');
         await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
 
         const track = page.locator('.portfolio__month-track');
+        const events = page.locator('.portfolio__events');
         await expect(track).toBeVisible();
 
         const trackBox = await track.boundingBox();
+        const eventsBox = await events.boundingBox();
         expect(trackBox).not.toBeNull();
-        // Pinned to the left side of the screen
-        expect(trackBox!.x).toBeLessThanOrEqual(16);
+        expect(eventsBox).not.toBeNull();
+
+        // Track is to the left of the events
+        expect(trackBox!.x).toBeLessThan(eventsBox!.x);
+
+        // Uses sticky positioning inside events wrapper
+        const position = await track.evaluate((el) => window.getComputedStyle(el).position);
+        expect(position).toBe('sticky');
 
         // Verify zero drop shadow on track and pill
         const boxShadow = await track.evaluate((el) => window.getComputedStyle(el).boxShadow);
@@ -87,13 +95,33 @@ test.describe('Portfolio Month Calendar Track', () => {
         const pillBoxShadow = await track.locator('.portfolio__month-track-pill').evaluate((el) => window.getComputedStyle(el).boxShadow);
         expect(pillBoxShadow).toBe('none');
 
-        // Scroll down and ensure it stays pinned
-        await page.evaluate(() => window.scrollTo(0, 600));
+        // Scroll down and ensure it sticks properly
+        await page.evaluate(() => window.scrollTo(0, 800));
         await page.waitForTimeout(300);
 
         const trackBoxAfterScroll = await track.boundingBox();
-        expect(trackBoxAfterScroll!.x).toBeLessThanOrEqual(16);
-        expect(trackBoxAfterScroll!.y).toBeGreaterThanOrEqual(0);
+        expect(trackBoxAfterScroll!.y).toBeGreaterThanOrEqual(70);
+    });
+
+    test('never overlaps the recap section on short windows', async ({ page }) => {
+        // Test short viewport (e.g. 600px tall)
+        await page.setViewportSize({ width: 1280, height: 600 });
+        await page.goto('/portfolio/2025');
+        await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
+
+        const recap = page.locator('.portfolio__recap-section');
+        const track = page.locator('.portfolio__month-track');
+
+        if ((await recap.count()) > 0) {
+            const recapBox = await recap.boundingBox();
+            const trackBox = await track.boundingBox();
+
+            expect(recapBox).not.toBeNull();
+            expect(trackBox).not.toBeNull();
+
+            // When at scrollY = 0, track is strictly below the recap section in DOM flow
+            expect(trackBox!.y).toBeGreaterThanOrEqual(recapBox!.y + recapBox!.height - 10);
+        }
     });
 
     test('is positioned on the left side of the events with clear clearance', async ({ page }) => {
@@ -152,5 +180,165 @@ test.describe('Portfolio Month Calendar Track', () => {
         await page.waitForTimeout(300);
         await page.screenshot({ path: 'C:/Users/micha/.gemini/antigravity/brain/ebeadfca-db4f-45d1-99e3-3c8529ac9df6/month_track_final_light.png' });
     });
+
+    test('clicking a month lands accurately at the target event without drift', async ({ page, isMobile }) => {
+        test.skip(isMobile, 'Month track is only visible on desktop');
+
+        await page.setViewportSize({ width: 1280, height: 800 });
+        await page.goto('/portfolio/2025');
+        await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
+
+        const track = page.locator('.portfolio__month-track');
+        // Wait for all parts to load (JAN is in the last part)
+        const janBtn = track.locator('button.portfolio__month-item.is-populated:has-text("JAN")');
+        await janBtn.waitFor({ state: 'visible', timeout: 10000 });
+
+        await janBtn.click();
+        // Wait for smooth scroll and settling
+        await page.waitForTimeout(1500);
+
+        // Find the first event of January
+        const targetEvent = page.locator('#event-01-25-Sacramento-Roller-Derby-Juniors-Galinda-vs-Sacramento-Roller-Derby-Juniors-Elphaba');
+        await expect(targetEvent).toBeVisible();
+
+        const box = await targetEvent.boundingBox();
+        expect(box).not.toBeNull();
+        // The top should be positioned right below the sticky navigation bar (~80px + margin)
+        // Expected offset is ~104px (within 75px - 140px range)
+        expect(box!.y).toBeGreaterThanOrEqual(75);
+        expect(box!.y).toBeLessThanOrEqual(140);
+    });
+
+    test('clicking First Seen in recap summary scrolls accurately to the event', async ({ page, isMobile }) => {
+        test.skip(isMobile, 'Recap season strip is desktop-only');
+
+        await page.setViewportSize({ width: 1280, height: 800 });
+        await page.goto('/portfolio/2025');
+        await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
+
+        // Wait for full data trickle
+        const janBtn = page.locator('.portfolio__month-track button.portfolio__month-item.is-populated:has-text("JAN")');
+        await janBtn.waitFor({ state: 'visible', timeout: 10000 });
+
+        const firstSeenBtn = page.locator('.portfolio__season-stat-compact--first-seen button');
+        if ((await firstSeenBtn.count()) > 0) {
+            await firstSeenBtn.click();
+            await page.waitForTimeout(1500);
+
+            // Verify window scrolled past the top recap
+            const scrollY = await page.evaluate(() => window.scrollY);
+            expect(scrollY).toBeGreaterThan(400);
+        }
+    });
+
+    test('clicking the month of the first event when scrolled down scrolls to top 0', async ({ page, isMobile }) => {
+        test.skip(isMobile, 'Month track is only visible on desktop');
+
+        await page.setViewportSize({ width: 1280, height: 800 });
+        await page.goto('/portfolio/2025');
+        await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
+
+        // Scroll down to the middle of the feed
+        await page.evaluate(() => window.scrollTo(0, 2500));
+        await page.waitForTimeout(300);
+        expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(2000);
+
+        // Click the first populated month (NOV in 2025)
+        const track = page.locator('.portfolio__month-track');
+        const novBtn = track.locator('button.portfolio__month-item.is-populated:has-text("NOV")');
+        await expect(novBtn).toBeVisible();
+        await novBtn.click();
+
+        // Wait for smooth scroll
+        await page.waitForTimeout(1500);
+
+        // Should land at scrollY = 0
+        const finalScrollY = await page.evaluate(() => window.scrollY);
+        expect(finalScrollY).toBe(0);
+    });
+
+    test('track top is never higher than the first event portfolio__event-header at scroll 0 and during scroll', async ({ page, isMobile }) => {
+        test.skip(isMobile, 'Month track is only visible on desktop');
+
+        await page.setViewportSize({ width: 1280, height: 800 });
+        await page.goto('/portfolio/2026');
+        await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
+
+        // Check at scroll = 0 (allow 400ms entrance animation to complete)
+        await page.evaluate(() => window.scrollTo(0, 0));
+        await page.waitForTimeout(600);
+
+        let positions = await page.evaluate(() => {
+            const track = document.querySelector('.portfolio__month-track')!;
+            const header = document.querySelector('.portfolio__event .portfolio__event-header')!;
+            return {
+                trackTop: track.getBoundingClientRect().top,
+                headerTop: header.getBoundingClientRect().top,
+            };
+        });
+        expect(positions.trackTop).toBeGreaterThanOrEqual(positions.headerTop - 0.5);
+
+        // Check at several scroll positions
+        for (const scrollPos of [100, 200, 300, 500]) {
+            await page.evaluate((y) => window.scrollTo(0, y), scrollPos);
+            await page.waitForTimeout(100);
+            positions = await page.evaluate(() => {
+                const track = document.querySelector('.portfolio__month-track')!;
+                const header = document.querySelector('.portfolio__event .portfolio__event-header')!;
+                return {
+                    trackTop: track.getBoundingClientRect().top,
+                    headerTop: header.getBoundingClientRect().top,
+                };
+            });
+            expect(positions.trackTop).toBeGreaterThanOrEqual(positions.headerTop - 0.5);
+        }
+    });
+
+    test('track bottom is never lower than the bottom of the last event portfolio__event', async ({ page, isMobile }) => {
+        test.skip(isMobile, 'Month track is only visible on desktop');
+
+        await page.setViewportSize({ width: 1280, height: 800 });
+        await page.goto('/portfolio/2024');
+        await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
+
+        // Scroll all the way to the bottom
+        await page.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+        await page.waitForTimeout(300);
+
+        const bounds = await page.evaluate(() => {
+            const track = document.querySelector('.portfolio__month-track')!;
+            const events = document.querySelectorAll('.portfolio__event');
+            const lastEvent = events[events.length - 1]!;
+            return {
+                trackBottom: track.getBoundingClientRect().bottom,
+                lastEventBottom: lastEvent.getBoundingClientRect().bottom,
+            };
+        });
+
+        // The track bottom must be <= the last event bottom (within 1px subpixel tolerance)
+        expect(bounds.trackBottom).toBeLessThanOrEqual(bounds.lastEventBottom + 1);
+    });
+
+    test('hovering over the current month shows the tooltip and scales the meter', async ({ page, isMobile }) => {
+        test.skip(isMobile, 'Month track is only visible on desktop');
+
+        await page.setViewportSize({ width: 1280, height: 800 });
+        await page.goto('/portfolio/2026');
+        await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
+
+        const track = page.locator('.portfolio__month-track');
+        const currentMonth = track.locator('button.portfolio__month-item.is-current');
+        await expect(currentMonth).toBeVisible();
+
+        const tooltip = currentMonth.locator('.portfolio__month-tooltip');
+        await expect(tooltip).not.toBeVisible();
+
+        // Hover over current month
+        await currentMonth.hover();
+        await expect(tooltip).toBeVisible();
+        await expect(tooltip.locator('.portfolio__month-tooltip-title')).toHaveText('September');
+        await expect(tooltip.locator('.portfolio__month-tooltip-meta')).toContainText('photos');
+    });
 });
+
 

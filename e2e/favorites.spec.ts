@@ -47,7 +47,7 @@ test.describe('Favorites', () => {
 
         // Check localStorage still has favorites
         const favs = await page.evaluate(() => {
-            const data = localStorage.getItem('portfolio-store');
+            const data = localStorage.getItem('photo-app-store') || localStorage.getItem('portfolio-store');
             if (!data) return [];
             try {
                 const parsed = JSON.parse(data);

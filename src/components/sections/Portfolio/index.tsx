@@ -15,6 +15,7 @@ import Recap from '../Recap';
 import PortfolioEvent from './PortfolioEvent';
 import SharedFavoritesPanel from './SharedFavoritesPanel';
 import PortfolioMonthTrack from './PortfolioMonthTrack';
+import { scrollToElement } from '../../../utils/scroll';
 
 const LightboxContainer = React.lazy(() => import('./LightboxContainer'));
 const GlobalSearchOverlay = React.lazy(() => import('./GlobalSearchOverlay'));
@@ -248,9 +249,9 @@ export default function Portfolio({ years }: PortfolioProps) {
                             to={`/portfolio/${y}`}
                             className={`${y === selectedTab ? 'active' : ''}`}
                             onClick={(e) => {
-                                if (y === selectedTab && isSticky) {
+                                if (y === selectedTab && isSticky && portfolioRef.current) {
                                     e.preventDefault();
-                                    portfolioRef.current?.scrollIntoView({ behavior: 'smooth' });
+                                    scrollToElement(portfolioRef.current, { offset: 0 });
                                 }
                             }}
                         >
@@ -266,9 +267,9 @@ export default function Portfolio({ years }: PortfolioProps) {
                         to="/portfolio/favorites"
                         className={`${selectedTab === 'favorites' ? 'active' : ''}`}
                         onClick={(e) => {
-                            if (selectedTab === 'favorites' && isSticky) {
+                            if (selectedTab === 'favorites' && isSticky && portfolioRef.current) {
                                 e.preventDefault();
-                                portfolioRef.current?.scrollIntoView({ behavior: 'smooth' });
+                                scrollToElement(portfolioRef.current, { offset: 0 });
                             }
                         }}
                         title="Favorites"
@@ -360,10 +361,7 @@ export default function Portfolio({ years }: PortfolioProps) {
                                                         }
                                                         if (foundEventName) {
                                                             const elementId = `event-${foundEventName.replace(/[^a-zA-Z0-9-]/g, '-')}`;
-                                                            const element = document.getElementById(elementId);
-                                                            if (element) {
-                                                                element.scrollIntoView({ behavior: 'smooth' });
-                                                            }
+                                                            scrollToElement(elementId);
                                                         }
                                                     }}
                                                 >

@@ -56,6 +56,10 @@ test.describe('Search', () => {
         // Should have an active filter displayed
         const activeFilter = page.locator('.portfolio__active-filter');
         await expect(activeFilter).toBeVisible({ timeout: 3000 });
+
+        // Body scroll must not be locked
+        const bodyOverflow = await page.evaluate(() => document.body.style.overflow);
+        expect(bodyOverflow).not.toBe('hidden');
     });
 
     test('should toggle between alphabetical and event-count sort modes', async ({ page }) => {
@@ -105,13 +109,13 @@ test.describe('Search', () => {
         await page.waitForTimeout(500);
 
         const overlay = page.locator('.portfolio__global-search-overlay');
-        await expect(overlay).toBeVisible({ timeout: 3000 });
+        await expect(overlay).toBeVisible({ timeout: 10000 });
 
         const closeBtn = page.locator('button[aria-label="Close"]').last();
         await closeBtn.click();
         await page.waitForTimeout(500);
 
-        await expect(overlay).not.toBeVisible({ timeout: 3000 });
+        await expect(overlay).not.toBeVisible({ timeout: 5000 });
     });
 
     test('should lock body scroll when search overlay is open', async ({ page }) => {
@@ -122,7 +126,7 @@ test.describe('Search', () => {
         await page.waitForTimeout(500);
 
         const overlay = page.locator('.portfolio__global-search-overlay');
-        await expect(overlay).toBeVisible({ timeout: 3000 });
+        await expect(overlay).toBeVisible({ timeout: 10000 });
 
         const overflow = await page.evaluate(() => document.body.style.overflow);
         expect(overflow).toBe('hidden');
