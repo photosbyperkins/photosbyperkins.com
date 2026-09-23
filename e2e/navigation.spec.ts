@@ -55,4 +55,35 @@ test.describe('Year Navigation', () => {
             expect(eventCount).toBeGreaterThanOrEqual(0); // Some years might have no events but recaps
         }
     });
+
+    test('should scroll to top (0) when navigating between years or clicking active year', async ({ page }) => {
+        const yearLinks = page.locator('.portfolio__years a:not(.portfolio__search-tab):not(.portfolio__active-filter)');
+        const count = await yearLinks.count();
+        if (count < 2) return;
+
+        // Scroll down
+        await page.evaluate(() => window.scrollTo(0, 1500));
+        await page.waitForTimeout(300);
+        expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(1000);
+
+        // Click second year
+        const secondYear = yearLinks.nth(1);
+        await secondYear.click();
+        await page.waitForTimeout(600);
+
+        // Should be at scrollY = 0
+        expect(await page.evaluate(() => window.scrollY)).toBe(0);
+
+        // Scroll down again
+        await page.evaluate(() => window.scrollTo(0, 1500));
+        await page.waitForTimeout(300);
+
+        // Click active year again
+        await secondYear.click();
+        await page.waitForTimeout(600);
+
+        // Should be at scrollY = 0
+        expect(await page.evaluate(() => window.scrollY)).toBe(0);
+    });
 });
+

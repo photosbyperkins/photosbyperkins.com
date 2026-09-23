@@ -82,8 +82,11 @@ export function usePortfolioData({ selectedTab, years, onDataLoadAction }: UsePo
             setRecapEvents([]);
             setStats(undefined);
             setIsRecapLoaded(true);
+            if (onDataLoadAction) {
+                onDataLoadAction();
+            }
         }
-    }, [selectedTab, displayFavorites]);
+    }, [selectedTab, displayFavorites, onDataLoadAction]);
 
     const getForTab = useCallback(
         (tabSlug: string, setData: boolean, isTeamMode: boolean) => {

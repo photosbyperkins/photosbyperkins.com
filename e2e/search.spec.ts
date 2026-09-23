@@ -40,7 +40,12 @@ test.describe('Search', () => {
         expect(filteredTeams).toBeLessThanOrEqual(initialTeams);
     });
 
-    test('should navigate to team view when clicking a team pill', async ({ page }) => {
+    test('should navigate to team view when clicking a team pill and scroll to 0', async ({ page }) => {
+        // Scroll down first
+        await page.evaluate(() => window.scrollTo(0, 1500));
+        await page.waitForTimeout(300);
+        expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(1000);
+
         const searchTab = page.locator('.portfolio__search-tab, a[aria-label="Open Search"]').first();
         if ((await searchTab.count()) === 0) return;
 
@@ -51,7 +56,7 @@ test.describe('Search', () => {
         if ((await teamPill.count()) === 0) return;
 
         await teamPill.click();
-        await page.waitForTimeout(500);
+        await page.waitForTimeout(600);
 
         // Should have an active filter displayed
         const activeFilter = page.locator('.portfolio__active-filter');
@@ -60,6 +65,20 @@ test.describe('Search', () => {
         // Body scroll must not be locked
         const bodyOverflow = await page.evaluate(() => document.body.style.overflow);
         expect(bodyOverflow).not.toBe('hidden');
+
+        // Scroll should be at top (0)
+        expect(await page.evaluate(() => window.scrollY)).toBe(0);
+
+        // Scroll down again in team view
+        await page.evaluate(() => window.scrollTo(0, 1500));
+        await page.waitForTimeout(300);
+
+        // Click active filter to clear and return to default portfolio
+        await activeFilter.click();
+        await page.waitForTimeout(600);
+
+        // Scroll should be at top (0)
+        expect(await page.evaluate(() => window.scrollY)).toBe(0);
     });
 
     test('should toggle between alphabetical and event-count sort modes', async ({ page }) => {

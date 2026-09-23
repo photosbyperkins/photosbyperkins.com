@@ -212,4 +212,31 @@ test.describe('Favorites', () => {
         const playheadHeart = lightbox.locator('.portfolio__lightbox-scrubber-playhead .portfolio__lightbox-scrubber-heart');
         await expect(playheadHeart).toHaveClass(/is-active/);
     });
+
+    test('should scroll to top (0) when navigating to Favorites tab or clicking active favorites tab', async ({ page }) => {
+        // Scroll down first
+        await page.evaluate(() => window.scrollTo(0, 1500));
+        await page.waitForTimeout(300);
+        expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(1000);
+
+        // Click favorites tab
+        const favTab = page.locator('.portfolio__years a[aria-label="Favorites"]');
+        if ((await favTab.count()) === 0) return;
+        await favTab.click();
+        await page.waitForTimeout(600);
+
+        // Should be at top 0
+        expect(await page.evaluate(() => window.scrollY)).toBe(0);
+
+        // Scroll down again
+        await page.evaluate(() => window.scrollTo(0, 1500));
+        await page.waitForTimeout(300);
+
+        // Click active favorites tab again
+        await favTab.click();
+        await page.waitForTimeout(600);
+
+        // Should be at top 0
+        expect(await page.evaluate(() => window.scrollY)).toBe(0);
+    });
 });

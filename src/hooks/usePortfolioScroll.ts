@@ -7,12 +7,10 @@ export function usePortfolioScroll(portfolioRef: React.RefObject<HTMLDivElement 
     const handleDataLoad = useCallback(() => {
         if (scrollOnNextDataLoadRef.current) {
             scrollOnNextDataLoadRef.current = false;
-            // Add a small delay to ensure DOM has updated with new data before scrolling
+            // Ensure DOM has updated before scrolling to top
             setTimeout(() => {
-                if (portfolioRef.current) {
-                    scrollToElement(portfolioRef.current, { offset: 0 });
-                }
-            }, 100);
+                window.scrollTo({ top: 0, behavior: 'instant' });
+            }, 50);
         }
     }, [portfolioRef]);
 

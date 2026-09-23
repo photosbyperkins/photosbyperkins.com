@@ -117,13 +117,8 @@ function ScrollToMountTarget() {
         }
 
         setTimeout(() => {
-            let targetId = segments[0] || 'recap';
-            if (location.pathname.startsWith('/portfolio')) targetId = 'portfolio';
-            const el = document.getElementById(targetId);
-            if (el) {
-                scrollToElement(el, { behavior: 'instant', offset: 0 });
-            }
-        }, 100);
+            window.scrollTo({ top: 0, behavior: 'instant' });
+        }, 50);
     }, [location]);
     return null;
 }

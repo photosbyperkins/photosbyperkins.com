@@ -130,12 +130,10 @@ export default function Portfolio({ years }: PortfolioProps) {
         const currentRouteHash = activeRouteSlug || '';
         if (prevRouteHash.current !== currentRouteHash) {
             setTeamSearchQuery('');
-            if (isSticky) {
-                scrollOnNextDataLoadRef.current = true;
-            }
+            scrollOnNextDataLoadRef.current = true;
             prevRouteHash.current = currentRouteHash;
         }
-    }, [activeRouteSlug, isSticky, scrollOnNextDataLoadRef]);
+    }, [activeRouteSlug, scrollOnNextDataLoadRef]);
 
     useEffect(() => {
         if (initialYear && initialEvent && (years.includes(initialYear) || isTeamRoute)) {
@@ -235,6 +233,9 @@ export default function Portfolio({ years }: PortfolioProps) {
                     className="portfolio__active-filter active"
                     aria-label={`Remove filter for ${activeTeamMeta.name}`}
                     title={`Remove filter for ${activeTeamMeta.name}`}
+                    onClick={() => {
+                        window.scrollTo({ top: 0, behavior: 'instant' });
+                    }}
                 >
                     <span>{formatTeamName(activeTeamMeta.name)}</span>
                     <span className="portfolio__team-clear-icon" aria-hidden="true">
@@ -249,10 +250,10 @@ export default function Portfolio({ years }: PortfolioProps) {
                             to={`/portfolio/${y}`}
                             className={`${y === selectedTab ? 'active' : ''}`}
                             onClick={(e) => {
-                                if (y === selectedTab && isSticky && portfolioRef.current) {
+                                if (y === selectedTab) {
                                     e.preventDefault();
-                                    scrollToElement(portfolioRef.current, { offset: 0 });
                                 }
+                                window.scrollTo({ top: 0, behavior: 'instant' });
                             }}
                         >
                             <span className="portfolio__year-full" style={{ transform: 'translateY(1px)' }}>
@@ -267,10 +268,10 @@ export default function Portfolio({ years }: PortfolioProps) {
                         to="/portfolio/favorites"
                         className={`${selectedTab === 'favorites' ? 'active' : ''}`}
                         onClick={(e) => {
-                            if (selectedTab === 'favorites' && isSticky && portfolioRef.current) {
+                            if (selectedTab === 'favorites') {
                                 e.preventDefault();
-                                scrollToElement(portfolioRef.current, { offset: 0 });
                             }
+                            window.scrollTo({ top: 0, behavior: 'instant' });
                         }}
                         title="Favorites"
                         aria-label="Favorites"

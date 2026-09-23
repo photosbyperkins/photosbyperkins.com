@@ -118,7 +118,10 @@ export default function TeamFilter({
                                         className={`portfolio__team-pill ${
                                             team.slug === 'wftda-sanctioned' ? 'is-wftda' : ''
                                         }`}
-                                        onClick={() => onBack?.()}
+                                        onClick={() => {
+                                            onBack?.();
+                                            window.scrollTo({ top: 0, behavior: 'instant' });
+                                        }}
                                     >
                                         <span className="portfolio__team-name">{displayName}</span>
                                         <span className="portfolio__team-count">{team.count}</span>
