@@ -14,6 +14,7 @@ import { getGearItem } from '../../../data/gearData';
 import Recap from '../Recap';
 import PortfolioEvent from './PortfolioEvent';
 import SharedFavoritesPanel from './SharedFavoritesPanel';
+import PortfolioMonthTrack from './PortfolioMonthTrack';
 
 const LightboxContainer = React.lazy(() => import('./LightboxContainer'));
 const GlobalSearchOverlay = React.lazy(() => import('./GlobalSearchOverlay'));
@@ -83,6 +84,7 @@ export default function Portfolio({ years }: PortfolioProps) {
 
     const setSharedPhoto = useAppStore((state) => state.setSharedPhoto);
     const openGearModal = useAppStore((state) => state.openGearModal);
+    const isLightboxOpen = useAppStore((state) => state.lightbox.isOpen);
 
     const selectedTab = (() => {
         if (isTeamRoute && activeRouteSlug) return activeRouteSlug;
@@ -448,24 +450,30 @@ export default function Portfolio({ years }: PortfolioProps) {
                     <SharedFavoritesPanel photos={sharedFavorites} onClose={clearSharedFavorites} />
                 )}
 
-                <div className="portfolio__events" ref={stickyRef}>
-                    {eventRows.map((row) =>
-                        row.type === 'divider' ? (
-                            <div key={`divider-${row.year}`} className="portfolio__year-divider" aria-hidden="true">
-                                <span>{row.year}</span>
-                            </div>
-                        ) : (
-                            <PortfolioEvent
-                                key={`${selectedTab}-${row.eventName}`}
-                                eventName={row.eventName}
-                                ev={row.ev}
-                                evIdx={row.evIdx}
-                                selectedYear={selectedTab}
-                                inViewParent={inView}
-                                activeTeamName={activeTeamMeta?.name}
-                            />
-                        )
+                <div className="portfolio__events-wrapper">
+                    {!isTeamMode && !isFavoritesTab && !isGlobalSearchOpen && !isLightboxOpen && (
+                        <PortfolioMonthTrack key={selectedTab} events={events} selectedYear={selectedTab} />
                     )}
+
+                    <div className="portfolio__events" ref={stickyRef}>
+                        {eventRows.map((row) =>
+                            row.type === 'divider' ? (
+                                <div key={`divider-${row.year}`} className="portfolio__year-divider" aria-hidden="true">
+                                    <span>{row.year}</span>
+                                </div>
+                            ) : (
+                                <PortfolioEvent
+                                    key={`${selectedTab}-${row.eventName}`}
+                                    eventName={row.eventName}
+                                    ev={row.ev}
+                                    evIdx={row.evIdx}
+                                    selectedYear={selectedTab}
+                                    inViewParent={inView}
+                                    activeTeamName={activeTeamMeta?.name}
+                                />
+                            )
+                        )}
+                    </div>
                 </div>
             </div>
 

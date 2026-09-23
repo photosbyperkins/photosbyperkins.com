@@ -2,6 +2,7 @@
 @use './lightbox';
 @use './event';
 @use './search';
+@use './month-track';
 
 .portfolio {
     padding: 0 0 var(--section-padding) 0;
@@ -425,7 +426,21 @@
     }
 
     // --- Events list ---
+    &__events-wrapper {
+        display: flex;
+        align-items: flex-start;
+        position: relative;
+        width: 100%;
+
+        // Provide clearance for the fixed left sidebar on medium desktop displays
+        @media (min-width: 1024px) and (max-width: 1399px) {
+            padding-left: 2.5rem;
+        }
+    }
+
     &__events {
+        flex: 1;
+        min-width: 0;
         display: flex;
         flex-direction: column;
         padding-bottom: 2rem;
