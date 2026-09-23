@@ -16,6 +16,10 @@ export interface AppStore {
     openAiPolicy: () => void;
     closeAiPolicy: () => void;
 
+    isCodeLicenseOpen: boolean;
+    openCodeLicense: () => void;
+    closeCodeLicense: () => void;
+
     activeGear: GearItem | null;
     openGearModal: (gear: GearItem) => void;
     closeGearModal: () => void;
@@ -123,6 +127,10 @@ export const useAppStore = create<AppStore>()(
             isAiPolicyOpen: false,
             openAiPolicy: () => set({ isAiPolicyOpen: true }),
             closeAiPolicy: () => set({ isAiPolicyOpen: false }),
+
+            isCodeLicenseOpen: false,
+            openCodeLicense: () => set({ isCodeLicenseOpen: true }),
+            closeCodeLicense: () => set({ isCodeLicenseOpen: false }),
 
             activeGear: null,
             openGearModal: (gear: GearItem) => set({ activeGear: gear }),

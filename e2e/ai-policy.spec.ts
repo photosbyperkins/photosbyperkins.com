@@ -14,13 +14,15 @@ test.describe('AI Policy Overlay', () => {
         await expect(links.nth(2)).toContainText('Photo License');
     });
 
-    test('should open Code License in iframe modal', async ({ page }) => {
+    test('should open Code License in native modal', async ({ page }) => {
         const codeLicenseBtn = page.locator('button.footer__code-license-btn');
         await codeLicenseBtn.click();
 
-        const overlay = page.locator('.iframe-overlay');
+        const overlay = page.locator('.code-license-overlay');
         await expect(overlay).toBeVisible({ timeout: 3000 });
         await expect(overlay.locator('.section-label')).toHaveText('CODE LICENSE');
+        await expect(overlay.locator('h1')).toHaveText('MIT License');
+        await expect(overlay.locator('pre')).toContainText('Permission is hereby granted, free of charge');
 
         const closeBtn = overlay.locator('button[aria-label="Close"]');
         await closeBtn.click();

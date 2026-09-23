@@ -1,0 +1,176 @@
+@use './globals' as *;
+
+.code-license-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: var(--z-modal);
+    @include apple-glass;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+    &__header-bar {
+        flex: 0 0 auto;
+        width: 100%;
+        z-index: var(--z-sticky);
+        position: sticky;
+        top: 0;
+        padding-top: max(1.25rem, calc(env(safe-area-inset-top) + 0.5rem));
+        padding-bottom: 0.85rem;
+        @include apple-glass;
+
+        &-inner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+        }
+
+        .section-label {
+            margin: 0;
+            font-size: 0.85rem;
+            letter-spacing: 0.35em;
+            text-transform: uppercase;
+        }
+    }
+
+    &__actions {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    &__action-btn {
+        background: transparent;
+        border: none;
+        color: var(--color-text);
+        cursor: pointer;
+        padding: 0.65rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 44px;
+        min-height: 44px;
+        border-radius: 4px;
+        transition: all var(--transition-fast);
+        text-decoration: none;
+
+        @media (hover: hover) {
+            &:hover {
+                color: var(--color-accent);
+                background: rgba(255, 255, 255, 0.05);
+            }
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--color-accent);
+            outline-offset: 2px;
+        }
+    }
+}
+
+.code-license {
+    flex: 1 1 auto;
+    width: 100%;
+    overflow-y: auto;
+    padding-top: 1.5rem;
+    padding-bottom: max(4rem, calc(env(safe-area-inset-bottom) + 2rem));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    &__container {
+        width: 100%;
+        max-width: 760px;
+        margin: 0 auto;
+    }
+
+    &__intro {
+        margin-bottom: 1.75rem;
+
+        .code-license__badge {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--color-accent);
+            margin-bottom: 0.5rem;
+            font-family: var(--font-condensed);
+        }
+
+        h1 {
+            font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+            font-weight: 700;
+            margin-bottom: 0.4rem;
+            letter-spacing: -0.01em;
+            color: var(--color-text);
+        }
+
+        .code-license__subtitle {
+            color: var(--color-text-muted);
+            font-size: 0.95rem;
+        }
+    }
+
+    &__card {
+        background: var(--color-bg-card, rgba(255, 255, 255, 0.03));
+        border: 1px solid var(--color-border);
+        border-radius: 12px;
+        padding: clamp(1.25rem, 3vw, 2rem);
+        box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+        margin-bottom: 2rem;
+
+        pre {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+            font-size: clamp(0.825rem, 1.8vw, 0.9rem);
+            line-height: 1.7;
+            white-space: pre-wrap;
+            word-break: break-word;
+            color: var(--color-text);
+            margin: 0;
+        }
+    }
+
+    &__actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    &__btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: transparent;
+        border: 1px solid var(--color-border);
+        color: var(--color-text);
+        padding: 0.65rem 1.15rem;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        font-family: var(--font-main);
+        text-decoration: none;
+        cursor: pointer;
+        transition: all var(--transition-fast);
+
+        @media (hover: hover) {
+            &:hover {
+                border-color: var(--color-accent);
+                color: var(--color-accent);
+                background: rgba(255, 255, 255, 0.03);
+            }
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--color-accent);
+            outline-offset: 2px;
+        }
+
+        &--copied {
+            border-color: #22c55e;
+            color: #22c55e;
+        }
+    }
+}

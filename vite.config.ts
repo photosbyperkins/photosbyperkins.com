@@ -129,7 +129,7 @@ export default defineConfig(({ mode }) => {
                 cleanupOutdatedCaches: true,
                 globPatterns: ['**/*.{js,css,ico,png,svg,html}'], // Included html to guarantee atomic updates with JS chunks
                 navigateFallback: '/index.html',
-                navigateFallbackDenylist: [/^\/zips\//],
+                navigateFallbackDenylist: [/^\/zips\//, /^\/share\//, /^\/code-license\.html/],
                 runtimeCaching: [
                     {
                         urlPattern: /\/data\/.*\.json$/i,
