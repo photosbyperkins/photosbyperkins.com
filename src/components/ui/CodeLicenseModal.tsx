@@ -1,24 +1,14 @@
-import { motion, AnimatePresence } from 'framer-motion';
-import { X, ExternalLink, Copy, Check } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
-import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
+import { motion } from 'framer-motion';
+import { ExternalLink, Copy, Check, Scale, ShieldCheck, Share2, RefreshCw, UserCheck, ShieldAlert } from 'lucide-react';
+import { useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
+import ModalShell from './ModalShell';
+import { modalFadeUp } from './modalAnimation';
 import '../../styles/_code-license.scss';
-
-const fadeUp = {
-    hidden: { opacity: 0, y: 20 },
-    visible: (i: number) => ({
-        opacity: 1,
-        y: 0,
-        transition: { duration: 0.5, delay: i * 0.1, ease: 'easeOut' as const },
-    }),
-};
 
 export default function CodeLicenseModal() {
     const isCodeLicenseOpen = useAppStore((state) => state.isCodeLicenseOpen);
     const closeCodeLicense = useAppStore((state) => state.closeCodeLicense);
-    const closeBtnRef = useRef<HTMLButtonElement>(null);
-    const previousFocusRef = useRef<Element | null>(null);
     const [copied, setCopied] = useState(false);
 
     const copyrightName = import.meta.env.VITE_COPYRIGHT_NAME || 'Michael Perkins';
@@ -49,29 +39,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.`;
 
-    useBodyScrollLock(isCodeLicenseOpen);
-
-    useEffect(() => {
-        if (isCodeLicenseOpen) {
-            previousFocusRef.current = document.activeElement;
-            requestAnimationFrame(() => closeBtnRef.current?.focus());
-
-            const handleKeyDown = (e: KeyboardEvent) => {
-                if (e.key === 'Escape') {
-                    closeCodeLicense();
-                }
-            };
-            window.addEventListener('keydown', handleKeyDown);
-
-            return () => {
-                window.removeEventListener('keydown', handleKeyDown);
-                if (previousFocusRef.current instanceof HTMLElement) {
-                    previousFocusRef.current.focus();
-                }
-            };
-        }
-    }, [isCodeLicenseOpen, closeCodeLicense]);
-
     const handleCopy = async () => {
         try {
             await navigator.clipboard.writeText(licenseText);
@@ -83,110 +50,130 @@ SOFTWARE.`;
     };
 
     return (
-        <AnimatePresence>
-            {isCodeLicenseOpen && (
+        <ModalShell
+            isOpen={isCodeLicenseOpen}
+            onClose={closeCodeLicense}
+            title="CODE LICENSE"
+            ariaLabel="Code License"
+            className="code-license-overlay"
+            contentClassName="code-license"
+            maxWidth="default"
+            externalUrl={githubLicenseUrl}
+            externalTitle="View on GitHub"
+        >
+            <div className="code-license__container">
                 <motion.div
-                    className="code-license-overlay"
-                    role="dialog"
-                    aria-modal="true"
-                    aria-label="Code License"
-                    initial={{ opacity: 0, y: 50 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 50 }}
-                    transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+                    className="code-license__intro"
+                    custom={0}
+                    initial="hidden"
+                    animate="visible"
+                    variants={modalFadeUp}
                 >
-                    <div className="code-license-overlay__header-bar">
-                        <div className="container code-license-overlay__header-bar-inner">
-                            <motion.h2
-                                className="section-label"
-                                custom={0}
-                                initial="hidden"
-                                animate="visible"
-                                variants={fadeUp}
-                            >
-                                CODE LICENSE
-                            </motion.h2>
-                            <div className="code-license-overlay__actions">
-                                <a
-                                    href={githubLicenseUrl}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="code-license-overlay__action-btn"
-                                    aria-label="View on GitHub"
-                                    title="View on GitHub"
-                                >
-                                    <ExternalLink size={20} />
-                                </a>
-                                <button
-                                    ref={closeBtnRef}
-                                    type="button"
-                                    className="code-license-overlay__action-btn"
-                                    onClick={closeCodeLicense}
-                                    aria-label="Close"
-                                >
-                                    <X size={20} />
-                                </button>
+                    <h1>MIT License</h1>
+                    <p className="code-license__subtitle">
+                        All source code powering photosbyperkins.com is openly licensed under the{' '}
+                        <strong>MIT License</strong>.
+                    </p>
+                </motion.div>
+
+                <motion.div
+                    className="code-license__grid"
+                    custom={1}
+                    initial="hidden"
+                    animate="visible"
+                    variants={modalFadeUp}
+                >
+                    {/* Permissions Card */}
+                    <div className="code-license__card">
+                        <div className="code-license__card-header">
+                            <Scale size={18} />
+                            <h3>You are free to:</h3>
+                        </div>
+                        <div className="code-license__items">
+                            <div className="code-license__item">
+                                <Share2 size={18} className="code-license__item-icon" />
+                                <div className="code-license__item-content">
+                                    <strong>Commercial &amp; Private Use</strong>
+                                    Use, run, copy, merge, publish, and sell the software for any personal or commercial project.
+                                </div>
+                            </div>
+                            <div className="code-license__item">
+                                <RefreshCw size={18} className="code-license__item-icon" />
+                                <div className="code-license__item-content">
+                                    <strong>Modify &amp; Sublicense</strong>
+                                    Modify, adapt, and transform the codebase, and distribute work under your own terms.
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <section className="code-license" id="code-license">
-                        <div className="container">
-                            <div className="code-license__container">
-                                <motion.div
-                                    className="code-license__intro"
-                                    custom={0}
-                                    initial="hidden"
-                                    animate="visible"
-                                    variants={fadeUp}
-                                >
-                                    <span className="code-license__badge">Open Source Software</span>
-                                    <h1>MIT License</h1>
-                                    <p className="code-license__subtitle">
-                                        Source code license for photosbyperkins.com
-                                    </p>
-                                </motion.div>
-
-                                <motion.div
-                                    className="code-license__card"
-                                    custom={1}
-                                    initial="hidden"
-                                    animate="visible"
-                                    variants={fadeUp}
-                                >
-                                    <pre>{licenseText}</pre>
-                                </motion.div>
-
-                                <motion.div
-                                    className="code-license__actions"
-                                    custom={2}
-                                    initial="hidden"
-                                    animate="visible"
-                                    variants={fadeUp}
-                                >
-                                    <button
-                                        type="button"
-                                        className={`code-license__btn ${copied ? 'code-license__btn--copied' : ''}`}
-                                        onClick={handleCopy}
-                                    >
-                                        {copied ? <Check size={16} /> : <Copy size={16} />}
-                                        {copied ? 'Copied to Clipboard' : 'Copy License'}
-                                    </button>
-                                    <a
-                                        href={githubLicenseUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="code-license__btn"
-                                    >
-                                        <ExternalLink size={16} />
-                                        View on GitHub
-                                    </a>
-                                </motion.div>
+                    {/* Conditions Card */}
+                    <div className="code-license__card">
+                        <div className="code-license__card-header">
+                            <ShieldCheck size={18} />
+                            <h3>Under these terms:</h3>
+                        </div>
+                        <div className="code-license__items">
+                            <div className="code-license__item">
+                                <UserCheck size={18} className="code-license__item-icon" />
+                                <div className="code-license__item-content">
+                                    <strong>License &amp; Copyright Notice</strong>
+                                    Include the original copyright and permission notice in all copies or substantial portions.
+                                </div>
+                            </div>
+                            <div className="code-license__item">
+                                <ShieldAlert size={18} className="code-license__item-icon" />
+                                <div className="code-license__item-content">
+                                    <strong>No Warranty (As-Is)</strong>
+                                    The software is provided "as is" without warranty, and the author cannot be held liable.
+                                </div>
                             </div>
                         </div>
-                    </section>
+                    </div>
                 </motion.div>
-            )}
-        </AnimatePresence>
+
+                {/* Full License Text Card with single clear copy button */}
+                <motion.div
+                    className="code-license__raw-card"
+                    custom={2}
+                    initial="hidden"
+                    animate="visible"
+                    variants={modalFadeUp}
+                >
+                    <div className="code-license__raw-header">
+                        <h3>Full License Text</h3>
+                        <button
+                            type="button"
+                            className={`code-license__btn ${copied ? 'code-license__btn--copied' : ''}`}
+                            onClick={handleCopy}
+                            aria-label="Copy full MIT license text"
+                        >
+                            {copied ? <Check size={16} /> : <Copy size={16} />}
+                            {copied ? 'Copied to Clipboard' : 'Copy License'}
+                        </button>
+                    </div>
+                    <pre>{licenseText}</pre>
+                </motion.div>
+
+                {/* Primary Action */}
+                <motion.div
+                    className="code-license__actions"
+                    custom={3}
+                    initial="hidden"
+                    animate="visible"
+                    variants={modalFadeUp}
+                >
+                    <a
+                        href={githubLicenseUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="code-license__btn code-license__btn--primary"
+                    >
+                        <ExternalLink size={16} />
+                        View Repository on GitHub
+                    </a>
+                </motion.div>
+            </div>
+        </ModalShell>
     );
 }

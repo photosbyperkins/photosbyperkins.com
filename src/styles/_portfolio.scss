@@ -604,62 +604,9 @@
     }
 }
 
-// Shared favorites banner
-// Shared Favorites Panel (overlay pattern matching About panel)
+// Shared Favorites Panel
 .shared-favorites-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: var(--z-modal);
-    @include apple-glass;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-
-    &__header-bar {
-        flex: 0 0 auto;
-        width: 100%;
-        z-index: var(--z-sticky);
-        position: sticky;
-        top: 0;
-        padding: 1.5rem 0 1rem;
-        @include apple-glass;
-
-        &-inner {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
-        }
-
-        .section-label {
-            margin: 0;
-            font-size: 0.85rem;
-            letter-spacing: 0.35em;
-            text-transform: uppercase;
-        }
-    }
-
-    &__back-btn {
-        background: transparent;
-        border: none;
-        color: var(--color-text);
-        cursor: pointer;
-        padding: 0.5rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all var(--transition-fast);
-
-        @media (hover: hover) {
-            &:hover {
-                color: var(--color-accent);
-            }
-        }
-    }
-
     &__body {
-        flex: 1 1 auto;
-        overflow-y: auto;
         padding-top: 1rem;
         padding-bottom: 1rem;
 
@@ -668,25 +615,10 @@
         }
     }
 
-    &__footer-bar {
-        flex: 0 0 auto;
-        width: 100%;
-        z-index: var(--z-sticky);
-        position: sticky;
-        bottom: 0;
-        padding: 1rem 0;
-        @include apple-glass;
-
-        &-inner {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-
-            .shared-favorites-overlay__btn {
-                flex: 1;
-                max-width: 220px;
-            }
+    .modal-shell__footer-bar-inner {
+        .shared-favorites-overlay__btn {
+            flex: 1;
+            max-width: 220px;
         }
     }
 

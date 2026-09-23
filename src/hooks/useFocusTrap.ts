@@ -1,7 +1,11 @@
 import { useEffect, useRef } from 'react';
 import type { RefObject } from 'react';
 
-export function useFocusTrap(containerRef: RefObject<HTMLElement | null>, isActive: boolean = true) {
+export function useFocusTrap(
+    containerRef: RefObject<HTMLElement | null>,
+    isActive: boolean = true,
+    initialFocusRef?: RefObject<HTMLElement | null>
+) {
     const previousFocusRef = useRef<Element | null>(null);
 
     useEffect(() => {
@@ -9,9 +13,11 @@ export function useFocusTrap(containerRef: RefObject<HTMLElement | null>, isActi
 
         previousFocusRef.current = document.activeElement;
 
-        // Use a small timeout to ensure the container is rendered and focusable
-        setTimeout(() => {
-            if (containerRef.current) {
+        // Use a small timeout to ensure the target element is rendered and focusable
+        const timer = setTimeout(() => {
+            if (initialFocusRef?.current) {
+                initialFocusRef.current.focus();
+            } else if (containerRef.current) {
                 containerRef.current.focus();
             }
         }, 10);
@@ -39,10 +45,11 @@ export function useFocusTrap(containerRef: RefObject<HTMLElement | null>, isActi
 
         window.addEventListener('keydown', handleFocusTrap);
         return () => {
+            clearTimeout(timer);
             window.removeEventListener('keydown', handleFocusTrap);
             if (previousFocusRef.current instanceof HTMLElement) {
                 previousFocusRef.current.focus();
             }
         };
-    }, [containerRef, isActive]);
+    }, [containerRef, isActive, initialFocusRef]);
 }
