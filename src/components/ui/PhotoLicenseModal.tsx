@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ExternalLink, Copy, Check, Share2, RefreshCw, UserCheck, ShieldCheck, Scale } from 'lucide-react';
+import { Copy, Check, Share2, RefreshCw, UserCheck, ShieldCheck, Scale } from 'lucide-react';
 import { useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import ModalShell from './ModalShell';
@@ -45,10 +45,9 @@ export default function PhotoLicenseModal() {
                     animate="visible"
                     variants={modalFadeUp}
                 >
-                    <h1>CC BY-SA 4.0</h1>
                     <p className="photo-license__subtitle">
                         All photography featured on photosbyperkins.com is openly licensed under the{' '}
-                        <strong>Creative Commons Attribution-ShareAlike 4.0 International</strong> license unless
+                        <strong>Creative Commons Attribution-ShareAlike 4.0 International license</strong> unless
                         otherwise indicated.
                     </p>
                 </motion.div>
@@ -113,21 +112,16 @@ export default function PhotoLicenseModal() {
                     </div>
                 </motion.div>
 
-                {/* Attribution Helper Box with single clear copy button */}
+                {/* Recommended Attribution Credit Card */}
                 <motion.div
-                    className="photo-license__attribution-card"
+                    className="photo-license__snippet-box photo-license__raw-card photo-license__attribution-card"
                     custom={2}
                     initial="hidden"
                     animate="visible"
                     variants={modalFadeUp}
                 >
-                    <h3>Recommended Attribution Credit</h3>
-                    <p>
-                        When sharing on social media, blogs, websites, or editorial publications, please use the
-                        following credit line:
-                    </p>
-                    <div className="photo-license__snippet-box">
-                        <code>{attributionSnippet}</code>
+                    <div className="photo-license__raw-header">
+                        <h3>Recommended Attribution Credit</h3>
                         <button
                             type="button"
                             className={`photo-license__btn ${copied ? 'photo-license__btn--copied' : ''}`}
@@ -138,25 +132,11 @@ export default function PhotoLicenseModal() {
                             {copied ? 'Copied to Clipboard' : 'Copy Attribution'}
                         </button>
                     </div>
-                </motion.div>
-
-                {/* Primary Action */}
-                <motion.div
-                    className="photo-license__actions"
-                    custom={3}
-                    initial="hidden"
-                    animate="visible"
-                    variants={modalFadeUp}
-                >
-                    <a
-                        href={photosLicenseUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="photo-license__btn photo-license__btn--primary"
-                    >
-                        <ExternalLink size={16} />
-                        View Official Deed on Creative Commons
-                    </a>
+                    <p>
+                        When sharing on social media, blogs, websites, or editorial publications, please use the
+                        following credit line:
+                    </p>
+                    <pre>{attributionSnippet}</pre>
                 </motion.div>
             </div>
         </ModalShell>

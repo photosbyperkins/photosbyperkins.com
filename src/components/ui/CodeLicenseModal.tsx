@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { ExternalLink, Copy, Check, Scale, ShieldCheck, Share2, RefreshCw, UserCheck, ShieldAlert } from 'lucide-react';
+import { Copy, Check, Scale, ShieldCheck, Share2, RefreshCw, UserCheck, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import ModalShell from './ModalShell';
@@ -69,7 +69,6 @@ SOFTWARE.`;
                     animate="visible"
                     variants={modalFadeUp}
                 >
-                    <h1>MIT License</h1>
                     <p className="code-license__subtitle">
                         All source code powering photosbyperkins.com is openly licensed under the{' '}
                         <strong>MIT License</strong>.
@@ -156,25 +155,6 @@ SOFTWARE.`;
                         </button>
                     </div>
                     <pre>{licenseText}</pre>
-                </motion.div>
-
-                {/* Primary Action */}
-                <motion.div
-                    className="code-license__actions"
-                    custom={3}
-                    initial="hidden"
-                    animate="visible"
-                    variants={modalFadeUp}
-                >
-                    <a
-                        href={githubLicenseUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="code-license__btn code-license__btn--primary"
-                    >
-                        <ExternalLink size={16} />
-                        View Repository on GitHub
-                    </a>
                 </motion.div>
             </div>
         </ModalShell>

@@ -21,7 +21,7 @@ test.describe('AI Policy Overlay', () => {
         const overlay = page.locator('.code-license-overlay');
         await expect(overlay).toBeVisible({ timeout: 3000 });
         await expect(overlay.locator('.section-label')).toHaveText('CODE LICENSE');
-        await expect(overlay.locator('h1')).toHaveText('MIT License');
+        await expect(overlay.locator('.code-license__subtitle')).toContainText('MIT License');
         await expect(overlay.locator('pre')).toContainText('Permission is hereby granted, free of charge');
 
         const closeBtn = overlay.locator('button[aria-label="Close"]');
@@ -36,8 +36,10 @@ test.describe('AI Policy Overlay', () => {
         const overlay = page.locator('.photo-license-overlay');
         await expect(overlay).toBeVisible({ timeout: 3000 });
         await expect(overlay.locator('.section-label')).toHaveText('PHOTO LICENSE');
-        await expect(overlay.locator('h1')).toHaveText('CC BY-SA 4.0');
-        await expect(overlay.locator('.photo-license__subtitle')).toContainText('Creative Commons Attribution-ShareAlike 4.0');
+        await expect(overlay.locator('.photo-license__subtitle')).toContainText(
+            'Creative Commons Attribution-ShareAlike 4.0 International license'
+        );
+        await expect(overlay.locator('pre')).toContainText('CC BY-SA 4.0');
 
         const closeBtn = overlay.locator('button[aria-label="Close"]');
         await closeBtn.click();
