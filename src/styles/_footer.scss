@@ -35,7 +35,7 @@
     }
 
     &__social {
-        color: var(--color-text-dim);
+        color: var(--color-text-muted);
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -43,7 +43,7 @@
         min-height: 44px;
         padding: 10px;
         transition: all var(--transition-fast);
-        opacity: 0.8;
+        opacity: 1;
 
         @media (hover: hover) {
             &:hover {
@@ -56,7 +56,7 @@
     &__copy {
         font-family: var(--font-condensed);
         font-size: 0.85rem;
-        color: var(--color-text-dim);
+        color: var(--color-text-muted);
         letter-spacing: 0.05em;
     }
 
@@ -74,8 +74,8 @@
 
     &__link-divider {
         font-size: 0.75rem;
-        color: var(--color-text-dim);
-        opacity: 0.5;
+        color: var(--color-text-muted);
+        opacity: 0.6;
         user-select: none;
     }
 
@@ -83,14 +83,14 @@
     &__link {
         font-family: var(--font-condensed);
         font-size: 0.75rem;
-        color: var(--color-text-dim);
+        color: var(--color-text-muted);
         text-decoration: none;
         background: transparent;
         border: none;
         padding: 0;
         cursor: pointer;
         transition: color var(--transition-fast);
-        opacity: 0.8;
+        opacity: 1;
 
         @media (hover: hover) {
             &:hover {

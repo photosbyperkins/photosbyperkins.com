@@ -476,11 +476,12 @@
                 .portfolio__featured-overlay {
                     position: absolute;
                     inset: 0;
-                    display: none;
                     align-items: center;
                     justify-content: center;
                     pointer-events: none; // let clicks pass through to container
                     z-index: var(--z-elevated);
+                    background: rgba(0, 0, 0, 0.55);
+                    border-radius: 4px;
 
                     display: flex;
 
@@ -490,7 +491,7 @@
                         font-weight: normal;
                         font-size: 50cqh;
                         letter-spacing: 0.05em;
-                        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+                        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
                     }
                 }
             }

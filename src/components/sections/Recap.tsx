@@ -59,7 +59,18 @@ const RecapSliceItem = memo(function RecapSliceItem({
             id={`recap-slice-${idx}`}
             layout
             className={`recap__slice${!spriteLoaded ? ' recap__slice--skeleton' : ''}`}
+            role="button"
+            tabIndex={0}
             aria-label={`View recap image ${sliceIndex + 1}`}
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    if (events && events[eventIdx]) {
+                        const meta = events[eventIdx];
+                        setSharedPhoto({ eventName: meta.eventName, photoIndex: meta.photoIndex, preventScroll: true });
+                    }
+                }
+            }}
             onClick={() => {
                 if (events && events[eventIdx]) {
                     const meta = events[eventIdx];

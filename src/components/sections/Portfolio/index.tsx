@@ -329,7 +329,11 @@ export default function Portfolio({ years }: PortfolioProps) {
                             <span className="portfolio__year-full" style={{ transform: 'translateY(1px)' }}>
                                 {y}
                             </span>
-                            <span className="portfolio__year-short" aria-hidden="true" style={{ transform: 'translateY(1px)' }}>
+                            <span
+                                className="portfolio__year-short"
+                                aria-hidden="true"
+                                style={{ transform: 'translateY(1px)' }}
+                            >
                                 {y.slice(-2)}
                             </span>
                         </Link>

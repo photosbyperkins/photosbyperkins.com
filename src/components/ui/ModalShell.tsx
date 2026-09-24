@@ -112,7 +112,13 @@ export default function ModalShell({
                         </div>
                     </header>
 
-                    <div ref={contentRef} className={`modal-shell__content ${contentClassName}`}>
+                    <div
+                        ref={contentRef}
+                        className={`modal-shell__content ${contentClassName}`}
+                        tabIndex={0}
+                        role="region"
+                        aria-label={typeof title === 'string' ? `${title} content` : ariaLabel}
+                    >
                         <div className={`container modal-shell__container ${containerMaxWidthClass}`}>{children}</div>
                     </div>
 
