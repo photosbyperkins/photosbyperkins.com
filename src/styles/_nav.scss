@@ -98,9 +98,12 @@
     border: none;
     color: var(--color-text);
     cursor: pointer;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     justify-content: center;
+    min-width: 44px;
+    min-height: 44px;
+    padding: 10px;
     transition: color var(--transition-fast);
     transform: translateY(1px); // Fixed optical alignment!
 

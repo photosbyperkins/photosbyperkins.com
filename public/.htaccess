@@ -8,9 +8,19 @@
   RewriteRule . /index.html [L]
 </IfModule>
 
+<IfModule mod_deflate.c>
+  # Enable Gzip / Deflate compression for text, script, JSON, CSS, and SVG assets
+  AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/x-javascript application/json application/xml image/svg+xml
+</IfModule>
+
 <IfModule mod_headers.c>
-  # 1. Never cache HTML/JSON data or Service Workers (always fetch fresh)
-  <FilesMatch "\.(html|json)$|sw\.js|^workbox-.*\.js$">
+  # Baseline security headers
+  Header set X-Content-Type-Options "nosniff"
+  Header set Referrer-Policy "strict-origin-when-cross-origin"
+  Header set X-Frame-Options "SAMEORIGIN"
+
+  # 1. Never cache HTML or Service Workers (always fetch fresh)
+  <FilesMatch "\.html$|sw\.js|^workbox-.*\.js$">
     Header set Cache-Control "no-cache, no-store, must-revalidate"
     Header set Pragma "no-cache"
     Header set Expires "0"
@@ -21,12 +31,17 @@
     Header set Cache-Control "public, max-age=31536000, immutable"
   </If>
 
-  # 3. Cache images normally (1 day)
-  <FilesMatch "\.(jpeg|jpg|png|gif|svg|webp|avif|ico)$">
-    Header set Cache-Control "public, max-age=86400, stale-while-revalidate=604800"
+  # 3. Cache JSON data (revalidatable, stale-while-revalidate)
+  <FilesMatch "\.json$">
+    Header set Cache-Control "public, max-age=600, stale-while-revalidate=86400"
   </FilesMatch>
 
-  # 4. Serve zip files as downloads with correct MIME type
+  # 4. Aggressively cache images and fonts for 1 year
+  <FilesMatch "\.(jpeg|jpg|png|gif|svg|webp|avif|ico|woff2?|ttf|otf)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+
+  # 5. Serve zip files as downloads with correct MIME type
   <FilesMatch "\.zip$">
     Header set Content-Type "application/zip"
     Header set Content-Disposition "attachment"
@@ -36,4 +51,6 @@
 
 <IfModule mod_mime.c>
   AddType application/zip .zip
+  AddType font/woff2 .woff2
 </IfModule>
+

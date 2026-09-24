@@ -53,7 +53,7 @@ export default function PortfolioEventTitle({
                             const hasVariations = formats.full !== formats.mid || formats.mid !== formats.short;
 
                             return (
-                                <h3 key={i} title={team}>
+                                <h2 key={i} title={team}>
                                     {eventName === 'Favorites' ? (
                                         <>
                                             <span style={{ color: 'var(--color-accent)' }}>YOUR&nbsp;</span>
@@ -68,7 +68,7 @@ export default function PortfolioEventTitle({
                                     ) : (
                                         <>{team}</>
                                     )}
-                                </h3>
+                                </h2>
                             );
                         })}
                     </div>

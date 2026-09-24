@@ -545,6 +545,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
                                                 src={thumbUrl}
                                                 placeholder={null}
                                                 alt={`${eventName} featured photo ${i + 1}`}
+                                                priority={evIdx === 0 && i < 2}
                                                 objectPosition={
                                                     focusX != null && focusY != null
                                                         ? `${focusX * 100}% ${focusY * 100}%`

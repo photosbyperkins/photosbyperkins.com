@@ -219,38 +219,28 @@ export function usePortfolioData({
         getForTab(selectedTab, true, isTeamMode);
     }, [selectedTab, years, getForTab, isGearMode]);
 
-    // Pre-fetch other years, paused until Recap finishes
+    const prefetchTab = useCallback(
+        (tabSlug: string) => {
+            if (!tabSlug || tabSlug === 'favorites' || yearDataCache[tabSlug]) return;
+            const isTeamMode = !years.includes(tabSlug) && !isGearMode;
+            getForTab(tabSlug, false, isTeamMode);
+        },
+        [getForTab, years, isGearMode]
+    );
+
+    // Gently pre-fetch only the immediately preceding year after 3s of idle time
     useEffect(() => {
-        if (!isRecapLoaded || isGearMode) return;
-        years.forEach((year, i) => {
-            if (i > 0) getForTab(year, false, false);
-        });
-    }, [years, getForTab, isRecapLoaded, isGearMode]);
+        if (!isRecapLoaded || isGearMode || years.length < 2) return;
+        const currentIdx = years.indexOf(selectedTab);
+        const nextYearToWarm = currentIdx >= 0 && currentIdx + 1 < years.length ? years[currentIdx + 1] : null;
+        if (!nextYearToWarm) return;
 
-    // Warm recap sprites for other years after the current year's recap loads.
-    // Loads sequentially to avoid competing with album JSON fetches for bandwidth.
-    useEffect(() => {
-        if (!isRecapLoaded) return;
-        let cancelled = false;
-        const otherYears = years.filter((y) => y !== selectedTab);
+        const timer = setTimeout(() => {
+            prefetchTab(nextYearToWarm);
+        }, 3000);
 
-        (async () => {
-            for (const year of otherYears) {
-                if (cancelled) break;
-                const src = `/recap/${year}/sprite.webp?v=${__BUILD_NUMBER__}`;
-                await new Promise<void>((resolve) => {
-                    const img = new Image();
-                    img.onload = () => resolve();
-                    img.onerror = () => resolve(); // Skip missing sprites silently
-                    img.src = src;
-                });
-            }
-        })();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [years, selectedTab, isRecapLoaded]);
+        return () => clearTimeout(timer);
+    }, [selectedTab, years, isRecapLoaded, isGearMode, prefetchTab]);
 
     return {
         yearData,
@@ -258,5 +248,7 @@ export function usePortfolioData({
         recapEvents,
         stats,
         setIsRecapLoaded,
+        prefetchTab,
     };
 }
+

@@ -2,6 +2,9 @@
 <html lang="en">
 
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <script>
     // Failsafe: Hard reload if Vite's main module chunk fails to load due to stale index.html cache
     window.addEventListener('error', function(e) {
@@ -45,12 +48,17 @@
       } catch (e) {}
     })();
   </script>
-  <meta charset="UTF-8" />
+
+  <link rel="canonical" href="https://photosbyperkins.com/" />
+  <link rel="preload" href="/assets/fonts/barlow-condensed-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="/assets/fonts/barlow-condensed-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="/assets/fonts/outfit-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="/data/index.json?build=%BUILD_NUMBER%" as="fetch" crossorigin />
+
   <link rel="icon" type="image/svg+xml" href="/favicon.svg?build=%BUILD_NUMBER%" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png?build=%BUILD_NUMBER%" />
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <meta name="apple-mobile-web-app-title" content="%VITE_SITE_APP_TITLE%">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description"
     content="%VITE_SITE_DESC%" />
   <meta name="keywords"
@@ -60,10 +68,37 @@
     content="%VITE_OG_DESC%" />
   <meta property="og:type" content="website" />
   <title>%VITE_SITE_TITLE%</title>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": "https://photosbyperkins.com/#website",
+        "url": "https://photosbyperkins.com/",
+        "name": "Photos by Perkins",
+        "description": "Sacramento Roller Derby and Action Sports Photography by Michael Perkins."
+      },
+      {
+        "@type": "Person",
+        "@id": "https://photosbyperkins.com/#photographer",
+        "name": "Michael Perkins",
+        "url": "https://photosbyperkins.com/",
+        "jobTitle": "Sports & Event Photographer",
+        "sameAs": [
+          "https://www.instagram.com/photosbyperkins",
+          "https://www.facebook.com/photosbyperkins"
+        ]
+      }
+    ]
+  }
+  </script>
 </head>
 
 <body>
   <a href="#portfolio" class="skip-link">Skip to content</a>
+  <h1 class="sr-only">%VITE_SITE_TITLE%</h1>
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 </body>

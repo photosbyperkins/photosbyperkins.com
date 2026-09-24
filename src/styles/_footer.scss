@@ -30,14 +30,18 @@
     &__icon-row {
         display: flex;
         align-items: center;
-        gap: 1.25rem;
+        gap: 0.5rem;
         margin-bottom: 0.25rem;
     }
 
     &__social {
         color: var(--color-text-dim);
-        display: flex;
+        display: inline-flex;
         align-items: center;
+        justify-content: center;
+        min-width: 44px;
+        min-height: 44px;
+        padding: 10px;
         transition: all var(--transition-fast);
         opacity: 0.8;
 

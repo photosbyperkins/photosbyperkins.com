@@ -5,6 +5,8 @@ declare const __BUILD_NUMBER__: string;
 type ProgressiveImageProps = React.ImgHTMLAttributes<HTMLImageElement> & {
     placeholder?: string | null;
     objectPosition?: string;
+    priority?: boolean;
+    aspectRatio?: string;
 };
 
 export default function ProgressiveImage({
@@ -14,16 +16,18 @@ export default function ProgressiveImage({
     className,
     style,
     objectPosition,
+    priority = false,
+    aspectRatio = '3 / 2',
     onLoad,
     ...props
 }: ProgressiveImageProps) {
     const [isLoaded, setIsLoaded] = useState(false);
-    const [shouldLoad, setShouldLoad] = useState(false);
+    const [shouldLoad, setShouldLoad] = useState(priority);
     const containerRef = useRef<HTMLDivElement>(null);
     const imgRef = useRef<HTMLImageElement>(null);
 
     useEffect(() => {
-        if (!containerRef.current || shouldLoad) return;
+        if (priority || shouldLoad || !containerRef.current) return;
 
         const observer = new IntersectionObserver(
             ([entry]) => {
@@ -37,7 +41,7 @@ export default function ProgressiveImage({
 
         observer.observe(containerRef.current);
         return () => observer.disconnect();
-    }, [shouldLoad]);
+    }, [shouldLoad, priority]);
 
     // Check if image is already cached / completed
     useEffect(() => {
@@ -65,7 +69,12 @@ export default function ProgressiveImage({
         <div
             ref={containerRef}
             className={`progressive-image ${className || ''}`}
-            style={{ ...style, position: 'relative', overflow: 'hidden' }}
+            style={{
+                aspectRatio,
+                position: 'relative',
+                overflow: 'hidden',
+                ...style,
+            }}
         >
             {placeholderSrc && !isLoaded && (
                 <img
@@ -87,14 +96,21 @@ export default function ProgressiveImage({
             <img
                 ref={imgRef}
                 src={imageSrc}
-                alt={alt}
-                loading="lazy"
-                decoding="async"
+                alt={alt || ''}
+                loading={priority ? 'eager' : 'lazy'}
+                decoding={priority ? 'sync' : 'async'}
+                // @ts-expect-error fetchpriority attribute is supported in modern browsers
+                fetchpriority={priority ? 'high' : 'auto'}
+                width="600"
+                height="400"
                 onLoad={handleLoad}
                 className={`progressive-image__img ${isLoaded ? 'is-loaded' : ''}`}
                 style={{
                     position: 'relative',
                     zIndex: 1,
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover',
                     objectPosition: objectPosition || 'center',
                 }}
                 {...props}
@@ -102,3 +118,4 @@ export default function ProgressiveImage({
         </div>
     );
 }
+

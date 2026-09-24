@@ -126,7 +126,7 @@ test.describe('Favorites', () => {
         await page.waitForTimeout(1000);
 
         // Check for "YOUR FAVORITES" heading
-        const heading = page.locator('.portfolio__event-teams h3');
+        const heading = page.locator('.portfolio__event-teams h2, .portfolio__event-teams h3');
         const headingText = await heading.first().textContent();
         expect(headingText?.toUpperCase()).toContain('FAVORITES');
     });

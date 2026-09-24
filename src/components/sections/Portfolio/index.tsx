@@ -170,7 +170,7 @@ export default function Portfolio({ years }: PortfolioProps) {
 
     const { sharedFavorites, clearSharedFavorites } = useSharedFavorites();
 
-    const { yearData, recapCount, recapEvents, stats, setIsRecapLoaded } = usePortfolioData({
+    const { yearData, recapCount, recapEvents, stats, setIsRecapLoaded, prefetchTab } = usePortfolioData({
         selectedTab,
         years,
         onDataLoadAction: handleDataLoad,
@@ -316,6 +316,9 @@ export default function Portfolio({ years }: PortfolioProps) {
                             key={y}
                             to={`/portfolio/${y}`}
                             className={`${y === selectedTab ? 'active' : ''}`}
+                            aria-label={`Season ${y}`}
+                            onPointerEnter={() => prefetchTab(y)}
+                            onFocus={() => prefetchTab(y)}
                             onClick={(e) => {
                                 if (y === selectedTab) {
                                     e.preventDefault();
@@ -326,7 +329,7 @@ export default function Portfolio({ years }: PortfolioProps) {
                             <span className="portfolio__year-full" style={{ transform: 'translateY(1px)' }}>
                                 {y}
                             </span>
-                            <span className="portfolio__year-short" style={{ transform: 'translateY(1px)' }}>
+                            <span className="portfolio__year-short" aria-hidden="true" style={{ transform: 'translateY(1px)' }}>
                                 {y.slice(-2)}
                             </span>
                         </Link>
