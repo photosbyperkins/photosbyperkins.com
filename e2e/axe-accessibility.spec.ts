@@ -5,6 +5,8 @@ test.describe('Automated WCAG 2.1 AA Accessibility (axe-core)', () => {
     test('homepage should have zero WCAG 2.1 AA critical or serious violations', async ({ page }) => {
         await page.goto('/');
         await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
+        // Allow initial theme CSS color transition (150ms) to settle
+        await page.waitForTimeout(300);
 
         const results = await new AxeBuilder({ page })
             .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
