@@ -3,6 +3,7 @@ import {
     getEventMonth,
     formatEventElementId,
     computeYearMonths,
+    detectActiveMonth,
 } from './monthTrack';
 import type { EventData, PhotoInput } from '../types';
 
@@ -108,4 +109,111 @@ describe('monthTrack utilities', () => {
             expect(months.every((m) => !m.hasPhotos)).toBe(true);
         });
     });
+
+    describe('detectActiveMonth', () => {
+        const mockEvents: [string, Partial<EventData>][] = [
+            ['10.15 Championship Bout', {}],
+            ['08.12 Summer Showdown', {}],
+            ['06.17 Invitational', {}],
+            ['04.14 Spring Bout', {}],
+        ];
+
+        it('returns null when events array is empty', () => {
+            const result = detectActiveMonth({
+                events: [],
+                getRect: () => null,
+                scrollY: 100,
+                viewportHeight: 800,
+                scrollHeight: 2000,
+            });
+            expect(result).toBeNull();
+        });
+
+        it('returns the first event month when at top of page (scrollY <= 10)', () => {
+            const result = detectActiveMonth({
+                events: mockEvents,
+                getRect: () => ({ top: 100, bottom: 500 }),
+                scrollY: 0,
+                viewportHeight: 800,
+                scrollHeight: 3000,
+            });
+            expect(result).toBe(10); // October
+        });
+
+        it('detects active month during normal viewport scrolling', () => {
+            // Viewport anchor is 800 * 0.35 = 280px
+            // Oct (top = -400), Aug (top = 200), Jun (top = 800), Apr (top = 1400)
+            const rects: Record<string, { top: number; bottom: number }> = {
+                'event-10-15-Championship-Bout': { top: -400, bottom: 100 },
+                'event-08-12-Summer-Showdown': { top: 200, bottom: 700 },
+                'event-06-17-Invitational': { top: 800, bottom: 1300 },
+                'event-04-14-Spring-Bout': { top: 1400, bottom: 1900 },
+            };
+
+            const result = detectActiveMonth({
+                events: mockEvents,
+                getRect: (id) => rects[id] ?? null,
+                scrollY: 600,
+                viewportHeight: 800,
+                scrollHeight: 3000,
+            });
+
+            // Aug has top 200 <= 280 trigger point, so Aug is active
+            expect(result).toBe(8); // August
+        });
+
+        it('detects earliest month (April) in tall window where top never reaches standard anchor', () => {
+            // Very tall viewport: 1400px
+            // Total document height: 2200px
+            // maxScrollY: 2200 - 1400 = 800px
+            // Standard anchor: 1400 * 0.35 = 490px
+            // April document position: 1650px to 2050px.
+            // At max scroll (scrollY = 800), April's rect.top is 1650 - 800 = 850px.
+            // Notice: 850px > 490px, so April NEVER reaches 490px!
+            const rectsAtMaxScroll: Record<string, { top: number; bottom: number }> = {
+                'event-10-15-Championship-Bout': { top: -600, bottom: -100 },
+                'event-08-12-Summer-Showdown': { top: -100, bottom: 400 },
+                'event-06-17-Invitational': { top: 400, bottom: 850 },
+                'event-04-14-Spring-Bout': { top: 850, bottom: 1250 },
+            };
+
+            // At maximum scroll (scrollY = 800, remainingScroll = 0)
+            const resultAtMax = detectActiveMonth({
+                events: mockEvents,
+                getRect: (id) => rectsAtMaxScroll[id] ?? null,
+                scrollY: 800,
+                viewportHeight: 1400,
+                scrollHeight: 2200,
+            });
+            expect(resultAtMax).toBe(4); // April!
+
+            // Approaching maximum scroll (scrollY = 770, remainingScroll = 30 <= 50)
+            const rectsNearMax: Record<string, { top: number; bottom: number }> = {
+                'event-10-15-Championship-Bout': { top: -570, bottom: -70 },
+                'event-08-12-Summer-Showdown': { top: -70, bottom: 430 },
+                'event-06-17-Invitational': { top: 430, bottom: 880 },
+                'event-04-14-Spring-Bout': { top: 880, bottom: 1280 },
+            };
+            const resultNearMax = detectActiveMonth({
+                events: mockEvents,
+                getRect: (id) => rectsNearMax[id] ?? null,
+                scrollY: 770,
+                viewportHeight: 1400,
+                scrollHeight: 2200,
+            });
+            expect(resultNearMax).toBe(4); // April!
+        });
+
+        it('activates earliest month when scrolled into footer at bottom of page', () => {
+            const result = detectActiveMonth({
+                events: mockEvents,
+                getRect: () => ({ top: -200, bottom: -50 }),
+                scrollY: 2000,
+                viewportHeight: 1000,
+                scrollHeight: 3000, // scrollY + viewportHeight == scrollHeight
+            });
+            expect(result).toBe(4); // April
+        });
+    });
 });
+

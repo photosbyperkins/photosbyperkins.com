@@ -112,3 +112,86 @@ export function computeYearMonths(events: [string, Partial<EventData>][]): Month
         };
     });
 }
+
+export interface DetectActiveMonthParams {
+    events: [string, any][];
+    getRect: (elId: string) => { top: number; bottom: number } | null;
+    scrollY: number;
+    viewportHeight: number;
+    scrollHeight: number;
+    viewportAnchorRatio?: number;
+    bottomThresholdPx?: number;
+}
+
+/**
+ * Calculates which month should be active based on current scroll position and event layout.
+ * Accurately handles edge cases such as tall viewports where the earliest month at the
+ * bottom of the page physically cannot scroll up to the standard viewport trigger anchor.
+ */
+export function detectActiveMonth({
+    events,
+    getRect,
+    scrollY,
+    viewportHeight,
+    scrollHeight,
+    viewportAnchorRatio = 0.35,
+    bottomThresholdPx = 50,
+}: DetectActiveMonthParams): number | null {
+    if (events.length === 0) return null;
+
+    // Top of page clamp: if at or near the very top, always activate the first (latest) event
+    if (scrollY <= 10) {
+        return getEventMonth(events[0][0]);
+    }
+
+    const maxScrollY = scrollHeight - viewportHeight;
+    const remainingScroll = Math.max(0, maxScrollY - scrollY);
+
+    // Bottom of page clamp: if scrolled to (or within threshold of) the bottom of the page,
+    // activate the last (earliest) event
+    if (maxScrollY <= 0 || remainingScroll <= bottomThresholdPx) {
+        return getEventMonth(events[events.length - 1][0]);
+    }
+
+    const viewportAnchor = viewportHeight * viewportAnchorRatio;
+    let detectedMonth: number | null = null;
+
+    // Iterate in reverse (from latest-in-season/earliest-in-year bottom event up to top)
+    // to find the deepest event that has reached its effective trigger point
+    for (let i = events.length - 1; i >= 0; i--) {
+        const [eventName] = events[i];
+        const elId = formatEventElementId(eventName);
+        const rect = getRect(elId);
+        if (!rect) continue;
+
+        // Compute the minimum possible rect.top this element could ever reach
+        // if scrolled all the way to maxScrollY.
+        const minPossibleTop = rect.top - remainingScroll;
+
+        // If this element physically cannot reach viewportAnchor in this viewport,
+        // adjust its trigger point to when it gets within lead-in buffer of its maximum scroll position.
+        const trigger = minPossibleTop > viewportAnchor ? minPossibleTop + bottomThresholdPx : viewportAnchor;
+
+        if (rect.top <= trigger) {
+            const m = getEventMonth(eventName);
+            if (m) {
+                detectedMonth = m;
+                break;
+            }
+        }
+    }
+
+    // Fallback if no element reached trigger point (e.g. above first event)
+    if (detectedMonth === null) {
+        const firstElId = formatEventElementId(events[0][0]);
+        const firstRect = getRect(firstElId);
+        if (firstRect && firstRect.top > viewportAnchor) {
+            detectedMonth = getEventMonth(events[0][0]);
+        } else {
+            detectedMonth = getEventMonth(events[events.length - 1][0]);
+        }
+    }
+
+    return detectedMonth;
+}
+

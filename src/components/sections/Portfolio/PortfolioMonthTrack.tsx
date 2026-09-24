@@ -3,6 +3,7 @@ import {
     computeYearMonths,
     getEventMonth,
     formatEventElementId,
+    detectActiveMonth,
     type MonthData,
 } from '../../../utils/monthTrack';
 import { scrollToElement } from '../../../utils/scroll';
@@ -40,46 +41,19 @@ export const PortfolioMonthTrack: React.FC<PortfolioMonthTrackProps> = ({ events
         let ticking = false;
 
         const updateActiveMonth = () => {
-            if (window.scrollY <= 10 && events.length > 0) {
-                const firstMonth = getEventMonth(events[0][0]);
-                if (firstMonth !== null) {
-                    setActiveMonth((prev) => (prev !== firstMonth ? firstMonth : prev));
-                    ticking = false;
-                    return;
-                }
-            }
+            const detected = detectActiveMonth({
+                events,
+                getRect: (elId) => {
+                    const el = document.getElementById(elId);
+                    return el ? el.getBoundingClientRect() : null;
+                },
+                scrollY: window.scrollY,
+                viewportHeight: window.innerHeight,
+                scrollHeight: document.documentElement.scrollHeight,
+            });
 
-            const viewportAnchor = window.innerHeight * 0.35;
-            let detectedMonth: number | null = null;
-
-            for (const [eventName] of events) {
-                const elId = formatEventElementId(eventName);
-                const el = document.getElementById(elId);
-                if (!el) continue;
-                const rect = el.getBoundingClientRect();
-                if (rect.top <= viewportAnchor && rect.bottom > 80) {
-                    const m = getEventMonth(eventName);
-                    if (m) {
-                        detectedMonth = m;
-                        break;
-                    }
-                }
-            }
-
-            if (detectedMonth === null && events.length > 0) {
-                // If user is scrolled above the first event (e.g. season summary/recap)
-                const firstElId = formatEventElementId(events[0][0]);
-                const firstEl = document.getElementById(firstElId);
-                if (firstEl && firstEl.getBoundingClientRect().top > viewportAnchor) {
-                    detectedMonth = getEventMonth(events[0][0]);
-                } else {
-                    // Scrolled below the last event (into footer)
-                    detectedMonth = getEventMonth(events[events.length - 1][0]);
-                }
-            }
-
-            if (detectedMonth !== null) {
-                setActiveMonth((prev) => (prev !== detectedMonth ? detectedMonth : prev));
+            if (detected !== null) {
+                setActiveMonth((prev) => (prev !== detected ? detected : prev));
             }
 
             ticking = false;

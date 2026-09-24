@@ -367,6 +367,43 @@ test.describe('Portfolio Month Calendar Track', () => {
         await expect(tooltip.locator('.portfolio__month-tooltip-title')).toHaveText('September');
         await expect(tooltip.locator('.portfolio__month-tooltip-meta')).toContainText('photos');
     });
+
+    test('activates earliest month in tall viewport when clicked or scrolled to bottom', async ({ page, isMobile }) => {
+        test.skip(isMobile, 'Month track is only visible on desktop');
+
+        // Very tall viewport: 1440x1400
+        await page.setViewportSize({ width: 1440, height: 1400 });
+        await page.goto('/portfolio/2024');
+        await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
+
+        const track = page.locator('.portfolio__month-track');
+        // Initial state at scroll 0 is May (latest month in 2024)
+        const mayBtn = track.locator('button.portfolio__month-item').filter({ hasText: 'MAY' });
+        await expect(mayBtn).toHaveClass(/is-current/);
+
+        // Click March (earliest month in 2024)
+        const marBtn = track.locator('button.portfolio__month-item').filter({ hasText: 'MAR' });
+        await marBtn.click();
+
+        // Wait for smooth scroll to land at bottom
+        await page.waitForTimeout(1000);
+
+        // March must be active/current even though its top cannot reach standard 35% trigger in tall window
+        await expect(marBtn).toHaveClass(/is-current/);
+        await expect(marBtn).toHaveAttribute('aria-current', 'true');
+
+        // Scroll back to top
+        await page.evaluate(() => window.scrollTo(0, 0));
+        await page.waitForTimeout(300);
+        await expect(mayBtn).toHaveClass(/is-current/);
+
+        // Manually scroll down to the bottom
+        await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+        await page.waitForTimeout(300);
+        await expect(marBtn).toHaveClass(/is-current/);
+        await expect(marBtn).toHaveAttribute('aria-current', 'true');
+    });
 });
+
 
 
