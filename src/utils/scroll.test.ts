@@ -1,10 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import {
-    scrollToElement,
-    getStickyNavOffset,
-    resolveTargetElement,
-    isFirstPortfolioEvent,
-} from './scroll';
+import { scrollToElement, getStickyNavOffset, resolveTargetElement, isFirstPortfolioEvent } from './scroll';
 
 describe('scroll utility', () => {
     describe('SSR safety (Node environment without DOM)', () => {

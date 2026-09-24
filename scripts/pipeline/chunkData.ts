@@ -3,10 +3,12 @@ import fs from 'fs';
 import path from 'path';
 import type { IndexState, RecapDefinitions } from './types.js';
 import { logger } from './logger';
+import { GEAR_REGISTRY, getGearItem } from '../../src/data/gearData.js';
 
 const WFTDA_FILE = path.join(process.cwd(), 'data', 'wftda-matches.json');
 const INDEX_FILE = path.join(process.cwd(), 'public', 'data', 'index.json');
 const YEARS_DIR = path.join(process.cwd(), 'public', 'data', 'years');
+const GEAR_DIR = path.join(process.cwd(), 'public', 'data', 'gear');
 
 function slugify(text: string) {
     return text
@@ -165,7 +167,28 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
     }
     fs.mkdirSync(TEAMS_DIR, { recursive: true });
 
+    if (fs.existsSync(GEAR_DIR)) {
+        fs.rmSync(GEAR_DIR, { recursive: true, force: true });
+    }
+    fs.mkdirSync(GEAR_DIR, { recursive: true });
+
     const globalTeamsList: Record<string, any> = {};
+    const globalGearList: Record<
+        string,
+        {
+            item: (typeof GEAR_REGISTRY)[string];
+            photoCount: number;
+            events: Record<string, any>;
+        }
+    > = {};
+
+    for (const [id, item] of Object.entries(GEAR_REGISTRY)) {
+        globalGearList[id] = {
+            item,
+            photoCount: 0,
+            events: {},
+        };
+    }
 
     let customFilters = [];
     const CUSTOM_FILTERS_FILE = path.join(process.cwd(), 'data', 'customTeamFilters.json');
@@ -283,11 +306,24 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
             fs.writeFileSync(albumFile, JSON.stringify(cleanAlbum, null, 0));
 
             let maxExifChars = 0;
+            const eventGearPhotos: Record<string, any[]> = {};
             for (const img of (event.album || [])) {
                 if (img && typeof img === 'object' && img.exif) {
                     if (img.exif.cameraModel) cameraCounts[img.exif.cameraModel] = (cameraCounts[img.exif.cameraModel] || 0) + 1;
                     if (img.exif.lens) lensCounts[img.exif.lens] = (lensCounts[img.exif.lens] || 0) + 1;
                     if ((img.exif as any).gearLensId) lensIdCounts[(img.exif as any).gearLensId] = (lensIdCounts[(img.exif as any).gearLensId] || 0) + 1;
+
+                    // Match gear
+                    const camItem = getGearItem(img.exif.cameraModel, year, 'camera');
+                    if (camItem && globalGearList[camItem.id]) {
+                        if (!eventGearPhotos[camItem.id]) eventGearPhotos[camItem.id] = [];
+                        eventGearPhotos[camItem.id].push(img);
+                    }
+                    const lensItem = getGearItem((img.exif as any).gearLensId || img.exif.lens, year, 'lens');
+                    if (lensItem && globalGearList[lensItem.id]) {
+                        if (!eventGearPhotos[lensItem.id]) eventGearPhotos[lensItem.id] = [];
+                        eventGearPhotos[lensItem.id].push(img);
+                    }
 
                     const top = [img.exif.cameraModel, img.exif.lens].filter(Boolean).join(' \u2022 ');
                     const bottom = [img.exif.focalLength, img.exif.aperture, img.exif.shutterSpeed, img.exif.iso].filter(Boolean).join(' \u2022 ');
@@ -308,6 +344,43 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
                     .sort((a, b) => (b.recapScore || 0) - (a.recapScore || 0))
                     .slice(0, 24), // Pre-compute fallback images for the recap grid
             };
+
+            // Associate with gear
+            for (const [gearId, photos] of Object.entries(eventGearPhotos)) {
+                globalGearList[gearId].photoCount += photos.length;
+
+                const origHighlights = event.highlights || [];
+                const gearHighlights = photos
+                    .filter((p) => {
+                        const pUrl = typeof p === 'string' ? p : p.original || p.src;
+                        return origHighlights.some(
+                            (h: any) => (typeof h === 'string' ? h : h.original || h.src) === pUrl
+                        );
+                    })
+                    .slice(0, 5);
+
+                const chosenHighlights =
+                    gearHighlights.length > 0
+                        ? gearHighlights
+                        : [...photos].sort((a, b) => (b.recapScore || 0) - (a.recapScore || 0)).slice(0, 5);
+
+                const gearEvMeta = {
+                    ...event,
+                    album: [],
+                    photoCount: photos.length,
+                    albumSlug: slug,
+                    originalYear: year,
+                    ...(maxExifChars > 0 && { maxExifChars }),
+                    highlights: chosenHighlights.map((h: any) => ({
+                        original: typeof h === 'string' ? h : h.original || h.src,
+                        thumb: typeof h === 'string' ? h : h.thumb || h.original || h.src,
+                        focusX: typeof h === 'object' ? h.focusX : undefined,
+                        focusY: typeof h === 'object' ? h.focusY : undefined,
+                    })),
+                };
+
+                globalGearList[gearId].events[`[${year}] ${eventName}`] = gearEvMeta;
+            }
 
             // Keep metadata in year file
             processedYearData[eventName] = evMeta;
@@ -543,6 +616,69 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
     // Write the global list to index for fast fetching in the Search view
     fs.writeFileSync(path.join(TEAMS_DIR, `index.json`), JSON.stringify(uniqueTeams, null, 0));
     logger.info(`Wrote index.json with ${uniqueTeams.length} unique teams and ${uniqueTeams.length} team chunks.`);
+
+    // Write out Gear Data
+    logger.step(`Writing Gear Chunks...`);
+    const uniqueGear: any[] = [];
+    for (const [gearId, gearEntry] of Object.entries(globalGearList)) {
+        const eventCount = Object.keys(gearEntry.events).length;
+        if (eventCount === 0) continue;
+
+        uniqueGear.push({
+            id: gearEntry.item.id,
+            name: gearEntry.item.name,
+            shortName: gearEntry.item.shortName,
+            compactName: gearEntry.item.compactName,
+            brand: gearEntry.item.brand,
+            type: gearEntry.item.type,
+            photoCount: gearEntry.photoCount,
+            eventCount,
+            searchAliases: gearEntry.item.searchAliases || [],
+        });
+
+        // Sort gear events in reverse chronological order across all years
+        const sortedGearEvents: Record<string, any> = {};
+        const gearEventEntries = Object.entries(gearEntry.events).sort((a: [string, any], b: [string, any]) => {
+            const keyA = a[0];
+            const keyB = b[0];
+            const evA = a[1];
+            const evB = b[1];
+
+            // Keys look like "[2024] 10.22 Event"
+            const yearA = keyA.match(/^\[(\d{4})\]/)?.[1] || '';
+            const yearB = keyB.match(/^\[(\d{4})\]/)?.[1] || '';
+            if (yearA !== yearB) {
+                return yearB.localeCompare(yearA);
+            }
+
+            const dateA = keyA.match(/\] (\d{2}\.\d{2})/)?.[1] || '';
+            const dateB = keyB.match(/\] (\d{2}\.\d{2})/)?.[1] || '';
+            if (dateA !== dateB) {
+                return dateB.localeCompare(dateA);
+            }
+
+            const timeA = evA.earliestTime || 0;
+            const timeB = evB.earliestTime || 0;
+            if (timeA !== timeB) {
+                return timeB - timeA;
+            }
+
+            return keyB.localeCompare(keyA);
+        });
+
+        for (const [k, v] of gearEventEntries) {
+            sortedGearEvents[k] = v;
+        }
+
+        writeChunkedFile(GEAR_DIR, gearId, sortedGearEvents, { recapCount: 0, recapEvents: [] });
+    }
+
+    // Sort gear items by photo count descending by default
+    uniqueGear.sort((a, b) => b.photoCount - a.photoCount || a.name.localeCompare(b.name));
+
+    // Write the global gear list to index for fast fetching in the Search view
+    fs.writeFileSync(path.join(GEAR_DIR, `index.json`), JSON.stringify(uniqueGear, null, 0));
+    logger.info(`Wrote index.json with ${uniqueGear.length} gear items and chunks.`);
 
     return recapDefinitions as RecapDefinitions;
 }

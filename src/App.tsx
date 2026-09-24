@@ -112,7 +112,7 @@ function ScrollToMountTarget() {
         // If the route specifies a direct event (e.g. /portfolio/:year/:event or with :photo),
         // let the event component handle scrolling to avoid competing with fallback #portfolio
         const segments = location.pathname.split('/').filter(Boolean);
-        if (segments[0] === 'portfolio' && segments.length >= 3 && segments[1] !== 'team') {
+        if (segments[0] === 'portfolio' && segments.length >= 3 && segments[1] !== 'team' && segments[1] !== 'gear') {
             return;
         }
 

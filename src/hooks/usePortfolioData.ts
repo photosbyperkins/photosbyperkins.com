@@ -29,9 +29,15 @@ interface UsePortfolioDataOptions {
     selectedTab: string;
     years: string[];
     onDataLoadAction?: () => void;
+    isGearMode?: boolean;
 }
 
-export function usePortfolioData({ selectedTab, years, onDataLoadAction }: UsePortfolioDataOptions) {
+export function usePortfolioData({
+    selectedTab,
+    years,
+    onDataLoadAction,
+    isGearMode = false,
+}: UsePortfolioDataOptions) {
     const [yearData, setYearData] = useState<YearData>({});
     const [recapCount, setRecapCount] = useState<number>(0);
     const [recapEvents, setRecapEvents] = useState<{ eventName: string; photoIndex: number }[]>([]);
@@ -92,7 +98,7 @@ export function usePortfolioData({ selectedTab, years, onDataLoadAction }: UsePo
         (tabSlug: string, setData: boolean, isTeamMode: boolean) => {
             if (tabSlug === 'favorites') return;
 
-            const basePath = isTeamMode ? `/data/teams` : `/data/years`;
+            const basePath = isGearMode ? `/data/gear` : isTeamMode ? `/data/teams` : `/data/years`;
             const requestToken = Date.now();
 
             if (setData) {
@@ -140,7 +146,7 @@ export function usePortfolioData({ selectedTab, years, onDataLoadAction }: UsePo
                                 };
 
                                 // If there is no recap, unlock background fetching immediately
-                                if ((data.recapCount || 0) === 0 || isTeamMode) {
+                                if ((data.recapCount || 0) === 0 || isTeamMode || isGearMode) {
                                     setIsRecapLoaded(true);
                                 }
 
@@ -172,15 +178,15 @@ export function usePortfolioData({ selectedTab, years, onDataLoadAction }: UsePo
 
             fetchPart(tabSlug, false);
         },
-        [onDataLoadAction]
+        [onDataLoadAction, isGearMode]
     );
 
     // Handle trickling next parts only when Recap allows it
     useEffect(() => {
         if (!pendingNextPart || !isRecapLoaded || !selectedTab) return;
 
-        const isTeamMode = !years.includes(selectedTab);
-        const basePath = isTeamMode ? `/data/teams` : `/data/years`;
+        const isTeamMode = !years.includes(selectedTab) && !isGearMode;
+        const basePath = isGearMode ? `/data/gear` : isTeamMode ? `/data/teams` : `/data/years`;
         const requestToken = activeRequestRef.current;
         const targetPart = pendingNextPart;
 
@@ -203,23 +209,23 @@ export function usePortfolioData({ selectedTab, years, onDataLoadAction }: UsePo
         }, 300);
 
         return () => clearTimeout(timer);
-    }, [pendingNextPart, isRecapLoaded, selectedTab, years]);
+    }, [pendingNextPart, isRecapLoaded, selectedTab, years, isGearMode]);
 
     // Initial load for active tab
     useEffect(() => {
         if (!selectedTab) return;
-        const isTeamMode = !years.includes(selectedTab);
+        const isTeamMode = !years.includes(selectedTab) && !isGearMode;
         // eslint-disable-next-line react-hooks/set-state-in-effect
         getForTab(selectedTab, true, isTeamMode);
-    }, [selectedTab, years, getForTab]);
+    }, [selectedTab, years, getForTab, isGearMode]);
 
     // Pre-fetch other years, paused until Recap finishes
     useEffect(() => {
-        if (!isRecapLoaded) return;
+        if (!isRecapLoaded || isGearMode) return;
         years.forEach((year, i) => {
             if (i > 0) getForTab(year, false, false);
         });
-    }, [years, getForTab, isRecapLoaded]);
+    }, [years, getForTab, isRecapLoaded, isGearMode]);
 
     // Warm recap sprites for other years after the current year's recap loads.
     // Loads sequentially to avoid competing with album JSON fetches for bandwidth.

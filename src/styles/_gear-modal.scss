@@ -64,4 +64,136 @@
         color: var(--color-text);
         word-break: break-word;
     }
+
+    &__footer {
+        margin-top: 1.75rem;
+        padding-top: 1.25rem;
+        border-top: 1px solid var(--color-border);
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    &__portfolio-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.6rem 1.2rem;
+        border-radius: 8px;
+        background: var(--color-accent);
+        color: #ffffff;
+        font-family: var(--font-condensed);
+        font-size: 0.95rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        text-decoration: none;
+        transition: all var(--transition-fast);
+
+        &:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+    }
+}
+
+.portfolio__gear-header {
+    margin-top: clamp(2rem, 4vw, 3rem);
+    margin-bottom: 2.25rem;
+    width: 100%;
+}
+
+.gear-info-card {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: none;
+    width: 100%;
+
+    &__header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1.5rem;
+        margin-bottom: 1rem;
+        flex-wrap: wrap;
+    }
+
+    &__title-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    &__badges {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    &__badge {
+        font-family: var(--font-condensed);
+        font-size: 0.75rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        padding: 0.2rem 0.6rem;
+        border-radius: 4px;
+
+        &--type {
+            background: rgba(var(--color-accent-rgb, 198, 40, 40), 0.15);
+            color: var(--color-accent);
+            border: 1px solid rgba(var(--color-accent-rgb, 198, 40, 40), 0.3);
+        }
+
+        &--brand {
+            background: var(--color-bg-3);
+            color: var(--color-text-muted);
+            border: 1px solid var(--color-border);
+        }
+    }
+
+    &__stats-pill {
+        font-family: var(--font-condensed);
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        padding: 0.2rem 0.6rem;
+        border-radius: 20px;
+        background: var(--color-bg-2);
+        color: var(--color-text-muted);
+        border: 1px solid var(--color-border);
+    }
+
+    &__title {
+        font-family: var(--font-display);
+        font-size: clamp(1.6rem, 3.5vw, 2.5rem);
+        color: var(--color-text);
+        margin: 0;
+        line-height: 1.15;
+    }
+
+    &__official-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        font-family: var(--font-condensed);
+        font-size: 0.85rem;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--color-accent);
+        text-decoration: none;
+        padding: 0.4rem 0.8rem;
+        border-radius: 6px;
+        border: 1px solid rgba(var(--color-accent-rgb, 198, 40, 40), 0.3);
+        background: rgba(var(--color-accent-rgb, 198, 40, 40), 0.08);
+        cursor: pointer;
+        transition: all var(--transition-fast);
+
+        &:hover {
+            background: rgba(var(--color-accent-rgb, 198, 40, 40), 0.18);
+            border-color: var(--color-accent);
+        }
+    }
 }

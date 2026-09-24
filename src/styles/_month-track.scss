@@ -59,7 +59,9 @@
         line-height: 1;
         margin: 0;
         box-shadow: none !important; // Zero drop shadow
-        transition: color 0.15s ease, background 0.15s ease;
+        transition:
+            color 0.15s ease,
+            background 0.15s ease;
 
         .portfolio__month-label {
             display: inline-flex;
@@ -115,7 +117,9 @@
                 background: var(--color-accent);
                 opacity: 0.85;
                 box-shadow: none !important;
-                transition: opacity 0.15s ease, transform 0.15s ease;
+                transition:
+                    opacity 0.15s ease,
+                    transform 0.15s ease;
             }
 
             @media (hover: hover) {
@@ -178,7 +182,9 @@
                 background: #ffffff;
                 opacity: 1;
                 box-shadow: none !important;
-                transition: opacity 0.15s ease, transform 0.15s ease;
+                transition:
+                    opacity 0.15s ease,
+                    transform 0.15s ease;
 
                 html[data-theme='light'] & {
                     background: var(--color-accent);
@@ -242,7 +248,10 @@
         pointer-events: none;
         opacity: 0;
         visibility: hidden;
-        transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
+        transition:
+            opacity 0.15s ease,
+            transform 0.15s ease,
+            visibility 0.15s ease;
         display: flex;
         flex-direction: column;
         align-items: flex-start;
@@ -285,4 +294,3 @@
         }
     }
 }
-

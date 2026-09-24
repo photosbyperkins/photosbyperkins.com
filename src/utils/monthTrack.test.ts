@@ -1,16 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import {
-    getEventMonth,
-    formatEventElementId,
-    computeYearMonths,
-    detectActiveMonth,
-} from './monthTrack';
+import { getEventMonth, formatEventElementId, computeYearMonths, detectActiveMonth } from './monthTrack';
 import type { EventData, PhotoInput } from '../types';
 
 describe('monthTrack utilities', () => {
     describe('getEventMonth', () => {
         it('extracts month correctly from standard event titles', () => {
-            expect(getEventMonth('09.19 Sacramento Roller Derby Juniors Intergalactic vs San Luis Obispo County Junior Roller Derby')).toBe(9);
+            expect(
+                getEventMonth(
+                    '09.19 Sacramento Roller Derby Juniors Intergalactic vs San Luis Obispo County Junior Roller Derby'
+                )
+            ).toBe(9);
             expect(getEventMonth('02.21 Sacramento Roller Derby Kodiak Attack vs Bay Area Derby Bones')).toBe(2);
             expect(getEventMonth('12.05 Championship Bout')).toBe(12);
             expect(getEventMonth('01.15 Opening Scrimmage')).toBe(1);
@@ -216,4 +215,3 @@ describe('monthTrack utilities', () => {
         });
     });
 });
-

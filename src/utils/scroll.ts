@@ -82,10 +82,7 @@ function easeInOutCubic(t: number): number {
  *
  * @returns A cancel function to abort the in-flight scroll animation.
  */
-export function scrollToElement(
-    target: HTMLElement | string,
-    options?: ScrollToElementOptions
-): CancelScrollFn {
+export function scrollToElement(target: HTMLElement | string, options?: ScrollToElementOptions): CancelScrollFn {
     if (typeof window === 'undefined' || typeof document === 'undefined') {
         return () => {};
     }
@@ -129,9 +126,7 @@ export function scrollToElement(
 
     // Instant / Auto Jump path
     if (options?.behavior === 'instant' || options?.behavior === 'auto') {
-        const targetY = isFirstEvent
-            ? 0
-            : Math.max(0, el.getBoundingClientRect().top + window.scrollY - desiredOffset);
+        const targetY = isFirstEvent ? 0 : Math.max(0, el.getBoundingClientRect().top + window.scrollY - desiredOffset);
         window.scrollTo({ top: targetY, behavior: 'instant' as ScrollBehavior });
         options?.onComplete?.();
         return () => {};

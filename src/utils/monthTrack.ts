@@ -194,4 +194,3 @@ export function detectActiveMonth({
 
     return detectedMonth;
 }
-

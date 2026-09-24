@@ -90,29 +90,18 @@ export const PortfolioMonthTrack: React.FC<PortfolioMonthTrackProps> = ({ events
     if (events.length === 0) return null;
 
     return (
-        <aside
-            className="portfolio__month-track"
-            aria-label={`${selectedYear} season calendar scroll tracker`}
-        >
+        <aside className="portfolio__month-track" aria-label={`${selectedYear} season calendar scroll tracker`}>
             <div className="portfolio__month-track-pill">
                 {monthData.map((m) => {
                     const isCurrent = m.num === activeMonth;
                     const hasPhotos = m.hasPhotos;
                     const isEmpty = !hasPhotos;
 
-                    const stateClass = isCurrent
-                        ? 'is-current'
-                        : hasPhotos
-                          ? 'is-populated'
-                          : 'is-empty';
+                    const stateClass = isCurrent ? 'is-current' : hasPhotos ? 'is-populated' : 'is-empty';
 
                     if (isEmpty) {
                         return (
-                            <div
-                                key={m.num}
-                                className={`portfolio__month-item ${stateClass}`}
-                                aria-hidden="true"
-                            >
+                            <div key={m.num} className={`portfolio__month-item ${stateClass}`} aria-hidden="true">
                                 <span className="portfolio__month-label">{m.label}</span>
                                 <span className="portfolio__month-meter" aria-hidden="true">
                                     <span className="portfolio__month-empty-dash" />
@@ -135,22 +124,16 @@ export const PortfolioMonthTrack: React.FC<PortfolioMonthTrackProps> = ({ events
                             <span className="portfolio__month-label">{m.label}</span>
 
                             {/* Micro volume meter indicating photo spread across season */}
-                            <span
-                                className="portfolio__month-meter"
-                                data-density={m.densityLevel}
-                                aria-hidden="true"
-                            >
-                                <span
-                                    className="portfolio__month-meter-bar"
-                                    style={{ width: `${meterWidth}px` }}
-                                />
+                            <span className="portfolio__month-meter" data-density={m.densityLevel} aria-hidden="true">
+                                <span className="portfolio__month-meter-bar" style={{ width: `${meterWidth}px` }} />
                             </span>
 
                             {/* Floating hover badge */}
                             <span className="portfolio__month-tooltip" role="tooltip">
                                 <span className="portfolio__month-tooltip-title">{m.fullName}</span>
                                 <span className="portfolio__month-tooltip-meta">
-                                    {m.eventCount} {m.eventCount === 1 ? 'game' : 'games'} • {m.photoCount.toLocaleString()} photos
+                                    {m.eventCount} {m.eventCount === 1 ? 'game' : 'games'} •{' '}
+                                    {m.photoCount.toLocaleString()} photos
                                 </span>
                                 {m.seasonPercent > 0 && (
                                     <span className="portfolio__month-tooltip-share">

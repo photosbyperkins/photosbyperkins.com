@@ -10,11 +10,13 @@ import { useStickyHeader } from '../../../hooks/useStickyHeader';
 import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock';
 import { useAppStore } from '../../../store/useAppStore';
 import { formatTeamName, getTeamNameFormats, parseEventTitle } from '../../../utils/formatters';
-import { getGearItem } from '../../../data/gearData';
+import { getGearItem, GEAR_REGISTRY } from '../../../data/gearData';
 import Recap from '../Recap';
 import PortfolioEvent from './PortfolioEvent';
 import SharedFavoritesPanel from './SharedFavoritesPanel';
 import PortfolioMonthTrack from './PortfolioMonthTrack';
+import GearInfoHeader from './GearInfoHeader';
+import type { GearMeta } from './GearFilter';
 import { scrollToElement } from '../../../utils/scroll';
 
 const LightboxContainer = React.lazy(() => import('./LightboxContainer'));
@@ -68,14 +70,20 @@ export default function Portfolio({ years }: PortfolioProps) {
 
     const yearMatch = matchPath('/portfolio/:year', matchPathStr);
     const teamMatch = matchPath('/portfolio/team/:slug', matchPathStr);
+    const gearMatch = matchPath('/portfolio/gear/:slug', matchPathStr);
     // Deep link: /portfolio/:year/:event/:photo
     const deepLinkMatch = matchPath('/portfolio/:year/:event/:photo', matchPathStr);
     // Event-only deep link: /portfolio/:year/:event (no photo index)
     const eventDeepMatch = !deepLinkMatch ? matchPath('/portfolio/:year/:event', matchPathStr) : null;
 
-    const isTeamRoute = !!teamMatch;
+    const isGearRoute = Boolean(gearMatch);
+    const isTeamRoute = !isGearRoute && Boolean(teamMatch);
     const activeRouteSlug =
-        teamMatch?.params.slug || deepLinkMatch?.params.year || eventDeepMatch?.params.year || yearMatch?.params.year;
+        gearMatch?.params.slug ||
+        teamMatch?.params.slug ||
+        deepLinkMatch?.params.year ||
+        eventDeepMatch?.params.year ||
+        yearMatch?.params.year;
 
     // Moved URLSearchParams to the top to initialize search state
     const initialYear = activeRouteSlug || params?.get('year');
@@ -84,10 +92,10 @@ export default function Portfolio({ years }: PortfolioProps) {
     const initialPhoto = deepLinkMatch?.params.photo || params?.get('photo');
 
     const setSharedPhoto = useAppStore((state) => state.setSharedPhoto);
-    const openGearModal = useAppStore((state) => state.openGearModal);
     const isLightboxOpen = useAppStore((state) => state.lightbox.isOpen);
 
     const selectedTab = (() => {
+        if (isGearRoute && activeRouteSlug) return activeRouteSlug;
         if (isTeamRoute && activeRouteSlug) return activeRouteSlug;
         if (activeRouteSlug === 'favorites') return 'favorites';
         if (activeRouteSlug && years.includes(activeRouteSlug)) return activeRouteSlug;
@@ -97,6 +105,10 @@ export default function Portfolio({ years }: PortfolioProps) {
     const [teamIndex, setTeamIndex] = useState<TeamMeta[]>([]);
     const [teamSearchQuery, setTeamSearchQuery] = useState(initialSearchQuery);
     const hasFetchedTeams = useRef(false);
+
+    const [gearIndex, setGearIndex] = useState<GearMeta[]>([]);
+    const [gearSearchQuery, setGearSearchQuery] = useState('');
+    const hasFetchedGear = useRef(false);
 
     const fetchTeamIndex = useCallback(() => {
         if (hasFetchedTeams.current) return;
@@ -110,12 +122,24 @@ export default function Portfolio({ years }: PortfolioProps) {
             .catch((err) => console.error('Failed to load teams index:', err));
     }, []);
 
+    const fetchGearIndex = useCallback(() => {
+        if (hasFetchedGear.current) return;
+        hasFetchedGear.current = true;
+        fetch(`/data/gear/index.json?build=${__BUILD_NUMBER__}`)
+            .then((res) => {
+                if (!res.ok) throw new Error('Failed to fetch gear index');
+                return res.json();
+            })
+            .then((data) => setGearIndex(data))
+            .catch((err) => console.error('Failed to load gear index:', err));
+    }, []);
+
     useEffect(() => {
-        if (initialSearchOpen) {
-            // Trigger team fetch automatically if search is opened from URL parsing
+        if (initialSearchOpen || isGearRoute) {
             fetchTeamIndex();
+            fetchGearIndex();
         }
-    }, [initialSearchOpen, fetchTeamIndex]);
+    }, [initialSearchOpen, isGearRoute, fetchTeamIndex, fetchGearIndex]);
 
     const { isSticky, stickyRef, sentinelRef } = useStickyHeader();
 
@@ -130,17 +154,18 @@ export default function Portfolio({ years }: PortfolioProps) {
         const currentRouteHash = activeRouteSlug || '';
         if (prevRouteHash.current !== currentRouteHash) {
             setTeamSearchQuery('');
+            setGearSearchQuery('');
             scrollOnNextDataLoadRef.current = true;
             prevRouteHash.current = currentRouteHash;
         }
     }, [activeRouteSlug, scrollOnNextDataLoadRef]);
 
     useEffect(() => {
-        if (initialYear && initialEvent && (years.includes(initialYear) || isTeamRoute)) {
+        if (initialYear && initialEvent && (years.includes(initialYear) || isTeamRoute || isGearRoute)) {
             const index = initialPhoto ? parseInt(initialPhoto, 10) : undefined;
             setSharedPhoto({ eventName: decodeURIComponent(initialEvent), photoIndex: index });
         }
-    }, [initialYear, initialEvent, initialPhoto, years, isTeamRoute, setSharedPhoto]);
+    }, [initialYear, initialEvent, initialPhoto, years, isTeamRoute, isGearRoute, setSharedPhoto]);
 
     const { sharedFavorites, clearSharedFavorites } = useSharedFavorites();
 
@@ -148,11 +173,23 @@ export default function Portfolio({ years }: PortfolioProps) {
         selectedTab,
         years,
         onDataLoadAction: handleDataLoad,
+        isGearMode: isGearRoute,
     });
 
     const events = Object.entries(yearData);
 
-    const isTeamMode = !years.includes(selectedTab);
+    const isTeamMode = !years.includes(selectedTab) && !isGearRoute && selectedTab !== 'favorites';
+    const isMultiYearMode = (isTeamMode || isGearRoute) && selectedTab !== 'favorites';
+
+    const currentGearItem = useMemo(() => {
+        if (!isGearRoute || !activeRouteSlug) return null;
+        return GEAR_REGISTRY[activeRouteSlug] || null;
+    }, [isGearRoute, activeRouteSlug]);
+
+    const activeGearMeta = useMemo(() => {
+        if (!isGearRoute || !activeRouteSlug) return null;
+        return gearIndex.find((g) => g.id === activeRouteSlug) || null;
+    }, [isGearRoute, activeRouteSlug, gearIndex]);
 
     const totalEvents = stats?.totalEvents || events.length;
 
@@ -183,29 +220,28 @@ export default function Portfolio({ years }: PortfolioProps) {
         [stats?.mostUsedLensId, stats?.mostUsedLens, selectedTab]
     );
 
-    // In team mode, build a list of rows: either an event entry or a year-divider string.
+    // In multi-year modes (team and gear), build a list of rows: either an event entry or a year-divider string.
     type EventRow =
         | { type: 'event'; eventName: string; ev: (typeof yearData)[string]; evIdx: number }
         | { type: 'divider'; year: string };
     const isFavoritesTab = selectedTab === 'favorites';
-    const eventRows =
-        isTeamMode && !isFavoritesTab
-            ? (() => {
-                  const rows: EventRow[] = [];
-                  let lastYear: string | null = null;
-                  let eventCounter = 0;
-                  for (const [eventName, ev] of events) {
-                      const { parsedYear } = parseEventTitle(eventName, ev.originalYear);
-                      const year = parsedYear || ev.originalYear || selectedTab;
-                      if (year !== lastYear) {
-                          if (year) rows.push({ type: 'divider', year });
-                          lastYear = year ?? null;
-                      }
-                      rows.push({ type: 'event', eventName, ev, evIdx: eventCounter++ });
+    const eventRows = isMultiYearMode
+        ? (() => {
+              const rows: EventRow[] = [];
+              let lastYear: string | null = null;
+              let eventCounter = 0;
+              for (const [eventName, ev] of events) {
+                  const { parsedYear } = parseEventTitle(eventName, ev.originalYear);
+                  const year = parsedYear || ev.originalYear || selectedTab;
+                  if (year !== lastYear) {
+                      if (year) rows.push({ type: 'divider', year });
+                      lastYear = year ?? null;
                   }
-                  return rows;
-              })()
-            : events.map(([eventName, ev], evIdx) => ({ type: 'event' as const, eventName, ev, evIdx }));
+                  rows.push({ type: 'event', eventName, ev, evIdx: eventCounter++ });
+              }
+              return rows;
+          })()
+        : events.map(([eventName, ev], evIdx) => ({ type: 'event' as const, eventName, ev, evIdx }));
     const activeTeamMeta = isTeamMode ? teamIndex.find((t) => t.slug === selectedTab) : null;
 
     const fuse = useMemo(
@@ -218,6 +254,21 @@ export default function Portfolio({ years }: PortfolioProps) {
         [teamIndex]
     );
 
+    const gearFuse = useMemo(
+        () =>
+            new Fuse(gearIndex, {
+                keys: ['name', 'compactName', 'shortName', 'brand', 'type', 'searchAliases'],
+                threshold: 0.35,
+                ignoreLocation: true,
+            }),
+        [gearIndex]
+    );
+
+    const filteredGear = useMemo(() => {
+        if (!gearSearchQuery.trim()) return gearIndex;
+        return gearFuse.search(gearSearchQuery).map((result) => result.item);
+    }, [gearFuse, gearIndex, gearSearchQuery]);
+
     const filteredTeams = useMemo(() => {
         if (!teamSearchQuery.trim()) return teamIndex;
         return fuse.search(teamSearchQuery).map((result) => result.item);
@@ -227,7 +278,22 @@ export default function Portfolio({ years }: PortfolioProps) {
 
     const yearsSelectorContent = (
         <nav className="portfolio__years" aria-label="Year Navigation">
-            {isTeamMode && activeTeamMeta ? (
+            {isGearRoute && currentGearItem ? (
+                <Link
+                    to="/portfolio"
+                    className="portfolio__active-filter active"
+                    aria-label={`Remove filter for ${currentGearItem.name}`}
+                    title={`Remove filter for ${currentGearItem.name}`}
+                    onClick={() => {
+                        window.scrollTo({ top: 0, behavior: 'instant' });
+                    }}
+                >
+                    <span>{currentGearItem.compactName || currentGearItem.name}</span>
+                    <span className="portfolio__team-clear-icon" aria-hidden="true">
+                        <X size={15} strokeWidth={3} />
+                    </span>
+                </Link>
+            ) : isTeamMode && activeTeamMeta ? (
                 <Link
                     to="/portfolio"
                     className="portfolio__active-filter active"
@@ -305,7 +371,7 @@ export default function Portfolio({ years }: PortfolioProps) {
     return (
         <section className="portfolio" id="portfolio" ref={portfolioRef}>
             <div className="container">
-                {recapCount > 0 && !isTeamMode && (
+                {recapCount > 0 && !isTeamMode && !isGearRoute && (
                     <div className="portfolio__recap-section">
                         <Recap
                             slug={selectedTab}
@@ -391,19 +457,23 @@ export default function Portfolio({ years }: PortfolioProps) {
                                                     />
                                                     Camera
                                                 </span>
-                                                <button
-                                                    type="button"
-                                                    className="portfolio__season-stat-value portfolio__season-stat-btn"
-                                                    title={`View ${cameraGear?.name || stats.mostUsedCamera} specifications`}
-                                                    aria-label={`View ${cameraGear?.name || stats.mostUsedCamera} specifications`}
-                                                    onClick={() => {
-                                                        if (cameraGear) {
-                                                            openGearModal(cameraGear);
-                                                        }
-                                                    }}
-                                                >
-                                                    {stats.mostUsedCamera}
-                                                </button>
+                                                {cameraGear ? (
+                                                    <Link
+                                                        to={`/portfolio/gear/${cameraGear.id}`}
+                                                        className="portfolio__season-stat-value portfolio__season-stat-btn"
+                                                        title={`View photos taken with ${cameraGear.name}`}
+                                                        aria-label={`View photos taken with ${cameraGear.name}`}
+                                                        onClick={() => {
+                                                            window.scrollTo({ top: 0, behavior: 'instant' });
+                                                        }}
+                                                    >
+                                                        {stats.mostUsedCamera}
+                                                    </Link>
+                                                ) : (
+                                                    <span className="portfolio__season-stat-value">
+                                                        {stats.mostUsedCamera}
+                                                    </span>
+                                                )}
                                             </div>
                                         )}
                                         {stats.mostUsedLens && (
@@ -420,19 +490,23 @@ export default function Portfolio({ years }: PortfolioProps) {
                                                     />
                                                     Lens
                                                 </span>
-                                                <button
-                                                    type="button"
-                                                    className="portfolio__season-stat-value portfolio__season-stat-btn"
-                                                    title={`View ${lensGear?.name || stats.mostUsedLens} specifications`}
-                                                    aria-label={`View ${lensGear?.name || stats.mostUsedLens} specifications`}
-                                                    onClick={() => {
-                                                        if (lensGear) {
-                                                            openGearModal(lensGear);
-                                                        }
-                                                    }}
-                                                >
-                                                    {stats.mostUsedLens}
-                                                </button>
+                                                {lensGear ? (
+                                                    <Link
+                                                        to={`/portfolio/gear/${lensGear.id}`}
+                                                        className="portfolio__season-stat-value portfolio__season-stat-btn"
+                                                        title={`View photos taken with ${lensGear.name}`}
+                                                        aria-label={`View photos taken with ${lensGear.name}`}
+                                                        onClick={() => {
+                                                            window.scrollTo({ top: 0, behavior: 'instant' });
+                                                        }}
+                                                    >
+                                                        {stats.mostUsedLens}
+                                                    </Link>
+                                                ) : (
+                                                    <span className="portfolio__season-stat-value">
+                                                        {stats.mostUsedLens}
+                                                    </span>
+                                                )}
                                             </div>
                                         )}
                                     </div>
@@ -449,8 +523,16 @@ export default function Portfolio({ years }: PortfolioProps) {
                     <SharedFavoritesPanel photos={sharedFavorites} onClose={clearSharedFavorites} />
                 )}
 
+                {isGearRoute && currentGearItem && (
+                    <GearInfoHeader
+                        gear={currentGearItem}
+                        totalPhotos={activeGearMeta?.photoCount || totalPhotos}
+                        totalEvents={activeGearMeta?.eventCount || events.length}
+                    />
+                )}
+
                 <div className="portfolio__events-wrapper">
-                    {!isTeamMode && !isFavoritesTab && !isGlobalSearchOpen && !isLightboxOpen && (
+                    {!isTeamMode && !isGearRoute && !isFavoritesTab && !isGlobalSearchOpen && !isLightboxOpen && (
                         <PortfolioMonthTrack key={selectedTab} events={events} selectedYear={selectedTab} />
                     )}
 
@@ -469,6 +551,7 @@ export default function Portfolio({ years }: PortfolioProps) {
                                     selectedYear={selectedTab}
                                     inViewParent={inView}
                                     activeTeamName={activeTeamMeta?.name}
+                                    activeGearId={isGearRoute ? activeRouteSlug : undefined}
                                 />
                             )
                         )}
@@ -483,11 +566,16 @@ export default function Portfolio({ years }: PortfolioProps) {
                         onClose={() => {
                             setIsGlobalSearchOpen(false);
                             setTeamSearchQuery('');
+                            setGearSearchQuery('');
                         }}
                         teamSearchQuery={teamSearchQuery}
                         setTeamSearchQuery={setTeamSearchQuery}
                         filteredTeams={filteredTeams}
                         isTeamIndexLoading={teamIndex.length === 0}
+                        gearSearchQuery={gearSearchQuery}
+                        setGearSearchQuery={setGearSearchQuery}
+                        filteredGear={filteredGear}
+                        isGearIndexLoading={gearIndex.length === 0}
                     />
                 )}
             </Suspense>
@@ -502,6 +590,7 @@ export default function Portfolio({ years }: PortfolioProps) {
                         className="portfolio__global-floating-search"
                         onClick={() => {
                             fetchTeamIndex();
+                            fetchGearIndex();
                             setIsGlobalSearchOpen(true);
                         }}
                         aria-label="Open Search"

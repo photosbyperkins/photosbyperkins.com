@@ -12,6 +12,7 @@ import VirtualizedAlbumGrid from './VirtualizedAlbumGrid';
 import PortfolioEventTitle from './PortfolioEventTitle';
 import { useZipWorker } from '../../../hooks/useZipWorker';
 import { scrollToElement } from '../../../utils/scroll';
+import { GEAR_REGISTRY, getGearItem } from '../../../data/gearData';
 import type { EventData, PhotoInput, FavoriteStoreItem } from '../../../types';
 
 declare const __BUILD_NUMBER__: string;
@@ -23,6 +24,7 @@ interface PortfolioEventProps {
     selectedYear: string;
     inViewParent: boolean;
     activeTeamName?: string;
+    activeGearId?: string;
 }
 
 const PortfolioEvent = memo(function PortfolioEvent({
@@ -32,6 +34,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
     selectedYear,
     inViewParent,
     activeTeamName,
+    activeGearId,
 }: PortfolioEventProps) {
     const canShare = useCanShare();
     const openLightbox = useAppStore((state) => state.openLightbox);
@@ -86,10 +89,29 @@ const PortfolioEvent = memo(function PortfolioEvent({
         setEv,
     });
 
-    const albumImages: PhotoInput[] = useMemo(() => {
+    const rawAlbumImages: PhotoInput[] = useMemo(() => {
         if (!ev.album) return [];
         return ev.album.map((item: unknown) => resolvePhotoInput(item as FavoriteStoreItem));
     }, [ev.album]);
+
+    const albumImages: PhotoInput[] = useMemo(() => {
+        if (!activeGearId) return rawAlbumImages;
+        const gear = GEAR_REGISTRY[activeGearId];
+        if (!gear) return rawAlbumImages;
+
+        const effectiveYear = ev.originalYear || selectedYear;
+
+        return rawAlbumImages.filter((item) => {
+            if (!item || typeof item !== 'object' || !item.exif) return false;
+            if (gear.type === 'camera') {
+                const match = getGearItem(item.exif.cameraModel, effectiveYear, 'camera');
+                return match?.id === activeGearId;
+            } else {
+                const match = getGearItem((item.exif as any).gearLensId || item.exif.lens, effectiveYear, 'lens');
+                return match?.id === activeGearId;
+            }
+        });
+    }, [rawAlbumImages, activeGearId, ev.originalYear, selectedYear]);
 
     // Warm the scrubber sprite into browser cache as soon as album data arrives.
     // The sprite is used for both the lightbox scrubber and ambient blur background.
@@ -546,7 +568,10 @@ const PortfolioEvent = memo(function PortfolioEvent({
                     )}
                 </>
             ) : (
-                <div className="portfolio__event-placeholder portfolio__event-placeholder--featured" aria-hidden="true" />
+                <div
+                    className="portfolio__event-placeholder portfolio__event-placeholder--featured"
+                    aria-hidden="true"
+                />
             )}
         </motion.article>
     );
