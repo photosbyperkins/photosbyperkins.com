@@ -48,7 +48,7 @@ function photosMiddleware(): { name: string; configureServer: (server: ViteDevSe
 
                     // Strip leading slash for safe join
                     const safeRelative = relativePath.replace(/^\//, '');
-                    let filePath;
+                    let filePath: string;
                     if (safeRelative.startsWith('thumbnails/')) {
                         filePath = path.join(process.cwd(), 'build', safeRelative);
                     } else if (safeRelative.startsWith('scrubber/')) {
@@ -63,14 +63,22 @@ function photosMiddleware(): { name: string; configureServer: (server: ViteDevSe
                         filePath = path.join(process.cwd(), safeRelative);
                     }
 
-                    if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
+                    // Security: prevent directory traversal outside workspace
+                    const resolvedPath = path.resolve(filePath);
+                    if (!resolvedPath.startsWith(path.resolve(process.cwd()))) {
+                        res.statusCode = 403;
+                        res.end('Forbidden');
+                        return;
+                    }
+
+                    if (fs.existsSync(resolvedPath) && fs.statSync(resolvedPath).isFile()) {
                         let contentType = 'image/jpeg';
                         if (relativePath.toLowerCase().endsWith('.webp')) contentType = 'image/webp';
                         if (relativePath.toLowerCase().endsWith('.zip')) contentType = 'application/zip';
                         
                         res.setHeader('Content-Type', contentType);
                         res.setHeader('Cache-Control', 'public, max-age=86400');
-                        fs.createReadStream(filePath).pipe(res);
+                        fs.createReadStream(resolvedPath).pipe(res);
                         return;
                     }
                 }
@@ -85,12 +93,16 @@ let buildNumber = '0';
 
 try {
     const buildData = JSON.parse(fs.readFileSync(buildJsonPath, 'utf8'));
-    buildData.buildNumber = (buildData.buildNumber || 0) + 1;
-    fs.writeFileSync(buildJsonPath, JSON.stringify(buildData, null, 2));
-    buildNumber = buildData.buildNumber.toString();
-    console.log(`Build number incremented to: ${buildNumber}`);
+    const isTest = Boolean(process.env.VITEST || process.env.NODE_ENV === 'test');
+    const isBuildCommand = process.argv.some(arg => arg === 'build' || arg.endsWith('build.ts'));
+    if (!isTest && isBuildCommand) {
+        buildData.buildNumber = (buildData.buildNumber || 0) + 1;
+        fs.writeFileSync(buildJsonPath, JSON.stringify(buildData, null, 2));
+        console.log(`Build number incremented to: ${buildData.buildNumber}`);
+    }
+    buildNumber = (buildData.buildNumber || 0).toString();
 } catch (err) {
-    console.error('Failed to update build number:', err);
+    console.error('Failed to read build number:', err);
     buildNumber = Date.now().toString(); // Fallback to timestamp if file fails
 }
 
@@ -203,9 +215,6 @@ export default defineConfig(({ mode }) => {
     server: {
         port: 5173,
         open: true,
-    },
-    optimizeDeps: {
-        include: ['jszip']
     },
     test: {
         exclude: ['e2e/**', 'node_modules/**']

@@ -107,7 +107,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
                 const match = getGearItem(item.exif.cameraModel, effectiveYear, 'camera');
                 return match?.id === activeGearId;
             } else {
-                const match = getGearItem((item.exif as any).gearLensId || item.exif.lens, effectiveYear, 'lens');
+                const match = getGearItem(item.exif.gearLensId || item.exif.lens, effectiveYear, 'lens');
                 return match?.id === activeGearId;
             }
         });

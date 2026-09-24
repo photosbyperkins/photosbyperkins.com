@@ -82,7 +82,9 @@ export default function VirtualizedAlbumGrid({
     const [offsetY, setOffsetY] = useState(0);
 
     useEffect(() => {
-        const handleScroll = () => {
+        let rafId: number | null = null;
+
+        const updateScroll = () => {
             if (parentRef.current && listRef.current) {
                 const rect = parentRef.current.getBoundingClientRect();
                 const maxOffset = Math.max(0, actualRowSize * rows.length - windowHeight);
@@ -93,11 +95,21 @@ export default function VirtualizedAlbumGrid({
                     listRef.current.element.scrollTop = offset;
                 }
             }
+            rafId = null;
+        };
+
+        const handleScroll = () => {
+            if (rafId === null) {
+                rafId = window.requestAnimationFrame(updateScroll);
+            }
         };
 
         window.addEventListener('scroll', handleScroll, { passive: true });
-        handleScroll(); // Initialize
-        return () => window.removeEventListener('scroll', handleScroll);
+        updateScroll(); // Initialize
+        return () => {
+            if (rafId !== null) cancelAnimationFrame(rafId);
+            window.removeEventListener('scroll', handleScroll);
+        };
     }, [actualRowSize, rows.length, windowHeight]);
 
     const totalHeight = actualRowSize * rows.length;
@@ -167,7 +179,17 @@ export default function VirtualizedAlbumGrid({
             className="portfolio__event-grid--virtual-container"
             style={{ height: totalHeight, position: 'relative' }}
         >
-            <div style={{ position: 'absolute', top: offsetY, left: 0, right: 0, height: windowHeight, zIndex: 1 }}>
+            <div
+                style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: windowHeight,
+                    transform: `translate3d(0, ${offsetY}px, 0)`,
+                    zIndex: 1,
+                }}
+            >
                 <List
                     listRef={listRef}
                     rowCount={rows.length}

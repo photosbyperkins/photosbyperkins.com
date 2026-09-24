@@ -122,7 +122,11 @@ describe('gearData registry', () => {
     });
 
     it('should correctly match photo EXIF metadata across all camera and lens types', () => {
-        const testPhotos = [
+        const testPhotos: Array<{
+            exif: { cameraModel?: string; lens?: string; gearLensId?: string };
+            expectedCamera: string;
+            expectedLens: string;
+        }> = [
             {
                 exif: { cameraModel: 'NIKON ℤ8', lens: 'ℤ 135mm f/1.8 S Plena' },
                 expectedCamera: 'nikon-z8',
@@ -169,7 +173,7 @@ describe('gearData registry', () => {
             const cam = getGearItem(tp.exif.cameraModel, null, 'camera');
             expect(cam?.id).toBe(tp.expectedCamera);
 
-            const lens = getGearItem((tp.exif as any).gearLensId || tp.exif.lens, null, 'lens');
+            const lens = getGearItem(tp.exif.gearLensId || tp.exif.lens, null, 'lens');
             expect(lens?.id).toBe(tp.expectedLens);
         }
     });

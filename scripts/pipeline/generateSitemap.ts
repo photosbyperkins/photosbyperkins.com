@@ -22,15 +22,23 @@ export async function generateSitemap(data: IndexState) {
 
     // Process each year and event
     for (const year in data) {
+        // Year overview page
+        xml += `  <url>\n`;
+        xml += `    <loc>${BASE_URL}/portfolio/${encodeURIComponent(year)}</loc>\n`;
+        xml += `    <changefreq>weekly</changefreq>\n`;
+        xml += `    <priority>0.9</priority>\n`;
+        xml += `  </url>\n`;
+
         for (const event in data[year]) {
-            const url = `${BASE_URL}/?year=${encodeURIComponent(year)}&amp;event=${encodeURIComponent(event)}`;
+            // Canonical portfolio event route
+            const canonicalEventUrl = `${BASE_URL}/portfolio/${encodeURIComponent(year)}/${encodeURIComponent(event)}`;
             xml += `  <url>\n`;
-            xml += `    <loc>${url}</loc>\n`;
+            xml += `    <loc>${canonicalEventUrl}</loc>\n`;
             xml += `    <changefreq>monthly</changefreq>\n`;
             xml += `    <priority>0.8</priority>\n`;
             xml += `  </url>\n`;
 
-            // Generate entries for share pages to help with OG crawler indexing
+            // Share page for OpenGraph and social scrapers
             const shareUrl = `${BASE_URL}/share/${encodeURIComponent(year)}/${encodeURIComponent(event)}`;
             xml += `  <url>\n`;
             xml += `    <loc>${shareUrl}</loc>\n`;

@@ -17,10 +17,21 @@
   <script>
     (function() {
       try {
-        var saved = localStorage.getItem('photo-theme-preference');
         var theme = 'dark';
-        if (saved === 'light' || saved === 'dark') {
-          theme = saved;
+        var appStore = localStorage.getItem('photo-app-store');
+        var pref = null;
+        if (appStore) {
+          try {
+            var parsed = JSON.parse(appStore);
+            pref = parsed && parsed.state ? parsed.state.theme : null;
+          } catch (_) {}
+        }
+        if (!pref) {
+          pref = localStorage.getItem('photo-theme-preference');
+        }
+
+        if (pref === 'light' || pref === 'dark') {
+          theme = pref;
         } else {
           var sysDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
           theme = sysDark ? 'dark' : 'light';
@@ -39,7 +50,7 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png?build=%BUILD_NUMBER%" />
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
   <meta name="apple-mobile-web-app-title" content="%VITE_SITE_APP_TITLE%">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description"
     content="%VITE_SITE_DESC%" />
   <meta name="keywords"

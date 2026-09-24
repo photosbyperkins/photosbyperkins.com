@@ -34,7 +34,11 @@ export function useStickyHeader() {
             observer.observe(sentinelRef.current);
         }
 
-        return () => observer.disconnect();
+        return () => {
+            observer.disconnect();
+            document.body.classList.remove('has-stuck-portfolio');
+            document.documentElement.style.removeProperty('--portfolio-stuck-height');
+        };
     }, []);
 
     // Keep height synced if window resizes or sticky content changes

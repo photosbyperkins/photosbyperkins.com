@@ -35,6 +35,11 @@ export function useImagePreloader({ images, currentIndex, mainImageLoaded, getDi
                 return distA - distB;
             });
 
+            const isSaveData =
+                typeof navigator !== 'undefined' &&
+                Boolean((navigator as { connection?: { saveData?: boolean } }).connection?.saveData);
+            if (isSaveData) return;
+
             // Fire off immediate next/prev directly into the browser network pipeline
             const immediate = allIdxs.slice(0, 2);
             immediate.forEach((idx) => {
@@ -45,8 +50,9 @@ export function useImagePreloader({ images, currentIndex, mainImageLoaded, getDi
                 }
             });
 
-            // Asynchronously trickle-load the rest of the album sequentially
-            const queued = allIdxs.slice(2);
+            // Asynchronously trickle-load the nearest photos (capped to prevent bandwidth/memory exhaustion)
+            const MAX_PRELOAD_RADIUS = 8;
+            const queued = allIdxs.slice(2, 2 + MAX_PRELOAD_RADIUS);
             for (const idx of queued) {
                 if (isCancelled) break;
 

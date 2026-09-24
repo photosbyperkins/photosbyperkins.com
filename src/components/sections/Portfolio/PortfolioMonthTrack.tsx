@@ -1,11 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import {
-    computeYearMonths,
-    getEventMonth,
-    formatEventElementId,
-    detectActiveMonth,
-    type MonthData,
-} from '../../../utils/monthTrack';
+import { computeYearMonths, getEventMonth, detectActiveMonth, type MonthData } from '../../../utils/monthTrack';
 import { scrollToElement } from '../../../utils/scroll';
 import type { EventData } from '../../../types';
 

@@ -76,6 +76,7 @@ async function runMediaSync() {
 
         console.log(`📦 Found ${pendingUploads.length} new/modified media files to upload.`);
 
+        const remoteDir = REMOTE_DIR as string;
         // Upload in batches of 50 files
         const batchSize = 50;
         for (let i = 0; i < pendingUploads.length; i += batchSize) {
@@ -84,7 +85,7 @@ async function runMediaSync() {
 
             for (const rel of batch) {
                 const localFile = path.join(buildDir, rel);
-                const remoteFileDir = path.posix.join(REMOTE_DIR, path.posix.dirname(rel));
+                const remoteFileDir = path.posix.join(remoteDir, path.posix.dirname(rel));
                 
                 execSync(
                     `ssh -o StrictHostKeyChecking=accept-new ${SSH_USER}@${SSH_HOST} "mkdir -p '${remoteFileDir}'"`,

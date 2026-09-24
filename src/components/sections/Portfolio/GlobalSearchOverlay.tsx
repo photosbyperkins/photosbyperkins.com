@@ -42,7 +42,7 @@ export default function GlobalSearchOverlay({
     const overlayRef = useRef<HTMLDivElement>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
 
-    useFocusTrap(overlayRef, isOpen);
+    useFocusTrap(overlayRef, isOpen, searchInputRef);
     useBodyScrollLock(isOpen);
 
     useEffect(() => {
@@ -118,6 +118,7 @@ export default function GlobalSearchOverlay({
                                     <input
                                         ref={searchInputRef}
                                         type="search"
+                                        autoFocus
                                         enterKeyHint="search"
                                         aria-label={isTeams ? 'Search teams' : 'Search gear'}
                                         value={currentQuery}
@@ -125,11 +126,7 @@ export default function GlobalSearchOverlay({
                                     />
                                 </div>
                             </div>
-                            <button
-                                className="portfolio__global-search-back-btn"
-                                onClick={onClose}
-                                aria-label="Close search"
-                            >
+                            <button className="portfolio__global-search-back-btn" onClick={onClose} aria-label="Close">
                                 <X size={20} />
                             </button>
                         </div>

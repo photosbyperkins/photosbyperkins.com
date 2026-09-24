@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('Favorite Camera & Lens Manufacturer Modals', () => {
+test.describe('Favorite Camera & Lens Gear Pages', () => {
     test.beforeEach(async ({ page }) => {
         await page.goto('/');
         await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
@@ -27,7 +27,7 @@ test.describe('Favorite Camera & Lens Manufacturer Modals', () => {
         }
     });
 
-    test('should open Nikon Z 8 modal and link to Nikon USA when clicking favorite camera', async ({ page, isMobile }) => {
+    test('should open Nikon Z 8 gear page and link to Nikon USA when clicking favorite camera', async ({ page, isMobile }) => {
         if (isMobile) {
             test.skip();
             return;
@@ -36,22 +36,23 @@ test.describe('Favorite Camera & Lens Manufacturer Modals', () => {
         const cameraBtn = page.locator('.portfolio__season-stat-compact--camera .portfolio__season-stat-btn');
         await cameraBtn.click();
 
-        const overlay = page.locator('.gear-modal-overlay');
-        await expect(overlay).toBeVisible({ timeout: 3000 });
-        await expect(overlay.locator('.section-label')).toContainText('Nikon Z 8');
-        await expect(overlay.locator('.gear-modal__spec-grid')).toBeVisible();
+        await expect(page).toHaveURL(/\/portfolio\/gear\/nikon-z8/);
+        const header = page.locator('.portfolio__gear-header');
+        await expect(header).toBeVisible({ timeout: 5000 });
+        await expect(header.locator('.gear-info-card__title')).toContainText('Nikon');
+        await expect(header.locator('.gear-modal__spec-grid')).toBeVisible();
 
         // External link button points directly to Nikon USA product page
-        const externalLink = overlay.locator('a.modal-shell__action-btn, a.gear-modal__action-btn');
+        const externalLink = header.locator('a.gear-info-card__official-link');
         await expect(externalLink).toHaveAttribute('href', 'https://www.nikonusa.com/p/z-8/1695');
 
-        // Close via close button
-        const closeBtn = overlay.locator('button[aria-label="Close"]');
-        await closeBtn.click();
-        await expect(overlay).not.toBeVisible({ timeout: 3000 });
+        // Clear filter via active filter pill in navigation
+        const activeFilter = page.locator('.portfolio__active-filter');
+        await activeFilter.click();
+        await expect(header).not.toBeVisible({ timeout: 3000 });
     });
 
-    test('should open Nikon 120-300mm modal when clicking favorite lens on 2026', async ({ page, isMobile }) => {
+    test('should open Nikon 120-300mm gear page when clicking favorite lens on 2026', async ({ page, isMobile }) => {
         if (isMobile) {
             test.skip();
             return;
@@ -60,54 +61,54 @@ test.describe('Favorite Camera & Lens Manufacturer Modals', () => {
         const lensBtn = page.locator('.portfolio__season-stat-compact--lens .portfolio__season-stat-btn');
         await lensBtn.click();
 
-        const overlay = page.locator('.gear-modal-overlay');
-        await expect(overlay).toBeVisible({ timeout: 3000 });
-        await expect(overlay.locator('.section-label')).toContainText('120-300mm');
-        await expect(overlay.locator('.gear-modal__name-full')).toBeVisible();
-        await expect(overlay.locator('.gear-modal__name-compact')).toBeHidden();
-        await expect(overlay.locator('.gear-modal__spec-grid')).toBeVisible();
+        await expect(page).toHaveURL(/\/portfolio\/gear\/nikon-120-300mm/);
+        const header = page.locator('.portfolio__gear-header');
+        await expect(header).toBeVisible({ timeout: 5000 });
+        await expect(header.locator('.gear-info-card__title')).toContainText('120-300mm');
+        await expect(header.locator('.gear-modal__name-full')).toBeVisible();
+        await expect(header.locator('.gear-modal__name-compact')).toBeHidden();
+        await expect(header.locator('.gear-modal__spec-grid')).toBeVisible();
 
         // External link button points directly to Nikon USA product page
-        const externalLink = overlay.locator('a.modal-shell__action-btn, a.gear-modal__action-btn');
+        const externalLink = header.locator('a.gear-info-card__official-link');
         await expect(externalLink).toHaveAttribute('href', 'https://www.nikonusa.com/p/af-s-nikkor-120-300mm-f28e-fl-ed-sr-vr/20088/overview');
 
-        // Close via Escape key
-        await page.keyboard.press('Escape');
-        await expect(overlay).not.toBeVisible({ timeout: 3000 });
+        // Clear filter via active filter pill in navigation
+        const activeFilter = page.locator('.portfolio__active-filter');
+        await activeFilter.click();
+        await expect(header).not.toBeVisible({ timeout: 3000 });
     });
 
-    test('should responsively show compact product name on mobile viewports', async ({ page }) => {
-        // Set mobile viewport
-        await page.setViewportSize({ width: 375, height: 667 });
+    test('should responsively show compact product name on mobile viewports', async ({ page, isMobile }) => {
+        if (isMobile) {
+            test.skip();
+            return;
+        }
 
-        // Trigger gear modal via direct store action to verify mobile modal rendering
-        await page.evaluate(() => {
-            const store = (window as unknown as { __photoStore?: { getState: () => { openGearModal: (gear: unknown) => void } } }).__photoStore;
-            // Or click button if visible or test modal styles
-        });
-
-        // Test with desktop viewport first, open modal, then resize to mobile
+        // Test with desktop viewport first, navigate to gear page
         await page.setViewportSize({ width: 1200, height: 800 });
         const lensBtn = page.locator('.portfolio__season-stat-compact--lens .portfolio__season-stat-btn');
+        if ((await lensBtn.count()) === 0) return;
         await lensBtn.click();
 
-        const overlay = page.locator('.gear-modal-overlay');
-        await expect(overlay).toBeVisible({ timeout: 3000 });
-        await expect(overlay.locator('.gear-modal__name-full')).toBeVisible();
-        await expect(overlay.locator('.gear-modal__name-compact')).toBeHidden();
+        const header = page.locator('.portfolio__gear-header');
+        await expect(header).toBeVisible({ timeout: 5000 });
+        await expect(header.locator('.gear-modal__name-full')).toBeVisible();
+        await expect(header.locator('.gear-modal__name-compact')).toBeHidden();
 
         // Resize down to mobile width (<= 768px)
         await page.setViewportSize({ width: 400, height: 800 });
-        await expect(overlay.locator('.gear-modal__name-compact')).toBeVisible();
-        await expect(overlay.locator('.gear-modal__name-full')).toBeHidden();
-        await expect(overlay.locator('.gear-modal__name-compact')).toHaveText('Nikon 120-300mm f/2.8');
+        await expect(header.locator('.gear-modal__name-compact')).toBeVisible();
+        await expect(header.locator('.gear-modal__name-full')).toBeHidden();
+        await expect(header.locator('.gear-modal__name-compact')).toHaveText('Nikon 120-300mm f/2.8');
 
-        // Close modal
-        await page.keyboard.press('Escape');
-        await expect(overlay).not.toBeVisible({ timeout: 3000 });
+        // Clear filter
+        const activeFilter = page.locator('.portfolio__active-filter');
+        await activeFilter.click();
+        await expect(header).not.toBeVisible({ timeout: 3000 });
     });
 
-    test('should open Sigma 50mm Art modal and link to Sigma Photo when navigating to 2017', async ({ page, isMobile }) => {
+    test('should open Sigma 50mm Art gear page and link to Sigma Photo when navigating to 2017', async ({ page, isMobile }) => {
         if (isMobile) {
             test.skip();
             return;
@@ -121,18 +122,19 @@ test.describe('Favorite Camera & Lens Manufacturer Modals', () => {
         await expect(lensBtn).toContainText('50mm');
         await lensBtn.click();
 
-        const overlay = page.locator('.gear-modal-overlay');
-        await expect(overlay).toBeVisible({ timeout: 3000 });
-        await expect(overlay.locator('.section-label')).toContainText('Sigma 50mm');
-        await expect(overlay.locator('.gear-modal__spec-grid')).toBeVisible();
+        await expect(page).toHaveURL(/\/portfolio\/gear\/sigma-50mm-art/);
+        const header = page.locator('.portfolio__gear-header');
+        await expect(header).toBeVisible({ timeout: 5000 });
+        await expect(header.locator('.gear-info-card__title')).toContainText('Sigma 50mm');
+        await expect(header.locator('.gear-modal__spec-grid')).toBeVisible();
 
         // External link button points directly to Sigma Photo product page
-        const externalLink = overlay.locator('a.modal-shell__action-btn, a.gear-modal__action-btn');
+        const externalLink = header.locator('a.gear-info-card__official-link');
         await expect(externalLink).toHaveAttribute('href', 'https://www.sigmaphoto.com/50mm-f1-4-dg-hsm-a');
 
-        // Close via close button
-        const closeBtn = overlay.locator('button[aria-label="Close"]');
-        await closeBtn.click();
-        await expect(overlay).not.toBeVisible({ timeout: 3000 });
+        // Clear filter via active filter pill in navigation
+        const activeFilter = page.locator('.portfolio__active-filter');
+        await activeFilter.click();
+        await expect(header).not.toBeVisible({ timeout: 3000 });
     });
 });

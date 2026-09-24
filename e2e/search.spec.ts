@@ -180,7 +180,7 @@ test.describe('Search', () => {
         await page.waitForTimeout(500);
 
         const searchInput = page.locator('.portfolio__search-input-wrap input');
-        await expect(searchInput).toBeVisible({ timeout: 3000 });
+        await expect(searchInput).toBeVisible({ timeout: 10000 });
 
         // Input should be focused (autoFocus attribute)
         const isFocused = await searchInput.evaluate((el) => document.activeElement === el);

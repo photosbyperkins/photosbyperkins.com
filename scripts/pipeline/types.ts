@@ -40,6 +40,7 @@ export interface EventData {
     };
     date?: string | null;
     description?: string | null;
+    photoCount?: number;
     localScore?: Record<string, unknown>;
     earliestTime?: number;
 }

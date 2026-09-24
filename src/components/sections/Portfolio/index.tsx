@@ -44,6 +44,7 @@ export default function Portfolio({ years }: PortfolioProps) {
     const initialSearchQuery = params?.get('q') || '';
 
     const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState(initialSearchOpen);
+    const [hasEverOpenedSearch, setHasEverOpenedSearch] = useState(initialSearchOpen);
 
     const isFirstRender = useRef(true);
 
@@ -141,7 +142,7 @@ export default function Portfolio({ years }: PortfolioProps) {
         }
     }, [initialSearchOpen, isGearRoute, fetchTeamIndex, fetchGearIndex]);
 
-    const { isSticky, stickyRef, sentinelRef } = useStickyHeader();
+    const { stickyRef, sentinelRef } = useStickyHeader();
 
     const portfolioRef = useRef<HTMLDivElement>(null);
     const inView = useInView(portfolioRef, { once: true, margin: '-60px' });
@@ -560,7 +561,7 @@ export default function Portfolio({ years }: PortfolioProps) {
             </div>
 
             <Suspense fallback={null}>
-                {isGlobalSearchOpen && (
+                {hasEverOpenedSearch && (
                     <GlobalSearchOverlay
                         isOpen={isGlobalSearchOpen}
                         onClose={() => {
@@ -591,6 +592,7 @@ export default function Portfolio({ years }: PortfolioProps) {
                         onClick={() => {
                             fetchTeamIndex();
                             fetchGearIndex();
+                            setHasEverOpenedSearch(true);
                             setIsGlobalSearchOpen(true);
                         }}
                         aria-label="Open Search"

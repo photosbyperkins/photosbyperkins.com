@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-// @ts-ignore - types/archiver is outdated for v8
+// @ts-expect-error - types/archiver is outdated for v8
 import { ZipArchive } from 'archiver';
 import type { IndexState, EventData, PhotoObject } from './types.js';
 import { logger } from './logger.js';

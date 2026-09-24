@@ -4,7 +4,6 @@ import Nav from './components/sections/Nav';
 import PwaStatusToast from './components/ui/PwaStatusToast';
 import { GithubIcon, FacebookIcon, InstagramIcon } from './components/ui/icons';
 import { useAppStore } from './store/useAppStore';
-import { scrollToElement } from './utils/scroll';
 
 const About = lazy(() => import('./components/sections/About'));
 const Portfolio = lazy(() => import('./components/sections/Portfolio'));

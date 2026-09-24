@@ -81,7 +81,7 @@ export function stopPool() {
  * @param {Buffer} referencePngBuffer - Lossless PNG buffer to compare against
  * @param {string} label - Identifier for temp files (e.g. "recap_2025")
  */
-export async function findOptimalQuality(referencePngBuffer: Buffer, label: string = 's2') {
+export async function findOptimalQuality(referencePngBuffer: Buffer, _label: string = 's2') {
     const refPath = path.join(SSIM_TMP_DIR, `s2_ref_${crypto.randomUUID()}.png`);
     await fs.promises.writeFile(refPath, referencePngBuffer);
 

@@ -130,7 +130,7 @@ async function runDeploy() {
         try {
             // Force write permissions before deleting to handle read-only copied files
             execSync(`ssh -o StrictHostKeyChecking=accept-new ${SSH_USER}@${SSH_HOST} "chmod -R u+w ${REMOTE_DIR}_deploy_tmp_* 2>/dev/null; rm -rf ${REMOTE_DIR}_deploy_tmp_*"`, { stdio: 'ignore' });
-        } catch (error) {
+        } catch {
             // Ignore errors if no directories exist or pattern does not match
         }
 

@@ -1,7 +1,7 @@
 import { useRef, useCallback } from 'react';
-import { scrollToElement } from '../utils/scroll';
+import type { RefObject } from 'react';
 
-export function usePortfolioScroll(portfolioRef: React.RefObject<HTMLDivElement | null>) {
+export function usePortfolioScroll(_portfolioRef?: RefObject<HTMLDivElement | null>) {
     const scrollOnNextDataLoadRef = useRef(false);
 
     const handleDataLoad = useCallback(() => {
@@ -12,7 +12,7 @@ export function usePortfolioScroll(portfolioRef: React.RefObject<HTMLDivElement 
                 window.scrollTo({ top: 0, behavior: 'instant' });
             }, 50);
         }
-    }, [portfolioRef]);
+    }, []);
 
     return { scrollOnNextDataLoadRef, handleDataLoad };
 }

@@ -9,7 +9,7 @@ An incredibly fast, highly automated photography portfolio built for action phot
 - **SSIMULACRA 2 Quality Optimization**: Thumbnails are optimized to the lowest WebP quality that meets a perceptual quality threshold, balancing file size and visual fidelity. Sprites (scrubber and recap) use a static, high-performance quality setting for faster builds.
 - **Service Worker PWA**: Works offline, fully cache-enabled using Vite PWA.
 - **Glassmorphic UI**: A stunning, modern, hardware-accelerated interface.
-- **Favorites & Web Worker Zipping**: Star your favorite photos and batch download them entirely client-side using `jszip` in a background Web Worker!
+- **Favorites & Web Worker Zipping**: Star your favorite photos and batch download them entirely client-side using `fflate` in a background Web Worker!
 - **Shareable Favorites URLs**: Share curated photo selections via lightweight, DEFLATE-compressed, database-free URLs.
 - **Lightbox Scrubber**: Drag-to-navigate sprite-sheet scrubber for fast album browsing within the lightbox.
 - **Fuzzy Search Engine**: Instantly find teams with typo-tolerant search powered by `fuse.js`.

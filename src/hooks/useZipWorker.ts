@@ -32,7 +32,7 @@ export function useZipWorker() {
                     a.href = url;
                     a.download = outFilename;
                     a.click();
-                    URL.revokeObjectURL(url);
+                    setTimeout(() => URL.revokeObjectURL(url), 1000);
 
                     setZipProgress(100);
                     setTimeout(() => {

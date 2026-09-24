@@ -114,7 +114,7 @@ export function computeYearMonths(events: [string, Partial<EventData>][]): Month
 }
 
 export interface DetectActiveMonthParams {
-    events: [string, any][];
+    events: [string, unknown][];
     getRect: (elId: string) => { top: number; bottom: number } | null;
     scrollY: number;
     viewportHeight: number;

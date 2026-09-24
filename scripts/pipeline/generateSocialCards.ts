@@ -143,8 +143,8 @@ export async function generateSocialCards(data: IndexState) {
 
             // Check cache — skip if source, focusX, focusY haven't changed
             const outputFile = path.join(OUTPUT_DIR, safeFilename(year, event));
-            const focusXCached = typeof img === 'object' ? img.focusX : undefined;
-            const focusYCached = typeof img === 'object' ? img.focusY : undefined;
+            const focusXCached = img && typeof img === 'object' ? img.focusX : undefined;
+            const focusYCached = img && typeof img === 'object' ? img.focusY : undefined;
             const cacheKey = `${firstImgPath}|${focusXCached ?? ''}|${focusYCached ?? ''}`;
             const relKey = safeFilename(year, event);
             newManifest[relKey] = cacheKey;

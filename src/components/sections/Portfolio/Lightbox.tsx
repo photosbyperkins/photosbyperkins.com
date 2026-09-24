@@ -54,16 +54,22 @@ export default function Lightbox({
     const [mainImageLoaded, setMainImageLoaded] = useState(false);
     const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 1200);
 
+    const favoriteUrlsSet = useMemo(() => {
+        const set = new Set<string>();
+        for (const f of favorites) {
+            const fInput = typeof f === 'object' && 'photo' in f ? f.photo : f;
+            const fOriginal = typeof fInput === 'string' ? fInput : fInput?.original;
+            if (fOriginal) set.add(fOriginal);
+        }
+        return set;
+    }, [favorites]);
+
     const checkIfFavorite = useCallback(
         (photo: PhotoInput) => {
-            const src = typeof photo === 'string' ? photo : photo.original;
-            return favorites.some((f) => {
-                const fInput = typeof f === 'object' && 'photo' in f ? f.photo : f;
-                const fOriginal = typeof fInput === 'string' ? fInput : fInput.original;
-                return fOriginal === src;
-            });
+            const src = typeof photo === 'string' ? photo : photo?.original;
+            return src ? favoriteUrlsSet.has(src) : false;
         },
-        [favorites]
+        [favoriteUrlsSet]
     );
 
     const getThumbSrc = useCallback((photo: PhotoInput) => {
@@ -125,8 +131,8 @@ export default function Lightbox({
     // Map the horizontal swipe down to a 72px physical tracking shift
     const dragShift = useTransform(x, [-windowWidth, 0, windowWidth], [-72, 0, 72]);
 
-    // How many slices to render (enough to fill the viewport + massive buffer for drag panning)
-    const visibleSlices = Math.max(5, Math.ceil(windowWidth / 72) + 100);
+    // How many slices to render (viewport width + buffer for drag overshoot)
+    const visibleSlices = Math.max(5, Math.ceil(windowWidth / 72) + 8);
     // Ensure odd number so there's a perfectly centered item
     const sliceCount = visibleSlices % 2 === 0 ? visibleSlices + 1 : visibleSlices;
     const maxDist = Math.floor(sliceCount / 2);

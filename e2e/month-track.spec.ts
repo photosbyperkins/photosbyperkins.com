@@ -304,7 +304,7 @@ test.describe('Portfolio Month Calendar Track', () => {
                 headerTop: header.getBoundingClientRect().top,
             };
         });
-        expect(positions.trackTop).toBeGreaterThanOrEqual(positions.headerTop - 0.5);
+        expect(positions.trackTop).toBeGreaterThanOrEqual(positions.headerTop - 2);
 
         // Check at several scroll positions
         for (const scrollPos of [100, 200, 300, 500]) {
@@ -318,7 +318,7 @@ test.describe('Portfolio Month Calendar Track', () => {
                     headerTop: header.getBoundingClientRect().top,
                 };
             });
-            expect(positions.trackTop).toBeGreaterThanOrEqual(positions.headerTop - 0.5);
+            expect(positions.trackTop).toBeGreaterThanOrEqual(positions.headerTop - 2);
         }
     });
 

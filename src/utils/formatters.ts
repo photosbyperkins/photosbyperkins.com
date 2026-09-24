@@ -16,7 +16,8 @@ export function getTeamNameFormats(teamName: string): TeamNameFormats {
     // Level 1: Mid
     let mid = teamName;
     for (const [f, abbr] of Object.entries(TEAM_ABBREVIATIONS)) {
-        mid = mid.replace(new RegExp(`\\b${f}\\b`, 'g'), abbr);
+        const escaped = f.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        mid = mid.replace(new RegExp(`\\b${escaped}\\b`, 'g'), abbr);
     }
     mid = mid.replace(/\s+Roller Derby\b/gi, '').trim();
 
