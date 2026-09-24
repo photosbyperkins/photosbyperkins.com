@@ -16,86 +16,88 @@ export default function Footer() {
     return (
         <footer className="footer">
             <div className="container footer__container">
-                {/* 1. Copyright */}
+                {/* Left Side: Copyright */}
                 <div className="footer__group footer__group--copy">
                     <span className="footer__copy">
                         © {new Date().getFullYear()} {copyrightName}
                     </span>
                 </div>
 
-                <span className="footer__divider footer__divider--first" aria-hidden="true">
+                {/* Mobile Divider (Row 2 between copy and socials) */}
+                <span className="footer__divider footer__divider--mobile" aria-hidden="true">
                     •
                 </span>
 
-                {/* 2. Legal / Policies */}
-                <div className="footer__group footer__group--links">
-                    <div className="footer__links">
-                        <button type="button" onClick={openAiPolicy} className="footer__link footer__ai-policy-btn">
-                            AI Policy
-                        </button>
-                        <span className="footer__link-divider" aria-hidden="true">
-                            •
-                        </span>
-                        <button
-                            type="button"
-                            onClick={openCodeLicense}
-                            className="footer__link footer__code-license-btn"
-                        >
-                            {codeLicenseLabel}
-                        </button>
-                        <span className="footer__link-divider" aria-hidden="true">
-                            •
-                        </span>
-                        <button
-                            type="button"
-                            onClick={openPhotoLicense}
-                            className="footer__link footer__license footer__license-btn"
-                        >
-                            {photosLicenseLabel}
-                        </button>
+                {/* Right Side: Legal Links + Social Channels */}
+                <div className="footer__actions">
+                    <div className="footer__group footer__group--links">
+                        <div className="footer__links">
+                            <button type="button" onClick={openAiPolicy} className="footer__link footer__ai-policy-btn">
+                                AI Policy
+                            </button>
+                            <span className="footer__link-divider" aria-hidden="true">
+                                •
+                            </span>
+                            <button
+                                type="button"
+                                onClick={openCodeLicense}
+                                className="footer__link footer__code-license-btn"
+                            >
+                                {codeLicenseLabel}
+                            </button>
+                            <span className="footer__link-divider" aria-hidden="true">
+                                •
+                            </span>
+                            <button
+                                type="button"
+                                onClick={openPhotoLicense}
+                                className="footer__link footer__license footer__license-btn"
+                            >
+                                {photosLicenseLabel}
+                            </button>
+                        </div>
                     </div>
-                </div>
 
-                <span className="footer__divider footer__divider--second" aria-hidden="true">
-                    •
-                </span>
+                    <span className="footer__pipe" aria-hidden="true">
+                        |
+                    </span>
 
-                {/* 3. Social Channels */}
-                <div className="footer__group footer__group--socials">
-                    <div className="footer__social-row">
-                        {import.meta.env.VITE_SOCIAL_GITHUB && (
-                            <a
-                                href={import.meta.env.VITE_SOCIAL_GITHUB}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="footer__social"
-                                aria-label="GitHub"
-                            >
-                                <GithubIcon size={18} />
-                            </a>
-                        )}
-                        {import.meta.env.VITE_SOCIAL_FACEBOOK && (
-                            <a
-                                href={import.meta.env.VITE_SOCIAL_FACEBOOK}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="footer__social"
-                                aria-label="Facebook"
-                            >
-                                <FacebookIcon size={18} />
-                            </a>
-                        )}
-                        {import.meta.env.VITE_SOCIAL_INSTAGRAM && (
-                            <a
-                                href={import.meta.env.VITE_SOCIAL_INSTAGRAM}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="footer__social"
-                                aria-label="Instagram"
-                            >
-                                <InstagramIcon size={18} />
-                            </a>
-                        )}
+                    <div className="footer__group footer__group--socials">
+                        <div className="footer__social-row">
+                            {import.meta.env.VITE_SOCIAL_GITHUB && (
+                                <a
+                                    href={import.meta.env.VITE_SOCIAL_GITHUB}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="footer__social"
+                                    aria-label="GitHub"
+                                >
+                                    <GithubIcon size={18} />
+                                </a>
+                            )}
+                            {import.meta.env.VITE_SOCIAL_FACEBOOK && (
+                                <a
+                                    href={import.meta.env.VITE_SOCIAL_FACEBOOK}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="footer__social"
+                                    aria-label="Facebook"
+                                >
+                                    <FacebookIcon size={18} />
+                                </a>
+                            )}
+                            {import.meta.env.VITE_SOCIAL_INSTAGRAM && (
+                                <a
+                                    href={import.meta.env.VITE_SOCIAL_INSTAGRAM}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="footer__social"
+                                    aria-label="Instagram"
+                                >
+                                    <InstagramIcon size={18} />
+                                </a>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
