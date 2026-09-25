@@ -680,6 +680,9 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
     fs.writeFileSync(path.join(GEAR_DIR, `index.json`), JSON.stringify(uniqueGear, null, 0));
     logger.info(`Wrote index.json with ${uniqueGear.length} gear items and chunks.`);
 
+    const recapDefsPath = path.join(process.cwd(), 'data', 'recap_definitions.json');
+    fs.writeFileSync(recapDefsPath, JSON.stringify(recapDefinitions, null, 2));
+
     return recapDefinitions as RecapDefinitions;
 }
 

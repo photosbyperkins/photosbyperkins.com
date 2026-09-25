@@ -4,6 +4,7 @@ import path from 'path';
 import sharp from 'sharp';
 import os from 'os';
 import { findOptimalQuality } from './ssim2Pool.js';
+import { applyPhotoMetadata } from './metadataInjection.js';
 import { runWithConcurrency, removeStaleFiles } from './utils.js';
 import type { IndexState } from './types.js';
 import { logger } from './logger';
@@ -121,19 +122,27 @@ export async function encodePhotos(indexData: IndexState, cleanStale = true) {
                             // Display AVIF (3840px): AVIF Q58-Q62 achieves SSIM2 >= 78 with dramatic size reductions (-35%) vs WebP Q82
                             const targetAvifQ = Math.max(52, Math.min(62, avifQ ? avifQ - 4 : 58));
                             fs.mkdirSync(aDir, { recursive: true });
+                            const avifPipeline = applyPhotoMetadata(
+                                pipeline.clone().resize({ width: 3840, height: 3840, fit: 'inside', withoutEnlargement: true }),
+                                { year, title: eventData.title || event }
+                            );
                             ops.push(
-                                pipeline.clone().resize({ width: 3840, height: 3840, fit: 'inside', withoutEnlargement: true })
+                                avifPipeline
                                     .avif({ quality: targetAvifQ, effort: 4 })
                                     .toFile(avifPath)
                             );
                         }
 
                         if (missingProcessed) {
-                            const pQ = thumbQ || 95; // Fallback
+                            const pQ = thumbQ ? Math.min(thumbQ, 90) : 90; // Fallback
                             fs.mkdirSync(pDir, { recursive: true });
+                            const procPipeline = applyPhotoMetadata(
+                                pipeline.clone(),
+                                { year, title: eventData.title || event }
+                            );
                             ops.push(
-                                pipeline.clone()
-                                    .jpeg({ quality: pQ, mozjpeg: true, chromaSubsampling: '4:4:4', trellisQuantisation: true, overshootDeringing: true, optimizeScans: true })
+                                procPipeline
+                                    .jpeg({ quality: pQ, mozjpeg: true, chromaSubsampling: '4:2:0', trellisQuantisation: true, overshootDeringing: true, optimizeScans: true })
                                     .toFile(processedPath)
                             );
                         }

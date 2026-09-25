@@ -82,14 +82,19 @@ export async function generateRecaps(definitions: RecapDefinitions): Promise<voi
         let actualSourcePath = sourcePath;
 
         if (!fs.existsSync(actualSourcePath)) {
-            // Fallback to thumbnail if original is missing
-            const thumbRelative = sourceRelative.replace(/^photos[/\\]/, 'thumbnails/').replace(/\.[^/.]+$/, '.webp');
-            const thumbPath = path.join(process.cwd(), 'build', thumbRelative);
-            
-            if (fs.existsSync(thumbPath)) {
-                actualSourcePath = thumbPath;
+            const relWithoutPhotos = sourceRelative.replace(/^photos[/\\]/, '');
+            const candidates = [
+                path.join(process.cwd(), 'build', sourceRelative),
+                path.join(process.cwd(), 'build', 'processed', relWithoutPhotos),
+                path.join(process.cwd(), 'build', 'avif', relWithoutPhotos.replace(/\.[^/.]+$/, '.avif')),
+                path.join(process.cwd(), 'build', 'thumbnails', relWithoutPhotos.replace(/\.[^/.]+$/, '.avif')),
+                path.join(process.cwd(), 'build', 'thumbnails', relWithoutPhotos.replace(/\.[^/.]+$/, '.webp')),
+            ];
+            const found = candidates.find(c => fs.existsSync(c));
+            if (found) {
+                actualSourcePath = found;
             } else {
-                logger.error(`Source missing: ${sourcePath} (and thumbnail fallback)`);
+                logger.error(`Source missing: ${sourcePath} (and all candidate fallbacks)`);
                 failedCount++;
                 return;
             }
@@ -135,6 +140,7 @@ export async function generateRecaps(definitions: RecapDefinitions): Promise<voi
                 .webp({ quality: targetQuality, effort: 6 })
                 .toFile(destPath);
 
+            cacheManifest[destRelative] = cacheKey;
             processedCount++;
             // logger.info(`Generated recap slice: ${destRelative}`);
         } catch (err: unknown) {
@@ -165,10 +171,15 @@ export async function generateRecaps(definitions: RecapDefinitions): Promise<voi
         for (let i = 0; i < images.length; i++) {
             const img = images[i];
             const sourceRelative = img.src.startsWith('/') ? img.src.slice(1) : img.src;
-            sliceKeys.push(`${sourceRelative}|${img.focusX}|${img.focusY}`);
+            const sliceDestRelative = `recap/${slug}/photo_${i + 1}.webp`;
+            const sliceKey = `${sourceRelative}|${img.focusX}|${img.focusY}`;
+            sliceKeys.push(sliceKey);
 
             const slicePath = path.join(RECAP_DIR, slug, `photo_${i + 1}.webp`);
-            if (!fs.existsSync(slicePath)) { allExist = false; break; }
+            if (!fs.existsSync(slicePath) || cacheManifest[sliceDestRelative] !== sliceKey) {
+                allExist = false;
+                break;
+            }
             slicePaths.push(slicePath);
         }
 

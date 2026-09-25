@@ -26,7 +26,8 @@
     "rename": "tsx scripts/renamePhotoFolders.ts",
     "fix-permissions": "tsx scripts/fixPermissions.ts",
     "benchmark": "tsx scripts/benchmark.ts",
-    "sync-media": "tsx scripts/syncMedia.ts"
+    "sync-media": "tsx scripts/syncMedia.ts",
+    "migrate-metadata": "tsx scripts/migrateMetadata.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

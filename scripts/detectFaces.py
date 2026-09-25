@@ -46,8 +46,17 @@ def weighted_median(values, weights):
 
 def get_focus(image_path):
     try:
-        img_data = np.fromfile(image_path, dtype=np.uint8)
-        img = cv2.imdecode(img_data, cv2.IMREAD_COLOR)
+        img = None
+        if os.path.exists(image_path):
+            img_data = np.fromfile(image_path, dtype=np.uint8)
+            img = cv2.imdecode(img_data, cv2.IMREAD_COLOR)
+            if img is None and image_path.lower().endswith(('.avif', '.webp')):
+                try:
+                    from PIL import Image
+                    with Image.open(image_path) as pil_img:
+                        img = cv2.cvtColor(np.array(pil_img.convert('RGB')), cv2.COLOR_RGB2BGR)
+                except Exception:
+                    img = None
         
         if img is None:
             return None, None, 0.0, 0.0
@@ -90,11 +99,21 @@ def get_focus(image_path):
         if len(all_faces) > 0:
             orig_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) if scale < 1.0 else cv2.cvtColor(detect_img, cv2.COLOR_BGR2GRAY)
             
-            native_path = image_path.replace(os.path.join('build', 'thumbnails'), os.path.join('build', 'processed'), 1)
+            # Look for full-resolution native image for sharpness calculation
+            base_rel = os.path.splitext(image_path.replace(os.path.join('build', 'thumbnails'), '', 1).lstrip('/\\'))[0]
+            native_jpg = os.path.join('build', 'processed', base_rel + '.jpg')
+            native_avif = os.path.join('build', 'avif', base_rel + '.avif')
             native_img = None
-            if os.path.exists(native_path):
-                native_data = np.fromfile(native_path, dtype=np.uint8)
+            if os.path.exists(native_jpg):
+                native_data = np.fromfile(native_jpg, dtype=np.uint8)
                 native_img = cv2.imdecode(native_data, cv2.IMREAD_GRAYSCALE)
+            elif os.path.exists(native_avif):
+                try:
+                    from PIL import Image
+                    with Image.open(native_avif) as pil_img:
+                        native_img = np.array(pil_img.convert('L'))
+                except Exception:
+                    native_img = None
                 
             sharpness_source = native_img if native_img is not None else orig_gray
             h_src, w_src = sharpness_source.shape[:2]
@@ -236,17 +255,28 @@ def main():
                             
                         local_thumb_path = os.path.join('build', thumb_web_path.lstrip('/'))
                         
+                        webp_path = os.path.splitext(thumb_web_path)[0] + '.webp'
                         if thumb_web_path in cache_data:
                             val = cache_data[thumb_web_path]
                             if val is not None and isinstance(val, dict) and "score" in val:
-                                if "x" in val:
-                                    photo['focusX'] = val['x']
-                                    photo['focusY'] = val['y']
-                                    found_count += 1
-                                photo['faceScore'] = val['score']
-                                photo['recapScore'] = val.get('recapScore', 0.0)
-                                skipped_count += 1
-                                continue
+                                # Invalidate entries where face detection previously failed due to OpenCV AVIF decoding failure
+                                if val.get('score', 0.0) == 0.0 and "x" not in val and thumb_web_path.endswith('.avif') and not val.get('verified', False):
+                                    if webp_path in cache_data and isinstance(cache_data[webp_path], dict) and "x" in cache_data[webp_path]:
+                                        val = dict(cache_data[webp_path])
+                                        val['verified'] = True
+                                        cache_data[thumb_web_path] = val
+                                    else:
+                                        val = None
+
+                                if val is not None:
+                                    if "x" in val:
+                                        photo['focusX'] = val['x']
+                                        photo['focusY'] = val['y']
+                                        found_count += 1
+                                    photo['faceScore'] = val['score']
+                                    photo['recapScore'] = val.get('recapScore', 0.0)
+                                    skipped_count += 1
+                                    continue
                             
                         if os.path.exists(local_thumb_path):
                             paths_to_process.append((photo, thumb_web_path, local_thumb_path))
@@ -269,15 +299,16 @@ def main():
                 photo, thumb_web_path, fx, fy, score, recap_score = future.result()
                 
                 if fx is not None:
-                    cache_data[thumb_web_path] = {"x": fx, "y": fy, "score": score, "recapScore": recap_score}
+                    cache_data[thumb_web_path] = {"x": fx, "y": fy, "score": score, "recapScore": recap_score, "verified": True}
                     photo['focusX'] = fx
                     photo['focusY'] = fy
                     photo['faceScore'] = score
                     photo['recapScore'] = recap_score
                     found_count += 1
                 else:
-                    cache_data[thumb_web_path] = {"score": score, "recapScore": recap_score}
+                    cache_data[thumb_web_path] = {"score": score, "recapScore": recap_score, "verified": True}
                     photo['faceScore'] = score
+                    photo['recapScore'] = 0.0
                     
                 processed_count += 1
                 if processed_count % 100 == 0:

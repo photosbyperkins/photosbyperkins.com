@@ -215,3 +215,30 @@ npx tsx scripts/migrateToAvif.ts --album "Sacramento Roller Derby"
 # Run full migration across all albums
 npx tsx scripts/migrateToAvif.ts
 ```
+
+---
+
+### `migrateMetadata.ts`
+
+A one-time migration utility implementing **Section 5.4 Embedded Copyright & IPTC Metadata Injection**. It processes your high-resolution original JPEGs and display AVIFs, injects structured EXIF (Artist, Copyright, ImageDescription), IPTC Core, XMP Rights, and Creative Commons licensing tags, and streams the updated files over SSH to overwrite remote assets in-place.
+
+#### Features & Guarantees
+- **Original Camera EXIF Preserved**: Non-destructively merges copyright and attribution tags without stripping camera make, model, lens, exposure time, aperture, or ISO.
+- **Zero Remote Storage Spike**: Overwriting existing files in-place produces essentially zero net change in remote disk space ($\approx +1.5\text{ KB}$ per image header, or $\approx +15\text{ MB}$ across 10,000 photos).
+- **Flexible Scope Control**:
+  - `--dry-run`: Scans and previews albums and photo counts without modifying files.
+  - `--type <photos|avif|all>`: Targets high-res JPEGs (`photos/`), display AVIFs (`avif/`), or both (`all`, default).
+  - `--year <year>`: Limits execution to a specific year.
+  - `--album <name>`: Limits execution to a specific album.
+
+```bash
+# Dry run preview
+npx tsx scripts/migrateMetadata.ts --dry-run
+
+# Migrate high-resolution JPEGs for year 2026
+npx tsx scripts/migrateMetadata.ts --year 2026 --type photos
+
+# Migrate all photos and AVIFs across the entire portfolio
+npm run migrate-metadata
+```
+
