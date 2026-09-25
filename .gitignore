@@ -36,6 +36,7 @@ __pycache__/
 .env
 
 # Agent and Test Artifacts
+ARCHITECTURE_AND_FEATURE_IDEAS.md
 check-bounds.js
 test-wftda.html
 test-results/
