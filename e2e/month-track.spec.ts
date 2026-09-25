@@ -241,21 +241,24 @@ test.describe('Portfolio Month Calendar Track', () => {
         test.skip(isMobile, 'Recap season strip is desktop-only');
 
         await page.setViewportSize({ width: 1440, height: 800 });
-        await page.goto('/portfolio/2025');
+        await page.goto('/portfolio/2026');
         await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
 
-        // Wait for full data trickle
-        const janBtn = page.locator('.portfolio__month-track button.portfolio__month-item.is-populated:has-text("JAN")');
-        await janBtn.waitFor({ state: 'visible', timeout: 10000 });
-
         const firstSeenBtn = page.locator('.portfolio__season-stat-compact--first-seen button');
-        if ((await firstSeenBtn.count()) > 0) {
-            await firstSeenBtn.click();
-            await page.waitForTimeout(1500);
+        await expect(firstSeenBtn).toBeVisible({ timeout: 5000 });
+        await expect(firstSeenBtn).toContainText('Motherlode Area');
 
-            // Verify window scrolled past the top recap
-            const scrollY = await page.evaluate(() => window.scrollY);
-            expect(scrollY).toBeGreaterThan(400);
+        await firstSeenBtn.click();
+        await page.waitForTimeout(1500);
+
+        // Verify window scrolled to the correct Motherlode Area Derby event (not Bay Area Derby Bones)
+        const targetEvent = page.locator('#event-09-19-Sacramento-Roller-Derby-Kodiak-Attack-vs-Motherlode-Area-Derby');
+        await expect(targetEvent).toBeVisible();
+        const box = await targetEvent.boundingBox();
+        expect(box).not.toBeNull();
+        if (box) {
+            expect(box.y).toBeGreaterThanOrEqual(50);
+            expect(box.y).toBeLessThanOrEqual(250);
         }
     });
 

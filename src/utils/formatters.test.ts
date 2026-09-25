@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { formatTeamName, getTeamNameFormats, getPhotoDisplayUrl } from './formatters';
+import { formatTeamName, getTeamNameFormats, getPhotoDisplayUrl, findEarliestEventForTeam } from './formatters';
 
 // Inject a known abbreviation map so tests don't depend on VITE_TEAM_ABBREVIATIONS env.
 vi.mock('./constants', () => ({
@@ -92,3 +92,56 @@ describe('getPhotoDisplayUrl', () => {
         );
     });
 });
+
+describe('findEarliestEventForTeam', () => {
+    // Reverse-chronological list of events as received from yearData
+    const sample2026Events: [string, { albumSlug?: string }][] = [
+        [
+            '09.19 Sacramento Roller Derby Kodiak Attack vs Motherlode Area Derby',
+            { albumSlug: '0919-sacramento-roller-derby-kodiak-attack-vs-motherlode-area-derby' },
+        ],
+        [
+            '05.07 Sacramento Roller Derby Bruin Trouble vs Floodwater Roller Derby',
+            { albumSlug: '0507-sacramento-roller-derby-bruin-trouble-vs-floodwater-roller-derby' },
+        ],
+        [
+            '03.07 Sacramento Roller Derby Bruin Trouble vs North Bay Derby',
+            { albumSlug: '0307-sacramento-roller-derby-bruin-trouble-vs-north-bay-derby' },
+        ],
+        [
+            '02.21 Sacramento Roller Derby Juniors Beastie Bears vs Outlaw Roller Derby Bandits',
+            { albumSlug: '0221-sacramento-roller-derby-juniors-beastie-bears-vs-outlaw-roller-derby-bandits' },
+        ],
+        [
+            '02.21 Sacramento Roller Derby Kodiak Attack vs Bay Area Derby Bones',
+            { albumSlug: '0221-sacramento-roller-derby-kodiak-attack-vs-bay-area-derby-bones' },
+        ],
+    ];
+
+    it('matches Motherlode Area Derby correctly without false positive on Bay Area Derby Bones', () => {
+        const result = findEarliestEventForTeam(sample2026Events, 'Motherlode Area Derby');
+        expect(result).toBe('09.19 Sacramento Roller Derby Kodiak Attack vs Motherlode Area Derby');
+    });
+
+    it('matches Floodwater Roller Derby without false positive on Outlaw Roller Derby Bandits', () => {
+        const result = findEarliestEventForTeam(sample2026Events, 'Floodwater Roller Derby');
+        expect(result).toBe('05.07 Sacramento Roller Derby Bruin Trouble vs Floodwater Roller Derby');
+    });
+
+    it('matches North Bay Derby without false positive on Bay Area Derby Bones', () => {
+        const result = findEarliestEventForTeam(sample2026Events, 'North Bay Derby');
+        expect(result).toBe('03.07 Sacramento Roller Derby Bruin Trouble vs North Bay Derby');
+    });
+
+    it('matches Bay Area Derby Bones when specifically requested', () => {
+        const result = findEarliestEventForTeam(sample2026Events, 'Bay Area Derby Bones');
+        expect(result).toBe('02.21 Sacramento Roller Derby Kodiak Attack vs Bay Area Derby Bones');
+    });
+
+    it('returns null if team is not found or inputs are empty', () => {
+        expect(findEarliestEventForTeam(sample2026Events, 'Nonexistent Team')).toBeNull();
+        expect(findEarliestEventForTeam([], 'Motherlode Area Derby')).toBeNull();
+        expect(findEarliestEventForTeam(sample2026Events, '')).toBeNull();
+    });
+});
+

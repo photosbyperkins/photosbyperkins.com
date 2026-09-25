@@ -9,7 +9,7 @@ import { usePortfolioScroll } from '../../../hooks/usePortfolioScroll';
 import { useStickyHeader } from '../../../hooks/useStickyHeader';
 import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock';
 import { useAppStore } from '../../../store/useAppStore';
-import { formatTeamName, getTeamNameFormats, parseEventTitle } from '../../../utils/formatters';
+import { formatTeamName, getTeamNameFormats, parseEventTitle, findEarliestEventForTeam } from '../../../utils/formatters';
 import { getGearItem, GEAR_REGISTRY } from '../../../data/gearData';
 import Recap from '../Recap';
 import PortfolioEvent from './PortfolioEvent';
@@ -413,27 +413,7 @@ export default function Portfolio({ years }: PortfolioProps) {
                                                     title={`Scroll to event: ${firstSeenTeam}`}
                                                     aria-label={`Scroll to event: ${firstSeenTeam}`}
                                                     onClick={() => {
-                                                        // Build word tokens from the team name for robust matching
-                                                        const targetWords = firstSeenTeam
-                                                            .toLowerCase()
-                                                            .split(/\s+/)
-                                                            .filter(Boolean);
-                                                        let foundEventName: string | null = null;
-                                                        // Search backwards (events are chronological) to get the earliest occurrence
-                                                        for (let i = events.length - 1; i >= 0; i--) {
-                                                            const [eName, eData] = events[i];
-                                                            // Prefer albumSlug match if available (deterministic, no false positives)
-                                                            const slug = eData?.albumSlug || '';
-                                                            const nameToCheck = (slug + ' ' + eName).toLowerCase();
-                                                            const matchCount = targetWords.filter((w) =>
-                                                                nameToCheck.includes(w)
-                                                            ).length;
-                                                            // Require at least half the words to match to avoid very short names
-                                                            if (matchCount >= Math.ceil(targetWords.length / 2)) {
-                                                                foundEventName = eName;
-                                                                break;
-                                                            }
-                                                        }
+                                                        const foundEventName = findEarliestEventForTeam(events, firstSeenTeam);
                                                         if (foundEventName) {
                                                             const elementId = `event-${foundEventName.replace(/[^a-zA-Z0-9-]/g, '-')}`;
                                                             scrollToElement(elementId);
