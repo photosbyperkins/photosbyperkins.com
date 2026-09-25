@@ -9,12 +9,21 @@ export interface PhotoExif {
     gearLensId?: string;
 }
 
+export interface FaceBox {
+    x: number;
+    y: number;
+    w?: number;
+    h?: number;
+    confidence?: number;
+}
+
 export interface PhotoObject {
     source: string;
     thumb: string;
     original: string;
     focusX?: number;
     focusY?: number;
+    faces?: FaceBox[];
     faceScore?: number;
     recapScore?: number;
     width?: number;

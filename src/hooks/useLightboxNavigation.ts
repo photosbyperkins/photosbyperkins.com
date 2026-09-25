@@ -10,6 +10,7 @@ interface UseLightboxNavigationProps {
     onToggleTheater?: () => void;
     onDownload?: () => void;
     onToggleHelp?: () => void;
+    onOpenStoryExport?: () => void;
 }
 
 export function useLightboxNavigation({
@@ -22,6 +23,7 @@ export function useLightboxNavigation({
     onToggleTheater,
     onDownload,
     onToggleHelp,
+    onOpenStoryExport,
 }: UseLightboxNavigationProps) {
     useEffect(() => {
         if (!isActive) return;
@@ -56,6 +58,9 @@ export function useLightboxNavigation({
             } else if (e.key === 'd' || e.key === 'D') {
                 e.preventDefault();
                 onDownload?.();
+            } else if (e.key === 'c' || e.key === 'C') {
+                e.preventDefault();
+                onOpenStoryExport?.();
             } else if (e.key === '?') {
                 e.preventDefault();
                 onToggleHelp?.();
@@ -64,7 +69,17 @@ export function useLightboxNavigation({
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [onClose, onPaginate, isActive, onToggleFavorite, onToggleZoom, onToggleTheater, onDownload, onToggleHelp]);
+    }, [
+        onClose,
+        onPaginate,
+        isActive,
+        onToggleFavorite,
+        onToggleZoom,
+        onToggleTheater,
+        onDownload,
+        onToggleHelp,
+        onOpenStoryExport,
+    ]);
 
     useEffect(() => {
         if (!isActive) return;

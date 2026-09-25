@@ -376,6 +376,7 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
                         thumb: typeof h === 'string' ? h : h.thumb || h.original || h.src,
                         focusX: typeof h === 'object' ? h.focusX : undefined,
                         focusY: typeof h === 'object' ? h.focusY : undefined,
+                        ...(typeof h === 'object' && h.faces ? { faces: h.faces } : {}),
                     })),
                 };
 
@@ -516,6 +517,7 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
                     thumb: h.thumb || h.original,
                     focusX: h.focusX,
                     focusY: h.focusY,
+                    ...(h.faces ? { faces: h.faces } : {}),
                 }));
             }
         }

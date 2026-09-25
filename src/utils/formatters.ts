@@ -114,10 +114,7 @@ export function getPhotoDisplayUrl(original: string): string {
  * Finds the earliest event in a reverse-chronological event list that features a specific team.
  * Matches by full team slug or exact team substring to prevent false positives from generic words (e.g. "Derby", "Area").
  */
-export function findEarliestEventForTeam(
-    events: [string, { albumSlug?: string }][],
-    teamName: string
-): string | null {
+export function findEarliestEventForTeam(events: [string, { albumSlug?: string }][], teamName: string): string | null {
     if (!teamName || !events || events.length === 0) return null;
     const targetSlug = teamName
         .toLowerCase()

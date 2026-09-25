@@ -194,13 +194,33 @@ def get_focus(image_path):
                 penalty_factor = float(total_faces ** 4.0)
                 recap_score = float(max_recap_weight) / penalty_factor if total_faces > 0 and best_recap_face is not None else 0.0
                 
+                faces_list = []
+                for (sx, sy, sw, sh, confidence) in all_faces:
+                    x = sx / scale
+                    y = sy / scale
+                    face_w = sw / scale
+                    face_h = sh / scale
+                    cx = round((x + face_w / 2.0) / img_w, 3)
+                    cy = round((y + face_h / 2.0) / img_h, 3)
+                    fw = round(face_w / img_w, 3)
+                    fh = round(face_h / img_h, 3)
+                    faces_list.append({
+                        "x": cx,
+                        "y": cy,
+                        "w": fw,
+                        "h": fh,
+                        "confidence": round(float(confidence), 2)
+                    })
+                # Sort left-to-right so Person 1, Person 2 matches visual layout
+                faces_list.sort(key=lambda f: f["x"])
+
                 # Use best_face coordinates for general focus
-                return float(best_face[0]), float(best_face[1]), image_score, recap_score
+                return float(best_face[0]), float(best_face[1]), image_score, recap_score, faces_list
                 
     except Exception as e:
         print(f"Error processing {image_path}: {e}")
         
-    return None, None, 0.0, 0.0
+    return None, None, 0.0, 0.0, []
 
 def main():
     data_dir = 'data'
@@ -272,6 +292,8 @@ def main():
                                     if "x" in val:
                                         photo['focusX'] = val['x']
                                         photo['focusY'] = val['y']
+                                        if "faces" in val:
+                                            photo['faces'] = val['faces']
                                         found_count += 1
                                     photo['faceScore'] = val['score']
                                     photo['recapScore'] = val.get('recapScore', 0.0)
@@ -285,8 +307,8 @@ def main():
                             
     def process_image(item):
         photo, thumb_web_path, local_thumb_path = item
-        fx, fy, score, recap_score = get_focus(local_thumb_path)
-        return photo, thumb_web_path, fx, fy, score, recap_score
+        fx, fy, score, recap_score, faces = get_focus(local_thumb_path)
+        return photo, thumb_web_path, fx, fy, score, recap_score, faces
 
     if paths_to_process:
         print(f"Processing {len(paths_to_process)} new images concurrently...")
@@ -296,17 +318,18 @@ def main():
             future_to_item = {executor.submit(process_image, item): item for item in paths_to_process}
             
             for future in concurrent.futures.as_completed(future_to_item):
-                photo, thumb_web_path, fx, fy, score, recap_score = future.result()
+                photo, thumb_web_path, fx, fy, score, recap_score, faces = future.result()
                 
                 if fx is not None:
-                    cache_data[thumb_web_path] = {"x": fx, "y": fy, "score": score, "recapScore": recap_score, "verified": True}
+                    cache_data[thumb_web_path] = {"x": fx, "y": fy, "score": score, "recapScore": recap_score, "faces": faces, "verified": True}
                     photo['focusX'] = fx
                     photo['focusY'] = fy
+                    photo['faces'] = faces
                     photo['faceScore'] = score
                     photo['recapScore'] = recap_score
                     found_count += 1
                 else:
-                    cache_data[thumb_web_path] = {"score": score, "recapScore": recap_score, "verified": True}
+                    cache_data[thumb_web_path] = {"score": score, "recapScore": recap_score, "faces": [], "verified": True}
                     photo['faceScore'] = score
                     photo['recapScore'] = 0.0
                     

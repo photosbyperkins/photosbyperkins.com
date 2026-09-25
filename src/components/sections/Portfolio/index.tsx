@@ -9,7 +9,12 @@ import { usePortfolioScroll } from '../../../hooks/usePortfolioScroll';
 import { useStickyHeader } from '../../../hooks/useStickyHeader';
 import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock';
 import { useAppStore } from '../../../store/useAppStore';
-import { formatTeamName, getTeamNameFormats, parseEventTitle, findEarliestEventForTeam } from '../../../utils/formatters';
+import {
+    formatTeamName,
+    getTeamNameFormats,
+    parseEventTitle,
+    findEarliestEventForTeam,
+} from '../../../utils/formatters';
 import { getGearItem, GEAR_REGISTRY } from '../../../data/gearData';
 import Recap from '../Recap';
 import PortfolioEvent from './PortfolioEvent';
@@ -413,7 +418,10 @@ export default function Portfolio({ years }: PortfolioProps) {
                                                     title={`Scroll to event: ${firstSeenTeam}`}
                                                     aria-label={`Scroll to event: ${firstSeenTeam}`}
                                                     onClick={() => {
-                                                        const foundEventName = findEarliestEventForTeam(events, firstSeenTeam);
+                                                        const foundEventName = findEarliestEventForTeam(
+                                                            events,
+                                                            firstSeenTeam
+                                                        );
                                                         if (foundEventName) {
                                                             const elementId = `event-${foundEventName.replace(/[^a-zA-Z0-9-]/g, '-')}`;
                                                             scrollToElement(elementId);

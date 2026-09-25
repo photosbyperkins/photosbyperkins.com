@@ -1,4 +1,5 @@
 import { X, Download, Share2, HelpCircle } from 'lucide-react';
+import { StoryCropIcon } from '../../ui/icons';
 import type { PhotoInput } from '../../../types';
 import { getPhotoDisplayUrl } from '../../../utils/formatters';
 
@@ -13,6 +14,7 @@ interface LightboxHeaderProps {
     canShare: boolean;
     onClose: () => void;
     onToggleHelp?: () => void;
+    onOpenStoryExport?: () => void;
 }
 
 export default function LightboxHeader({
@@ -24,6 +26,7 @@ export default function LightboxHeader({
     canShare,
     onClose,
     onToggleHelp,
+    onOpenStoryExport,
 }: LightboxHeaderProps) {
     const currentPhoto = images[index];
     const exif = typeof currentPhoto === 'object' ? currentPhoto.exif : null;
@@ -92,6 +95,19 @@ export default function LightboxHeader({
                     ) : (
                         <button className="portfolio__lightbox-action" onClick={handleDownload} aria-label="Download">
                             <Download size={18} />
+                        </button>
+                    )}
+                    {onOpenStoryExport && (
+                        <button
+                            className="portfolio__lightbox-action"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onOpenStoryExport();
+                            }}
+                            aria-label="Story Maker (9:16)"
+                            title="Story Maker (C)"
+                        >
+                            <StoryCropIcon size={18} />
                         </button>
                     )}
                 </div>

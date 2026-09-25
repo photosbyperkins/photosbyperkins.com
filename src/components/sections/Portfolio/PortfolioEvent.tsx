@@ -139,11 +139,12 @@ const PortfolioEvent = memo(function PortfolioEvent({
             }
 
             if (sharedPhoto.photoIndex !== undefined) {
-                openLightbox(albumImages, sharedPhoto.photoIndex, eventName, selectedYear);
+                const scorePayload = ev.localScore || (ev.wftdaMatch ? { team1Score: ev.wftdaMatch.score1, team2Score: ev.wftdaMatch.score2 } : undefined);
+                openLightbox(albumImages, sharedPhoto.photoIndex, eventName, selectedYear, ev.maxExifChars, scorePayload);
             }
             setSharedPhoto(null);
         }
-    }, [isSharedEvent, ev.album, sharedPhoto, eventName, selectedYear, openLightbox, setSharedPhoto, albumImages]);
+    }, [isSharedEvent, ev.album, ev.maxExifChars, ev.localScore, ev.wftdaMatch, sharedPhoto, eventName, selectedYear, openLightbox, setSharedPhoto, albumImages]);
 
     const totalPhotos = ev.photoCount || albumImages.length;
 
@@ -229,6 +230,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
 
     const hasLocalScore = ev.localScore && ev.localScore.team1Score !== null && ev.localScore.team2Score !== null;
     const shouldShowScores = activeSortedTeams.length > 1 && !!(ev.wftdaMatch || hasLocalScore);
+    const eventScore = ev.localScore || (ev.wftdaMatch ? { team1Score: ev.wftdaMatch.score1, team2Score: ev.wftdaMatch.score2 } : undefined);
 
     const finalTeams = shouldShowScores
         ? [...activeSortedTeams].sort((a, b) => {
@@ -430,6 +432,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
                                     eventName={eventName}
                                     selectedYear={selectedYear}
                                     maxExifChars={ev.maxExifChars}
+                                    localScore={eventScore}
                                     openLightbox={openLightbox}
                                 />
                                 {loading && <div className="portfolio__loading">Loading photos...</div>}
@@ -464,7 +467,8 @@ const PortfolioEvent = memo(function PortfolioEvent({
                                                         i,
                                                         eventName,
                                                         selectedYear,
-                                                        ev.maxExifChars
+                                                        ev.maxExifChars,
+                                                        eventScore
                                                     );
                                                 }
                                             }}
@@ -479,7 +483,8 @@ const PortfolioEvent = memo(function PortfolioEvent({
                                                         i,
                                                         eventName,
                                                         selectedYear,
-                                                        ev.maxExifChars
+                                                        ev.maxExifChars,
+                                                        eventScore
                                                     )
                                                 }
                                                 objectPosition={
@@ -525,7 +530,8 @@ const PortfolioEvent = memo(function PortfolioEvent({
                                                     albumIndex !== -1 ? albumIndex : 0,
                                                     eventName,
                                                     selectedYear,
-                                                    ev.maxExifChars
+                                                    ev.maxExifChars,
+                                                    eventScore
                                                 )
                                             }
                                             onKeyDown={(e) => {
@@ -536,7 +542,8 @@ const PortfolioEvent = memo(function PortfolioEvent({
                                                         albumIndex !== -1 ? albumIndex : 0,
                                                         eventName,
                                                         selectedYear,
-                                                        ev.maxExifChars
+                                                        ev.maxExifChars,
+                                                        eventScore
                                                     );
                                                 }
                                             }}

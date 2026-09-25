@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { getPhotoOriginalUrl } from '../utils/formatters';
-import type { PhotoInput, FavoriteStoreItem, SharedPhotoState } from '../types';
+import type { PhotoInput, FavoriteStoreItem, SharedPhotoState, EventScore } from '../types';
 import type { GearItem } from '../data/gearData';
 
 export type ThemePreference = 'light' | 'dark' | 'system';
@@ -47,11 +47,19 @@ export interface AppStore {
         year: string;
         isOpen: boolean;
         maxExifChars?: number;
+        localScore?: EventScore;
     };
     sharedPhoto: SharedPhotoState | null;
     favorites: FavoriteStoreItem[];
 
-    openLightbox: (images: PhotoInput[], index: number, eventName: string, year: string, maxExifChars?: number) => void;
+    openLightbox: (
+        images: PhotoInput[],
+        index: number,
+        eventName: string,
+        year: string,
+        maxExifChars?: number,
+        localScore?: EventScore
+    ) => void;
     closeLightbox: () => void;
     setLightboxIndex: (index: number) => void;
     setSharedPhoto: (sharedPhoto: SharedPhotoState | null) => void;
@@ -174,8 +182,8 @@ export const useAppStore = create<AppStore>()(
             // Fallback to legacy favorites on first init
             favorites: extractLegacyFavorites(),
 
-            openLightbox: (images, index, eventName, year, maxExifChars) =>
-                set({ lightbox: { images, index, eventName, year, isOpen: true, maxExifChars } }),
+            openLightbox: (images, index, eventName, year, maxExifChars, localScore) =>
+                set({ lightbox: { images, index, eventName, year, isOpen: true, maxExifChars, localScore } }),
 
             closeLightbox: () => set((state) => ({ lightbox: { ...state.lightbox, isOpen: false } })),
 

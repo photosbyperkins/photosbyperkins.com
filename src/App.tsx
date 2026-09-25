@@ -3,7 +3,6 @@ import { useLocation } from 'react-router-dom';
 import Nav from './components/sections/Nav';
 import Footer from './components/sections/Footer';
 import PwaStatusToast from './components/ui/PwaStatusToast';
-import { useAppStore } from './store/useAppStore';
 
 const About = lazy(() => import('./components/sections/About'));
 const Portfolio = lazy(() => import('./components/sections/Portfolio'));

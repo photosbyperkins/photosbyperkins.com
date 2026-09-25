@@ -76,6 +76,8 @@ export default function ModalShell({
                     exit={{ opacity: 0, y: 50 }}
                     transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
                     style={style}
+                    onClick={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
                 >
                     <header className="modal-shell__header-bar">
                         <div className="container modal-shell__header-bar-inner">

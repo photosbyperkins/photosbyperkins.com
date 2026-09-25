@@ -7,7 +7,8 @@ import LightboxSlide, { type LightboxSlideHandle } from './LightboxSlide';
 import LightboxAmbient from './LightboxAmbient';
 import LightboxHeader from './LightboxHeader';
 import LightboxScrubber from './LightboxScrubber';
-import type { PhotoInput } from '../../../types';
+import StoryExportModal from './StoryExportModal';
+import type { PhotoInput, EventScore } from '../../../types';
 
 declare const __BUILD_NUMBER__: string;
 
@@ -17,6 +18,7 @@ interface LightboxProps {
     year?: string;
     eventName?: string;
     maxExifChars?: number;
+    localScore?: EventScore;
     onClose: () => void;
     onSetIndex: (idx: number) => void;
 }
@@ -36,6 +38,7 @@ export default function Lightbox({
     year,
     eventName,
     maxExifChars = 0,
+    localScore,
     onClose,
     onSetIndex,
 }: LightboxProps) {
@@ -227,21 +230,34 @@ export default function Lightbox({
     }, [images, index]);
 
     const [isHelpOpen, setIsHelpOpen] = useState(false);
+    const [isStoryExportOpen, setIsStoryExportOpen] = useState(false);
+    const [storyExportSessionId, setStoryExportSessionId] = useState(0);
+
     const handleToggleHelp = useCallback(() => {
         if (canShare) return;
         setIsHelpOpen((prev) => !prev);
     }, [canShare]);
 
+    const handleOpenStoryExport = useCallback(() => {
+        setStoryExportSessionId((prev) => prev + 1);
+        setIsStoryExportOpen(true);
+    }, []);
+
     useLightboxNavigation({
-        onClose: isHelpOpen ? () => setIsHelpOpen(false) : onClose,
+        onClose: isStoryExportOpen
+            ? () => setIsStoryExportOpen(false)
+            : isHelpOpen
+              ? () => setIsHelpOpen(false)
+              : onClose,
         onPaginate: paginate,
         isZoomed,
-        isActive: !isAnimating,
+        isActive: !isAnimating && !isStoryExportOpen,
         onToggleFavorite: handleToggleFavorite,
         onToggleZoom: handleToggleZoom,
         onToggleTheater: handleToggleTheater,
         onDownload: handleDownload,
         onToggleHelp: canShare ? undefined : handleToggleHelp,
+        onOpenStoryExport: handleOpenStoryExport,
     });
 
     useBodyScrollLock(true);
@@ -337,6 +353,7 @@ export default function Lightbox({
                 recentlyDragged.current = { x: e.clientX, y: e.clientY };
             }}
             onClick={(e) => {
+                if (isStoryExportOpen) return;
                 const start = recentlyDragged.current;
                 if (start && typeof start === 'object') {
                     const dist = Math.hypot(e.clientX - start.x, e.clientY - start.y);
@@ -391,6 +408,7 @@ export default function Lightbox({
                 canShare={canShare}
                 onClose={onClose}
                 onToggleHelp={canShare ? undefined : handleToggleHelp}
+                onOpenStoryExport={handleOpenStoryExport}
             />
 
             <div
@@ -518,6 +536,10 @@ export default function Lightbox({
                                     <span>Download original photo</span>
                                 </div>
                                 <div className="portfolio__lightbox-help-item">
+                                    <kbd>C</kbd>
+                                    <span>Story Maker</span>
+                                </div>
+                                <div className="portfolio__lightbox-help-item">
                                     <kbd>Esc</kbd>
                                     <span>Close lightbox</span>
                                 </div>
@@ -530,6 +552,24 @@ export default function Lightbox({
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {isStoryExportOpen && (
+                <div
+                    onClick={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                >
+                    <StoryExportModal
+                        key={`story-export-${index}-${storyExportSessionId}`}
+                        isOpen={isStoryExportOpen}
+                        onClose={() => setIsStoryExportOpen(false)}
+                        photo={images[index]}
+                        eventName={eventName}
+                        year={year}
+                        index={index}
+                        localScore={localScore}
+                    />
+                </div>
+            )}
         </motion.div>
     );
 

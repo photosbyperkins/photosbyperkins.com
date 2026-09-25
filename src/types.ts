@@ -9,6 +9,14 @@ export interface ExifData {
     gearLensId?: string;
 }
 
+export interface FaceBox {
+    x: number;
+    y: number;
+    w?: number;
+    h?: number;
+    confidence?: number;
+}
+
 export interface PhotoRecord {
     original: string;
     thumb: string;
@@ -16,6 +24,7 @@ export interface PhotoRecord {
     src?: string;
     focusX?: number;
     focusY?: number;
+    faces?: FaceBox[];
     width?: number;
     height?: number;
     spriteIndex?: number;

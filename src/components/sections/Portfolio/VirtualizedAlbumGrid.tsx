@@ -1,7 +1,7 @@
 import { useRef, useMemo, useCallback, useState, useEffect } from 'react';
 import { List } from 'react-window';
 import ProgressiveImage from '../../ui/ProgressiveImage';
-import type { PhotoInput } from '../../../types';
+import type { PhotoInput, EventScore } from '../../../types';
 
 declare const __BUILD_NUMBER__: string;
 
@@ -10,7 +10,8 @@ interface VirtualizedAlbumGridProps {
     eventName: string;
     selectedYear: string;
     maxExifChars?: number;
-    openLightbox: (images: PhotoInput[], idx: number, name: string, year: string, maxExif?: number) => void;
+    localScore?: EventScore;
+    openLightbox: (images: PhotoInput[], idx: number, name: string, year: string, maxExif?: number, localScore?: EventScore) => void;
 }
 
 /**
@@ -22,6 +23,7 @@ export default function VirtualizedAlbumGrid({
     eventName,
     selectedYear,
     maxExifChars,
+    localScore,
     openLightbox,
 }: VirtualizedAlbumGridProps) {
     const parentRef = useRef<HTMLDivElement>(null);
@@ -143,7 +145,7 @@ export default function VirtualizedAlbumGrid({
                                 key={origUrl}
                                 className="portfolio__grid-item"
                                 aria-label={`View ${eventName} photo ${globalIdx + 1}`}
-                                onClick={() => openLightbox(photos, globalIdx, eventName, selectedYear, maxExifChars)}
+                                onClick={() => openLightbox(photos, globalIdx, eventName, selectedYear, maxExifChars, localScore)}
                                 style={{
                                     border: 'none',
                                     background: 'none',
@@ -170,7 +172,7 @@ export default function VirtualizedAlbumGrid({
                 </div>
             );
         },
-        [rows, cycleSize, eventName, selectedYear, maxExifChars, photos, openLightbox]
+        [rows, cycleSize, eventName, selectedYear, maxExifChars, localScore, photos, openLightbox]
     );
 
     return (

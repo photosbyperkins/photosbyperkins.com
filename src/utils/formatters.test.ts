@@ -144,4 +144,3 @@ describe('findEarliestEventForTeam', () => {
         expect(findEarliestEventForTeam(sample2026Events, '')).toBeNull();
     });
 });
-
