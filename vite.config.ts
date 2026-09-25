@@ -14,7 +14,7 @@ function photosMiddleware(): { name: string; configureServer: (server: ViteDevSe
         name: 'serve-photos',
         configureServer(server) {
             server.middlewares.use((req: IncomingMessage, res: ServerResponse, next: Connect.NextFunction) => {
-                if (req.url && (req.url.startsWith('/photos/') || req.url.startsWith('/thumbnails/') || req.url.startsWith('/scrubber/') || req.url.startsWith('/recap/') || req.url.startsWith('/webp/') || req.url.startsWith('/zips/'))) {
+                if (req.url && (req.url.startsWith('/photos/') || req.url.startsWith('/thumbnails/') || req.url.startsWith('/scrubber/') || req.url.startsWith('/recap/') || req.url.startsWith('/webp/') || req.url.startsWith('/avif/') || req.url.startsWith('/zips/'))) {
                     // Lazy load the map of post-normalized URLs to pre-normalized disk paths
                     if (!urlMap) {
                         urlMap = new Map();
@@ -57,6 +57,8 @@ function photosMiddleware(): { name: string; configureServer: (server: ViteDevSe
                         filePath = path.join(process.cwd(), 'build', safeRelative);
                     } else if (safeRelative.startsWith('webp/')) {
                         filePath = path.join(process.cwd(), 'build', safeRelative);
+                    } else if (safeRelative.startsWith('avif/')) {
+                        filePath = path.join(process.cwd(), 'build', safeRelative);
                     } else if (safeRelative.startsWith('zips/')) {
                         filePath = path.join(process.cwd(), 'build', safeRelative);
                     } else {
@@ -74,6 +76,7 @@ function photosMiddleware(): { name: string; configureServer: (server: ViteDevSe
                     if (fs.existsSync(resolvedPath) && fs.statSync(resolvedPath).isFile()) {
                         let contentType = 'image/jpeg';
                         if (relativePath.toLowerCase().endsWith('.webp')) contentType = 'image/webp';
+                        if (relativePath.toLowerCase().endsWith('.avif')) contentType = 'image/avif';
                         if (relativePath.toLowerCase().endsWith('.zip')) contentType = 'application/zip';
                         
                         res.setHeader('Content-Type', contentType);
@@ -155,7 +158,7 @@ export default defineConfig(({ mode }) => {
                         },
                     },
                     {
-                        urlPattern: /\/(?:photos|thumbnails|scrubber|recap|webp)\/.*\.(?:png|jpg|jpeg|svg|webp|avif)(?:\?.*)?$/i,
+                        urlPattern: /\/(?:photos|thumbnails|scrubber|recap|webp|avif)\/.*\.(?:png|jpg|jpeg|svg|webp|avif)(?:\?.*)?$/i,
                         handler: 'CacheFirst',
                         options: {
                             cacheName: 'image-cache',

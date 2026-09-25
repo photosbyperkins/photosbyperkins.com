@@ -9,7 +9,7 @@ if (!fs.existsSync(distDir)) {
 }
 
 // Keep the data and photos folders, clear everything else out
-const keepFolders = ['data', 'photos', 'thumbnails', 'zips', 'webp', 'recap', 'scrubber'];
+const keepFolders = ['data', 'photos', 'thumbnails', 'zips', 'webp', 'avif', 'recap', 'scrubber'];
 
 console.log('Cleaning dist folder...');
 const files = fs.readdirSync(distDir);

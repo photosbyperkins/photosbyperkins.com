@@ -103,9 +103,9 @@ export function getPhotoOriginalUrl(item: FavoriteStoreItem): string {
 }
 
 /**
- * Returns the WebP display URL used by the lightbox for sharing.
- * Mirrors the transformation in LightboxSlide: /photos/ → /webp/, .jpg → .webp
+ * Returns the AVIF display URL used by the lightbox for rendering and sharing.
+ * Mirrors the transformation in LightboxSlide: /photos/ → /avif/, .jpg → .avif
  */
 export function getPhotoDisplayUrl(original: string): string {
-    return original.replace(/^(?:\/)?photos\//i, '/webp/').replace(/\.jpe?g$/i, '.webp');
+    return original.replace(/^(?:\/)?photos\//i, '/avif/').replace(/\.jpe?g$/i, '.avif');
 }

@@ -28,6 +28,7 @@ import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock';
 import { useFocusTrap } from '../../../hooks/useFocusTrap';
 import { useLightboxNavigation } from '../../../hooks/useLightboxNavigation';
 import { useImagePreloader } from '../../../hooks/useImagePreloader';
+import { getPhotoDisplayUrl } from '../../../utils/formatters';
 
 export default function Lightbox({
     images,
@@ -279,14 +280,14 @@ export default function Lightbox({
     }, [index]);
 
     // ASYNC PRELOADER: Smart background album fetcher
-    // Preloads the DISPLAY-RESOLUTION WebPs (not thumbnails) so swiping
+    // Preloads the DISPLAY-RESOLUTION images (not thumbnails) so swiping
     // to nearby photos is instant.  Prioritises nearest neighbours then
     // fans out across the entire album sequentially.
     const getDisplaySrc = useCallback((photo: PhotoInput) => {
         const url = typeof photo === 'string' ? photo : photo.original;
         if (!url) return undefined;
-        const webpUrl = url.replace(/^(?:\/)?photos\//i, '/webp/').replace(/\.jpe?g$/i, '.webp');
-        return `${webpUrl}?v=${__BUILD_NUMBER__}`;
+        const displayUrl = getPhotoDisplayUrl(url);
+        return `${displayUrl}?v=${__BUILD_NUMBER__}`;
     }, []);
 
     useImagePreloader({

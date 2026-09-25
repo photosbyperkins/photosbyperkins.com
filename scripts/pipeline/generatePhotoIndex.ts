@@ -312,7 +312,7 @@ async function processEventDir(eventDir: string, year: string, eventSlug: string
         .map((abs, idx) => {
             const ext = path.extname(abs).toLowerCase();
             const cleanName = `photo_${String(idx + 1).padStart(3, '0')}${ext}`;
-            const thumbName = `photo_${String(idx + 1).padStart(3, '0')}.webp`;
+            const thumbName = `photo_${String(idx + 1).padStart(3, '0')}.avif`;
             const webOriginal = `/photos/${year}/${eventSlug}/${cleanName}`;
             const webThumb = `/thumbnails/${year}/${eventSlug}/${thumbName}`;
 
@@ -336,7 +336,7 @@ async function processEventDir(eventDir: string, year: string, eventSlug: string
             const ext = path.extname(abs).toLowerCase();
             const currentCount = String(highlightCounter++).padStart(3, '0');
             const cleanName = `highlight_${currentCount}${ext}`;
-            const thumbName = `highlight_${currentCount}.webp`;
+            const thumbName = `highlight_${currentCount}.avif`;
             albumArr.push({
                 source: toWebPath(abs),
                 original: `/photos/${year}/${eventSlug}/${cleanName}`,
@@ -500,7 +500,7 @@ export async function generatePhotoIndex(): Promise<IndexState> {
                     .entries()) {
                     const ext = path.extname(abs).toLowerCase();
                     const cleanName = `photo_${String(idx + 1).padStart(3, '0')}${ext}`;
-                    const thumbName = `photo_${String(idx + 1).padStart(3, '0')}.webp`;
+                    const thumbName = `photo_${String(idx + 1).padStart(3, '0')}.avif`;
                     let width = 0;
                     let height = 0;
                     let exif = undefined;

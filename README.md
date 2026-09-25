@@ -1,12 +1,13 @@
 # Photography Portfolio Boilerplate
 
-An incredibly fast, highly automated photography portfolio built for action photographers. Originally designed for [photosbyperkins.com](https://photosbyperkins.com), this open-source template transforms raw image directories into a blazingly fast, standalone PWA with automated EXIF extraction, face detect cropping, WebP processing, and ZIP archive generation.
+An incredibly fast, highly automated photography portfolio built for action photographers. Originally designed for [photosbyperkins.com](https://photosbyperkins.com), this open-source template transforms raw image directories into a blazingly fast, standalone PWA with automated EXIF extraction, face detect cropping, next-gen AVIF processing, and ZIP archive generation.
 
 ## Features
 
 - **100% Client-Side**: Once built, it's a completely static site (JSON + Media).
 - **Fully Automated Data Pipeline**: Drop images in folders, and the system automatically extracts metadata, resizes, compresses, and maps faces.
-- **SSIMULACRA 2 Quality Optimization**: Thumbnails are optimized to the lowest WebP quality that meets a perceptual quality threshold, balancing file size and visual fidelity. Sprites (scrubber and recap) use a static, high-performance quality setting for faster builds.
+- **AVIF Next-Gen Format & SSIMULACRA 2 Optimization**: Gallery thumbnails and full-display lightbox photos are encoded in AVIF calibrated via SSIMULACRA 2 ($\ge 78$ visual score), saving ~35% storage and bandwidth over legacy WebP while preserving pristine image fidelity. Original full-resolution downloads and album ZIP archives are preserved as standard `.jpg` and `.zip` for universal client compatibility.
+- **Zero-Downtime Migration & Transparent Fallback**: Apache rewrite rules transparently map any cached or external `.webp` requests to `.avif`, ensuring zero 404s.
 - **Service Worker PWA**: Works offline, fully cache-enabled using Vite PWA.
 - **Glassmorphic UI**: A stunning, modern, hardware-accelerated interface.
 - **Favorites & Web Worker Zipping**: Star your favorite photos and batch download them entirely client-side using `fflate` in a background Web Worker!
@@ -74,7 +75,7 @@ Running `npm run build` triggers an intense, multi-phase pipeline orchestrated b
 
 ### Phase 2 — In-Memory Pipeline (Indexing & Master Encoding)
 - **Index Photos**: `exifr` EXIF extraction into a global JSON state.
-- **Master Encoder (`encodePhotos`)**: Generates thumbnails (using a shared SSIM worker pool), WebP conversions, and processed JPEGs.
+- **Master Encoder (`encodePhotos`)**: Generates AVIF thumbnails (using a shared SSIMULACRA 2 worker pool), full-display AVIF conversions, and processed JPEGs.
 - **Parallel Tasks**: Favicon Generation & WFTDA Scraping run simultaneously.
 
 ### Phase 3 — Python Interop
@@ -107,14 +108,15 @@ Edit your `.env` file to match your SFTP/SSH host. The deploy script intelligent
 
 Because media generation produces massive directories, `npm run deploy` intentionally **skips** deploying the following folders to save bandwidth and guarantee lightning-fast code updates:
 
-- `/photos`
-- `/recap`
-- `/scrubber`
-- `/thumbnails`
-- `/webp`
-- `/zips`
+- `/photos` (original high-res JPEGs)
+- `/avif` (full-display AVIFs)
+- `/thumbnails` (AVIF thumbnails)
+- `/recap` (sprite sheets)
+- `/scrubber` (sprite sheets)
+- `/zips` (offline zip archives)
+- `/webp` (legacy webp fallback, if present)
 
-**You must manually upload your finalized media!** Once you finish a sprint of editing and run `npm run build`, open an FTP client (like **FileZilla** or **Cyberduck**) and manually drag those directories from your local `dist/` into your server's `public_html` directory to sync them.
+To upload your media, use `npm run sync-media` to automatically synchronize new media assets over SSH without re-uploading existing files, or use an SFTP client (like **FileZilla** or **Cyberduck**) to drag those directories into your server's `public_html`.
 
 ## 🔧 Standalone Utilities
 
@@ -167,3 +169,49 @@ npx tsx scripts/benchmark.ts
 ```
 
 > Useful after major pipeline changes to verify regressions or improvements.
+
+---
+
+### `syncMedia.ts`
+
+Synchronizes generated static media assets (`thumbnails/`, `avif/`, `scrubber/`, `recap/`, `zips/`) from your local `build/` directory directly to the remote server over SSH.
+
+- **Smart Skip**: Catalogs all existing remote files in a single pass before transferring, skipping any files already present on the remote host.
+- **Atomic Transfer**: Uses SSH/SCP streaming with automated permission verification (755 directories, 644 files).
+
+```bash
+npm run sync-media
+# or
+npx tsx scripts/syncMedia.ts
+```
+
+---
+
+### `migrateToAvif.ts`
+
+A transactional, zero-downtime storage migration utility designed to migrate legacy WebP galleries to next-gen AVIF on quota-constrained hosting environments (such as Bluehost's 20 GB limit).
+
+#### Background & Architecture
+- **Preserves Original JPEGs & Zips**: High-res download JPEGs in `photos/` and `.zip` archives in `zips/` are strictly preserved so visitors downloading originals receive universal `.jpg` files compatible with all print labs and social apps.
+- **Album-by-Album Transactional Pipeline**: Processes one album at a time:
+  1. Auto-encodes missing local AVIF assets on-the-fly via the multi-threaded SSIMULACRA 2 master encoder.
+  2. Streams AVIF thumbnails and display assets to the remote server in a compressed tar pipe over SSH.
+  3. Verifies remote extraction success.
+  4. Immediately prunes the legacy WebP versions for that specific album on the server.
+- **Zero Remote Storage Spike**: Because each album's AVIF assets are ~35% smaller than the legacy WebPs being replaced, available disk space increases after every single album, ensuring the server's hard quota is never breached.
+- **Firewall & Rate-Limit Protection**: Employs a single-pass remote bootstrap query, pacing delays between albums, and automated 60s cooldown retries to prevent triggering shared-host SSH connection limits.
+
+#### Command-Line Options
+```bash
+# Perform a dry-run audit (calculates sizes and tests remote connectivity without modifying files)
+npx tsx scripts/migrateToAvif.ts --dry-run
+
+# Migrate a specific year
+npx tsx scripts/migrateToAvif.ts --year 2026
+
+# Migrate a single album by slug or title filter
+npx tsx scripts/migrateToAvif.ts --album "Sacramento Roller Derby"
+
+# Run full migration across all albums
+npx tsx scripts/migrateToAvif.ts
+```

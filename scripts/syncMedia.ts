@@ -16,7 +16,7 @@ if (!SSH_USER || !SSH_HOST || !REMOTE_DIR) {
     process.exit(1);
 }
 
-const MEDIA_DIRS = ['thumbnails', 'webp', 'scrubber', 'recap', 'zips'];
+const MEDIA_DIRS = ['thumbnails', 'avif', 'webp', 'scrubber', 'recap', 'zips'];
 const projectRoot = path.resolve(__dirname, '..');
 const buildDir = path.join(projectRoot, 'build');
 
@@ -28,7 +28,7 @@ async function runMediaSync() {
         const remoteFilesMap = new Map<string, number>();
 
         try {
-            const sshCmd = `ssh -o StrictHostKeyChecking=accept-new ${SSH_USER}@${SSH_HOST} "cd ${REMOTE_DIR} && find thumbnails webp scrubber recap zips -type f -printf '%P|%s\\n' 2>/dev/null"`;
+            const sshCmd = `ssh -o StrictHostKeyChecking=accept-new ${SSH_USER}@${SSH_HOST} "cd ${REMOTE_DIR} && find thumbnails avif webp scrubber recap zips -type f -printf '%P|%s\\n' 2>/dev/null"`;
             const output = execSync(sshCmd, { encoding: 'utf8', maxBuffer: 30 * 1024 * 1024 });
             const lines = output.split('\n').filter(Boolean);
             lines.forEach((line) => {

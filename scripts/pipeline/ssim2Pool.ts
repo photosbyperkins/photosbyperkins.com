@@ -81,19 +81,26 @@ export function stopPool() {
  * @param {Buffer} referencePngBuffer - Lossless PNG buffer to compare against
  * @param {string} label - Identifier for temp files (e.g. "recap_2025")
  */
-export async function findOptimalQuality(referencePngBuffer: Buffer, _label: string = 's2') {
+export async function findOptimalQuality(
+    referencePngBuffer: Buffer,
+    _label: string = 's2',
+    format: 'avif' | 'webp' = 'avif'
+) {
     const refPath = path.join(SSIM_TMP_DIR, `s2_ref_${crypto.randomUUID()}.png`);
     await fs.promises.writeFile(refPath, referencePngBuffer);
 
     let bestQ = QUALITY_STEPS[0];
     let bestBuffer = null;
 
-    // Start from a reasonable midpoint and search outward
-    const startIdx = QUALITY_STEPS.indexOf(75);
+    // Start from a reasonable midpoint and search outward (60 for AVIF, 75 for WebP)
+    const targetMidpoint = format === 'avif' ? 60 : 75;
+    const startIdx = QUALITY_STEPS.indexOf(targetMidpoint);
     const initialQ = startIdx >= 0 ? QUALITY_STEPS[startIdx] : QUALITY_STEPS[Math.floor(QUALITY_STEPS.length / 2)];
 
     async function evaluate(q: number) {
-        const compBuf = await sharp(referencePngBuffer).webp({ quality: q, effort: 6 }).toBuffer();
+        const compBuf = format === 'avif'
+            ? await sharp(referencePngBuffer).avif({ quality: q, effort: 4 }).toBuffer()
+            : await sharp(referencePngBuffer).webp({ quality: q, effort: 6 }).toBuffer();
         const compPng = path.join(SSIM_TMP_DIR, `s2_comp_${crypto.randomUUID()}.png`);
         await sharp(compBuf).png().toFile(compPng);
         let score = 0;

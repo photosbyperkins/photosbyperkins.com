@@ -2,6 +2,12 @@
   RewriteEngine On
   RewriteBase /
   RewriteRule ^index\.html$ - [L]
+
+  # Transparent WebP -> AVIF fallback during migration
+  RewriteCond %{REQUEST_FILENAME} !-f
+  RewriteCond %{DOCUMENT_ROOT}/$1.avif -f
+  RewriteRule ^(.*)\.webp$ /$1.avif [T=image/avif,L]
+
   RewriteCond %{REQUEST_FILENAME} !-f
   RewriteCond %{REQUEST_FILENAME} !-d
   RewriteCond %{REQUEST_URI} !\.zip$ [NC]
@@ -50,6 +56,7 @@
 </IfModule>
 
 <IfModule mod_mime.c>
+  AddType image/avif .avif
   AddType application/zip .zip
   AddType font/woff2 .woff2
 </IfModule>

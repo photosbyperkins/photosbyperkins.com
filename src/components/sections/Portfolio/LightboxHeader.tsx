@@ -52,12 +52,12 @@ export default function LightboxHeader({
             try {
                 const obj = images[index];
                 const originalSrc = typeof obj === 'string' ? obj : obj.original;
-                const webpSrc = getPhotoDisplayUrl(originalSrc);
-                const filename = webpSrc.split('/').pop() || 'photo.webp';
-                const response = await fetch(webpSrc);
+                const displaySrc = getPhotoDisplayUrl(originalSrc);
+                const filename = displaySrc.split('/').pop() || 'photo.avif';
+                const response = await fetch(displaySrc);
                 const blob = await response.blob();
                 const file = new File([blob], filename, {
-                    type: blob.type || 'image/webp',
+                    type: blob.type || 'image/avif',
                 });
 
                 const shareData: ShareData = {

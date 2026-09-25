@@ -63,13 +63,13 @@ export async function processAndCopyPhotos(data: IndexState) {
                     copyTasks.push({ source: sourcePath, dest: destPath });
                 }
 
-                // Map WebP outputs
-                const webpRelativePath = originalRelative.replace(/^photos[\\/]/i, '').replace(/\.jpe?g$/i, '.webp');
-                const sourceWebpPath = path.join(process.cwd(), 'build', 'webp', webpRelativePath);
-                const destWebpPath = path.join(DIST_DIR, 'webp', webpRelativePath);
+                // Map AVIF outputs
+                const avifRelativePath = originalRelative.replace(/^photos[\\/]/i, '').replace(/\.jpe?g$/i, '.avif');
+                const sourceAvifPath = path.join(process.cwd(), 'build', 'avif', avifRelativePath);
+                const destAvifPath = path.join(DIST_DIR, 'avif', avifRelativePath);
 
-                validDestPaths.add(destWebpPath);
-                copyTasks.push({ source: sourceWebpPath, dest: destWebpPath });
+                validDestPaths.add(destAvifPath);
+                copyTasks.push({ source: sourceAvifPath, dest: destAvifPath });
             }
         }
     }

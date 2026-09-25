@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { formatTeamName, getTeamNameFormats } from './formatters';
+import { formatTeamName, getTeamNameFormats, getPhotoDisplayUrl } from './formatters';
 
 // Inject a known abbreviation map so tests don't depend on VITE_TEAM_ABBREVIATIONS env.
 vi.mock('./constants', () => ({
@@ -80,5 +80,15 @@ describe('getTeamNameFormats', () => {
         expect(formats.full).toBe('San Luis Obispo County Junior Roller Derby');
         expect(formats.mid).toBe('SLOCO Juniors');
         expect(formats.short).toBe('SLOCO');
+    });
+});
+
+describe('getPhotoDisplayUrl', () => {
+    it('transforms /photos/ path with .jpg to /avif/ path with .avif', () => {
+        expect(getPhotoDisplayUrl('/photos/2026/event/photo_001.jpg')).toBe('/avif/2026/event/photo_001.avif');
+        expect(getPhotoDisplayUrl('photos/2026/event/photo_001.jpeg')).toBe('/avif/2026/event/photo_001.avif');
+        expect(getPhotoDisplayUrl('/photos/2024/championships/photo_042.JPG')).toBe(
+            '/avif/2024/championships/photo_042.avif'
+        );
     });
 });

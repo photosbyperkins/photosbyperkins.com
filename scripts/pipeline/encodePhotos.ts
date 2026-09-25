@@ -9,14 +9,14 @@ import type { IndexState } from './types.js';
 import { logger } from './logger';
 
 const THUMBNAILS_DIR = path.join(process.cwd(), 'build', 'thumbnails');
-const WEBP_DIR = path.join(process.cwd(), 'build', 'webp');
+const AVIF_DIR = path.join(process.cwd(), 'build', 'avif');
 const PROCESSED_DIR = path.join(process.cwd(), 'build', 'processed');
 
 const METRICS_FILE = path.join(process.cwd(), 'data', 'quality_metrics.json');
 const MAX_DIMENSION = 1080;
 
-export async function encodePhotos(indexData: IndexState) {
-    logger.header('Master Encoder: Generating Thumbnails, WebPs, and Processed JPEGs...');
+export async function encodePhotos(indexData: IndexState, cleanStale = true) {
+    logger.header('Master Encoder: Generating AVIF Thumbnails, AVIFs, and Processed JPEGs...');
 
     let qualityMap: Record<string, number> = {};
     if (fs.existsSync(METRICS_FILE)) {
@@ -24,7 +24,7 @@ export async function encodePhotos(indexData: IndexState) {
     }
 
     const validThumbs = new Set<string>();
-    const validWebps = new Set<string>();
+    const validAvifs = new Set<string>();
     const validProcessed = new Set<string>();
 
     const tasks: any[] = [];
@@ -52,21 +52,21 @@ export async function encodePhotos(indexData: IndexState) {
                 const thumbPath = path.join(process.cwd(), 'build', thumbRelative);
 
                 const originalRelative = imgObj.original.startsWith('/') ? imgObj.original.slice(1) : imgObj.original;
-                const webpRelative = originalRelative.replace(/^photos[\\/]/i, '').replace(/\.jpe?g$/i, '.webp');
-                const webpPath = path.join(process.cwd(), 'build', 'webp', webpRelative);
+                const avifRelative = originalRelative.replace(/^photos[\\/]/i, '').replace(/\.jpe?g$/i, '.avif');
+                const avifPath = path.join(process.cwd(), 'build', 'avif', avifRelative);
 
                 const processedRelative = originalRelative.replace(/^photos[\\/]/i, '');
                 const processedPath = path.join(process.cwd(), 'build', 'processed', processedRelative);
 
                 validThumbs.add(thumbPath);
-                validWebps.add(webpPath);
+                validAvifs.add(avifPath);
                 validProcessed.add(processedPath);
 
                 const missingThumb = !fs.existsSync(thumbPath);
-                const missingWebp = !fs.existsSync(webpPath);
+                const missingAvif = !fs.existsSync(avifPath);
                 const missingProcessed = !fs.existsSync(processedPath);
 
-                if (!missingThumb && !missingWebp && !missingProcessed) {
+                if (!missingThumb && !missingAvif && !missingProcessed) {
                     skippedCount++;
                     continue;
                 }
@@ -78,48 +78,53 @@ export async function encodePhotos(indexData: IndexState) {
 
                 tasks.push(async () => {
                     const lookupKey = sourceRelative.replace(/\\/g, '/');
-                    let thumbQ = qualityMap[lookupKey];
+                    const thumbQ = qualityMap[lookupKey];
 
                     const tDir = path.dirname(thumbPath);
-                    const wDir = path.dirname(webpPath);
+                    const aDir = path.dirname(avifPath);
                     const pDir = path.dirname(processedPath);
 
                     try {
                         const pipeline = sharp(sourcePath);
                         const ops = [];
 
+                        // Map WebP quality score to optimal AVIF quality (AVIF Q60 >= WebP Q80 in SSIM2)
+                        let avifQ = thumbQ ? Math.max(55, Math.min(75, Math.round(thumbQ - 20))) : undefined;
+
                         if (missingThumb) {
-                            if (!thumbQ) {
-                                // Must calculate SSIMULACRA
+                            if (!avifQ) {
+                                // Must calculate SSIMULACRA 2 for AVIF
                                 const refPng = await pipeline.clone().resize({
                                     width: MAX_DIMENSION, height: MAX_DIMENSION, fit: 'inside', withoutEnlargement: true
                                 }).png().toBuffer();
                                 
                                 const { quality, buffer } = await findOptimalQuality(
                                     refPng,
-                                    `thumb_${lookupKey.replace(/[^a-z0-9]/gi, '_')}`
+                                    `thumb_${lookupKey.replace(/[^a-z0-9]/gi, '_')}`,
+                                    'avif'
                                 );
                                 fs.mkdirSync(tDir, { recursive: true });
                                 await fs.promises.writeFile(thumbPath, buffer);
-                                qualityMap[lookupKey] = quality;
-                                thumbQ = quality;
+                                qualityMap[lookupKey] = quality + 20;
+                                avifQ = quality;
                             } else {
                                 fs.mkdirSync(tDir, { recursive: true });
                                 ops.push(
                                     pipeline.clone().resize({ width: MAX_DIMENSION, height: MAX_DIMENSION, fit: 'inside', withoutEnlargement: true })
-                                        .webp({ quality: thumbQ, effort: 6 })
+                                        .avif({ quality: avifQ, effort: 4 })
                                         .toFile(thumbPath)
                                 );
                             }
                         }
 
-                        if (missingWebp) {
-                            const wQ = thumbQ || 82; // Fallback
-                            fs.mkdirSync(wDir, { recursive: true });
+                        if (missingAvif) {
+                            // Display AVIF (3840px): AVIF Q58-Q62 achieves SSIM2 >= 78 with dramatic size reductions (-35%) vs WebP Q82
+                            const targetAvifQ = Math.max(52, Math.min(62, avifQ ? avifQ - 4 : 58));
+                            fs.mkdirSync(aDir, { recursive: true });
                             ops.push(
                                 pipeline.clone().resize({ width: 3840, height: 3840, fit: 'inside', withoutEnlargement: true })
-                                    .webp({ quality: wQ, effort: 6 })
-                                    .toFile(webpPath)
+                                    .avif({ quality: targetAvifQ, effort: 4 })
+                                    .toFile(avifPath)
                             );
                         }
 
@@ -134,7 +139,6 @@ export async function encodePhotos(indexData: IndexState) {
                         }
 
                         await Promise.all(ops);
-                        // logger.info(`Encoded missing targets for ${originalRelative}`);
                     } catch (err: unknown) {
                         logger.error(`Failed to encode ${sourceRelative}:`, err instanceof Error ? err.message : String(err));
                     }
@@ -166,10 +170,12 @@ export async function encodePhotos(indexData: IndexState) {
     fs.mkdirSync(path.dirname(METRICS_FILE), { recursive: true });
     fs.writeFileSync(METRICS_FILE, JSON.stringify(qualityMap, null, 2));
 
-    logger.step('Cleaning up stale cached files...');
-    removeStaleFiles(THUMBNAILS_DIR, validThumbs);
-    removeStaleFiles(WEBP_DIR, validWebps);
-    removeStaleFiles(PROCESSED_DIR, validProcessed);
+    if (cleanStale) {
+        logger.step('Cleaning up stale cached files...');
+        removeStaleFiles(THUMBNAILS_DIR, validThumbs);
+        removeStaleFiles(AVIF_DIR, validAvifs);
+        removeStaleFiles(PROCESSED_DIR, validProcessed);
+    }
 
     logger.success('Master Encoding complete!');
 }

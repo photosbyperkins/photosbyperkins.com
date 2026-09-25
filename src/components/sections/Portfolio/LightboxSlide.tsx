@@ -1,6 +1,7 @@
 import { motion, useMotionValue, animate } from 'framer-motion';
 import { forwardRef, useRef, useState, useCallback, useEffect, useImperativeHandle } from 'react';
 import { useDebounce } from '../../../hooks/useDebounce';
+import { getPhotoDisplayUrl } from '../../../utils/formatters';
 import type { PhotoInput } from '../../../types';
 
 export interface LightboxSlideHandle {
@@ -24,7 +25,7 @@ const LightboxSlide = forwardRef<
     const [dragMode, setDragMode] = useState<boolean | 'x' | 'y'>(false);
 
     const url = image ? (typeof image === 'string' ? image : image.original) : '';
-    const displayUrl = url ? url.replace(/^(?:\/)?photos\//i, '/webp/').replace(/\.jpe?g$/i, '.webp') : '';
+    const displayUrl = url ? getPhotoDisplayUrl(url) : '';
     const focusX = image && typeof image !== 'string' ? image.focusX : undefined;
     const focusY = image && typeof image !== 'string' ? image.focusY : undefined;
 
