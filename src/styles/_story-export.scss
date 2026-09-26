@@ -519,11 +519,15 @@
 
         &--custom {
             font-weight: 700;
-            transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+            transition:
+                transform var(--transition-fast),
+                box-shadow var(--transition-fast);
 
             &.active,
             &.story-export-modal__pill--active {
-                box-shadow: inset 0 0 0 2px #ffffff, inset 0 0 0 4px var(--color-accent);
+                box-shadow:
+                    inset 0 0 0 2px #ffffff,
+                    inset 0 0 0 4px var(--color-accent);
             }
         }
     }

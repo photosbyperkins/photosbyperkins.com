@@ -23,7 +23,6 @@
         display: none !important;
     }
 
-
     &-pill {
         display: flex;
         flex-direction: column;
@@ -290,30 +289,75 @@
         }
     }
 
-    // Smaller resolutions: Compact micro-rail (no month labels, no click functionality)
+    // Smaller resolutions: Compact micro-rail (no month labels, clickable with accessible touch targets)
     @media (max-width: 1350px) {
-        width: 18px;
-        margin-left: 0;
-        pointer-events: none !important;
-        cursor: default !important;
+        width: 20px;
+        margin-left: calc(-20px - 0.75rem);
+        pointer-events: none;
+        touch-action: pan-y;
+        top: calc(50vh + var(--nav-height-total) / 2 - 160px);
 
         .portfolio__month-track-pill {
-            pointer-events: none !important;
+            pointer-events: none;
             gap: 3px;
             width: 100%;
         }
 
         .portfolio__month-item {
-            width: 18px !important;
-            height: 20px !important;
+            width: 20px !important;
+            height: 24px !important;
             padding: 0 !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
-            cursor: default !important;
-            pointer-events: none !important;
             border-radius: 4px;
             box-sizing: border-box !important;
+            position: relative;
+            touch-action: pan-y;
+
+            // Clickable buttons (populated months)
+            &[type='button'],
+            &:not(.is-empty) {
+                cursor: pointer !important;
+                pointer-events: auto !important;
+
+                // Generous hit target area for mobile/touch accessibility (44px target width)
+                &::after {
+                    content: '';
+                    position: absolute;
+                    top: -2px;
+                    bottom: -2px;
+                    left: -12px;
+                    right: -12px;
+                    z-index: 1;
+                }
+
+                &:active {
+                    transform: scale(0.92);
+                    background: rgba(var(--color-accent-rgb, 230, 0, 0), 0.25) !important;
+                }
+
+                @media (hover: hover) {
+                    &:hover {
+                        background: rgba(var(--color-accent-rgb, 230, 0, 0), 0.12) !important;
+
+                        .portfolio__month-meter-bar {
+                            opacity: 1 !important;
+                            transform: scaleX(1.2);
+                        }
+                    }
+                }
+            }
+
+            // Disabled empty months
+            &.is-empty {
+                cursor: default !important;
+                pointer-events: none !important;
+
+                &::after {
+                    display: none !important;
+                }
+            }
 
             .portfolio__month-label {
                 display: none !important;
@@ -329,6 +373,7 @@
                 padding: 0 !important;
                 margin: 0 !important;
                 box-sizing: border-box !important;
+                pointer-events: none;
             }
 
             .portfolio__month-meter-bar {
@@ -338,6 +383,9 @@
                 background: var(--color-accent) !important;
                 opacity: 0.9 !important;
                 min-width: 4px;
+                transition:
+                    transform 0.15s ease,
+                    opacity 0.15s ease;
             }
 
             .portfolio__month-empty-dash {
@@ -368,16 +416,36 @@
                 display: none !important;
             }
 
-            &:hover {
-                background: transparent !important;
+            &:focus-visible {
+                outline: 2px solid var(--color-accent) !important;
+                outline-offset: 2px;
+            }
+        }
+
+        @media (max-width: 640px) {
+            width: 16px;
+            margin-left: calc(-16px - 6px);
+
+            .portfolio__month-item {
+                width: 16px !important;
+
+                &[type='button'],
+                &:not(.is-empty) {
+                    &::after {
+                        left: -4px;
+                        right: -6px;
+                    }
+                }
 
                 .portfolio__month-meter-bar {
-                    transform: none !important;
+                    min-width: 3px;
                 }
-            }
 
-            &:focus-visible {
-                outline: none !important;
+                &.is-current {
+                    .portfolio__month-meter-bar {
+                        width: 10px !important;
+                    }
+                }
             }
         }
     }

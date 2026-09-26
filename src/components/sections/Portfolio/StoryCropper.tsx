@@ -221,7 +221,9 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
                 {/* Decorative Frame Overlay */}
                 {(() => {
                     const frameContext: StoryFrameContext = {
-                        hasScoreboard: Boolean(badges?.showScoreboard && (badges?.scoreboardTitle || badges?.teams?.length)),
+                        hasScoreboard: Boolean(
+                            badges?.showScoreboard && (badges?.scoreboardTitle || badges?.teams?.length)
+                        ),
                         hasAttribution: Boolean(badges?.showAttribution),
                         layoutMode: 'crop',
                         exif,

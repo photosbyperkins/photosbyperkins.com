@@ -111,15 +111,7 @@ export function drawCameraLogoIcon(
     ctx.restore();
 }
 
-export type StoryPhotoFilterId =
-    | 'none'
-    | 'bw'
-    | 'bw-contrast'
-    | 'warm'
-    | 'vivid'
-    | 'matte'
-    | 'noir'
-    | 'sepia';
+export type StoryPhotoFilterId = 'none' | 'bw' | 'bw-contrast' | 'warm' | 'vivid' | 'matte' | 'noir' | 'sepia';
 
 export interface StoryPhotoFilter {
     id: StoryPhotoFilterId;
@@ -179,9 +171,10 @@ export const STORY_PHOTO_FILTERS: StoryPhotoFilter[] = [
     },
 ];
 
-export const STORY_PHOTO_FILTERS_MAP = Object.fromEntries(
-    STORY_PHOTO_FILTERS.map((f) => [f.id, f])
-) as Record<StoryPhotoFilterId, StoryPhotoFilter>;
+export const STORY_PHOTO_FILTERS_MAP = Object.fromEntries(STORY_PHOTO_FILTERS.map((f) => [f.id, f])) as Record<
+    StoryPhotoFilterId,
+    StoryPhotoFilter
+>;
 
 export interface StoryRenderConfig {
     mode: 'crop' | 'padded';
@@ -650,14 +643,7 @@ export async function renderStoryToCanvas(
             layoutMode: config.mode,
             exif: config.exif,
         };
-        await drawStoryFrameToCanvas(
-            ctx,
-            config.frameId,
-            targetW,
-            targetH,
-            config.frameColorOverride,
-            frameContext
-        );
+        await drawStoryFrameToCanvas(ctx, config.frameId, targetW, targetH, config.frameColorOverride, frameContext);
     }
 
     // ==========================================

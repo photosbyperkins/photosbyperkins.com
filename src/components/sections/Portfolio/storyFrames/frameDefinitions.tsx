@@ -42,11 +42,35 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
                     {/* California racing edge lines */}
                     {hasAttribution ? (
                         <>
-                            <line x1="140" y1="117" x2="250" y2="117" stroke={primary} strokeWidth="4" strokeDasharray="16 8" />
-                            <line x1="830" y1="117" x2="940" y2="117" stroke={primary} strokeWidth="4" strokeDasharray="16 8" />
+                            <line
+                                x1="140"
+                                y1="117"
+                                x2="250"
+                                y2="117"
+                                stroke={primary}
+                                strokeWidth="4"
+                                strokeDasharray="16 8"
+                            />
+                            <line
+                                x1="830"
+                                y1="117"
+                                x2="940"
+                                y2="117"
+                                stroke={primary}
+                                strokeWidth="4"
+                                strokeDasharray="16 8"
+                            />
                         </>
                     ) : (
-                        <line x1="140" y1="117" x2="940" y2="117" stroke={primary} strokeWidth="4" strokeDasharray="16 8" />
+                        <line
+                            x1="140"
+                            y1="117"
+                            x2="940"
+                            y2="117"
+                            stroke={primary}
+                            strokeWidth="4"
+                            strokeDasharray="16 8"
+                        />
                     )}
 
                     {hasScoreboard ? (
@@ -400,7 +424,13 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
                         {/* Front Ring Half (Overlaps Planet for 3D Depth) */}
                         <path d="M85,0 A85,18 0 0,1 -85,0" stroke={p2} strokeWidth="6" fill="none" opacity="0.95" />
                         <path d="M66,0 A66,13 0 0,1 -66,0" stroke={p1} strokeWidth="3.5" fill="none" opacity="0.95" />
-                        <path d="M78,0 A78,16 0 0,1 -78,0" stroke="#ffffff" strokeWidth="1.2" fill="none" opacity="0.75" />
+                        <path
+                            d="M78,0 A78,16 0 0,1 -78,0"
+                            stroke="#ffffff"
+                            strokeWidth="1.2"
+                            fill="none"
+                            opacity="0.75"
+                        />
                         {/* Orbiting Moonlets */}
                         <circle cx="75" cy="-35" r="5" fill={gold} />
                         <circle cx="-65" cy="42" r="3.5" fill={p2} />
@@ -410,7 +440,16 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
                     <g opacity="0.95">
                         <line x1="-30" y1="80" x2="220" y2="210" stroke={p2} strokeWidth="3" opacity="0.85" />
                         <line x1="10" y1="75" x2="215" y2="202" stroke="#ffffff" strokeWidth="1.5" opacity="0.9" />
-                        <line x1="-50" y1="95" x2="180" y2="218" stroke={p1} strokeWidth="2" opacity="0.6" strokeDasharray="12 8" />
+                        <line
+                            x1="-50"
+                            y1="95"
+                            x2="180"
+                            y2="218"
+                            stroke={p1}
+                            strokeWidth="2"
+                            opacity="0.6"
+                            strokeDasharray="12 8"
+                        />
                         <polygon points="220,206 230,210 220,214 214,210" fill="#ffffff" />
                         <circle cx="218" cy="210" r="6" fill={p2} opacity="0.6" />
                         {/* Trailing Comet Dust Particles */}
@@ -441,8 +480,16 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
                     <polygon points="985,280 990,295 1005,300 990,305 985,320 980,305 965,300 980,295" fill={gold} />
                     <circle cx="985" cy="300" r="2.5" fill="#ffffff" />
 
-                    <polygon points="80,290 84,302 96,306 84,310 80,322 76,310 64,306 76,302" fill="#ffffff" opacity="0.9" />
-                    <polygon points="1010,480 1013,490 1023,493 1013,496 1010,506 1007,496 997,493 1007,490" fill={gold} opacity="0.85" />
+                    <polygon
+                        points="80,290 84,302 96,306 84,310 80,322 76,310 64,306 76,302"
+                        fill="#ffffff"
+                        opacity="0.9"
+                    />
+                    <polygon
+                        points="1010,480 1013,490 1023,493 1013,496 1010,506 1007,496 997,493 1007,490"
+                        fill={gold}
+                        opacity="0.85"
+                    />
                     <polygon points="50,750 53,760 63,763 53,766 50,776 47,766 37,763 47,760" fill={p2} opacity="0.9" />
 
                     {/* Constellation Dots & Stellar Lines along Left Border */}
@@ -474,7 +521,18 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
                         <path d="M-20,-32 A36,36 0 0,0 22,32 A28,28 0 0,1 -20,-32 Z" fill={gold} />
                         <circle cx="-2" cy="-4" r="3" fill="#d97706" opacity="0.6" />
                         <circle cx="-8" cy="10" r="2" fill="#d97706" opacity="0.6" />
-                        <ellipse cx="38" cy="8" rx="42" ry="14" stroke={p2} strokeWidth="2" strokeDasharray="6 4" fill="none" transform="rotate(-15 38 8)" opacity="0.8" />
+                        <ellipse
+                            cx="38"
+                            cy="8"
+                            rx="42"
+                            ry="14"
+                            stroke={p2}
+                            strokeWidth="2"
+                            strokeDasharray="6 4"
+                            fill="none"
+                            transform="rotate(-15 38 8)"
+                            opacity="0.8"
+                        />
                         <circle cx="38" cy="8" r="4" fill="#ffffff" />
                         <circle cx="68" cy="1" r="2.5" fill={p1} />
                         <polygon points="75,28 78,34 84,36 78,38 75,44 72,38 66,36 72,34" fill={gold} />
@@ -1274,9 +1332,21 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
                     <polygon points="865,380 869,392 881,396 869,400 865,412 861,400 849,396 861,392" fill="#ffffff" />
 
                     {/* Mid-Flank High-Voltage Arcs */}
-                    <path d="M35,820 L65,880 L45,920 L75,990" stroke={primary} strokeWidth="2.5" fill="none" opacity="0.75" />
+                    <path
+                        d="M35,820 L65,880 L45,920 L75,990"
+                        stroke={primary}
+                        strokeWidth="2.5"
+                        fill="none"
+                        opacity="0.75"
+                    />
                     <circle cx="75" cy="990" r="3" fill={spark} />
-                    <path d="M1045,820 L1015,880 L1035,920 L1005,990" stroke={primary} strokeWidth="2.5" fill="none" opacity="0.75" />
+                    <path
+                        d="M1045,820 L1015,880 L1035,920 L1005,990"
+                        stroke={primary}
+                        strokeWidth="2.5"
+                        fill="none"
+                        opacity="0.75"
+                    />
                     <circle cx="1005" cy="990" r="3" fill={spark} />
 
                     {/* Bottom-Left Lightning Strike (Context Adaptive) */}
@@ -1617,7 +1687,14 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
                     </text>
 
                     {/* Column 5: [ i ] Button & Battery */}
-                    <circle cx="866" cy={bottomBarY + 36} r="16" stroke={textColor} strokeWidth="1.5" fill="rgba(255,255,255,0.08)" />
+                    <circle
+                        cx="866"
+                        cy={bottomBarY + 36}
+                        r="16"
+                        stroke={textColor}
+                        strokeWidth="1.5"
+                        fill="rgba(255,255,255,0.08)"
+                    />
                     <text
                         x="866"
                         y={bottomBarY + 36}
@@ -1632,7 +1709,16 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
                         i
                     </text>
 
-                    <rect x="906" y={bottomBarY + 24} width="46" height="24" rx="4" stroke={textColor} strokeWidth="2" fill="none" />
+                    <rect
+                        x="906"
+                        y={bottomBarY + 24}
+                        width="46"
+                        height="24"
+                        rx="4"
+                        stroke={textColor}
+                        strokeWidth="2"
+                        fill="none"
+                    />
                     <rect x="952" y={bottomBarY + 30} width="4" height="12" rx="1" fill={textColor} />
                     <rect x="910" y={bottomBarY + 28} width="7" height="16" rx="1" fill={hudGreen} />
                     <rect x="919" y={bottomBarY + 28} width="7" height="16" rx="1" fill={hudGreen} />

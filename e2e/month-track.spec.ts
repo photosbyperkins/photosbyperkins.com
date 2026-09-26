@@ -41,10 +41,7 @@ test.describe('Portfolio Month Calendar Track', () => {
         expect(await emptyMonths.count()).toBeGreaterThan(0);
     });
 
-    test('clicking a populated month triggers scroll navigation', async ({ page, isMobile }) => {
-        test.skip(isMobile, 'Month track is only visible on desktop');
-
-        await page.setViewportSize({ width: 1440, height: 800 });
+    test('clicking a populated month triggers scroll navigation', async ({ page }) => {
         await page.goto('/');
         await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
 
@@ -96,6 +93,40 @@ test.describe('Portfolio Month Calendar Track', () => {
         await expect(firstLabel).toBeVisible();
         const hasOverflow1366 = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
         expect(hasOverflow1366).toBe(false);
+    });
+
+    test('compact micro-rail is clickable on mobile with appropriately sized touch targets', async ({ page }) => {
+        await page.setViewportSize({ width: 390, height: 844 });
+        await page.goto('/');
+        await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
+
+        const track = page.locator('.portfolio__month-track');
+        await expect(track).toBeVisible();
+
+        const populatedButtons = track.locator('button.portfolio__month-item.is-populated');
+        expect(await populatedButtons.count()).toBeGreaterThan(0);
+
+        // Verify button has pointer cursor and auto pointer events
+        const firstBtn = populatedButtons.first();
+        const cursor = await firstBtn.evaluate((el) => window.getComputedStyle(el).cursor);
+        const pointerEvents = await firstBtn.evaluate((el) => window.getComputedStyle(el).pointerEvents);
+        expect(cursor).toBe('pointer');
+        expect(pointerEvents).toBe('auto');
+
+        // Verify touch target dimensions and expanded hit area
+        const targetBtn = populatedButtons.last();
+        const box = await targetBtn.boundingBox();
+        expect(box).not.toBeNull();
+        expect(box!.width).toBeGreaterThanOrEqual(16);
+        expect(box!.height).toBeGreaterThanOrEqual(20);
+
+        // Click the populated month button on mobile and verify scroll navigation
+        const initialScrollY = await page.evaluate(() => window.scrollY);
+        await targetBtn.click();
+        await page.waitForTimeout(800);
+
+        const newScrollY = await page.evaluate(() => window.scrollY);
+        expect(newScrollY).toBeGreaterThan(initialScrollY + 50);
     });
 
     test('is positioned as a dedicated sticky sidebar to the left of events with zero drop shadow', async ({ page }) => {
@@ -178,6 +209,27 @@ test.describe('Portfolio Month Calendar Track', () => {
         // Gap between right edge of month track and left edge of portfolio__events is 24px (1.5rem, within 1px subpixel tolerance)
         const gap = eventsBox!.x - (trackBox!.x + trackBox!.width);
         expect(Math.abs(gap - 24)).toBeLessThanOrEqual(1);
+    });
+
+    test('portfolio__events left edge aligns with top nav inner contents across all resolutions', async ({ page }) => {
+        for (const width of [375, 768, 1280, 1440]) {
+            await page.setViewportSize({ width, height: 800 });
+            await page.goto('/');
+            await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
+
+            const navInnerBox = await page.locator('.nav__inner').boundingBox();
+            const eventsBox = await page.locator('.portfolio__events').boundingBox();
+
+            expect(navInnerBox).not.toBeNull();
+            expect(eventsBox).not.toBeNull();
+
+            // Left edge of portfolio__events strictly aligns with left edge of top nav inner contents (within 1px subpixel tolerance)
+            expect(Math.abs(eventsBox!.x - navInnerBox!.x)).toBeLessThanOrEqual(1);
+
+            // No horizontal page overflow
+            const hasOverflow = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+            expect(hasOverflow).toBe(false);
+        }
     });
 
     test('renders micro density meters on populated months with aligned left edges', async ({ page }) => {

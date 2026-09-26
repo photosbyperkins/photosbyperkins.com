@@ -74,8 +74,6 @@ export const PortfolioMonthTrack: React.FC<PortfolioMonthTrackProps> = ({ events
             // Do nothing if month has no photos or if already in that month and at the top
             if (!m.hasPhotos || !m.firstEventId) return;
             if (m.num === activeMonth && window.scrollY <= 10) return;
-            // Omit click functionality at smaller resolutions (<= 1350px)
-            if (typeof window !== 'undefined' && window.innerWidth <= 1350) return;
 
             scrollToElement(m.firstEventId);
         },

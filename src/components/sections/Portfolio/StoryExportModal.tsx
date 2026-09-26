@@ -1,13 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import {
-    Download,
-    Share2,
-    Moon,
-    Sun,
-    ChevronDown,
-    ChevronUp,
-    Check,
-} from 'lucide-react';
+import { Download, Share2, Moon, Sun, ChevronDown, ChevronUp, Check } from 'lucide-react';
 import { useCanShare } from '../../../hooks/useCanShare';
 import { useAppStore } from '../../../store/useAppStore';
 import ModalShell from '../../ui/ModalShell';
@@ -263,10 +255,10 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
     const hasExif = Boolean(
         photoObj.exif &&
         (photoObj.exif.shutterSpeed ||
-         photoObj.exif.aperture ||
-         photoObj.exif.iso ||
-         photoObj.exif.cameraModel ||
-         photoObj.exif.focalLength)
+            photoObj.exif.aperture ||
+            photoObj.exif.iso ||
+            photoObj.exif.cameraModel ||
+            photoObj.exif.focalLength)
     );
 
     const availableFrames = useMemo(() => {
@@ -493,8 +485,8 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                         ? 'Story Card Shared'
                         : 'Story Card Downloaded'
                     : canShare
-                    ? 'Share Story Card'
-                    : 'Download Story Card'
+                      ? 'Share Story Card'
+                      : 'Download Story Card'
             }
             aria-label={
                 isDownloaded
@@ -502,8 +494,8 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                         ? 'Story Card Shared'
                         : 'Story Card Downloaded'
                     : canShare
-                    ? 'Share Story Card'
-                    : 'Download Story Card'
+                      ? 'Share Story Card'
+                      : 'Download Story Card'
             }
         >
             {isDownloaded ? (
@@ -980,9 +972,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                                 type="button"
                                                 className={`story-export-modal__pill ${
                                                     isCustom ? 'story-export-modal__pill--custom' : ''
-                                                } ${
-                                                    isSelected ? 'active story-export-modal__pill--active' : ''
-                                                }`}
+                                                } ${isSelected ? 'active story-export-modal__pill--active' : ''}`}
                                                 style={
                                                     isCustom
                                                         ? {
@@ -1083,8 +1073,6 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                             )}
                         </div>
                     </div>
-
-
 
                     {statusToast && (
                         <div className="story-export-modal__toast">

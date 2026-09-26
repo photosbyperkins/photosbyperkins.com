@@ -35,4 +35,3 @@ export interface StoryFrameDefinition {
     renderSvg: (colorOverride?: string, context?: StoryFrameContext) => React.ReactNode;
     getSvgString: (colorOverride?: string, context?: StoryFrameContext) => string;
 }
-

@@ -558,7 +558,10 @@ describe('storyCanvas calculations', () => {
             expect(bearWithScoreboard).toContain('x1="830" y1="117" x2="940"');
 
             // When scoreboard is absent, bear descends into the corner
-            const bearWithoutScoreboard = bear!.getSvgString(undefined, { hasScoreboard: false, hasAttribution: false });
+            const bearWithoutScoreboard = bear!.getSvgString(undefined, {
+                hasScoreboard: false,
+                hasAttribution: false,
+            });
             expect(bearWithoutScoreboard).toContain('translate(660, 1680)');
             // Top racing stripe spans continuously across
             expect(bearWithoutScoreboard).toContain('x1="140" y1="117" x2="940"');
