@@ -105,12 +105,18 @@ export default function Lightbox({
     const getAmbientBg = useCallback(
         (photo: PhotoInput): React.CSSProperties => {
             if (spriteUrl && typeof photo !== 'string' && photo.spriteIndex != null) {
-                const totalSlices = images.length;
+                const SCRUBBER_COLUMNS = 200;
+                const totalCols = Math.min(images.length, SCRUBBER_COLUMNS);
+                const totalRows = Math.ceil(images.length / SCRUBBER_COLUMNS);
+                const col = photo.spriteIndex % SCRUBBER_COLUMNS;
+                const row = Math.floor(photo.spriteIndex / SCRUBBER_COLUMNS);
+                const posX = totalCols > 1 ? (col / (totalCols - 1)) * 100 : 0;
+                const posY = totalRows > 1 ? (row / (totalRows - 1)) * 100 : 0;
+
                 return {
                     backgroundImage: `url("${spriteUrl}")`,
-                    // Scale the sprite so each slice fills the entire container
-                    backgroundSize: `${totalSlices * 100}% 100%`,
-                    backgroundPosition: `${totalSlices > 1 ? (photo.spriteIndex / (totalSlices - 1)) * 100 : 0}% center`,
+                    backgroundSize: `${totalCols * 100}% ${totalRows * 100}%`,
+                    backgroundPosition: `${posX}% ${posY}%`,
                 };
             }
             const url = getThumbSrc(photo);

@@ -1,4 +1,4 @@
-import type sharp from 'sharp';
+import type { Sharp } from 'sharp';
 import 'dotenv/config';
 
 export interface MetadataOptions {
@@ -119,7 +119,7 @@ export function buildExifTags(options?: MetadataOptions): Record<string, Record<
     };
 }
 
-export function applyPhotoMetadata(pipeline: sharp.Sharp, options?: MetadataOptions): sharp.Sharp {
+export function applyPhotoMetadata(pipeline: Sharp, options?: MetadataOptions): Sharp {
     const exifTags = buildExifTags(options);
     const xmp = buildXmpPacket(options);
 

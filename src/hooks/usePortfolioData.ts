@@ -123,7 +123,10 @@ export function usePortfolioData({
 
             const fetchPart = (slug: string, accumulate: boolean) => {
                 fetch(`${basePath}/${slug}.json?build=${__BUILD_NUMBER__}`)
-                    .then((res) => res.json())
+                    .then((res) => {
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                        return res.json();
+                    })
                     .then((json) => {
                         const data = json as FetchPayload;
                         if (setData) {
@@ -192,12 +195,22 @@ export function usePortfolioData({
 
         const timer = setTimeout(() => {
             fetch(`${basePath}/${targetPart}.json?build=${__BUILD_NUMBER__}`)
-                .then((res) => res.json())
+                .then((res) => {
+                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                    return res.json();
+                })
                 .then((json) => {
                     const data = json as FetchPayload;
                     if (activeRequestRef.current !== requestToken) return;
 
-                    setYearData((prev) => ({ ...prev, ...data.events }));
+                    setYearData((prev) => {
+                        const merged = { ...prev, ...data.events };
+                        if (yearDataCache[selectedTab]) {
+                            yearDataCache[selectedTab].events = merged;
+                            yearDataCache[selectedTab].nextPart = data.nextPart ?? null;
+                        }
+                        return merged;
+                    });
 
                     if (data.nextPart) {
                         setPendingNextPart(data.nextPart);

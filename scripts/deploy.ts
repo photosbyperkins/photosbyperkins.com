@@ -9,9 +9,9 @@ const __dirname = path.dirname(__filename);
 // --- CONFIGURATION ---
 import 'dotenv/config';
 
-const SSH_USER = process.env.DEPLOY_SSH_USER;
-const SSH_HOST = process.env.DEPLOY_SSH_HOST;
-const REMOTE_DIR = process.env.DEPLOY_REMOTE_DIR;
+const SSH_USER = process.env.DEPLOY_SSH_USER!;
+const SSH_HOST = process.env.DEPLOY_SSH_HOST!;
+const REMOTE_DIR = process.env.DEPLOY_REMOTE_DIR!;
 
 if (!SSH_USER || !SSH_HOST || !REMOTE_DIR) {
     console.error('❌ Missing deploy configuration. Please check your .env file.');
@@ -37,7 +37,7 @@ function copyFilesToStaging(src: string, dest: string, remoteMap: Map<string, nu
         const localSize = stats.size;
         const remoteSize = remoteMap.get(relPath);
 
-        const alwaysOverwrite = ['index.html', 'sitemap.xml', 'robots.txt'];
+        const alwaysOverwrite = ['index.html', 'sitemap.xml', 'robots.txt', '.htaccess'];
 
         // ALWAYS skip heavy media folders since they are managed via FileZilla
         if (
@@ -147,14 +147,18 @@ async function runDeploy() {
         // Use scp to securely copy the staging directory contents to the remote server
         console.log(`🌐 Transferring new and updated files to temporary directory on ${SSH_USER}@${SSH_HOST}...`);
 
+        const MAX_RETRIES = 5;
         let scpAttempt = 1;
         let scpSuccess = false;
         while (!scpSuccess) {
             try {
                 execSync(scpCommand, { stdio: 'inherit' });
                 scpSuccess = true;
-            } catch {
-                console.log(`⚠️ Transfer failed. Retrying in 5 seconds... (Attempt ${scpAttempt})`);
+            } catch (err: unknown) {
+                if (scpAttempt >= MAX_RETRIES) {
+                    throw new Error(`File transfer failed after ${MAX_RETRIES} attempts: ${err instanceof Error ? err.message : String(err)}`);
+                }
+                console.log(`⚠️ Transfer failed. Retrying in 5 seconds... (Attempt ${scpAttempt}/${MAX_RETRIES})`);
                 await sleep(5000);
                 scpAttempt++;
             }
@@ -165,10 +169,13 @@ async function runDeploy() {
         let mvSuccess = false;
         while (!mvSuccess) {
             try {
-                execSync(`ssh -o StrictHostKeyChecking=accept-new ${SSH_USER}@${SSH_HOST} "cp -a ${remoteTmpDir}/. ${REMOTE_DIR}/ && chmod -R u+w ${remoteTmpDir} && rm -rf ${remoteTmpDir}"`, { stdio: 'inherit' });
+                execSync(`ssh -o StrictHostKeyChecking=accept-new ${SSH_USER}@${SSH_HOST} "cp -a '${remoteTmpDir}'/. '${REMOTE_DIR}'/ && chmod -R u+w '${remoteTmpDir}' && rm -rf '${remoteTmpDir}'"`, { stdio: 'inherit' });
                 mvSuccess = true;
-            } catch {
-                console.log(`⚠️ Move failed. Retrying in 5 seconds... (Attempt ${mvAttempt})`);
+            } catch (err: unknown) {
+                if (mvAttempt >= MAX_RETRIES) {
+                    throw new Error(`Atomic move failed after ${MAX_RETRIES} attempts: ${err instanceof Error ? err.message : String(err)}`);
+                }
+                console.log(`⚠️ Move failed. Retrying in 5 seconds... (Attempt ${mvAttempt}/${MAX_RETRIES})`);
                 await sleep(5000);
                 mvAttempt++;
             }
@@ -184,8 +191,11 @@ async function runDeploy() {
             try {
                 execSync(chmodCommand, { stdio: 'inherit' });
                 chmodSuccess = true;
-            } catch {
-                console.log(`⚠️ Permission fix failed. Retrying in 5 seconds... (Attempt ${chmodAttempt})`);
+            } catch (err: unknown) {
+                if (chmodAttempt >= MAX_RETRIES) {
+                    throw new Error(`Permission fix failed after ${MAX_RETRIES} attempts: ${err instanceof Error ? err.message : String(err)}`);
+                }
+                console.log(`⚠️ Permission fix failed. Retrying in 5 seconds... (Attempt ${chmodAttempt}/${MAX_RETRIES})`);
                 await sleep(5000);
                 chmodAttempt++;
             }
@@ -215,7 +225,7 @@ async function runDeploy() {
             for (let i = 0; i < staleFiles.length; i += 50) {
                 const batch = staleFiles
                     .slice(i, i + 50)
-                    .map((f) => `"${REMOTE_DIR}/${f}"`)
+                    .map((f) => `'${path.posix.join(REMOTE_DIR, f).replace(/'/g, `'\\''`)}'`)
                     .join(' ');
                 try {
                     execSync(`ssh -o StrictHostKeyChecking=accept-new ${SSH_USER}@${SSH_HOST} "rm -f ${batch}"`, {

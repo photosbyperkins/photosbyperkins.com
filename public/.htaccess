@@ -25,8 +25,8 @@
   Header set Referrer-Policy "strict-origin-when-cross-origin"
   Header set X-Frame-Options "SAMEORIGIN"
 
-  # 1. Never cache HTML or Service Workers (always fetch fresh)
-  <FilesMatch "\.html$|sw\.js|^workbox-.*\.js$">
+  # 1. Never cache HTML, Service Workers, or Web Manifest (always fetch fresh)
+  <FilesMatch "\.(html|webmanifest)$|sw\.js|^workbox-.*\.js$">
     Header set Cache-Control "no-cache, no-store, must-revalidate"
     Header set Pragma "no-cache"
     Header set Expires "0"
@@ -37,9 +37,10 @@
     Header set Cache-Control "public, max-age=31536000, immutable"
   </If>
 
-  # 3. Cache JSON data (revalidatable, stale-while-revalidate)
+  # 3. Always revalidate JSON data with origin (supports 304 Not Modified, avoids stale reads)
   <FilesMatch "\.json$">
-    Header set Cache-Control "public, max-age=600, stale-while-revalidate=86400"
+    Header set Cache-Control "public, no-cache, must-revalidate"
+    Header set Pragma "no-cache"
   </FilesMatch>
 
   # 4. Aggressively cache images and fonts for 1 year

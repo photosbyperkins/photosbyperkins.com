@@ -32,8 +32,16 @@ export function initPool(workerCount?: number) {
     if (poolActive) return;
     poolActive = true;
     const count = workerCount ?? Math.max(16, os.cpus().length * 2);
+    const workerPath = fs.existsSync(path.resolve(process.cwd(), 'scripts/pipeline/ssim2Worker.ts'))
+        ? path.resolve(process.cwd(), 'scripts/pipeline/ssim2Worker.ts')
+        : path.resolve(process.cwd(), 'scripts/pipeline/ssim2Worker.js');
+    const execArgv = process.execArgv.filter((arg, idx, arr) => {
+        if (arg === '--eval' || arg === '-e') return false;
+        if (idx > 0 && (arr[idx - 1] === '--eval' || arr[idx - 1] === '-e')) return false;
+        return true;
+    });
     for (let i = 0; i < count; i++) {
-        const w = fork('./scripts/pipeline/ssim2Worker.js') as WorkerProcess;
+        const w = fork(workerPath, [], { execArgv }) as WorkerProcess;
         w.on('message', (msg: any) => {
             const { resolve, reject } = w.currentTask;
             w.currentTask = null;

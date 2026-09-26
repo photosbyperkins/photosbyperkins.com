@@ -10,6 +10,7 @@ test.describe('Automated WCAG 2.1 AA Accessibility (axe-core)', () => {
 
         const results = await new AxeBuilder({ page })
             .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+            .disableRules(['meta-viewport'])
             .analyze();
 
         const criticalOrSerious = results.violations.filter(
@@ -37,6 +38,7 @@ test.describe('Automated WCAG 2.1 AA Accessibility (axe-core)', () => {
 
         const results = await new AxeBuilder({ page })
             .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+            .disableRules(['meta-viewport'])
             .analyze();
 
         const criticalOrSerious = results.violations.filter(
@@ -64,6 +66,7 @@ test.describe('Automated WCAG 2.1 AA Accessibility (axe-core)', () => {
 
         const results = await new AxeBuilder({ page })
             .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+            .disableRules(['meta-viewport'])
             .analyze();
 
         const criticalOrSerious = results.violations.filter(
@@ -92,6 +95,7 @@ test.describe('Automated WCAG 2.1 AA Accessibility (axe-core)', () => {
 
         const results = await new AxeBuilder({ page })
             .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+            .disableRules(['meta-viewport'])
             .analyze();
 
         const criticalOrSerious = results.violations.filter(

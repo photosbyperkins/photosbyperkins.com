@@ -63,101 +63,103 @@ export async function scrapeWftda(photosData?: IndexState) {
     const uniqueMatches = new Map();
     const wftdaAliasMap = new Map();
 
-    for (const [teamName, url] of targets) {
-        const page = await browser.newPage();
-        try {
-            logger.info(`Scraping: ${teamName}`);
-            await page.goto(url, { waitUntil: 'networkidle0', timeout: 30000 });
-            await page.waitForSelector('.gameRow', { timeout: 5000 }).catch(() => {});
+    try {
+        for (const [teamName, url] of targets) {
+            const page = await browser.newPage();
+            try {
+                logger.info(`Scraping: ${teamName}`);
+                await page.goto(url, { waitUntil: 'networkidle0', timeout: 30000 });
+                await page.waitForSelector('.gameRow', { timeout: 5000 }).catch(() => {});
 
-            const matches = await page.evaluate(() => {
-                const results = [];
-                const elements = document.querySelectorAll('.gameRow--gameDate, .resultsForDate');
-                let currentDate = '';
+                const matches = await page.evaluate(() => {
+                    const results = [];
+                    const elements = document.querySelectorAll('.gameRow--gameDate, .resultsForDate');
+                    let currentDate = '';
 
-                for (let i = 0; i < elements.length; i++) {
-                    const el = elements[i];
-                    if (el.classList.contains('gameRow--gameDate')) {
-                        const rawText = (el as HTMLElement).innerText.trim();
-                        const d = new Date(rawText);
-                        if (!isNaN(d.valueOf())) {
-                            const y = d.getFullYear();
-                            const m = String(d.getMonth() + 1).padStart(2, '0');
-                            const day = String(d.getDate()).padStart(2, '0');
-                            currentDate = `${y}-${m}-${day}`;
-                        } else {
-                            currentDate = rawText;
-                        }
-                    } else if (el.classList.contains('resultsForDate')) {
-                        const games = el.querySelectorAll('a.gameRow.resultRow');
-                        for (let j = 0; j < games.length; j++) {
-                            const game = games[j];
-                            const href = (game as HTMLAnchorElement).href || game.getAttribute('href');
-                            const teams = game.querySelectorAll('.gameRow--teamTitleRow');
-                            const scores = game.querySelectorAll('.gameRow--score.resultRow--score');
+                    for (let i = 0; i < elements.length; i++) {
+                        const el = elements[i];
+                        if (el.classList.contains('gameRow--gameDate')) {
+                            const rawText = (el as HTMLElement).innerText.trim();
+                            const d = new Date(rawText);
+                            if (!isNaN(d.valueOf())) {
+                                const y = d.getFullYear();
+                                const m = String(d.getMonth() + 1).padStart(2, '0');
+                                const day = String(d.getDate()).padStart(2, '0');
+                                currentDate = `${y}-${m}-${day}`;
+                            } else {
+                                currentDate = rawText;
+                            }
+                        } else if (el.classList.contains('resultsForDate')) {
+                            const games = el.querySelectorAll('a.gameRow.resultRow');
+                            for (let j = 0; j < games.length; j++) {
+                                const game = games[j];
+                                const href = (game as HTMLAnchorElement).href || game.getAttribute('href');
+                                const teams = game.querySelectorAll('.gameRow--teamTitleRow');
+                                const scores = game.querySelectorAll('.gameRow--score.resultRow--score');
 
-                            if (teams.length >= 2 && scores.length >= 2) {
-                                results.push({
-                                    date: currentDate,
-                                    eventInfo: 'Match', // Placeholder for compatibility
-                                    href: href,
-                                    team1: (teams[0] as HTMLElement).innerText.trim(),
-                                    score1: parseInt((scores[0] as HTMLElement).innerText.trim(), 10) || 0,
-                                    team2: (teams[1] as HTMLElement).innerText.trim(),
-                                    score2: parseInt((scores[1] as HTMLElement).innerText.trim(), 10) || 0,
-                                });
+                                if (teams.length >= 2 && scores.length >= 2) {
+                                    results.push({
+                                        date: currentDate,
+                                        eventInfo: 'Match', // Placeholder for compatibility
+                                        href: href,
+                                        team1: (teams[0] as HTMLElement).innerText.trim(),
+                                        score1: parseInt((scores[0] as HTMLElement).innerText.trim(), 10) || 0,
+                                        team2: (teams[1] as HTMLElement).innerText.trim(),
+                                        score2: parseInt((scores[1] as HTMLElement).innerText.trim(), 10) || 0,
+                                    });
+                                }
                             }
                         }
                     }
-                }
-                return results;
-            });
+                    return results;
+                });
 
-            // Determine the WFTDA alias for this team
-            if (matches.length > 0) {
-                const tally: Record<string, number> = {};
-                for (const m of matches) {
-                    tally[m.team1] = (tally[m.team1] || 0) + 1;
-                    tally[m.team2] = (tally[m.team2] || 0) + 1;
-                }
+                // Determine the WFTDA alias for this team
+                if (matches.length > 0) {
+                    const tally: Record<string, number> = {};
+                    for (const m of matches) {
+                        tally[m.team1] = (tally[m.team1] || 0) + 1;
+                        tally[m.team2] = (tally[m.team2] || 0) + 1;
+                    }
 
-                let candidates: string[] = [];
-                let maxCount = -1;
-                for (const [name, count] of Object.entries(tally)) {
-                    if (count > maxCount) {
-                        maxCount = count;
-                        candidates = [name];
-                    } else if (count === maxCount) {
-                        candidates.push(name);
+                    let candidates: string[] = [];
+                    let maxCount = -1;
+                    for (const [name, count] of Object.entries(tally)) {
+                        if (count > maxCount) {
+                            maxCount = count;
+                            candidates = [name];
+                        } else if (count === maxCount) {
+                            candidates.push(name);
+                        }
+                    }
+
+                    let bestAlias = candidates[0];
+                    if (candidates.length > 1) {
+                        const localLower = teamName.toLowerCase();
+                        const best = candidates.find((c) => localLower.includes(c.toLowerCase()));
+                        if (best) bestAlias = best;
+                    }
+
+                    if (bestAlias) {
+                        wftdaAliasMap.set(bestAlias, teamName);
                     }
                 }
 
-                let bestAlias = candidates[0];
-                if (candidates.length > 1) {
-                    const localLower = teamName.toLowerCase();
-                    const best = candidates.find((c) => localLower.includes(c.toLowerCase()));
-                    if (best) bestAlias = best;
+                for (const match of matches) {
+                    if (match.href && !uniqueMatches.has(match.href)) {
+                        uniqueMatches.set(match.href, match);
+                    }
                 }
-
-                if (bestAlias) {
-                    wftdaAliasMap.set(bestAlias, teamName);
-                }
+                logger.substep(`found ${matches.length} matches.`);
+            } catch (err: unknown) {
+                logger.error(`failed to scrape ${teamName}:`, err instanceof Error ? err.message : String(err));
+            } finally {
+                await page.close();
             }
-
-            for (const match of matches) {
-                if (match.href && !uniqueMatches.has(match.href)) {
-                    uniqueMatches.set(match.href, match);
-                }
-            }
-            logger.substep(`found ${matches.length} matches.`);
-        } catch (err: unknown) {
-            logger.error(`failed to scrape ${teamName}:`, err instanceof Error ? err.message : String(err));
-        } finally {
-            await page.close();
         }
+    } finally {
+        await browser.close();
     }
-
-    await browser.close();
 
     logger.step('Fetching global rankings...');
     try {

@@ -44,9 +44,9 @@ interface TeamMeta {
 
 export default function Portfolio({ years }: PortfolioProps) {
     const location = useLocation();
-    const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
-    const initialSearchOpen = params?.get('search') === 'true' || !!params?.get('q');
-    const initialSearchQuery = params?.get('q') || '';
+    const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
+    const initialSearchOpen = params.get('search') === 'true' || !!params.get('q');
+    const initialSearchQuery = params.get('q') || '';
 
     const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState(initialSearchOpen);
     const [hasEverOpenedSearch, setHasEverOpenedSearch] = useState(initialSearchOpen);
@@ -169,7 +169,13 @@ export default function Portfolio({ years }: PortfolioProps) {
     useEffect(() => {
         if (initialYear && initialEvent && (years.includes(initialYear) || isTeamRoute || isGearRoute)) {
             const index = initialPhoto ? parseInt(initialPhoto, 10) : undefined;
-            setSharedPhoto({ eventName: decodeURIComponent(initialEvent), photoIndex: index });
+            let decodedEvent = initialEvent;
+            try {
+                decodedEvent = decodeURIComponent(initialEvent);
+            } catch {
+                // Keep raw string if URI decoding fails
+            }
+            setSharedPhoto({ eventName: decodedEvent, photoIndex: index });
         }
     }, [initialYear, initialEvent, initialPhoto, years, isTeamRoute, isGearRoute, setSharedPhoto]);
 

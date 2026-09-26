@@ -30,9 +30,10 @@ function ScrollToMountTarget() {
             return;
         }
 
-        setTimeout(() => {
+        const timer = setTimeout(() => {
             window.scrollTo({ top: 0, behavior: 'instant' });
         }, 50);
+        return () => clearTimeout(timer);
     }, [location]);
     return null;
 }

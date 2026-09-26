@@ -201,6 +201,7 @@ export async function processAndCopyPhotos(data: IndexState) {
     logger.step('Cleaning up obsolete files in dist payload folders...');
     removeStaleFiles(path.join(DIST_DIR, 'photos'), validDestPaths);
     removeStaleFiles(path.join(DIST_DIR, 'thumbnails'), validDestPaths);
+    removeStaleFiles(path.join(DIST_DIR, 'avif'), validDestPaths);
     removeStaleFiles(path.join(DIST_DIR, 'scrubber'), validDestPaths);
     removeStaleFiles(path.join(DIST_DIR, 'recap'), validDestPaths);
     removeStaleFiles(path.join(DIST_DIR, 'zips'), validDestPaths);

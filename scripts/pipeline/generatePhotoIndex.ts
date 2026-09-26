@@ -307,7 +307,7 @@ async function processEventDir(eventDir: string, year: string, eventSlug: string
 
     // 1. Prepare album entries first
     const albumArr = albumFiles
-        .sort((a, b) => a.localeCompare(b))
+        .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))
         .slice(0, MAX_ALBUM_PER_EVENT)
         .map((abs, idx) => {
             const ext = path.extname(abs).toLowerCase();
@@ -349,7 +349,7 @@ async function processEventDir(eventDir: string, year: string, eventSlug: string
     });
 
     // Re-sort albumArr after adding highlights
-    albumArr.sort((a, b) => a.basename.localeCompare(b.basename));
+    albumArr.sort((a, b) => a.basename.localeCompare(b.basename, undefined, { numeric: true, sensitivity: 'base' }));
 
     // 3. Map highlight files to album entries by filename
     const highlightsPaths = highlightFiles.map((abs) => {
@@ -495,7 +495,7 @@ export async function generatePhotoIndex(): Promise<IndexState> {
             if (flat.length > 0) {
                 const flatAlbumWithDims: any[] = [];
                 for (const [idx, abs] of flat
-                    .sort((a, b) => a.localeCompare(b))
+                    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))
                     .slice(0, MAX_ALBUM_PER_EVENT)
                     .entries()) {
                     const ext = path.extname(abs).toLowerCase();

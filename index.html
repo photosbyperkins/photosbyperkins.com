@@ -3,7 +3,41 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+
+  <script>
+    // Prevent viewport zooming (pinch-to-zoom on iOS/desktop, Ctrl/Cmd + wheel, and zoom keyboard shortcuts)
+    (function() {
+      // 1. iOS Safari gesture zoom prevention
+      document.addEventListener('gesturestart', function(e) { e.preventDefault(); }, { passive: false });
+      document.addEventListener('gesturechange', function(e) { e.preventDefault(); }, { passive: false });
+      document.addEventListener('gestureend', function(e) { e.preventDefault(); }, { passive: false });
+
+      // 2. Multi-touch pinch zoom prevention
+      document.addEventListener('touchmove', function(e) {
+        if (e.touches.length > 1) {
+          e.preventDefault();
+        }
+      }, { passive: false });
+
+      // 3. Desktop Ctrl/Cmd + Wheel / Trackpad pinch zoom prevention
+      document.addEventListener('wheel', function(e) {
+        if (e.ctrlKey || e.metaKey) {
+          e.preventDefault();
+        }
+      }, { passive: false });
+
+      // 4. Keyboard zoom prevention (Ctrl/Cmd + Plus/Minus/0)
+      document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && (
+          e.key === '+' || e.key === '-' || e.key === '=' || e.key === '_' || e.key === '0' ||
+          e.keyCode === 187 || e.keyCode === 189 || e.keyCode === 107 || e.keyCode === 109 || e.keyCode === 48
+        )) {
+          e.preventDefault();
+        }
+      });
+    })();
+  </script>
 
   <script>
     // Failsafe: Hard reload if Vite's main module chunk fails to load due to stale index.html cache

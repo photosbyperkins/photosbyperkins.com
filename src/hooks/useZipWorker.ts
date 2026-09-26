@@ -50,6 +50,14 @@ export function useZipWorker() {
                 }
             };
 
+            worker.onerror = (err) => {
+                console.error('Zip worker fatal error:', err);
+                setIsZipping(false);
+                setZipProgress(0);
+                worker.terminate();
+                zipWorkerRef.current = null;
+            };
+
             worker.postMessage({ urls, filename });
         },
         [isZipping]

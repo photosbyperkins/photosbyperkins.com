@@ -28,7 +28,7 @@ export function useEventAlbum({ ev, isVisible, selectedYear, eventName, setEv }:
             const timer = setTimeout(() => {
                 setLoading(true);
                 const loadYear = ev.originalYear || selectedYear;
-                fetch(`/data/albums/${loadYear}/${ev.albumSlug}.json?v=${__BUILD_NUMBER__}`)
+                fetch(`/data/albums/${loadYear}/${ev.albumSlug}.json?build=${__BUILD_NUMBER__}`)
                     .then((res) => {
                         if (res.status === 429) throw new Error('Too Many Requests');
                         if (!res.ok) throw new Error('Failed to load');

@@ -7,6 +7,15 @@ import { logger } from './logger.js';
 const DIST_DIR = path.join(process.cwd(), 'dist');
 const BASE_URL = `https://${process.env.VITE_SITE_DOMAIN || 'localhost'}`;
 
+function xmlEscape(str: string): string {
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&apos;');
+}
+
 export async function generateSitemap(data: IndexState) {
     logger.header('Generating sitemap.xml...');
 
@@ -15,7 +24,7 @@ export async function generateSitemap(data: IndexState) {
 
     // Root URL
     xml += `  <url>\n`;
-    xml += `    <loc>${BASE_URL}/</loc>\n`;
+    xml += `    <loc>${xmlEscape(BASE_URL)}/</loc>\n`;
     xml += `    <changefreq>weekly</changefreq>\n`;
     xml += `    <priority>1.0</priority>\n`;
     xml += `  </url>\n`;
@@ -24,7 +33,7 @@ export async function generateSitemap(data: IndexState) {
     for (const year in data) {
         // Year overview page
         xml += `  <url>\n`;
-        xml += `    <loc>${BASE_URL}/portfolio/${encodeURIComponent(year)}</loc>\n`;
+        xml += `    <loc>${xmlEscape(`${BASE_URL}/portfolio/${encodeURIComponent(year)}`)}</loc>\n`;
         xml += `    <changefreq>weekly</changefreq>\n`;
         xml += `    <priority>0.9</priority>\n`;
         xml += `  </url>\n`;
@@ -33,7 +42,7 @@ export async function generateSitemap(data: IndexState) {
             // Canonical portfolio event route
             const canonicalEventUrl = `${BASE_URL}/portfolio/${encodeURIComponent(year)}/${encodeURIComponent(event)}`;
             xml += `  <url>\n`;
-            xml += `    <loc>${canonicalEventUrl}</loc>\n`;
+            xml += `    <loc>${xmlEscape(canonicalEventUrl)}</loc>\n`;
             xml += `    <changefreq>monthly</changefreq>\n`;
             xml += `    <priority>0.8</priority>\n`;
             xml += `  </url>\n`;
@@ -41,7 +50,7 @@ export async function generateSitemap(data: IndexState) {
             // Share page for OpenGraph and social scrapers
             const shareUrl = `${BASE_URL}/share/${encodeURIComponent(year)}/${encodeURIComponent(event)}`;
             xml += `  <url>\n`;
-            xml += `    <loc>${shareUrl}</loc>\n`;
+            xml += `    <loc>${xmlEscape(shareUrl)}</loc>\n`;
             xml += `    <changefreq>monthly</changefreq>\n`;
             xml += `    <priority>0.6</priority>\n`;
             xml += `  </url>\n`;

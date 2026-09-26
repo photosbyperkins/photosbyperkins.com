@@ -9,6 +9,7 @@ import { logger } from './logger.js';
 const SCRUBBER_DIR = path.join(process.cwd(), 'build', 'scrubber');
 const FRAME_WIDTH = 72;
 const FRAME_HEIGHT = 48;
+const SCRUBBER_COLUMNS = 200;
 const TARGET_RATIO = FRAME_WIDTH / FRAME_HEIGHT;
 
 function computeFocusCrop(imgWidth: number, imgHeight: number, focusX: number, focusY: number) {
@@ -55,14 +56,16 @@ export async function generateScrubber(indexData: IndexState) {
             
             validSprites.add(spritePath);
             
-            const expectedWidth = FRAME_WIDTH * albumPhotos.length;
-            // Skip sprite checking logic until inside the task where we can safely await sharp
+            const cols = Math.min(albumPhotos.length, SCRUBBER_COLUMNS);
+            const rows = Math.ceil(albumPhotos.length / SCRUBBER_COLUMNS);
+            const expectedWidth = FRAME_WIDTH * cols;
+            const expectedHeight = FRAME_HEIGHT * rows;
 
             tasks.push(async () => {
                 if (fs.existsSync(spritePath)) {
                     try {
                         const meta = await sharp(spritePath).metadata();
-                        if (meta.width === expectedWidth) {
+                        if (meta.width === expectedWidth && meta.height === expectedHeight) {
                             skippedCount++;
                             return;
                         }
@@ -109,18 +112,21 @@ export async function generateScrubber(indexData: IndexState) {
                         }
                     }
 
-                    const totalWidth = FRAME_WIDTH * finalBuffers.length;
+                    const cols = Math.min(finalBuffers.length, SCRUBBER_COLUMNS);
+                    const rows = Math.ceil(finalBuffers.length / SCRUBBER_COLUMNS);
+                    const totalWidth = FRAME_WIDTH * cols;
+                    const totalHeight = FRAME_HEIGHT * rows;
                     const compositeInputs = finalBuffers.map((buf, i) => ({
                         input: buf,
                         raw: { width: FRAME_WIDTH, height: FRAME_HEIGHT, channels: 3 as const },
-                        left: i * FRAME_WIDTH,
-                        top: 0,
+                        left: (i % SCRUBBER_COLUMNS) * FRAME_WIDTH,
+                        top: Math.floor(i / SCRUBBER_COLUMNS) * FRAME_HEIGHT,
                     }));
                     
                     fs.mkdirSync(path.dirname(spritePath), { recursive: true });
                     
                     const referenceBuffer = await sharp({
-                        create: { width: totalWidth, height: FRAME_HEIGHT, channels: 3, background: { r: 0, g: 0, b: 0 } },
+                        create: { width: totalWidth, height: totalHeight, channels: 3, background: { r: 0, g: 0, b: 0 } },
                     }).composite(compositeInputs).png().toBuffer();
 
                     const buffer = await sharp(referenceBuffer).webp({ quality: 80, effort: 6 }).toBuffer();

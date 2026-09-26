@@ -22,6 +22,8 @@ interface LightboxScrubberProps {
     isFavorite: boolean;
 }
 
+const SCRUBBER_COLUMNS = 200;
+
 export default function LightboxScrubber({
     images,
     index,
@@ -89,12 +91,21 @@ export default function LightboxScrubber({
                                         ? thumbOpacityNext
                                         : undefined;
 
+                            const col =
+                                img && typeof img !== 'string' && img.spriteIndex != null
+                                    ? img.spriteIndex % SCRUBBER_COLUMNS
+                                    : 0;
+                            const row =
+                                img && typeof img !== 'string' && img.spriteIndex != null
+                                    ? Math.floor(img.spriteIndex / SCRUBBER_COLUMNS)
+                                    : 0;
+
                             const bgStyle =
                                 spriteUrl && typeof img !== 'string' && img.spriteIndex != null
                                     ? {
                                           backgroundImage: `url("${spriteUrl}")`,
-                                          backgroundPosition: `${-(img.spriteIndex * 72)}px 0`,
-                                          backgroundSize: `auto 48px`,
+                                          backgroundPosition: `${-(col * 72)}px ${-(row * 48)}px`,
+                                          backgroundSize: 'auto',
                                       }
                                     : { backgroundImage: `url("${getThumbSrc(img)}")` };
 

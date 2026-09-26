@@ -83,16 +83,30 @@ async function runMediaSync() {
             const batch = pendingUploads.slice(i, i + batchSize);
             console.log(`Uploading batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(pendingUploads.length / batchSize)} (${batch.length} files)...`);
 
+            // 1. Group files by their destination directory
+            const filesByDir = new Map<string, string[]>();
             for (const rel of batch) {
                 const localFile = path.join(buildDir, rel);
                 const remoteFileDir = path.posix.join(remoteDir, path.posix.dirname(rel));
-                
+                if (!filesByDir.has(remoteFileDir)) {
+                    filesByDir.set(remoteFileDir, []);
+                }
+                filesByDir.get(remoteFileDir)!.push(localFile);
+            }
+
+            // 2. Ensure all target directories exist in one SSH call
+            const uniqueDirs = Array.from(filesByDir.keys());
+            const mkdirArg = uniqueDirs.map((d) => `'${d.replace(/'/g, `'\\''`)}'`).join(' ');
+            execSync(
+                `ssh -o StrictHostKeyChecking=accept-new ${SSH_USER}@${SSH_HOST} "mkdir -p ${mkdirArg}"`,
+                { stdio: 'ignore' }
+            );
+
+            // 3. Transfer files grouped by directory in single SCP invocations
+            for (const [remoteFileDir, localFiles] of filesByDir.entries()) {
+                const localArgs = localFiles.map((f) => `"${f}"`).join(' ');
                 execSync(
-                    `ssh -o StrictHostKeyChecking=accept-new ${SSH_USER}@${SSH_HOST} "mkdir -p '${remoteFileDir}'"`,
-                    { stdio: 'ignore' }
-                );
-                execSync(
-                    `scp -p "${localFile}" ${SSH_USER}@${SSH_HOST}:"${remoteFileDir}/"`,
+                    `scp -p ${localArgs} ${SSH_USER}@${SSH_HOST}:"${remoteFileDir}/"`,
                     { stdio: 'inherit' }
                 );
             }

@@ -113,11 +113,13 @@ html {
     scroll-behavior: smooth;
     scroll-padding-top: calc(var(--nav-height-total) + 2rem);
     -webkit-text-size-adjust: 100%;
+    touch-action: pan-x pan-y;
 }
 
 body {
     margin: 0;
     padding: 0;
+    touch-action: pan-x pan-y;
     background-color: var(--color-bg);
     color: var(--color-text);
     font-family: var(--font-body);

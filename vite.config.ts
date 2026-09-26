@@ -147,10 +147,11 @@ export default defineConfig(({ mode }) => {
                 navigateFallbackDenylist: [/^\/zips\//, /^\/share\//, /^\/code-license\.html/],
                 runtimeCaching: [
                     {
-                        urlPattern: /\/data\/.*\.json$/i,
+                        urlPattern: /\/data\/.*\.json(?:\?.*)?$/i,
                         handler: 'NetworkFirst',
                         options: {
                             cacheName: 'json-data-cache',
+                            networkTimeoutSeconds: 3,
                             expiration: {
                                 maxEntries: 50,
                                 maxAgeSeconds: 60 * 60 * 24 * 7 // 1 week

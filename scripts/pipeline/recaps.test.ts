@@ -65,7 +65,7 @@ describe('Recap Data & Sprite Integrity', () => {
             const cache = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
             for (const [relPath, cacheKey] of Object.entries(cache)) {
                 expect(typeof cacheKey).toBe('string');
-                expect(cacheKey.length).toBeGreaterThan(0);
+                expect((cacheKey as string).length).toBeGreaterThan(0);
                 const fullPath = path.join(process.cwd(), 'build', relPath);
                 expect(fs.existsSync(fullPath)).toBe(true);
             }

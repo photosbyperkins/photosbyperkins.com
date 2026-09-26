@@ -480,6 +480,115 @@ export async function drawStoryFrameToCanvas(
     });
 }
 
+function boxBlur1D(
+    src: Uint8ClampedArray,
+    dst: Uint8ClampedArray,
+    w: number,
+    h: number,
+    r: number,
+    isHorizontal: boolean
+) {
+    const div = 2 * r + 1;
+    if (isHorizontal) {
+        for (let y = 0; y < h; y++) {
+            const rowOffset = y * w * 4;
+            let sumR = 0;
+            let sumG = 0;
+            let sumB = 0;
+            const firstR = src[rowOffset];
+            const firstG = src[rowOffset + 1];
+            const firstB = src[rowOffset + 2];
+            sumR = firstR * (r + 1);
+            sumG = firstG * (r + 1);
+            sumB = firstB * (r + 1);
+            for (let i = 1; i <= r; i++) {
+                const idx = rowOffset + Math.min(w - 1, i) * 4;
+                sumR += src[idx];
+                sumG += src[idx + 1];
+                sumB += src[idx + 2];
+            }
+            for (let x = 0; x < w; x++) {
+                const outIdx = rowOffset + x * 4;
+                dst[outIdx] = Math.round(sumR / div);
+                dst[outIdx + 1] = Math.round(sumG / div);
+                dst[outIdx + 2] = Math.round(sumB / div);
+                dst[outIdx + 3] = 255;
+                const inIdx = rowOffset + Math.min(w - 1, x + r + 1) * 4;
+                const outOldIdx = rowOffset + Math.max(0, x - r) * 4;
+                sumR += src[inIdx] - src[outOldIdx];
+                sumG += src[inIdx + 1] - src[outOldIdx + 1];
+                sumB += src[inIdx + 2] - src[outOldIdx + 2];
+            }
+        }
+    } else {
+        for (let x = 0; x < w; x++) {
+            const colOffset = x * 4;
+            const stride = w * 4;
+            const firstR = src[colOffset];
+            const firstG = src[colOffset + 1];
+            const firstB = src[colOffset + 2];
+            let sumR = firstR * (r + 1);
+            let sumG = firstG * (r + 1);
+            let sumB = firstB * (r + 1);
+            for (let i = 1; i <= r; i++) {
+                const idx = Math.min(h - 1, i) * stride + colOffset;
+                sumR += src[idx];
+                sumG += src[idx + 1];
+                sumB += src[idx + 2];
+            }
+            for (let y = 0; y < h; y++) {
+                const outIdx = y * stride + colOffset;
+                dst[outIdx] = Math.round(sumR / div);
+                dst[outIdx + 1] = Math.round(sumG / div);
+                dst[outIdx + 2] = Math.round(sumB / div);
+                dst[outIdx + 3] = 255;
+                const inIdx = Math.min(h - 1, y + r + 1) * stride + colOffset;
+                const outOldIdx = Math.max(0, y - r) * stride + colOffset;
+                sumR += src[inIdx] - src[outOldIdx];
+                sumG += src[inIdx + 1] - src[outOldIdx + 1];
+                sumB += src[inIdx + 2] - src[outOldIdx + 2];
+            }
+        }
+    }
+}
+
+function applyFastBlurAndAdjust(
+    imageData: ImageData,
+    radius: number,
+    saturation: number = 1.8,
+    brightness: number = 0.65
+) {
+    const { width: w, height: h, data } = imageData;
+    const len = w * h;
+
+    // Apply color grading (saturation + brightness)
+    for (let i = 0; i < len; i++) {
+        const idx = i * 4;
+        let r = data[idx];
+        let g = data[idx + 1];
+        let b = data[idx + 2];
+
+        // Saturation adjustment
+        const gray = 0.299 * r + 0.587 * g + 0.114 * b;
+        r = gray + (r - gray) * saturation;
+        g = gray + (g - gray) * saturation;
+        b = gray + (b - gray) * saturation;
+
+        // Brightness & clamp
+        data[idx] = Math.min(255, Math.max(0, Math.round(r * brightness)));
+        data[idx + 1] = Math.min(255, Math.max(0, Math.round(g * brightness)));
+        data[idx + 2] = Math.min(255, Math.max(0, Math.round(b * brightness)));
+        data[idx + 3] = 255;
+    }
+
+    // Fast 3-pass Box Blur (horizontal + vertical) approximating Gaussian bokeh
+    const target = new Uint8ClampedArray(data.length);
+    for (let pass = 0; pass < 3; pass++) {
+        boxBlur1D(data, target, w, h, radius, true);
+        boxBlur1D(target, data, w, h, radius, false);
+    }
+}
+
 /**
  * Renders the story image onto an HTML5 Canvas.
  */
@@ -556,14 +665,55 @@ export async function renderStoryToCanvas(
             const bgX = (targetW - bgW) / 2;
             const bgY = (targetH - bgH) / 2;
 
-            ctx.save();
-            // Apply heavy blur and saturation filter to background, compounded with photo filter
-            if ('filter' in ctx) {
-                const blurEffect = `blur(${Math.round(48 * (targetW / STORY_WIDTH))}px) saturate(180%) brightness(0.65)`;
-                ctx.filter = filterCss ? `${blurEffect} ${filterCss}` : blurEffect;
+            let blurred = false;
+            if (typeof document !== 'undefined') {
+                try {
+                    const sw = 64;
+                    const sh = Math.round(64 * (targetH / targetW));
+                    const smallCanvas = document.createElement('canvas');
+                    smallCanvas.width = sw;
+                    smallCanvas.height = sh;
+                    const sCtx = smallCanvas.getContext('2d', { willReadFrequently: true });
+                    if (sCtx && typeof sCtx.getImageData === 'function') {
+                        if (filterCss && 'filter' in sCtx) {
+                            try {
+                                sCtx.filter = filterCss;
+                            } catch {
+                                /* ignore */
+                            }
+                        }
+                        const sScale = Math.max(sw / naturalW, sh / naturalH);
+                        const sW = naturalW * sScale;
+                        const sH = naturalH * sScale;
+                        const sX = (sw - sW) / 2;
+                        const sY = (sh - sH) / 2;
+                        sCtx.drawImage(img, sX, sY, sW, sH);
+
+                        const imgData = sCtx.getImageData(0, 0, sw, sh);
+                        applyFastBlurAndAdjust(imgData, 4, 1.8, 0.65);
+                        sCtx.putImageData(imgData, 0, 0);
+
+                        ctx.save();
+                        ctx.imageSmoothingEnabled = true;
+                        ctx.imageSmoothingQuality = 'high';
+                        ctx.drawImage(smallCanvas, 0, 0, targetW, targetH);
+                        ctx.restore();
+                        blurred = true;
+                    }
+                } catch {
+                    blurred = false;
+                }
             }
-            ctx.drawImage(img, bgX, bgY, bgW, bgH);
-            ctx.restore();
+
+            if (!blurred) {
+                ctx.save();
+                if ('filter' in ctx) {
+                    const blurEffect = `blur(${Math.round(48 * (targetW / STORY_WIDTH))}px) saturate(180%) brightness(0.65)`;
+                    ctx.filter = filterCss ? `${blurEffect} ${filterCss}` : blurEffect;
+                }
+                ctx.drawImage(img, bgX, bgY, bgW, bgH);
+                ctx.restore();
+            }
 
             // Frosted glass overlay tint
             ctx.fillStyle = config.cardTheme === 'light' ? 'rgba(255, 255, 255, 0.35)' : 'rgba(10, 10, 18, 0.45)';

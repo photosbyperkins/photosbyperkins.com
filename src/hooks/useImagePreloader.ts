@@ -61,8 +61,19 @@ export function useImagePreloader({ images, currentIndex, mainImageLoaded, getDi
 
                 await new Promise<void>((resolve) => {
                     const img = new Image();
-                    img.onload = () => resolve();
-                    img.onerror = () => resolve();
+                    const timer = setTimeout(() => {
+                        img.onload = null;
+                        img.onerror = null;
+                        resolve();
+                    }, 8000);
+                    img.onload = () => {
+                        clearTimeout(timer);
+                        resolve();
+                    };
+                    img.onerror = () => {
+                        clearTimeout(timer);
+                        resolve();
+                    };
                     img.src = src;
                 });
 

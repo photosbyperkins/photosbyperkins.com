@@ -434,7 +434,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            URL.revokeObjectURL(url);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
             setIsDownloaded(true);
         } catch (err) {
             console.error('Download error:', err);

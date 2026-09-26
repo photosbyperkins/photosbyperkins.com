@@ -61,7 +61,7 @@ export default function Nav() {
         [navigate]
     );
 
-    useScrollSpy(['recap', 'portfolio', 'about'], handleSectionChange);
+    useScrollSpy(['recap', 'portfolio'], handleSectionChange);
 
     return (
         <>

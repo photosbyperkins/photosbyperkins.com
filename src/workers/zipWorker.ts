@@ -31,7 +31,8 @@ self.onmessage = async (e: MessageEvent<{ urls: string[]; filename: string }>) =
             const arrayBuffer = await response.arrayBuffer();
             const uint8Array = new Uint8Array(arrayBuffer);
 
-            const pathParts = url.split('/');
+            const cleanUrl = url.split('?')[0].split('#')[0];
+            const pathParts = cleanUrl.split('/');
             const originalFilename = pathParts.pop() || `photo_${i}.jpg`;
             const parentDir = pathParts.pop();
             const eventDir =
