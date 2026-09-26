@@ -64,30 +64,36 @@ test.describe('Portfolio Month Calendar Track', () => {
         }
     });
 
-    test('is hidden on viewports <= 1350px to prevent horizontal overflow', async ({ page }) => {
-        // Test at 1280px (where gutter < 50px)
+    test('renders as compact micro-rail on viewports <= 1350px without horizontal overflow', async ({ page }) => {
+        // Test at 1280px (compact micro-rail)
         await page.setViewportSize({ width: 1280, height: 800 });
         await page.goto('/');
         await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
 
         const track = page.locator('.portfolio__month-track');
-        await expect(track).not.toBeVisible();
+        await expect(track).toBeVisible();
+
+        // Month labels must be omitted (hidden)
+        const firstLabel = track.locator('.portfolio__month-label').first();
+        await expect(firstLabel).not.toBeVisible();
 
         // Check for horizontal overflow
         const hasOverflow1280 = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
         expect(hasOverflow1280).toBe(false);
 
-        // Test on mobile
+        // Test on mobile (375px)
         await page.setViewportSize({ width: 375, height: 667 });
         await page.waitForTimeout(200);
-        await expect(track).not.toBeVisible();
+        await expect(track).toBeVisible();
+        await expect(firstLabel).not.toBeVisible();
         const hasOverflow375 = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
         expect(hasOverflow375).toBe(false);
 
-        // Test at 1366px (laptop where track fits comfortably)
+        // Test at 1366px (laptop where full track fits comfortably)
         await page.setViewportSize({ width: 1366, height: 768 });
         await page.waitForTimeout(200);
         await expect(track).toBeVisible();
+        await expect(firstLabel).toBeVisible();
         const hasOverflow1366 = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
         expect(hasOverflow1366).toBe(false);
     });

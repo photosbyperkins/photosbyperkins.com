@@ -18,15 +18,11 @@
     transition: opacity var(--transition-normal);
     margin-left: calc(-50px - 1.5rem);
 
-    // Hide when viewport is too narrow to fit the track without overflowing (< 1350px)
-    @media (max-width: 1350px) {
-        display: none !important;
-    }
-
     // Hide on very short landscape viewports to prevent vertical clipping
     @media (max-height: 520px) {
         display: none !important;
     }
+
 
     &-pill {
         display: flex;
@@ -291,6 +287,98 @@
             font-weight: 700;
             color: var(--color-accent);
             letter-spacing: 0.03em;
+        }
+    }
+
+    // Smaller resolutions: Compact micro-rail (no month labels, no click functionality)
+    @media (max-width: 1350px) {
+        width: 18px;
+        margin-left: 0;
+        pointer-events: none !important;
+        cursor: default !important;
+
+        .portfolio__month-track-pill {
+            pointer-events: none !important;
+            gap: 3px;
+            width: 100%;
+        }
+
+        .portfolio__month-item {
+            width: 18px !important;
+            height: 20px !important;
+            padding: 0 !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            cursor: default !important;
+            pointer-events: none !important;
+            border-radius: 4px;
+            box-sizing: border-box !important;
+
+            .portfolio__month-label {
+                display: none !important;
+            }
+
+            .portfolio__month-meter {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                flex: 1 1 100% !important;
+                width: 100% !important;
+                height: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                box-sizing: border-box !important;
+            }
+
+            .portfolio__month-meter-bar {
+                display: block !important;
+                height: 2.5px !important;
+                border-radius: 1.5px !important;
+                background: var(--color-accent) !important;
+                opacity: 0.9 !important;
+                min-width: 4px;
+            }
+
+            .portfolio__month-empty-dash {
+                display: block !important;
+                width: 4px !important;
+                height: 1.5px !important;
+                border-radius: 1px !important;
+                background: rgba(120, 120, 128, 0.45) !important;
+            }
+
+            &.is-current {
+                background: rgba(var(--color-accent-rgb, 230, 0, 0), 0.22) !important;
+                border-radius: 4px;
+
+                .portfolio__month-meter-bar {
+                    background: var(--color-accent) !important;
+                    height: 3px !important;
+                    width: 12px !important;
+                    opacity: 1 !important;
+
+                    html[data-theme='dark'] & {
+                        background: #ffffff !important;
+                    }
+                }
+            }
+
+            .portfolio__month-tooltip {
+                display: none !important;
+            }
+
+            &:hover {
+                background: transparent !important;
+
+                .portfolio__month-meter-bar {
+                    transform: none !important;
+                }
+            }
+
+            &:focus-visible {
+                outline: none !important;
+            }
         }
     }
 }
