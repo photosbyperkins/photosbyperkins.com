@@ -6,8 +6,10 @@
  * glassmorphic "padded" layouts without storing extra files on disk.
  */
 
-import type { FaceBox } from '../types';
+import type { FaceBox, ExifData } from '../types';
 import { formatTeamName } from './formatters';
+import type { StoryFrameId, StoryFrameContext } from '../components/sections/Portfolio/storyFrames/types';
+import { STORY_FRAMES_MAP } from '../components/sections/Portfolio/storyFrames/frameDefinitions';
 
 export const STORY_ASPECT_RATIO = 9 / 16; // 0.5625
 export const STORY_WIDTH = 1080;
@@ -109,6 +111,78 @@ export function drawCameraLogoIcon(
     ctx.restore();
 }
 
+export type StoryPhotoFilterId =
+    | 'none'
+    | 'bw'
+    | 'bw-contrast'
+    | 'warm'
+    | 'vivid'
+    | 'matte'
+    | 'noir'
+    | 'sepia';
+
+export interface StoryPhotoFilter {
+    id: StoryPhotoFilterId;
+    label: string;
+    description: string;
+    cssFilter: string;
+}
+
+export const STORY_PHOTO_FILTERS: StoryPhotoFilter[] = [
+    {
+        id: 'none',
+        label: 'None',
+        description: 'Original unmodified photo colors',
+        cssFilter: 'none',
+    },
+    {
+        id: 'bw',
+        label: 'B&W',
+        description: 'Classic balanced monochrome',
+        cssFilter: 'grayscale(100%) contrast(108%)',
+    },
+    {
+        id: 'bw-contrast',
+        label: 'B&W Contrast',
+        description: 'High contrast black & white with deep blacks',
+        cssFilter: 'grayscale(100%) contrast(160%) brightness(95%)',
+    },
+    {
+        id: 'warm',
+        label: 'Warm Vintage',
+        description: 'Golden hour ambient warmth',
+        cssFilter: 'sepia(28%) saturate(120%) contrast(105%) brightness(102%)',
+    },
+    {
+        id: 'vivid',
+        label: 'Vivid',
+        description: 'Punchy saturated action colors',
+        cssFilter: 'contrast(115%) saturate(140%) brightness(102%)',
+    },
+    {
+        id: 'matte',
+        label: 'Matte',
+        description: 'Soft film faded shadows',
+        cssFilter: 'contrast(88%) brightness(108%) saturate(90%)',
+    },
+    {
+        id: 'noir',
+        label: 'Moody Noir',
+        description: 'Dramatic deep cinematic shadows',
+        cssFilter: 'contrast(130%) brightness(90%) saturate(85%)',
+    },
+    {
+        id: 'sepia',
+        label: 'Sepia',
+        description: 'Antique warm sepia tone',
+        cssFilter: 'sepia(75%) contrast(105%) brightness(98%)',
+    },
+];
+
+export const STORY_PHOTO_FILTERS_MAP = Object.fromEntries(
+    STORY_PHOTO_FILTERS.map((f) => [f.id, f])
+) as Record<StoryPhotoFilterId, StoryPhotoFilter>;
+
 export interface StoryRenderConfig {
     mode: 'crop' | 'padded';
     crop: NormalizedCrop;
@@ -116,6 +190,10 @@ export interface StoryRenderConfig {
     badges: BadgeOptions;
     resolution?: '1080x1920' | '1440x2560' | '2160x3840';
     cardTheme?: 'dark' | 'light';
+    frameId?: StoryFrameId;
+    frameColorOverride?: string;
+    exif?: ExifData;
+    filterId?: StoryPhotoFilterId;
 }
 
 /**
@@ -197,23 +275,23 @@ export function generateStoryPresets(options: {
     // --- CASE 0: No People Detected ---
     if (numPeople === 0) {
         presets.push({
+            id: 'thirds-left',
+            label: 'Left',
+            description: 'Frames left side of action',
+            crop: calculateNormalizedCrop(w, h, 0.33, 0.5, 1.0),
+            mode: 'crop',
+        });
+        presets.push({
             id: 'center',
-            label: 'Center Focus',
+            label: 'Center',
             description: 'Balanced center composition',
             crop: calculateNormalizedCrop(w, h, 0.5, 0.5, 1.0),
             mode: 'crop',
             isDefault: true,
         });
         presets.push({
-            id: 'thirds-left',
-            label: 'Rule of Thirds (Left)',
-            description: 'Frames left side of action',
-            crop: calculateNormalizedCrop(w, h, 0.33, 0.5, 1.0),
-            mode: 'crop',
-        });
-        presets.push({
             id: 'thirds-right',
-            label: 'Rule of Thirds (Right)',
+            label: 'Right',
             description: 'Frames right side of action',
             crop: calculateNormalizedCrop(w, h, 0.67, 0.5, 1.0),
             mode: 'crop',
@@ -362,6 +440,54 @@ export function drawRoundRect(
 }
 
 /**
+ * Renders an SVG decorative frame onto a canvas context.
+ */
+export async function drawStoryFrameToCanvas(
+    ctx: CanvasRenderingContext2D,
+    frameId: StoryFrameId | undefined,
+    targetW: number,
+    targetH: number,
+    colorOverride?: string,
+    context?: StoryFrameContext
+): Promise<void> {
+    if (!frameId || frameId === 'none') return;
+    const def = STORY_FRAMES_MAP[frameId];
+    if (!def) return;
+
+    if (typeof Image === 'undefined') return;
+
+    const svgString = def.getSvgString(colorOverride, context);
+    const dataUri = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
+
+    await new Promise<void>((resolve) => {
+        const img = new Image();
+        let settled = false;
+        const cleanup = () => {
+            if (!settled) {
+                settled = true;
+                resolve();
+            }
+        };
+
+        img.onload = () => {
+            try {
+                ctx.drawImage(img, 0, 0, targetW, targetH);
+            } catch {
+                // Ignore draw error
+            }
+            cleanup();
+        };
+        img.onerror = () => {
+            cleanup();
+        };
+        img.src = dataUri;
+
+        // Safety timeout so export is never hung
+        setTimeout(cleanup, 350);
+    });
+}
+
+/**
  * Renders the story image onto an HTML5 Canvas.
  */
 export async function renderStoryToCanvas(
@@ -399,6 +525,10 @@ export async function renderStoryToCanvas(
         return canvas;
     }
 
+    // Resolve optional photo filter
+    const activeFilter = config.filterId ? STORY_PHOTO_FILTERS_MAP[config.filterId] : undefined;
+    const filterCss = activeFilter && activeFilter.id !== 'none' ? activeFilter.cssFilter : '';
+
     // ==========================================
     // 1. RENDER MODE: CROP (9:16)
     // ==========================================
@@ -409,7 +539,12 @@ export async function renderStoryToCanvas(
         const sw = crop.width * naturalW;
         const sh = crop.height * naturalH;
 
+        ctx.save();
+        if (filterCss && 'filter' in ctx) {
+            ctx.filter = filterCss;
+        }
         ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetW, targetH);
+        ctx.restore();
     }
     // ==========================================
     // 2. RENDER MODE: PADDED (GLASSMORPHIC)
@@ -429,9 +564,10 @@ export async function renderStoryToCanvas(
             const bgY = (targetH - bgH) / 2;
 
             ctx.save();
-            // Apply heavy blur and saturation filter to background
+            // Apply heavy blur and saturation filter to background, compounded with photo filter
             if ('filter' in ctx) {
-                ctx.filter = `blur(${Math.round(48 * (targetW / STORY_WIDTH))}px) saturate(180%) brightness(0.65)`;
+                const blurEffect = `blur(${Math.round(48 * (targetW / STORY_WIDTH))}px) saturate(180%) brightness(0.65)`;
+                ctx.filter = filterCss ? `${blurEffect} ${filterCss}` : blurEffect;
             }
             ctx.drawImage(img, bgX, bgY, bgW, bgH);
             ctx.restore();
@@ -489,13 +625,39 @@ export async function renderStoryToCanvas(
         ctx.save();
         drawRoundRect(ctx, cardX, cardY, cardW, cardH, effectiveRadius);
         ctx.clip();
+        if (filterCss && 'filter' in ctx) {
+            ctx.filter = filterCss;
+        }
         ctx.drawImage(img, cardX, cardY, cardW, cardH);
+        ctx.filter = 'none';
 
         // Subtle 1px Glass Border
         ctx.strokeStyle = config.cardTheme === 'light' ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.2)';
         ctx.lineWidth = Math.max(1.5, 2 * (targetW / STORY_WIDTH));
         ctx.stroke();
         ctx.restore();
+    }
+
+    // ==========================================
+    // 2.5. RENDER OPTIONAL DECORATIVE FRAME
+    // ==========================================
+    if (config.frameId && config.frameId !== 'none') {
+        const frameContext: StoryFrameContext = {
+            hasScoreboard: Boolean(
+                config.badges.showScoreboard && (config.badges.scoreboardTitle || config.badges.teams?.length)
+            ),
+            hasAttribution: Boolean(config.badges.showAttribution),
+            layoutMode: config.mode,
+            exif: config.exif,
+        };
+        await drawStoryFrameToCanvas(
+            ctx,
+            config.frameId,
+            targetW,
+            targetH,
+            config.frameColorOverride,
+            frameContext
+        );
     }
 
     // ==========================================
@@ -644,8 +806,12 @@ export async function renderStoryToCanvas(
             if (s1Str) {
                 ctx.font = scoreFont;
                 ctx.fillStyle = t1Win
-                    ? (isLight ? '#111116' : '#ffffff')
-                    : (isLight ? 'rgba(0, 0, 0, 0.45)' : 'rgba(255, 255, 255, 0.5)');
+                    ? isLight
+                        ? '#111116'
+                        : '#ffffff'
+                    : isLight
+                      ? 'rgba(0, 0, 0, 0.45)'
+                      : 'rgba(255, 255, 255, 0.5)';
                 ctx.textAlign = 'right';
                 ctx.fillText(s1Str, currX + teamsW, row1Y);
             }
@@ -659,8 +825,12 @@ export async function renderStoryToCanvas(
             if (s2Str) {
                 ctx.font = scoreFont;
                 ctx.fillStyle = t2Win
-                    ? (isLight ? '#111116' : '#ffffff')
-                    : (isLight ? 'rgba(0, 0, 0, 0.45)' : 'rgba(255, 255, 255, 0.5)');
+                    ? isLight
+                        ? '#111116'
+                        : '#ffffff'
+                    : isLight
+                      ? 'rgba(0, 0, 0, 0.45)'
+                      : 'rgba(255, 255, 255, 0.5)';
                 ctx.textAlign = 'right';
                 ctx.fillText(s2Str, currX + teamsW, row2Y);
             }

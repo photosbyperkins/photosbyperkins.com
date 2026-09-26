@@ -89,6 +89,11 @@ test.describe('Story Maker (9:16)', () => {
         const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
         await expect(studioModal).toBeVisible({ timeout: 8000 });
 
+        // Verify preview pane is pinned to top (flex-start)
+        const previewPane = studioModal.locator('.story-export-modal__preview-pane');
+        await expect(previewPane).toHaveCSS('align-self', 'flex-start');
+        await expect(previewPane).toHaveCSS('justify-content', 'flex-start');
+
         // Click Padded mode
         const paddedBtn = studioModal.locator('button:has-text("Padded")');
         await paddedBtn.click();
@@ -102,6 +107,13 @@ test.describe('Story Maker (9:16)', () => {
         await expect(studioModal.locator('button:has-text("Frosted")')).toBeVisible();
         await expect(studioModal.locator('button:has-text("Custom")')).toBeVisible();
 
+        // Verify uniform pill toggle widths
+        const bgPillGroup = studioModal.locator('.story-export-modal__toggle-row .story-export-modal__pill-group').first();
+        const posPillGroup = studioModal.locator('.story-export-modal__toggle-row .story-export-modal__pill-group').nth(1);
+        const bgBox = await bgPillGroup.boundingBox();
+        const posBox = await posPillGroup.boundingBox();
+        expect(bgBox?.width).toBeCloseTo(posBox?.width ?? 0, 1);
+
         // Clicking Custom shows custom color row
         await studioModal.locator('button:has-text("Custom")').click();
         await expect(studioModal.locator('.story-export-modal__custom-color-row')).toBeVisible();
@@ -114,6 +126,39 @@ test.describe('Story Maker (9:16)', () => {
         await scaleSlider.fill('1');
         const scaleValue = studioModal.locator('.story-export-modal__padded-settings .story-export-modal__zoom-value');
         await expect(scaleValue).toContainText('100%');
+
+        // Close modal
+        await page.keyboard.press('Escape');
+        await expect(studioModal).not.toBeVisible({ timeout: 5000 });
+    });
+
+    test('should render Share/Download button pinned in modal footer bar', async ({ page }) => {
+        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
+        await photo.waitFor({ timeout: 10000 });
+        await photo.click();
+
+        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
+        await expect(lightbox).toBeVisible({ timeout: 10000 });
+
+        await page.keyboard.press('c');
+        const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
+        await expect(studioModal).toBeVisible({ timeout: 8000 });
+
+        // Verify modal footer bar is rendered and pinned to bottom
+        const footerBar = studioModal.locator('.modal-shell__footer-bar');
+        await expect(footerBar).toBeVisible();
+
+        const actionBtn = footerBar.locator('.story-export-modal__primary-action');
+        await expect(actionBtn).toBeVisible();
+        const btnText = await actionBtn.textContent();
+        expect(btnText).toMatch(/Download Story Card|Share Story Card/);
+
+        // Verify footer bar touches the bottom of the viewport (within safe-area / subpixel tolerance)
+        const footerBox = await footerBar.boundingBox();
+        const viewport = page.viewportSize();
+        if (footerBox && viewport) {
+            expect(Math.abs((footerBox.y + footerBox.height) - viewport.height)).toBeLessThanOrEqual(16);
+        }
 
         // Close modal
         await page.keyboard.press('Escape');
@@ -227,7 +272,7 @@ test.describe('Story Maker (9:16)', () => {
         }
 
         // 3. Test toggling attribution badge checkbox updates preview
-        const attributionCheckbox = studioModal.locator('input[type="checkbox"]').last();
+        const attributionCheckbox = studioModal.locator('label:has-text("Photographer Attribution") input[type="checkbox"]');
         await attributionCheckbox.uncheck();
         await expect(attributionBadge).not.toBeVisible();
 
@@ -351,4 +396,275 @@ test.describe('Story Maker (9:16)', () => {
         await expect(cropBtn).toHaveClass(/active/);
         await expect(studioModal.locator('.story-export-modal__padded-settings')).not.toBeVisible();
     });
+
+    test('should support expanding frame accordion, selecting frames, and applying tint', async ({ page }) => {
+        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
+        await photo.waitFor({ timeout: 10000 });
+        await photo.click();
+
+        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
+        await expect(lightbox).toBeVisible({ timeout: 10000 });
+
+        await page.keyboard.press('c');
+        const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
+        await expect(studioModal).toBeVisible({ timeout: 8000 });
+
+        // Locate Frame accordion header
+        const accordionHeader = studioModal.locator('.story-export-modal__accordion-header');
+        await expect(accordionHeader).toBeVisible();
+        await expect(studioModal.locator('.story-export-modal__frame-current-badge')).toHaveText('None');
+
+        // Initially no frame overlay in viewport
+        await expect(studioModal.locator('.story-frame-overlay')).toHaveCount(0);
+
+        // Click to expand accordion drawer
+        await accordionHeader.click();
+        const framesGrid = studioModal.locator('.story-export-modal__frames-grid');
+        await expect(framesGrid).toBeVisible();
+
+        // Select "Capital Grizzly" frame
+        const bearCard = framesGrid.locator('button:has-text("Capital Grizzly")');
+        await expect(bearCard).toBeVisible();
+        await bearCard.click();
+
+        // Verify badge updates and frame overlay appears in preview
+        await expect(studioModal.locator('.story-export-modal__frame-current-badge')).toHaveText('Capital Grizzly');
+        const frameOverlay = studioModal.locator('.story-frame-overlay');
+        await expect(frameOverlay).toBeVisible();
+        await expect(frameOverlay.locator('.story-frame-sac-bear')).toBeVisible();
+
+        // Verify Frame Tint bar appeared
+        const tintRow = studioModal.locator('.story-export-modal__frame-tint-row');
+        await expect(tintRow).toBeVisible();
+
+        // Verify no icons in 9:16 Crop / Padded buttons, zoom header, frame header, frame tint header, or badge list
+        await expect(studioModal.locator('.story-export-modal__seg-btn svg')).toHaveCount(0);
+        await expect(studioModal.locator('.story-export-modal__zoom-header svg')).toHaveCount(0);
+        await expect(studioModal.locator('.story-export-modal__accordion-title svg')).toHaveCount(0);
+        await expect(studioModal.locator('.story-export-modal__tint-header svg')).toHaveCount(0);
+        await expect(studioModal.locator('.story-export-modal__badge-icon')).toHaveCount(0);
+
+        // Click Gold tint
+        const goldBtn = tintRow.locator('button:has-text("Gold")');
+        await goldBtn.click();
+        await expect(goldBtn).toHaveClass(/active/);
+
+        // Click Custom tint
+        const customTintBtn = tintRow.locator('button:has-text("Custom")');
+        await customTintBtn.click();
+        await expect(customTintBtn).toHaveClass(/active/);
+        await expect(customTintBtn).toHaveClass(/story-export-modal__pill--custom/);
+        // Verify no standalone color swatch row under Frame Tint
+        await expect(tintRow.locator('.story-export-modal__custom-color-row')).toHaveCount(0);
+        const customColorInput = tintRow.locator('input[type="color"]');
+        await expect(customColorInput).toHaveCount(1);
+
+        // Switch to Beast Claws
+        const clawCard = framesGrid.locator('button:has-text("Beast Claws")');
+        await clawCard.click();
+        await expect(studioModal.locator('.story-export-modal__frame-current-badge')).toHaveText('Beast Claws');
+        await expect(frameOverlay.locator('.story-frame-claw-marks')).toBeVisible();
+
+        // Collapse accordion drawer
+        await accordionHeader.click();
+        await expect(framesGrid).not.toBeVisible();
+
+        // Overlay remains visible while collapsed
+        await expect(frameOverlay).toBeVisible();
+
+        // Re-open and select "None"
+        await accordionHeader.click();
+        const noneCard = framesGrid.locator('button:has-text("None")');
+        await noneCard.click();
+        await expect(studioModal.locator('.story-export-modal__frame-current-badge')).toHaveText('None');
+        await expect(studioModal.locator('.story-frame-overlay')).toHaveCount(0);
+        await expect(studioModal.locator('.story-export-modal__frame-tint-row')).not.toBeVisible();
+    });
+
+    test('should dynamically relocate frame elements based on context when badges are toggled', async ({ page }) => {
+        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
+        await photo.waitFor({ timeout: 10000 });
+        await photo.click();
+
+        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
+        await expect(lightbox).toBeVisible({ timeout: 10000 });
+
+        await page.keyboard.press('c');
+        const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
+        await expect(studioModal).toBeVisible({ timeout: 8000 });
+
+        // Open frame drawer and select Capital Grizzly
+        const accordionHeader = studioModal.locator('.story-export-modal__accordion-header');
+        await accordionHeader.click();
+        const bearCard = studioModal.locator('.story-export-modal__frames-grid button:has-text("Capital Grizzly")');
+        await bearCard.click();
+
+        const frameOverlay = studioModal.locator('.story-frame-overlay');
+        await expect(frameOverlay).toBeVisible();
+
+        // Check if scoreboard checkbox is present
+        const scoreboardCheckbox = studioModal.locator('label:has-text("Match & Scoreboard Badge") input[type="checkbox"]');
+        if (await scoreboardCheckbox.isVisible() && (await scoreboardCheckbox.isChecked())) {
+            // When scoreboard badge is active, bear is elevated into the flank
+            const bearGroup = frameOverlay.locator('.story-frame-sac-bear g[transform*="1510"]');
+            await expect(bearGroup).toBeVisible();
+
+            // Uncheck scoreboard badge
+            await scoreboardCheckbox.uncheck();
+
+            // Bear dynamically repositions down to the bottom corner
+            const bearLowerGroup = frameOverlay.locator('.story-frame-sac-bear g[transform*="1680"]');
+            await expect(bearLowerGroup).toBeVisible();
+
+            // Re-check scoreboard badge -> bear dynamically elevates back
+            await scoreboardCheckbox.check();
+            await expect(bearGroup).toBeVisible();
+        }
+    });
+
+    test('should transition download button to confirmed state on download and reset when card is altered', async ({ page }) => {
+        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
+        await photo.waitFor({ timeout: 10000 });
+        await photo.click();
+
+        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
+        await expect(lightbox).toBeVisible({ timeout: 10000 });
+
+        await page.keyboard.press('c');
+        const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
+        await expect(studioModal).toBeVisible({ timeout: 8000 });
+
+        const downloadBtn = studioModal.locator('.story-export-modal__primary-action');
+        await expect(downloadBtn).toContainText('Download Story Card');
+        await expect(downloadBtn).not.toHaveClass(/is-done/);
+
+        // Click download
+        await downloadBtn.click();
+
+        // Button transitions to confirmed Downloaded state with is-done
+        await expect(downloadBtn).toContainText('Downloaded');
+        await expect(downloadBtn).toHaveClass(/is-done/);
+        await expect(downloadBtn).toBeDisabled();
+
+        // Altering card (e.g. clicking Left preset) resets button back to Download Story Card
+        const leftPreset = studioModal.locator('button:has-text("Left")');
+        await leftPreset.click();
+
+        await expect(downloadBtn).toContainText('Download Story Card');
+        await expect(downloadBtn).not.toHaveClass(/is-done/);
+        await expect(downloadBtn).toBeEnabled();
+
+        // Download altered card -> transitions to Downloaded again
+        await downloadBtn.click();
+        await expect(downloadBtn).toContainText('Downloaded');
+        await expect(downloadBtn).toHaveClass(/is-done/);
+        await expect(downloadBtn).toBeDisabled();
+
+        // Altering card via zoom slider resets it again
+        const zoomSlider = studioModal.locator('input[aria-label="Crop Zoom Level"]');
+        await zoomSlider.fill('1.5');
+        await zoomSlider.dispatchEvent('change');
+
+        await expect(downloadBtn).toContainText('Download Story Card');
+        await expect(downloadBtn).not.toHaveClass(/is-done/);
+        await expect(downloadBtn).toBeEnabled();
+    });
+
+    test('should render Through the Lens frame when EXIF is present and display camera telemetry', async ({ page }) => {
+        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
+        await photo.waitFor({ timeout: 10000 });
+        await photo.click();
+
+        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
+        await expect(lightbox).toBeVisible({ timeout: 10000 });
+
+        await page.keyboard.press('c');
+        const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
+        await expect(studioModal).toBeVisible({ timeout: 8000 });
+
+        // Open frame drawer
+        const accordionHeader = studioModal.locator('.story-export-modal__accordion-header');
+        await accordionHeader.click();
+
+        const ttlCard = studioModal.locator('.story-export-modal__frames-grid button:has-text("Through the Lens")');
+        if (await ttlCard.isVisible()) {
+            await ttlCard.click();
+
+            const frameOverlay = studioModal.locator('.story-frame-overlay');
+            await expect(frameOverlay).toBeVisible();
+
+            const ttlGroup = frameOverlay.locator('.story-frame-through-the-lens');
+            await expect(ttlGroup).toBeVisible();
+
+            // Verify telemetry items are present (SPEED, APERTURE, ISO, FOCAL)
+            await expect(ttlGroup.getByText('SPEED')).toBeVisible();
+            await expect(ttlGroup.getByText('APERTURE')).toBeVisible();
+            await expect(ttlGroup.getByText('ISO', { exact: true })).toBeVisible();
+            await expect(ttlGroup.getByText('FOCAL')).toBeVisible();
+
+            // Verify top line HUD items (RAW, AF-C) are omitted per user request
+            await expect(ttlGroup.getByText('RAW')).not.toBeVisible();
+            await expect(ttlGroup.getByText('AF-C')).not.toBeVisible();
+        }
+    });
+
+    test('should apply photo filters to image while keeping frames and badges unfiltered', async ({ page }) => {
+        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
+        await photo.waitFor({ timeout: 10000 });
+        await photo.click();
+
+        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
+        await expect(lightbox).toBeVisible({ timeout: 10000 });
+
+        await page.keyboard.press('c');
+        const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
+        await expect(studioModal).toBeVisible({ timeout: 8000 });
+
+        // Verify filter section and initial state
+        const filterSection = studioModal.locator('.story-export-modal__section--filters');
+        await expect(filterSection).toBeVisible();
+        const currentFilterBadge = filterSection.locator('.story-export-modal__filter-current-badge');
+        await expect(currentFilterBadge).toHaveText('None');
+
+        const cropperImg = studioModal.locator('.story-cropper__image');
+        await expect(cropperImg).toBeVisible();
+
+        // Select B&W filter
+        const bwBtn = filterSection.locator('button:has-text("B&W"):not(:has-text("Contrast"))');
+        await bwBtn.click();
+        await expect(currentFilterBadge).toHaveText('B&W');
+        await expect(bwBtn).toHaveClass(/active/);
+
+        // Verify cropper image has grayscale filter applied
+        await expect(cropperImg).toHaveCSS('filter', /grayscale\(1\)|grayscale\(100%\)/);
+
+        // Open frame drawer and select Capital Grizzly frame
+        const accordionHeader = studioModal.locator('.story-export-modal__accordion-header');
+        await accordionHeader.click();
+        const bearCard = studioModal.locator('.story-export-modal__frames-grid button:has-text("Capital Grizzly")');
+        await bearCard.click();
+
+        const frameOverlay = studioModal.locator('.story-frame-overlay');
+        await expect(frameOverlay).toBeVisible();
+        const bearSvg = frameOverlay.locator('.story-frame-sac-bear');
+        await expect(bearSvg).toBeVisible();
+
+        // Verify frame overlay does NOT have a grayscale filter
+        await expect(frameOverlay).toHaveCSS('filter', 'none');
+        await expect(bearSvg).toHaveCSS('filter', 'none');
+
+        // Select B&W Contrast filter
+        const bwContrastBtn = filterSection.locator('button:has-text("B&W Contrast")');
+        await bwContrastBtn.click();
+        await expect(currentFilterBadge).toHaveText('B&W Contrast');
+        await expect(bwContrastBtn).toHaveClass(/active/);
+        await expect(cropperImg).toHaveCSS('filter', /grayscale\(1\)|grayscale\(100%\)/);
+
+        // Select None to restore
+        const noneFilterBtn = filterSection.locator('button:has-text("None")');
+        await noneFilterBtn.click();
+        await expect(currentFilterBadge).toHaveText('None');
+        await expect(cropperImg).toHaveCSS('filter', 'none');
+    });
 });
+

@@ -554,10 +554,7 @@ export default function Lightbox({
             </AnimatePresence>
 
             {isStoryExportOpen && (
-                <div
-                    onClick={(e) => e.stopPropagation()}
-                    onPointerDown={(e) => e.stopPropagation()}
-                >
+                <div onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
                     <StoryExportModal
                         key={`story-export-${index}-${storyExportSessionId}`}
                         isOpen={isStoryExportOpen}

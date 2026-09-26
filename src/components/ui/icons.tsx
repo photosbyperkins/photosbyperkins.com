@@ -181,4 +181,3 @@ export const StoryCropIcon = ({ size = 18, className = '', style, ...props }: Ic
 );
 
 export { StoryCropIcon as PhoneCropIcon };
-

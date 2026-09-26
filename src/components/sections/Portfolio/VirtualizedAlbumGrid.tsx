@@ -11,7 +11,14 @@ interface VirtualizedAlbumGridProps {
     selectedYear: string;
     maxExifChars?: number;
     localScore?: EventScore;
-    openLightbox: (images: PhotoInput[], idx: number, name: string, year: string, maxExif?: number, localScore?: EventScore) => void;
+    openLightbox: (
+        images: PhotoInput[],
+        idx: number,
+        name: string,
+        year: string,
+        maxExif?: number,
+        localScore?: EventScore
+    ) => void;
 }
 
 /**
@@ -145,7 +152,9 @@ export default function VirtualizedAlbumGrid({
                                 key={origUrl}
                                 className="portfolio__grid-item"
                                 aria-label={`View ${eventName} photo ${globalIdx + 1}`}
-                                onClick={() => openLightbox(photos, globalIdx, eventName, selectedYear, maxExifChars, localScore)}
+                                onClick={() =>
+                                    openLightbox(photos, globalIdx, eventName, selectedYear, maxExifChars, localScore)
+                                }
                                 style={{
                                     border: 'none',
                                     background: 'none',

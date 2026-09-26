@@ -2,19 +2,20 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import {
     Download,
     Share2,
-    Layers,
-    ZoomIn,
-    Shield,
-    Camera,
     Moon,
     Sun,
+    ChevronDown,
+    ChevronUp,
+    Check,
 } from 'lucide-react';
 import { useCanShare } from '../../../hooks/useCanShare';
 import { useAppStore } from '../../../store/useAppStore';
-import { StoryCropIcon } from '../../ui/icons';
 import ModalShell from '../../ui/ModalShell';
 import { StoryCropper } from './StoryCropper';
 import { StoryBadges } from './StoryBadges';
+import type { StoryFrameId, StoryFrameColorChoice, StoryFrameContext } from './storyFrames/types';
+import { STORY_FRAME_DEFINITIONS, STORY_FRAMES_MAP } from './storyFrames/frameDefinitions';
+import { StoryFrameOverlay } from './storyFrames/StoryFrameOverlay';
 import type { PhotoInput, PhotoRecord, EventScore } from '../../../types';
 import '../../../styles/_story-export.scss';
 import type {
@@ -23,6 +24,7 @@ import type {
     StoryRenderConfig,
     PaddedStyleOptions,
     BadgeOptions,
+    StoryPhotoFilterId,
 } from '../../../utils/storyCanvas';
 import {
     STORY_ASPECT_RATIO,
@@ -30,10 +32,22 @@ import {
     calculateNormalizedCrop,
     renderStoryToCanvas,
     renderStoryToBlob,
+    STORY_PHOTO_FILTERS,
+    STORY_PHOTO_FILTERS_MAP,
 } from '../../../utils/storyCanvas';
 import { getPhotoDisplayUrl, parseEventTitle } from '../../../utils/formatters';
 
 declare const __BUILD_NUMBER__: string;
+
+function getContrastTextColor(hexColor: string): string {
+    const hex = hexColor.replace('#', '');
+    if (hex.length !== 6) return '#ffffff';
+    const r = parseInt(hex.substring(0, 2), 16);
+    const g = parseInt(hex.substring(2, 4), 16);
+    const b = parseInt(hex.substring(4, 6), 16);
+    const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+    return yiq >= 128 ? '#111116' : '#ffffff';
+}
 
 interface StoryExportModalProps {
     isOpen: boolean;
@@ -166,7 +180,9 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
     const activeSiteTheme = useAppStore((state) => state.activeTheme);
     const [cardTheme, setCardTheme] = useState<'dark' | 'light'>(() => activeSiteTheme || 'dark');
 
-    const [selectedPresetId, setSelectedPresetId] = useState<string>('default');
+    const [selectedPresetId, setSelectedPresetId] = useState<string>(
+        () => presets.find((p) => p.isDefault)?.id || 'center'
+    );
     const [activeMode, setActiveMode] = useState<'crop' | 'padded'>('crop');
     const [activeCrop, setActiveCrop] = useState<NormalizedCrop>(() =>
         calculateNormalizedCrop(
@@ -200,6 +216,8 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         attributionDomain: '@photosbyperkins',
     }));
 
+    const [isDownloaded, setIsDownloaded] = useState(false);
+
     const photoKey = originalSrc;
     const [prevPhotoKey, setPrevPhotoKey] = useState(photoKey);
 
@@ -218,13 +236,66 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
             attributionLogoAccent: import.meta.env.VITE_NAV_LOGO_ACCENT || 'PERKINS',
             attributionDomain: '@photosbyperkins',
         });
+        setIsDownloaded(false);
     }
 
     const [isExporting, setIsExporting] = useState(false);
     const [statusToast, setStatusToast] = useState<string | null>(null);
 
+    // Photo Filter State
+    const [activeFilterId, setActiveFilterId] = useState<StoryPhotoFilterId>('none');
+
+    // Decorative Frame States
+    const [activeFrameId, setActiveFrameId] = useState<StoryFrameId>('none');
+    const [isFrameDrawerOpen, setIsFrameDrawerOpen] = useState(false);
+    const [frameColorChoice, setFrameColorChoice] = useState<StoryFrameColorChoice>('signature');
+    const [frameCustomColor, setFrameCustomColor] = useState<string>('#ffffff');
+    const customFrameColorInputRef = useRef<HTMLInputElement>(null);
+
+    const effectiveFrameColor = useMemo(() => {
+        if (frameColorChoice === 'signature') return undefined;
+        if (frameColorChoice === 'white') return '#ffffff';
+        if (frameColorChoice === 'gold') return '#f59e0b';
+        if (frameColorChoice === 'red') return '#e60000';
+        return frameCustomColor;
+    }, [frameColorChoice, frameCustomColor]);
+
+    const hasExif = Boolean(
+        photoObj.exif &&
+        (photoObj.exif.shutterSpeed ||
+         photoObj.exif.aperture ||
+         photoObj.exif.iso ||
+         photoObj.exif.cameraModel ||
+         photoObj.exif.focalLength)
+    );
+
+    const availableFrames = useMemo(() => {
+        return STORY_FRAME_DEFINITIONS.filter((f) => f.id !== 'through-the-lens' || hasExif);
+    }, [hasExif]);
+
+    // Fallback active frame if photo does not have EXIF
+    if (activeFrameId === 'through-the-lens' && !hasExif) {
+        setActiveFrameId('none');
+    }
+
+    const frameContext: StoryFrameContext = useMemo(
+        () => ({
+            hasScoreboard: Boolean(badges.showScoreboard && (badges.scoreboardTitle || badges.teams?.length)),
+            hasAttribution: Boolean(badges.showAttribution),
+            layoutMode: activeMode,
+            exif: photoObj.exif,
+        }),
+        [badges.showScoreboard, badges.scoreboardTitle, badges.teams, badges.showAttribution, activeMode, photoObj.exif]
+    );
+
     const resetToDefaults = useCallback(() => {
+        setIsDownloaded(false);
         setCardTheme(activeSiteTheme || 'dark');
+        setActiveFilterId('none');
+        setActiveFrameId('none');
+        setIsFrameDrawerOpen(false);
+        setFrameColorChoice('signature');
+        setFrameCustomColor('#ffffff');
         const def = presets.find((p) => p.isDefault) || presets[0];
         if (def) {
             setSelectedPresetId(def.id);
@@ -285,12 +356,14 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         setSelectedPresetId(preset.id);
         setActiveMode(preset.mode);
         setActiveCrop(preset.crop);
+        setIsDownloaded(false);
     };
 
     // Handler for custom cropper changes
     const handleCropChange = (newCrop: NormalizedCrop) => {
         setActiveCrop(newCrop);
         setSelectedPresetId('custom');
+        setIsDownloaded(false);
     };
 
     // Live preview canvas ref
@@ -311,12 +384,13 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
             },
             resolution: '1080x1920', // fast live preview
             cardTheme,
+            filterId: activeFilterId,
         };
 
         renderStoryToCanvas(loadedImage, config, previewCanvasRef.current).catch((err: unknown) => {
             console.error('Preview render error:', err);
         });
-    }, [loadedImage, activeMode, activeCrop, paddedConfig, badges, cardTheme]);
+    }, [loadedImage, activeMode, activeCrop, paddedConfig, badges, cardTheme, activeFilterId]);
 
     // Export configuration
     const currentConfig: StoryRenderConfig = useMemo(
@@ -327,8 +401,22 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
             badges,
             resolution: '1080x1920',
             cardTheme,
+            frameId: activeFrameId,
+            frameColorOverride: effectiveFrameColor,
+            exif: photoObj.exif,
+            filterId: activeFilterId,
         }),
-        [activeMode, activeCrop, paddedConfig, badges, cardTheme]
+        [
+            activeMode,
+            activeCrop,
+            paddedConfig,
+            badges,
+            cardTheme,
+            activeFrameId,
+            effectiveFrameColor,
+            photoObj.exif,
+            activeFilterId,
+        ]
     );
 
     // Toast helper
@@ -355,7 +443,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
             link.click();
             document.body.removeChild(link);
             URL.revokeObjectURL(url);
-            showToast('✓ Story card downloaded!');
+            setIsDownloaded(true);
         } catch (err) {
             console.error('Download error:', err);
             showToast('Failed to download image.');
@@ -377,7 +465,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                     files: [file],
                     title: `Story from ${eventInfo.title || 'Photos by Perkins'}`,
                 });
-                showToast('✓ Shared successfully!');
+                setIsDownloaded(true);
             } else {
                 // Fallback to download if canShare files is not supported
                 await handleDownload();
@@ -392,6 +480,46 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         }
     };
 
+    const footer = (
+        <button
+            className={`story-export-modal__primary-action ${
+                isDownloaded ? 'is-done story-export-modal__primary-action--done' : ''
+            }`}
+            onClick={canShare ? handleNativeShare : handleDownload}
+            disabled={isExporting || !loadedImage || isDownloaded}
+            title={
+                isDownloaded
+                    ? canShare
+                        ? 'Story Card Shared'
+                        : 'Story Card Downloaded'
+                    : canShare
+                    ? 'Share Story Card'
+                    : 'Download Story Card'
+            }
+            aria-label={
+                isDownloaded
+                    ? canShare
+                        ? 'Story Card Shared'
+                        : 'Story Card Downloaded'
+                    : canShare
+                    ? 'Share Story Card'
+                    : 'Download Story Card'
+            }
+        >
+            {isDownloaded ? (
+                <>
+                    <Check size={18} />
+                    <span>{canShare ? 'Shared' : 'Downloaded'}</span>
+                </>
+            ) : (
+                <>
+                    {canShare ? <Share2 size={18} /> : <Download size={18} />}
+                    <span>{canShare ? 'Share Story Card' : 'Download Story Card'}</span>
+                </>
+            )}
+        </button>
+    );
+
     return (
         <ModalShell
             isOpen={isOpen}
@@ -400,6 +528,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
             ariaLabel="Story Maker"
             maxWidth="wide"
             className="story-export-modal"
+            footer={footer}
         >
             <div
                 className="story-export-modal__body"
@@ -418,6 +547,10 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                 crop={activeCrop}
                                 badges={badges}
                                 theme={cardTheme}
+                                frameId={activeFrameId}
+                                frameColorOverride={effectiveFrameColor}
+                                exif={photoObj.exif}
+                                filterId={activeFilterId}
                                 onChange={handleCropChange}
                                 onImageLoaded={(w, h) =>
                                     setNaturalDimensions((prev) =>
@@ -431,6 +564,11 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                     ref={previewCanvasRef}
                                     className="story-export-modal__canvas"
                                     style={{ aspectRatio: `${STORY_ASPECT_RATIO}` }}
+                                />
+                                <StoryFrameOverlay
+                                    frameId={activeFrameId}
+                                    colorOverride={effectiveFrameColor}
+                                    context={frameContext}
                                 />
                                 <StoryBadges badges={badges} theme={cardTheme} />
                             </div>
@@ -454,9 +592,11 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                     className={`story-export-modal__seg-btn ${
                                         activeMode === 'crop' ? 'active story-export-modal__seg-btn--active' : ''
                                     }`}
-                                    onClick={() => setActiveMode('crop')}
+                                    onClick={() => {
+                                        setActiveMode('crop');
+                                        setIsDownloaded(false);
+                                    }}
                                 >
-                                    <StoryCropIcon size={16} />
                                     <span>9:16 Crop</span>
                                 </button>
                                 <button
@@ -466,9 +606,9 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                     onClick={() => {
                                         setActiveMode('padded');
                                         setSelectedPresetId('padded-glass');
+                                        setIsDownloaded(false);
                                     }}
                                 >
-                                    <Layers size={16} />
                                     <span>Padded</span>
                                 </button>
                             </div>
@@ -483,7 +623,10 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                     className={`story-export-modal__theme-btn ${
                                         cardTheme === 'dark' ? 'active story-export-modal__theme-btn--active' : ''
                                     }`}
-                                    onClick={() => setCardTheme('dark')}
+                                    onClick={() => {
+                                        setCardTheme('dark');
+                                        setIsDownloaded(false);
+                                    }}
                                     aria-label="Dark card theme"
                                     title="Dark card theme"
                                 >
@@ -494,7 +637,10 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                     className={`story-export-modal__theme-btn ${
                                         cardTheme === 'light' ? 'active story-export-modal__theme-btn--active' : ''
                                     }`}
-                                    onClick={() => setCardTheme('light')}
+                                    onClick={() => {
+                                        setCardTheme('light');
+                                        setIsDownloaded(false);
+                                    }}
                                     aria-label="Light card theme"
                                     title="Light card theme"
                                 >
@@ -530,9 +676,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                             {/* Zoom Slider for Custom Tuning */}
                             <div className="story-export-modal__zoom-control">
                                 <div className="story-export-modal__zoom-header">
-                                    <span className="story-export-modal__sublabel">
-                                        <ZoomIn size={14} /> Zoom
-                                    </span>
+                                    <span className="story-export-modal__sublabel">Zoom</span>
                                     <span className="story-export-modal__zoom-value">
                                         {activeCrop.zoom.toFixed(1)}x
                                     </span>
@@ -571,18 +715,28 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                         <button
                                             type="button"
                                             className={`story-export-modal__pill ${
-                                                paddedConfig.style === 'glass' ? 'active story-export-modal__pill--active' : ''
+                                                paddedConfig.style === 'glass'
+                                                    ? 'active story-export-modal__pill--active'
+                                                    : ''
                                             }`}
-                                            onClick={() => setPaddedConfig((prev) => ({ ...prev, style: 'glass' }))}
+                                            onClick={() => {
+                                                setPaddedConfig((prev) => ({ ...prev, style: 'glass' }));
+                                                setIsDownloaded(false);
+                                            }}
                                         >
                                             Frosted
                                         </button>
                                         <button
                                             type="button"
                                             className={`story-export-modal__pill ${
-                                                paddedConfig.style === 'custom' ? 'active story-export-modal__pill--active' : ''
+                                                paddedConfig.style === 'custom'
+                                                    ? 'active story-export-modal__pill--active'
+                                                    : ''
                                             }`}
-                                            onClick={() => setPaddedConfig((prev) => ({ ...prev, style: 'custom' }))}
+                                            onClick={() => {
+                                                setPaddedConfig((prev) => ({ ...prev, style: 'custom' }));
+                                                setIsDownloaded(false);
+                                            }}
                                         >
                                             Custom
                                         </button>
@@ -602,13 +756,14 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                                             : ''
                                                     }`}
                                                     style={{ backgroundColor: color }}
-                                                    onClick={() =>
+                                                    onClick={() => {
                                                         setPaddedConfig((prev) => ({
                                                             ...prev,
                                                             style: 'custom',
                                                             customColor: color,
-                                                        }))
-                                                    }
+                                                        }));
+                                                        setIsDownloaded(false);
+                                                    }}
                                                     title={color}
                                                     aria-label={`Select background color ${color}`}
                                                 />
@@ -627,13 +782,14 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                             <input
                                                 type="color"
                                                 value={paddedConfig.customColor || '#0a0a14'}
-                                                onChange={(e) =>
+                                                onChange={(e) => {
                                                     setPaddedConfig((prev) => ({
                                                         ...prev,
                                                         style: 'custom',
                                                         customColor: e.target.value,
-                                                    }))
-                                                }
+                                                    }));
+                                                    setIsDownloaded(false);
+                                                }}
                                                 className="story-export-modal__color-input"
                                                 aria-label="Custom background color"
                                             />
@@ -654,7 +810,10 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                                     ? 'active story-export-modal__pill--active'
                                                     : ''
                                             }`}
-                                            onClick={() => setPaddedConfig((prev) => ({ ...prev, position: 'center' }))}
+                                            onClick={() => {
+                                                setPaddedConfig((prev) => ({ ...prev, position: 'center' }));
+                                                setIsDownloaded(false);
+                                            }}
                                         >
                                             Centered
                                         </button>
@@ -665,9 +824,10 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                                     ? 'active story-export-modal__pill--active'
                                                     : ''
                                             }`}
-                                            onClick={() =>
-                                                setPaddedConfig((prev) => ({ ...prev, position: 'elevated' }))
-                                            }
+                                            onClick={() => {
+                                                setPaddedConfig((prev) => ({ ...prev, position: 'elevated' }));
+                                                setIsDownloaded(false);
+                                            }}
                                         >
                                             Elevated
                                         </button>
@@ -689,6 +849,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                     onChange={(e) => {
                                         const scale = parseFloat(e.target.value);
                                         setPaddedConfig((prev) => ({ ...prev, cardScale: scale }));
+                                        setIsDownloaded(false);
                                     }}
                                     className="story-export-modal__slider"
                                     aria-label="Photo Card Scale"
@@ -697,22 +858,222 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                         </div>
                     )}
 
+                    {/* Photo Filters Selector */}
+                    <div className="story-export-modal__section story-export-modal__section--filters">
+                        <div className="story-export-modal__filters-header">
+                            <span className="story-export-modal__section-heading">FILTER</span>
+                            <span className="story-export-modal__filter-current-badge">
+                                {STORY_PHOTO_FILTERS_MAP[activeFilterId]?.label || 'None'}
+                            </span>
+                        </div>
+                        <div className="story-export-modal__filters-grid">
+                            {STORY_PHOTO_FILTERS.map((filter) => {
+                                const isSelected = activeFilterId === filter.id;
+                                return (
+                                    <button
+                                        key={filter.id}
+                                        type="button"
+                                        className={`story-export-modal__filter-pill ${
+                                            isSelected ? 'active story-export-modal__filter-pill--active' : ''
+                                        }`}
+                                        onClick={() => {
+                                            setActiveFilterId(filter.id);
+                                            setIsDownloaded(false);
+                                        }}
+                                        title={filter.description}
+                                        aria-label={`Photo filter: ${filter.label}`}
+                                    >
+                                        <span>{filter.label}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    {/* Decorative Frames Drawer (Canva / CapCut style expanding accordion) */}
+                    <div className="story-export-modal__section story-export-modal__section--frames">
+                        <div
+                            className={`story-export-modal__accordion-header ${
+                                isFrameDrawerOpen ? 'story-export-modal__accordion-header--open' : ''
+                            }`}
+                            onClick={() => setIsFrameDrawerOpen((prev) => !prev)}
+                            role="button"
+                            tabIndex={0}
+                            aria-expanded={isFrameDrawerOpen}
+                            aria-label="Toggle frame selector drawer"
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    setIsFrameDrawerOpen((prev) => !prev);
+                                }
+                            }}
+                        >
+                            <div className="story-export-modal__accordion-title">
+                                <span className="story-export-modal__section-heading">FRAME</span>
+                                <span className="story-export-modal__frame-current-badge">
+                                    {STORY_FRAMES_MAP[activeFrameId]?.label || 'None'}
+                                </span>
+                            </div>
+                            <div className="story-export-modal__accordion-toggle-btn">
+                                {isFrameDrawerOpen ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                            </div>
+                        </div>
+
+                        {isFrameDrawerOpen && (
+                            <div className="story-export-modal__frames-grid">
+                                {availableFrames.map((frame) => {
+                                    const isSelected = activeFrameId === frame.id;
+                                    return (
+                                        <button
+                                            key={frame.id}
+                                            type="button"
+                                            className={`story-export-modal__frame-card ${
+                                                isSelected ? 'story-export-modal__frame-card--active' : ''
+                                            }`}
+                                            onClick={() => {
+                                                setActiveFrameId(frame.id);
+                                                setIsDownloaded(false);
+                                            }}
+                                            title={frame.vibe}
+                                        >
+                                            <div className="story-export-modal__frame-thumb">
+                                                {frame.id === 'none' ? (
+                                                    <div className="story-export-modal__frame-none-icon">⊘</div>
+                                                ) : (
+                                                    <svg
+                                                        viewBox="0 0 1080 1920"
+                                                        className="story-export-modal__frame-thumb-svg"
+                                                        preserveAspectRatio="none"
+                                                    >
+                                                        {frame.renderSvg(effectiveFrameColor, frameContext)}
+                                                    </svg>
+                                                )}
+                                            </div>
+                                            <span className="story-export-modal__frame-name">{frame.label}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        {/* Minimal Color / Tint Override Bar (Shown when a frame is active) */}
+                        {activeFrameId !== 'none' && (
+                            <div className="story-export-modal__frame-tint-row">
+                                <div className="story-export-modal__tint-header">
+                                    <span className="story-export-modal__sublabel">Frame Tint</span>
+                                </div>
+                                <div className="portfolio__segmented-toggle story-export-modal__pill-group">
+                                    {(
+                                        [
+                                            { id: 'signature', label: 'Default' },
+                                            { id: 'white', label: 'White' },
+                                            { id: 'gold', label: 'Gold' },
+                                            { id: 'red', label: 'Red' },
+                                            { id: 'custom', label: 'Custom' },
+                                        ] as const
+                                    ).map((choice) => {
+                                        const isCustom = choice.id === 'custom';
+                                        const isSelected = frameColorChoice === choice.id;
+                                        return (
+                                            <button
+                                                key={choice.id}
+                                                type="button"
+                                                className={`story-export-modal__pill ${
+                                                    isCustom ? 'story-export-modal__pill--custom' : ''
+                                                } ${
+                                                    isSelected ? 'active story-export-modal__pill--active' : ''
+                                                }`}
+                                                style={
+                                                    isCustom
+                                                        ? {
+                                                              backgroundColor: frameCustomColor,
+                                                              color: getContrastTextColor(frameCustomColor),
+                                                          }
+                                                        : undefined
+                                                }
+                                                onClick={() => {
+                                                    setFrameColorChoice(choice.id);
+                                                    setIsDownloaded(false);
+                                                    if (isCustom) {
+                                                        const inputEl = customFrameColorInputRef.current;
+                                                        if (inputEl) {
+                                                            try {
+                                                                if (typeof inputEl.showPicker === 'function') {
+                                                                    inputEl.showPicker();
+                                                                } else {
+                                                                    inputEl.click();
+                                                                }
+                                                            } catch {
+                                                                inputEl.click();
+                                                            }
+                                                        }
+                                                    }
+                                                }}
+                                            >
+                                                {choice.label}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                <input
+                                    ref={customFrameColorInputRef}
+                                    type="color"
+                                    value={frameCustomColor}
+                                    onChange={(e) => {
+                                        setFrameCustomColor(e.target.value);
+                                        setIsDownloaded(false);
+                                    }}
+                                    tabIndex={-1}
+                                    aria-label="Custom frame tint color"
+                                    style={{
+                                        position: 'absolute',
+                                        opacity: 0,
+                                        pointerEvents: 'none',
+                                        width: 0,
+                                        height: 0,
+                                        padding: 0,
+                                        margin: 0,
+                                        border: 0,
+                                    }}
+                                />
+                            </div>
+                        )}
+                    </div>
+
                     {/* Story Badges & Overlays */}
                     <div className="story-export-modal__section">
                         <div className="story-export-modal__badges-list">
+                            <label className="story-export-modal__checkbox-row">
+                                <input
+                                    type="checkbox"
+                                    checked={badges.showAttribution}
+                                    onChange={(e) => {
+                                        setBadges((prev) => ({
+                                            ...prev,
+                                            showAttribution: e.target.checked,
+                                        }));
+                                        setIsDownloaded(false);
+                                    }}
+                                />
+                                <div className="story-export-modal__checkbox-text">
+                                    <span className="story-export-modal__checkbox-title">Photographer Attribution</span>
+                                </div>
+                            </label>
+
                             {eventInfo.title && (
                                 <label className="story-export-modal__checkbox-row">
                                     <input
                                         type="checkbox"
                                         checked={badges.showScoreboard}
-                                        onChange={(e) =>
+                                        onChange={(e) => {
                                             setBadges((prev) => ({
                                                 ...prev,
                                                 showScoreboard: e.target.checked,
-                                            }))
-                                        }
+                                            }));
+                                            setIsDownloaded(false);
+                                        }}
                                     />
-                                    <Shield size={16} className="story-export-modal__badge-icon" />
                                     <div className="story-export-modal__checkbox-text">
                                         <span className="story-export-modal__checkbox-title">
                                             Match & Scoreboard Badge
@@ -720,37 +1081,10 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                     </div>
                                 </label>
                             )}
-
-                            <label className="story-export-modal__checkbox-row">
-                                <input
-                                    type="checkbox"
-                                    checked={badges.showAttribution}
-                                    onChange={(e) =>
-                                        setBadges((prev) => ({
-                                            ...prev,
-                                            showAttribution: e.target.checked,
-                                        }))
-                                    }
-                                />
-                                <Camera size={16} className="story-export-modal__badge-icon" />
-                                <div className="story-export-modal__checkbox-text">
-                                    <span className="story-export-modal__checkbox-title">Photographer Attribution</span>
-                                </div>
-                            </label>
                         </div>
                     </div>
 
-                    {/* Action Button: Share or Download depending on useCanShare */}
-                    <div className="story-export-modal__actions-group">
-                        <button
-                            className="story-export-modal__primary-action"
-                            onClick={canShare ? handleNativeShare : handleDownload}
-                            disabled={isExporting || !loadedImage}
-                        >
-                            {canShare ? <Share2 size={18} /> : <Download size={18} />}
-                            <span>{canShare ? 'Share Story Card' : 'Download Story Card'}</span>
-                        </button>
-                    </div>
+
 
                     {statusToast && (
                         <div className="story-export-modal__toast">

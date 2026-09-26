@@ -139,12 +139,35 @@ const PortfolioEvent = memo(function PortfolioEvent({
             }
 
             if (sharedPhoto.photoIndex !== undefined) {
-                const scorePayload = ev.localScore || (ev.wftdaMatch ? { team1Score: ev.wftdaMatch.score1, team2Score: ev.wftdaMatch.score2 } : undefined);
-                openLightbox(albumImages, sharedPhoto.photoIndex, eventName, selectedYear, ev.maxExifChars, scorePayload);
+                const scorePayload =
+                    ev.localScore ||
+                    (ev.wftdaMatch
+                        ? { team1Score: ev.wftdaMatch.score1, team2Score: ev.wftdaMatch.score2 }
+                        : undefined);
+                openLightbox(
+                    albumImages,
+                    sharedPhoto.photoIndex,
+                    eventName,
+                    selectedYear,
+                    ev.maxExifChars,
+                    scorePayload
+                );
             }
             setSharedPhoto(null);
         }
-    }, [isSharedEvent, ev.album, ev.maxExifChars, ev.localScore, ev.wftdaMatch, sharedPhoto, eventName, selectedYear, openLightbox, setSharedPhoto, albumImages]);
+    }, [
+        isSharedEvent,
+        ev.album,
+        ev.maxExifChars,
+        ev.localScore,
+        ev.wftdaMatch,
+        sharedPhoto,
+        eventName,
+        selectedYear,
+        openLightbox,
+        setSharedPhoto,
+        albumImages,
+    ]);
 
     const totalPhotos = ev.photoCount || albumImages.length;
 
@@ -230,7 +253,9 @@ const PortfolioEvent = memo(function PortfolioEvent({
 
     const hasLocalScore = ev.localScore && ev.localScore.team1Score !== null && ev.localScore.team2Score !== null;
     const shouldShowScores = activeSortedTeams.length > 1 && !!(ev.wftdaMatch || hasLocalScore);
-    const eventScore = ev.localScore || (ev.wftdaMatch ? { team1Score: ev.wftdaMatch.score1, team2Score: ev.wftdaMatch.score2 } : undefined);
+    const eventScore =
+        ev.localScore ||
+        (ev.wftdaMatch ? { team1Score: ev.wftdaMatch.score1, team2Score: ev.wftdaMatch.score2 } : undefined);
 
     const finalTeams = shouldShowScores
         ? [...activeSortedTeams].sort((a, b) => {

@@ -1,7 +1,10 @@
 import React, { useRef, useState, useCallback } from 'react';
-import type { NormalizedCrop, BadgeOptions } from '../../../utils/storyCanvas';
-import { calculateNormalizedCrop, STORY_ASPECT_RATIO } from '../../../utils/storyCanvas';
+import type { NormalizedCrop, BadgeOptions, StoryPhotoFilterId } from '../../../utils/storyCanvas';
+import { calculateNormalizedCrop, STORY_ASPECT_RATIO, STORY_PHOTO_FILTERS_MAP } from '../../../utils/storyCanvas';
 import { StoryBadges } from './StoryBadges';
+import type { StoryFrameId, StoryFrameContext } from './storyFrames/types';
+import { StoryFrameOverlay } from './storyFrames/StoryFrameOverlay';
+import type { ExifData } from '../../../types';
 
 interface StoryCropperProps {
     imageSrc: string;
@@ -11,6 +14,10 @@ interface StoryCropperProps {
     crop: NormalizedCrop;
     badges?: BadgeOptions;
     theme?: 'dark' | 'light';
+    frameId?: StoryFrameId;
+    frameColorOverride?: string;
+    exif?: ExifData;
+    filterId?: StoryPhotoFilterId;
     onChange: (crop: NormalizedCrop) => void;
     onImageLoaded?: (width: number, height: number) => void;
 }
@@ -23,9 +30,16 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
     crop,
     badges,
     theme,
+    frameId,
+    frameColorOverride,
+    exif,
+    filterId,
     onChange,
     onImageLoaded,
 }) => {
+    const activeFilter = filterId ? STORY_PHOTO_FILTERS_MAP[filterId] : undefined;
+    const filterCss = activeFilter && activeFilter.id !== 'none' ? activeFilter.cssFilter : undefined;
+
     const containerRef = useRef<HTMLDivElement>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [failedSrcs, setFailedSrcs] = useState<Set<string>>(() => new Set());
@@ -178,6 +192,7 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
                         src={currentSrc}
                         alt="Crop target"
                         className="story-cropper__image"
+                        style={{ filter: filterCss }}
                         draggable={false}
                         onError={handleImgError}
                         onLoad={(e) => {
@@ -202,6 +217,23 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
 
                 {/* Subtle Edge Vignette */}
                 <div className="story-cropper__vignette" />
+
+                {/* Decorative Frame Overlay */}
+                {(() => {
+                    const frameContext: StoryFrameContext = {
+                        hasScoreboard: Boolean(badges?.showScoreboard && (badges?.scoreboardTitle || badges?.teams?.length)),
+                        hasAttribution: Boolean(badges?.showAttribution),
+                        layoutMode: 'crop',
+                        exif,
+                    };
+                    return (
+                        <StoryFrameOverlay
+                            frameId={frameId || 'none'}
+                            colorOverride={frameColorOverride}
+                            context={frameContext}
+                        />
+                    );
+                })()}
 
                 {/* Story Badges Overlay */}
                 <StoryBadges badges={badges} theme={theme} />

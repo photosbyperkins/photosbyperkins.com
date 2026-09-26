@@ -18,24 +18,17 @@ export const StoryBadges: React.FC<StoryBadgesProps> = ({ badges, theme = 'dark'
             {/* Scoreboard Badge Overlay (portfolio__event-header style) */}
             {badges.showScoreboard && (badges.scoreboardTitle || (badges.teams && badges.teams.length > 0)) && (
                 <div className={`story-cropper__badge story-cropper__badge--scoreboard ${lightClass}`.trim()}>
-                    {badges.matchDate && (
-                        <div className="story-cropper__event-date">
-                            {badges.matchDate}
-                        </div>
-                    )}
+                    {badges.matchDate && <div className="story-cropper__event-date">{badges.matchDate}</div>}
                     {badges.matchDate && <div className="story-cropper__event-divider" />}
                     <div className="story-cropper__event-teams-stack">
                         {badges.teams && badges.teams.length >= 2 ? (
                             <>
                                 <div className="story-cropper__team-row">
-                                    <span className="story-cropper__team-name">
-                                        {formatTeamName(badges.teams[0])}
-                                    </span>
+                                    <span className="story-cropper__team-name">{formatTeamName(badges.teams[0])}</span>
                                     {badges.score1 != null && (
                                         <span
                                             className={`story-cropper__team-score ${
-                                                badges.score2 != null &&
-                                                Number(badges.score1) > Number(badges.score2)
+                                                badges.score2 != null && Number(badges.score1) > Number(badges.score2)
                                                     ? 'is-win'
                                                     : ''
                                             }`}
@@ -45,14 +38,11 @@ export const StoryBadges: React.FC<StoryBadgesProps> = ({ badges, theme = 'dark'
                                     )}
                                 </div>
                                 <div className="story-cropper__team-row">
-                                    <span className="story-cropper__team-name">
-                                        {formatTeamName(badges.teams[1])}
-                                    </span>
+                                    <span className="story-cropper__team-name">{formatTeamName(badges.teams[1])}</span>
                                     {badges.score2 != null && (
                                         <span
                                             className={`story-cropper__team-score ${
-                                                badges.score1 != null &&
-                                                Number(badges.score2) > Number(badges.score1)
+                                                badges.score1 != null && Number(badges.score2) > Number(badges.score1)
                                                     ? 'is-win'
                                                     : ''
                                             }`}
@@ -79,14 +69,10 @@ export const StoryBadges: React.FC<StoryBadgesProps> = ({ badges, theme = 'dark'
                     <span className="story-cropper__logo-icon" aria-hidden="true" />
                     <span className="story-cropper__logo-text">
                         {badges.attributionLogoText || 'PHOTOS BY'}{' '}
-                        <span className="story-cropper__logo-accent">
-                            {badges.attributionLogoAccent || 'PERKINS'}
-                        </span>
+                        <span className="story-cropper__logo-accent">{badges.attributionLogoAccent || 'PERKINS'}</span>
                     </span>
                     {badges.attributionDomain && (
-                        <span className="story-cropper__logo-domain">
-                            {badges.attributionDomain}
-                        </span>
+                        <span className="story-cropper__logo-domain">{badges.attributionDomain}</span>
                     )}
                 </div>
             )}
