@@ -494,8 +494,8 @@ describe('storyCanvas calculations', () => {
             expect(svgWithExif).toContain('ISO 1600');
             // Contains focal length
             expect(svgWithExif).toContain('135mm');
-            // Positioned elevated above scoreboard
-            expect(svgWithExif).toContain('y="1566"');
+            // Positioned pinned at bottom of frame
+            expect(svgWithExif).toContain('y="1820"');
 
             // Exposure compensation removed per user request
             expect(svgWithExif).not.toContain('EXP COMP');
@@ -504,12 +504,21 @@ describe('storyCanvas calculations', () => {
             // Center focus point indicator removed per user request
             expect(svgWithExif).not.toContain('width="72" height="72"');
 
-            // When scoreboard is false, bottom telemetry bar docks at 1806
+            // With attribution, top bracket docks below attribution pill at Y=230
+            expect(svgWithExif).toContain('L 110,230');
+            // With scoreboard, bottom bracket docks above scoreboard badge at Y=1640
+            expect(svgWithExif).toContain('L 110,1640');
+
+            // When scoreboard and attribution are false, bottom bar remains pinned at 1820
             const svgNoScoreboard = ttl!.getSvgString(undefined, {
                 hasScoreboard: false,
                 hasAttribution: false,
             });
-            expect(svgNoScoreboard).toContain('y="1806"');
+            expect(svgNoScoreboard).toContain('y="1820"');
+            // Top bracket docks at Y=140 without attribution
+            expect(svgNoScoreboard).toContain('L 110,140');
+            // Bottom bracket docks at Y=1780 without scoreboard (above pinned telemetry bar)
+            expect(svgNoScoreboard).toContain('L 110,1780');
         });
 
         it('filters through-the-lens frame when photo has no EXIF data', () => {

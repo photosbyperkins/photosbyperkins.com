@@ -1426,6 +1426,7 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
             const borderCol = override ? `${override}40` : 'rgba(255, 255, 255, 0.22)';
 
             const hasScoreboard = context?.hasScoreboard ?? true;
+            const hasAttribution = context?.hasAttribution ?? true;
 
             const shutterSpeedText = context?.exif?.shutterSpeed?.replace(/s$/, '') || '1/3200';
             const apertureText = context?.exif?.aperture
@@ -1440,14 +1441,27 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
                 : 'ISO 2500';
             const focalLengthText = context?.exif?.focalLength || '135mm';
 
-            const bottomBarY = hasScoreboard ? 1566 : 1806;
-            const bracketBottomY = hasScoreboard ? 1530 : 1770;
+            const bottomBarY = 1820;
+            const topBracketY = hasAttribution ? 230 : 140;
+            const bracketBottomY = hasScoreboard ? 1640 : 1780;
 
             return (
                 <g className="story-frame-through-the-lens">
                     {/* Viewfinder Corner Framing Brackets */}
-                    <path d="M 50,200 L 50,140 L 110,140" stroke={textColor} strokeWidth="3" fill="none" opacity="0.8" />
-                    <path d="M 970,140 L 1030,140 L 1030,200" stroke={textColor} strokeWidth="3" fill="none" opacity="0.8" />
+                    <path
+                        d={`M 50,${topBracketY + 60} L 50,${topBracketY} L 110,${topBracketY}`}
+                        stroke={textColor}
+                        strokeWidth="3"
+                        fill="none"
+                        opacity="0.8"
+                    />
+                    <path
+                        d={`M 970,${topBracketY} L 1030,${topBracketY} L 1030,${topBracketY + 60}`}
+                        stroke={textColor}
+                        strokeWidth="3"
+                        fill="none"
+                        opacity="0.8"
+                    />
                     <path
                         d={`M 50,${bracketBottomY - 60} L 50,${bracketBottomY} L 110,${bracketBottomY}`}
                         stroke={textColor}
@@ -1635,6 +1649,7 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
             const borderCol = override ? `${override}40` : 'rgba(255, 255, 255, 0.22)';
 
             const hasScoreboard = context?.hasScoreboard ?? true;
+            const hasAttribution = context?.hasAttribution ?? true;
 
             const shutterSpeedText = context?.exif?.shutterSpeed?.replace(/s$/, '') || '1/3200';
             const apertureText = context?.exif?.aperture
@@ -1649,12 +1664,13 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
                 : 'ISO 2500';
             const focalLengthText = context?.exif?.focalLength || '135mm';
 
-            const bottomBarY = hasScoreboard ? 1566 : 1806;
-            const bracketBottomY = hasScoreboard ? 1530 : 1770;
+            const bottomBarY = 1820;
+            const topBracketY = hasAttribution ? 230 : 140;
+            const bracketBottomY = hasScoreboard ? 1640 : 1780;
 
             return createSvgString(`
-                <path d="M 50,200 L 50,140 L 110,140" stroke="${textColor}" stroke-width="3" fill="none" opacity="0.8" />
-                <path d="M 970,140 L 1030,140 L 1030,200" stroke="${textColor}" stroke-width="3" fill="none" opacity="0.8" />
+                <path d="M 50,${topBracketY + 60} L 50,${topBracketY} L 110,${topBracketY}" stroke="${textColor}" stroke-width="3" fill="none" opacity="0.8" />
+                <path d="M 970,${topBracketY} L 1030,${topBracketY} L 1030,${topBracketY + 60}" stroke="${textColor}" stroke-width="3" fill="none" opacity="0.8" />
                 <path d="M 50,${bracketBottomY - 60} L 50,${bracketBottomY} L 110,${bracketBottomY}" stroke="${textColor}" stroke-width="3" fill="none" opacity="0.8" />
                 <path d="M 970,${bracketBottomY} L 1030,${bracketBottomY} L 1030,${bracketBottomY - 60}" stroke="${textColor}" stroke-width="3" fill="none" opacity="0.8" />
 
