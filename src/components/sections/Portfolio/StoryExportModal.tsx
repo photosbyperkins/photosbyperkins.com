@@ -621,20 +621,6 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                 <button
                                     type="button"
                                     className={`story-export-modal__theme-btn ${
-                                        cardTheme === 'dark' ? 'active story-export-modal__theme-btn--active' : ''
-                                    }`}
-                                    onClick={() => {
-                                        setCardTheme('dark');
-                                        setIsDownloaded(false);
-                                    }}
-                                    aria-label="Dark card theme"
-                                    title="Dark card theme"
-                                >
-                                    <Moon size={16} />
-                                </button>
-                                <button
-                                    type="button"
-                                    className={`story-export-modal__theme-btn ${
                                         cardTheme === 'light' ? 'active story-export-modal__theme-btn--active' : ''
                                     }`}
                                     onClick={() => {
@@ -645,6 +631,20 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                     title="Light card theme"
                                 >
                                     <Sun size={16} />
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`story-export-modal__theme-btn ${
+                                        cardTheme === 'dark' ? 'active story-export-modal__theme-btn--active' : ''
+                                    }`}
+                                    onClick={() => {
+                                        setCardTheme('dark');
+                                        setIsDownloaded(false);
+                                    }}
+                                    aria-label="Dark card theme"
+                                    title="Dark card theme"
+                                >
+                                    <Moon size={16} />
                                 </button>
                             </div>
                         </div>
