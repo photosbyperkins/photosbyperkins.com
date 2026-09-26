@@ -156,7 +156,7 @@ async function runDeploy() {
                 scpSuccess = true;
             } catch (err: unknown) {
                 if (scpAttempt >= MAX_RETRIES) {
-                    throw new Error(`File transfer failed after ${MAX_RETRIES} attempts: ${err instanceof Error ? err.message : String(err)}`);
+                    throw new Error(`File transfer failed after ${MAX_RETRIES} attempts: ${err instanceof Error ? err.message : String(err)}`, { cause: err });
                 }
                 console.log(`⚠️ Transfer failed. Retrying in 5 seconds... (Attempt ${scpAttempt}/${MAX_RETRIES})`);
                 await sleep(5000);
@@ -173,7 +173,7 @@ async function runDeploy() {
                 mvSuccess = true;
             } catch (err: unknown) {
                 if (mvAttempt >= MAX_RETRIES) {
-                    throw new Error(`Atomic move failed after ${MAX_RETRIES} attempts: ${err instanceof Error ? err.message : String(err)}`);
+                    throw new Error(`Atomic move failed after ${MAX_RETRIES} attempts: ${err instanceof Error ? err.message : String(err)}`, { cause: err });
                 }
                 console.log(`⚠️ Move failed. Retrying in 5 seconds... (Attempt ${mvAttempt}/${MAX_RETRIES})`);
                 await sleep(5000);
@@ -193,7 +193,7 @@ async function runDeploy() {
                 chmodSuccess = true;
             } catch (err: unknown) {
                 if (chmodAttempt >= MAX_RETRIES) {
-                    throw new Error(`Permission fix failed after ${MAX_RETRIES} attempts: ${err instanceof Error ? err.message : String(err)}`);
+                    throw new Error(`Permission fix failed after ${MAX_RETRIES} attempts: ${err instanceof Error ? err.message : String(err)}`, { cause: err });
                 }
                 console.log(`⚠️ Permission fix failed. Retrying in 5 seconds... (Attempt ${chmodAttempt}/${MAX_RETRIES})`);
                 await sleep(5000);

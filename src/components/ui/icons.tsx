@@ -6,54 +6,6 @@
 export type IconProps = React.SVGProps<SVGSVGElement> & { size?: number | string };
 
 /**
- * CameraFaviconIcon
- * Custom SVG camera icon matching the site favicon shape.
- * Used in the About section gear list.
- */
-export const CameraFaviconIcon = ({ size = 18, className, style, ...props }: IconProps) => (
-    <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="200 50 230 230"
-        width={size}
-        height={size}
-        className={className}
-        style={{ flexShrink: 0, ...style }}
-        {...props}
-    >
-        <g transform="translate(315, 185) scale(0.65) translate(-230, -256)">
-            <path
-                d="M 120 146 L 176 146 L 206 86 L 306 86 L 336 146 L 380 146 A 20 20 0 0 1 400 166 L 400 346 A 20 20 0 0 1 380 366 L 80 366 A 20 20 0 0 1 60 346 L 60 216 Q 60 146 120 146 Z"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="30"
-                strokeLinejoin="round"
-            />
-            <circle cx="245" cy="248" r="65" fill="none" stroke="currentColor" strokeWidth="30" />
-        </g>
-    </svg>
-);
-
-/**
- * TikTokIcon
- * Custom SVG TikTok brand icon.
- * Used in the About section social links for Sacramento Roller Derby.
- */
-export const TikTokIcon = ({ size = 18, className, style, ...props }: IconProps) => (
-    <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width={size}
-        height={size}
-        fill="currentColor"
-        className={className}
-        viewBox="0 0 16 16"
-        style={{ flexShrink: 0, ...style }}
-        {...props}
-    >
-        <path d="M9 0h1.98c.144.715.54 1.617 1.235 2.512C12.895 3.389 13.797 4 15 4v2c-1.753 0-3.07-.814-4-1.829V11a5 5 0 1 1-5-5v2a3 3 0 1 0 3 3V0Z" />
-    </svg>
-);
-
-/**
  * FullAlbumIcon
  * Custom SVG icon representing a uniform photo grid with a scrollbar indicator.
  * Used in the portfolio event toggle for full-album views.

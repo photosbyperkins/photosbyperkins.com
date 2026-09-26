@@ -37,8 +37,6 @@ __pycache__/
 
 # Agent and Test Artifacts
 ARCHITECTURE_AND_FEATURE_IDEAS.md
-check-bounds.js
-test-wftda.html
 test-results/
 playwright-report/
 

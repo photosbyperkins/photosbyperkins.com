@@ -492,15 +492,12 @@ function boxBlur1D(
     if (isHorizontal) {
         for (let y = 0; y < h; y++) {
             const rowOffset = y * w * 4;
-            let sumR = 0;
-            let sumG = 0;
-            let sumB = 0;
             const firstR = src[rowOffset];
             const firstG = src[rowOffset + 1];
             const firstB = src[rowOffset + 2];
-            sumR = firstR * (r + 1);
-            sumG = firstG * (r + 1);
-            sumB = firstB * (r + 1);
+            let sumR = firstR * (r + 1);
+            let sumG = firstG * (r + 1);
+            let sumB = firstB * (r + 1);
             for (let i = 1; i <= r; i++) {
                 const idx = rowOffset + Math.min(w - 1, i) * 4;
                 sumR += src[idx];
