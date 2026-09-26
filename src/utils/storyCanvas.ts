@@ -312,13 +312,6 @@ export function generateStoryPresets(options: {
             crop: calculateNormalizedCrop(w, h, p1.x, Math.max(0.12, p1.y - 0.03), 1.35),
             mode: 'crop',
         });
-        presets.push({
-            id: 'wide-action',
-            label: 'Wide Context',
-            description: 'Subject with track environment',
-            crop: calculateNormalizedCrop(w, h, p1.x, 0.5, 1.0),
-            mode: 'crop',
-        });
     }
 
     // --- CASE 2: Two People Detected (e.g. Jammer vs Blocker) ---

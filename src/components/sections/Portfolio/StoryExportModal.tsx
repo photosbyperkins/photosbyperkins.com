@@ -1,45 +1,35 @@
-import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { Download, Share2, Moon, Sun, ChevronDown, ChevronUp, Check } from 'lucide-react';
+import { ChevronDown, ChevronUp, Check, Download, Moon, Share2, Sun } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useCanShare } from '../../../hooks/useCanShare';
 import { useAppStore } from '../../../store/useAppStore';
-import ModalShell from '../../ui/ModalShell';
-import { StoryCropper } from './StoryCropper';
-import { StoryBadges } from './StoryBadges';
-import type { StoryFrameId, StoryFrameColorChoice, StoryFrameContext } from './storyFrames/types';
-import { STORY_FRAME_DEFINITIONS, STORY_FRAMES_MAP } from './storyFrames/frameDefinitions';
-import { StoryFrameOverlay } from './storyFrames/StoryFrameOverlay';
-import type { PhotoInput, PhotoRecord, EventScore } from '../../../types';
-import '../../../styles/_story-export.scss';
-import type {
-    NormalizedCrop,
-    StoryPreset,
-    StoryRenderConfig,
-    PaddedStyleOptions,
-    BadgeOptions,
-    StoryPhotoFilterId,
-} from '../../../utils/storyCanvas';
+import { getPhotoDisplayUrl, parseEventTitle } from '../../../utils/formatters';
 import {
-    STORY_ASPECT_RATIO,
-    generateStoryPresets,
     calculateNormalizedCrop,
-    renderStoryToCanvas,
+    generateStoryPresets,
     renderStoryToBlob,
+    renderStoryToCanvas,
+    STORY_ASPECT_RATIO,
     STORY_PHOTO_FILTERS,
     STORY_PHOTO_FILTERS_MAP,
 } from '../../../utils/storyCanvas';
-import { getPhotoDisplayUrl, parseEventTitle } from '../../../utils/formatters';
+import type { EventScore, PhotoInput, PhotoRecord } from '../../../types';
+import type {
+    BadgeOptions,
+    NormalizedCrop,
+    PaddedStyleOptions,
+    StoryPhotoFilterId,
+    StoryPreset,
+    StoryRenderConfig,
+} from '../../../utils/storyCanvas';
+import ModalShell from '../../ui/ModalShell';
+import { StoryBadges } from './StoryBadges';
+import { StoryCropper } from './StoryCropper';
+import { STORY_FRAME_DEFINITIONS, STORY_FRAMES_MAP } from './storyFrames/frameDefinitions';
+import { StoryFrameOverlay } from './storyFrames/StoryFrameOverlay';
+import type { StoryFrameColorChoice, StoryFrameContext, StoryFrameId } from './storyFrames/types';
+import '../../../styles/_story-export.scss';
 
 declare const __BUILD_NUMBER__: string;
-
-function getContrastTextColor(hexColor: string): string {
-    const hex = hexColor.replace('#', '');
-    if (hex.length !== 6) return '#ffffff';
-    const r = parseInt(hex.substring(0, 2), 16);
-    const g = parseInt(hex.substring(2, 4), 16);
-    const b = parseInt(hex.substring(4, 6), 16);
-    const yiq = (r * 299 + g * 587 + b * 114) / 1000;
-    return yiq >= 128 ? '#111116' : '#ffffff';
-}
 
 interface StoryExportModalProps {
     isOpen: boolean;
@@ -242,7 +232,6 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
     const [isFrameDrawerOpen, setIsFrameDrawerOpen] = useState(false);
     const [frameColorChoice, setFrameColorChoice] = useState<StoryFrameColorChoice>('signature');
     const [frameCustomColor, setFrameCustomColor] = useState<string>('#ffffff');
-    const customFrameColorInputRef = useRef<HTMLInputElement>(null);
 
     const effectiveFrameColor = useMemo(() => {
         if (frameColorChoice === 'signature') return undefined;
@@ -738,7 +727,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                 {paddedConfig.style === 'custom' && (
                                     <div className="story-export-modal__custom-color-row">
                                         <div className="story-export-modal__quick-swatches">
-                                            {['#000000', '#0a0a14', '#1e293b', '#2c1810', '#ffffff'].map((color) => (
+                                            {['#0a0a14', '#1e293b', '#2c1810', '#ffffff'].map((color) => (
                                                 <button
                                                     key={color}
                                                     type="button"
@@ -964,40 +953,17 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                             { id: 'custom', label: 'Custom' },
                                         ] as const
                                     ).map((choice) => {
-                                        const isCustom = choice.id === 'custom';
                                         const isSelected = frameColorChoice === choice.id;
                                         return (
                                             <button
                                                 key={choice.id}
                                                 type="button"
                                                 className={`story-export-modal__pill ${
-                                                    isCustom ? 'story-export-modal__pill--custom' : ''
-                                                } ${isSelected ? 'active story-export-modal__pill--active' : ''}`}
-                                                style={
-                                                    isCustom
-                                                        ? {
-                                                              backgroundColor: frameCustomColor,
-                                                              color: getContrastTextColor(frameCustomColor),
-                                                          }
-                                                        : undefined
-                                                }
+                                                    isSelected ? 'active story-export-modal__pill--active' : ''
+                                                }`}
                                                 onClick={() => {
                                                     setFrameColorChoice(choice.id);
                                                     setIsDownloaded(false);
-                                                    if (isCustom) {
-                                                        const inputEl = customFrameColorInputRef.current;
-                                                        if (inputEl) {
-                                                            try {
-                                                                if (typeof inputEl.showPicker === 'function') {
-                                                                    inputEl.showPicker();
-                                                                } else {
-                                                                    inputEl.click();
-                                                                }
-                                                            } catch {
-                                                                inputEl.click();
-                                                            }
-                                                        }
-                                                    }
                                                 }}
                                             >
                                                 {choice.label}
@@ -1006,27 +972,54 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                     })}
                                 </div>
 
-                                <input
-                                    ref={customFrameColorInputRef}
-                                    type="color"
-                                    value={frameCustomColor}
-                                    onChange={(e) => {
-                                        setFrameCustomColor(e.target.value);
-                                        setIsDownloaded(false);
-                                    }}
-                                    tabIndex={-1}
-                                    aria-label="Custom frame tint color"
-                                    style={{
-                                        position: 'absolute',
-                                        opacity: 0,
-                                        pointerEvents: 'none',
-                                        width: 0,
-                                        height: 0,
-                                        padding: 0,
-                                        margin: 0,
-                                        border: 0,
-                                    }}
-                                />
+                                {frameColorChoice === 'custom' && (
+                                    <div className="story-export-modal__custom-color-row">
+                                        <div className="story-export-modal__quick-swatches">
+                                            {['#ffffff', '#fbbf24', '#06b6d4', '#c084fc'].map((color) => (
+                                                <button
+                                                    key={color}
+                                                    type="button"
+                                                    className={`story-export-modal__quick-swatch ${
+                                                        frameCustomColor.toLowerCase() === color.toLowerCase()
+                                                            ? 'is-active'
+                                                            : ''
+                                                    }`}
+                                                    style={{ backgroundColor: color }}
+                                                    onClick={() => {
+                                                        setFrameCustomColor(color);
+                                                        setIsDownloaded(false);
+                                                    }}
+                                                    title={color}
+                                                    aria-label={`Select frame tint color ${color}`}
+                                                />
+                                            ))}
+                                        </div>
+                                        <label
+                                            className="story-export-modal__color-picker"
+                                            title="Choose custom frame tint color"
+                                        >
+                                            <span
+                                                className="story-export-modal__color-swatch"
+                                                style={{
+                                                    backgroundColor: frameCustomColor || '#ffffff',
+                                                }}
+                                            />
+                                            <input
+                                                type="color"
+                                                value={frameCustomColor || '#ffffff'}
+                                                onChange={(e) => {
+                                                    setFrameCustomColor(e.target.value);
+                                                    setIsDownloaded(false);
+                                                }}
+                                                className="story-export-modal__color-input"
+                                                aria-label="Custom frame tint color"
+                                            />
+                                        </label>
+                                        <span className="story-export-modal__hex-code">
+                                            {(frameCustomColor || '#ffffff').toUpperCase()}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                         )}
                     </div>
@@ -1065,9 +1058,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                         }}
                                     />
                                     <div className="story-export-modal__checkbox-text">
-                                        <span className="story-export-modal__checkbox-title">
-                                            Match & Scoreboard Badge
-                                        </span>
+                                        <span className="story-export-modal__checkbox-title">Event Badge</span>
                                     </div>
                                 </label>
                             )}

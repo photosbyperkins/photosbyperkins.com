@@ -71,8 +71,8 @@
         &-top-center {
             position: absolute;
             left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
+            top: 16px;
+            transform: translateX(-50%);
             pointer-events: none;
             z-index: var(--z-lightbox-controls);
         }
@@ -86,8 +86,8 @@
             border: 1px solid var(--glass-border);
             -webkit-backdrop-filter: blur(4px);
             backdrop-filter: blur(4px);
-            border-radius: 8px;
-            height: 42px;
+            border-radius: 6px;
+            height: 40px;
             padding: 0 16px;
             width: auto;
             justify-content: center;
@@ -324,6 +324,10 @@
             overflow: hidden;
             -webkit-backdrop-filter: blur(4px);
             backdrop-filter: blur(4px);
+
+            @media (max-width: 768px) {
+                flex-direction: column;
+            }
 
             .portfolio__lightbox-action {
                 background: transparent;

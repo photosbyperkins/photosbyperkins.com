@@ -86,6 +86,44 @@ test.describe('Lightbox', () => {
         await expect(downloadBtn).toBeVisible();
     });
 
+    test('should arrange action group vertically on mobile and horizontally on desktop', async ({ page }) => {
+        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
+        await photo.waitFor({ timeout: 10000 });
+        await photo.click();
+
+        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
+        await expect(lightbox).toBeVisible({ timeout: 5000 });
+
+        const actionGroup = lightbox.locator('.portfolio__lightbox-action-group');
+        await expect(actionGroup).toBeVisible();
+
+        const viewport = page.viewportSize();
+        const flexDirection = await actionGroup.evaluate((el) => window.getComputedStyle(el).flexDirection);
+
+        if (viewport && viewport.width <= 768) {
+            expect(flexDirection).toBe('column');
+        } else {
+            expect(flexDirection).toBe('row');
+        }
+
+        // Verify top-bar row alignment: first action button, EXIF data display, and close button share the same top edge
+        const firstAction = actionGroup.locator('button').first();
+        const closeBtn = lightbox.locator('button[aria-label="Close"]');
+        const dataDisplay = lightbox.locator('.portfolio__lightbox-data-display').first();
+
+        const [actionBox, closeBox] = await Promise.all([firstAction.boundingBox(), closeBtn.boundingBox()]);
+
+        expect(actionBox).not.toBeNull();
+        expect(closeBox).not.toBeNull();
+        expect(Math.abs(actionBox!.y - closeBox!.y)).toBeLessThanOrEqual(2);
+
+        if (await dataDisplay.isVisible()) {
+            const dataBox = await dataDisplay.boundingBox();
+            expect(dataBox).not.toBeNull();
+            expect(Math.abs(dataBox!.y - actionBox!.y)).toBeLessThanOrEqual(2);
+        }
+    });
+
     test('should display scrubber with photo counter', async ({ page }) => {
         const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
         await photo.waitFor({ timeout: 10000 });

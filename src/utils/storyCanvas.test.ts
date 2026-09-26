@@ -102,7 +102,7 @@ describe('storyCanvas calculations', () => {
 
             expect(ids).toContain('subject');
             expect(ids).toContain('closeup');
-            expect(ids).toContain('wide-action');
+            expect(ids).not.toContain('wide-action');
             expect(ids).toContain('padded-glass');
         });
 
@@ -468,6 +468,38 @@ describe('storyCanvas calculations', () => {
 
             const svgNoScoreboard = lightning!.getSvgString(undefined, { hasScoreboard: false });
             expect(svgNoScoreboard).toContain('L130,1820'); // full ground strike
+        });
+
+        it('renders rainbow unicorn frame with flowing mane waves, spiral horn, and cloud base', () => {
+            const unicorn = STORY_FRAME_DEFINITIONS.find((f) => f.id === 'unicorns');
+            expect(unicorn).toBeDefined();
+
+            const svg = unicorn!.getSvgString(undefined, { hasScoreboard: true });
+            expect(svg).toContain('translate(800, 1370) scale(1.15)'); // docked above scoreboard
+            expect(svg).toContain('#f472b6'); // pink
+            expect(svg).toContain('#c084fc'); // purple
+            expect(svg).toContain('#38bdf8'); // cyan
+            expect(svg).toContain('#facc15'); // yellow/gold
+            expect(svg).toContain('points="46,-9 48,2 59,4 48,6 46,17 44,6 33,4 44,2"'); // horn tip magic star
+
+            const svgNoScoreboard = unicorn!.getSvgString(undefined, { hasScoreboard: false });
+            expect(svgNoScoreboard).toContain('translate(800, 1590) scale(1.15)'); // lower corner placement
+        });
+
+        it('renders pop-art frame with extreme corner halftone matrix and full lower-right speed lines including teal', () => {
+            const popArt = STORY_FRAME_DEFINITIONS.find((f) => f.id === 'pop-art');
+            expect(popArt).toBeDefined();
+
+            // With scoreboard
+            const svgWithSb = popArt!.getSvgString(undefined, { hasScoreboard: true });
+            expect(svgWithSb).toContain('translate(970, 0)'); // top-right extreme corner
+            expect(svgWithSb).toContain('translate(0, 1560)'); // docked lower-left
+            expect(svgWithSb).toContain('x1="1080" y1="1640" x2="1000" y2="1590" stroke="#06b6d4"'); // teal/cyan line
+
+            // Without scoreboard
+            const svgNoSb = popArt!.getSvgString(undefined, { hasScoreboard: false });
+            expect(svgNoSb).toContain('translate(0, 1805)'); // extreme bottom-left corner
+            expect(svgNoSb).toContain('x1="1080" y1="1840" x2="1000" y2="1790" stroke="#06b6d4"'); // teal/cyan line in bottom-right corner
         });
 
         it('renders through-the-lens frame with real EXIF telemetry on bottom bar', () => {

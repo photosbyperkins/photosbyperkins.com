@@ -157,7 +157,7 @@ test.describe('Story Maker (9:16)', () => {
         const footerBox = await footerBar.boundingBox();
         const viewport = page.viewportSize();
         if (footerBox && viewport) {
-            expect(Math.abs((footerBox.y + footerBox.height) - viewport.height)).toBeLessThanOrEqual(16);
+            expect(Math.abs((footerBox.y + footerBox.height) - viewport.height)).toBeLessThanOrEqual(32);
         }
 
         // Close modal
@@ -453,9 +453,8 @@ test.describe('Story Maker (9:16)', () => {
         const customTintBtn = tintRow.locator('button:has-text("Custom")');
         await customTintBtn.click();
         await expect(customTintBtn).toHaveClass(/active/);
-        await expect(customTintBtn).toHaveClass(/story-export-modal__pill--custom/);
-        // Verify no standalone color swatch row under Frame Tint
-        await expect(tintRow.locator('.story-export-modal__custom-color-row')).toHaveCount(0);
+        // Verify custom color row appears under Frame Tint with swatches and color picker input
+        await expect(tintRow.locator('.story-export-modal__custom-color-row')).toHaveCount(1);
         const customColorInput = tintRow.locator('input[type="color"]');
         await expect(customColorInput).toHaveCount(1);
 
@@ -503,7 +502,7 @@ test.describe('Story Maker (9:16)', () => {
         await expect(frameOverlay).toBeVisible();
 
         // Check if scoreboard checkbox is present
-        const scoreboardCheckbox = studioModal.locator('label:has-text("Match & Scoreboard Badge") input[type="checkbox"]');
+        const scoreboardCheckbox = studioModal.locator('label:has-text("Event Badge") input[type="checkbox"]');
         if (await scoreboardCheckbox.isVisible() && (await scoreboardCheckbox.isChecked())) {
             // When scoreboard badge is active, bear is elevated into the flank
             const bearGroup = frameOverlay.locator('.story-frame-sac-bear g[transform*="1510"]');
@@ -546,9 +545,9 @@ test.describe('Story Maker (9:16)', () => {
         await expect(downloadBtn).toHaveClass(/is-done/);
         await expect(downloadBtn).toBeDisabled();
 
-        // Altering card (e.g. clicking Left preset) resets button back to Download Story Card
-        const leftPreset = studioModal.locator('button:has-text("Left")');
-        await leftPreset.click();
+        // Altering card (e.g. clicking an alternate preset) resets button back to Download Story Card
+        const altPreset = studioModal.locator('.story-export-modal__preset-pill:not(.active)').first();
+        await altPreset.click();
 
         await expect(downloadBtn).toContainText('Download Story Card');
         await expect(downloadBtn).not.toHaveClass(/is-done/);

@@ -1,6 +1,6 @@
 import React from 'react';
-import type { StoryFrameDefinition, StoryFrameId } from './types';
 import { SAC_BEAR_PATHS } from './sacBearData';
+import type { StoryFrameDefinition, StoryFrameId } from './types';
 
 // Helper to wrap inner SVG content in a standard 1080x1920 SVG container
 function createSvgString(inner: string): string {
@@ -327,8 +327,8 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
             const c4 = override || '#facc15'; // yellow
             const hasScoreboard = context?.hasScoreboard ?? true;
             const unicornTransform = hasScoreboard
-                ? 'translate(870, 1520) scale(1.35)'
-                : 'translate(860, 1680) scale(1.4)';
+                ? 'translate(800, 1370) scale(1.15)'
+                : 'translate(800, 1590) scale(1.15)';
 
             return (
                 <g className="story-frame-unicorns">
@@ -344,21 +344,179 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
                     {/* Sparkle Stars */}
                     <polygon points="980,100 985,115 1000,120 985,125 980,140 975,125 960,120 975,115" fill={c4} />
                     <polygon points="920,160 923,172 935,175 923,178 920,190 917,178 905,175 917,172" fill={c1} />
-                    {/* Stylized Unicorn head */}
+                    {/* Enhanced Unicorn Bust */}
                     <g transform={unicornTransform}>
-                        {/* Spiral Horn */}
-                        <polygon points="45,-15 52,18 38,18" fill={c4} />
-                        <line x1="42" y1="-5" x2="48" y2="-1" stroke="#ea580c" strokeWidth="1.5" />
-                        <line x1="40" y1="5" x2="50" y2="9" stroke="#ea580c" strokeWidth="1.5" />
-                        {/* Head & Mane */}
+                        {/* Flowing Rainbow Mane (Positioned along crest of neck) */}
                         <path
-                            d="M30,25 C30,15 45,15 55,25 C65,32 75,40 75,60 C65,65 50,65 40,60 C32,55 25,45 25,35 Z"
+                            d="M96,62 C125,40 170,44 198,68 C212,80 214,96 198,104 C184,110 172,100 178,88 C182,78 165,62 118,74 Z"
+                            fill={c2}
+                        />
+                        <path
+                            d="M112,82 C145,68 190,78 214,105 C226,118 225,134 208,142 C194,148 184,136 190,125 C195,114 175,98 124,106 Z"
+                            fill={c3}
+                        />
+                        <path
+                            d="M120,112 C152,102 195,114 218,144 C228,158 226,174 208,182 C194,188 185,176 190,165 C195,152 176,134 128,142 Z"
+                            fill={c1}
+                        />
+                        <path
+                            d="M126,145 C155,138 192,152 210,182 C220,198 215,214 196,224 C182,230 174,218 180,206 C186,192 168,172 132,178 Z"
+                            fill={c4}
+                        />
+
+                        {/* Subtle Mane Shine Accents */}
+                        <path
+                            d="M130,55 Q168,52 190,70"
+                            stroke="#ffffff"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            fill="none"
+                            opacity="0.45"
+                        />
+                        <path
+                            d="M140,84 Q182,88 206,108"
+                            stroke="#ffffff"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            fill="none"
+                            opacity="0.45"
+                        />
+                        <path
+                            d="M148,118 Q188,124 210,146"
+                            stroke="#ffffff"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            fill="none"
+                            opacity="0.45"
+                        />
+                        <path
+                            d="M152,154 Q184,162 202,185"
+                            stroke="#ffffff"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            fill="none"
+                            opacity="0.45"
+                        />
+
+                        {/* Slender, Arched White Head & Neck */}
+                        <path
+                            d="M84,64 C75,74 58,92 48,106 C39,116 36,128 44,135 C52,141 62,139 68,133 C74,128 80,132 82,144 C84,164 80,190 74,228 L142,228 C138,185 130,135 110,82 C102,68 94,64 84,64 Z"
                             fill="#ffffff"
                         />
-                        <path d="M28,22 C18,30 18,50 30,55 C22,45 25,30 35,26 Z" fill={c2} />
-                        <path d="M22,35 C12,45 15,62 32,68 C22,58 22,45 28,38 Z" fill={c1} />
-                        {/* Eye */}
-                        <circle cx="52" cy="35" r="3" fill="#1e1b4b" />
+
+                        {/* Outer Ear & Inner Ear */}
+                        <path d="M98,66 C96,44 105,20 119,14 C125,28 124,50 114,68 Z" fill="#ffffff" />
+                        <path d="M102,62 C101,46 107,30 116,23 C119,33 118,48 112,64 Z" fill={c1} opacity="0.65" />
+
+                        {/* Forelock / Bangs (Curling in front of horn & ear) */}
+                        <path
+                            d="M88,62 C74,54 58,64 54,78 C52,86 60,90 66,85 C71,80 65,72 68,66 C71,62 78,62 84,63 Z"
+                            fill={c1}
+                        />
+                        <path d="M94,64 C86,56 74,58 71,70 C70,77 77,80 81,76 C84,72 78,67 82,64 Z" fill={c3} />
+
+                        {/* Magical Golden Spiral Horn */}
+                        <path d="M68,67 L46,4 L80,61 Z" fill={c4} />
+                        <polygon points="46,4 54,18 45,21" fill="#fef08a" />
+                        <polygon points="45,21 54,18 62,34 52,38" fill={c4} />
+                        <polygon points="52,38 62,34 71,49 60,54" fill="#fbbf24" />
+                        <polygon points="60,54 71,49 80,61 68,67" fill="#f59e0b" />
+                        <path
+                            d="M45,21 Q50,18 54,18"
+                            stroke="#d97706"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            fill="none"
+                        />
+                        <path
+                            d="M52,38 Q58,35 62,34"
+                            stroke="#d97706"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            fill="none"
+                        />
+                        <path
+                            d="M60,54 Q66,50 71,49"
+                            stroke="#d97706"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            fill="none"
+                        />
+                        <path
+                            d="M46,7 L54,28 L62,48"
+                            stroke="#ffffff"
+                            strokeWidth="1.2"
+                            strokeLinecap="round"
+                            opacity="0.8"
+                        />
+
+                        {/* Radiant 4-point magic star at horn tip */}
+                        <polygon points="46,-9 48,2 59,4 48,6 46,17 44,6 33,4 44,2" fill={c4} />
+                        <polygon points="46,-4 47,2 53,4 47,6 46,12 45,6 39,4 45,2" fill="#ffffff" />
+                        <circle cx="46" cy="4" r="2.2" fill="#ffffff" />
+                        <polygon points="30,-2 31,3 36,4 31,5 30,10 29,5 24,4 29,3" fill="#ffffff" opacity="0.9" />
+                        <polygon points="60,-5 61,-1 65,0 61,1 60,5 59,1 55,0 59,-1" fill={c3} opacity="0.85" />
+
+                        {/* Facial Features */}
+                        <path
+                            d="M55,102 Q64,94 74,101"
+                            stroke="#1e1b4b"
+                            strokeWidth="2.6"
+                            strokeLinecap="round"
+                            fill="none"
+                        />
+                        <line
+                            x1="72"
+                            y1="100"
+                            x2="79"
+                            y2="94"
+                            stroke="#1e1b4b"
+                            strokeWidth="2.2"
+                            strokeLinecap="round"
+                        />
+                        <line
+                            x1="67"
+                            y1="97"
+                            x2="72"
+                            y2="90"
+                            stroke="#1e1b4b"
+                            strokeWidth="2.2"
+                            strokeLinecap="round"
+                        />
+                        <line x1="60" y1="97" x2="62" y2="91" stroke="#1e1b4b" strokeWidth="2" strokeLinecap="round" />
+                        <ellipse cx="62" cy="113" rx="10" ry="6" fill={c1} opacity="0.45" />
+                        <path
+                            d="M39,129 Q45,133 49,129"
+                            stroke="#1e1b4b"
+                            strokeWidth="1.8"
+                            strokeLinecap="round"
+                            fill="none"
+                            opacity="0.85"
+                        />
+                        <ellipse cx="44" cy="123" rx="1.8" ry="2.2" fill={c1} opacity="0.8" />
+
+                        {/* Dreamy Cloud Pedestal at Base */}
+                        <g fill="#ffffff" opacity="0.95">
+                            <ellipse cx="74" cy="230" rx="26" ry="18" />
+                            <circle cx="106" cy="222" r="26" />
+                            <circle cx="140" cy="225" r="24" />
+                            <ellipse cx="174" cy="232" rx="26" ry="18" />
+                            <circle cx="122" cy="228" r="20" />
+                        </g>
+
+                        {/* Floating Magic Stardust */}
+                        <polygon
+                            points="68,212 70,217 75,218 70,219 68,224 66,219 61,218 66,217"
+                            fill={c4}
+                            opacity="0.9"
+                        />
+                        <circle cx="218" cy="168" r="3" fill="#ffffff" opacity="0.85" />
+                        <polygon
+                            points="226,134 227,138 231,139 227,140 226,144 225,140 221,139 225,138"
+                            fill={c3}
+                            opacity="0.85"
+                        />
+                        <circle cx="228" cy="176" r="2" fill={c1} opacity="0.9" />
                     </g>
                 </g>
             );
@@ -370,8 +528,8 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
             const c4 = override || '#facc15';
             const hasScoreboard = context?.hasScoreboard ?? true;
             const unicornTransform = hasScoreboard
-                ? 'translate(870, 1520) scale(1.35)'
-                : 'translate(860, 1680) scale(1.4)';
+                ? 'translate(800, 1370) scale(1.15)'
+                : 'translate(800, 1590) scale(1.15)';
 
             return createSvgString(`
                 <path d="M-30,220 C100,220 220,100 220,-30" stroke="${c1}" stroke-width="16" fill="none" />
@@ -384,13 +542,60 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
                 <polygon points="980,100 985,115 1000,120 985,125 980,140 975,125 960,120 975,115" fill="${c4}" />
                 <polygon points="920,160 923,172 935,175 923,178 920,190 917,178 905,175 917,172" fill="${c1}" />
                 <g transform="${unicornTransform}">
-                    <polygon points="45,-15 52,18 38,18" fill="${c4}" />
-                    <line x1="42" y1="-5" x2="48" y2="-1" stroke="#ea580c" stroke-width="1.5" />
-                    <line x1="40" y1="5" x2="50" y2="9" stroke="#ea580c" stroke-width="1.5" />
-                    <path d="M30,25 C30,15 45,15 55,25 C65,32 75,40 75,60 C65,65 50,65 40,60 C32,55 25,45 25,35 Z" fill="#ffffff" />
-                    <path d="M28,22 C18,30 18,50 30,55 C22,45 25,30 35,26 Z" fill="${c2}" />
-                    <path d="M22,35 C12,45 15,62 32,68 C22,58 22,45 28,38 Z" fill="${c1}" />
-                    <circle cx="52" cy="35" r="3" fill="#1e1b4b" />
+                    <path d="M96,62 C125,40 170,44 198,68 C212,80 214,96 198,104 C184,110 172,100 178,88 C182,78 165,62 118,74 Z" fill="${c2}" />
+                    <path d="M112,82 C145,68 190,78 214,105 C226,118 225,134 208,142 C194,148 184,136 190,125 C195,114 175,98 124,106 Z" fill="${c3}" />
+                    <path d="M120,112 C152,102 195,114 218,144 C228,158 226,174 208,182 C194,188 185,176 190,165 C195,152 176,134 128,142 Z" fill="${c1}" />
+                    <path d="M126,145 C155,138 192,152 210,182 C220,198 215,214 196,224 C182,230 174,218 180,206 C186,192 168,172 132,178 Z" fill="${c4}" />
+
+                    <path d="M130,55 Q168,52 190,70" stroke="#ffffff" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.45" />
+                    <path d="M140,84 Q182,88 206,108" stroke="#ffffff" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.45" />
+                    <path d="M148,118 Q188,124 210,146" stroke="#ffffff" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.45" />
+                    <path d="M152,154 Q184,162 202,185" stroke="#ffffff" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.45" />
+
+                    <path d="M84,64 C75,74 58,92 48,106 C39,116 36,128 44,135 C52,141 62,139 68,133 C74,128 80,132 82,144 C84,164 80,190 74,228 L142,228 C138,185 130,135 110,82 C102,68 94,64 84,64 Z" fill="#ffffff" />
+
+                    <path d="M98,66 C96,44 105,20 119,14 C125,28 124,50 114,68 Z" fill="#ffffff" />
+                    <path d="M102,62 C101,46 107,30 116,23 C119,33 118,48 112,64 Z" fill="${c1}" opacity="0.65" />
+
+                    <path d="M88,62 C74,54 58,64 54,78 C52,86 60,90 66,85 C71,80 65,72 68,66 C71,62 78,62 84,63 Z" fill="${c1}" />
+                    <path d="M94,64 C86,56 74,58 71,70 C70,77 77,80 81,76 C84,72 78,67 82,64 Z" fill="${c3}" />
+
+                    <path d="M68,67 L46,4 L80,61 Z" fill="${c4}" />
+                    <polygon points="46,4 54,18 45,21" fill="#fef08a" />
+                    <polygon points="45,21 54,18 62,34 52,38" fill="${c4}" />
+                    <polygon points="52,38 62,34 71,49 60,54" fill="#fbbf24" />
+                    <polygon points="60,54 71,49 80,61 68,67" fill="#f59e0b" />
+                    <path d="M45,21 Q50,18 54,18" stroke="#d97706" stroke-width="1.8" stroke-linecap="round" fill="none" />
+                    <path d="M52,38 Q58,35 62,34" stroke="#d97706" stroke-width="1.8" stroke-linecap="round" fill="none" />
+                    <path d="M60,54 Q66,50 71,49" stroke="#d97706" stroke-width="1.8" stroke-linecap="round" fill="none" />
+                    <path d="M46,7 L54,28 L62,48" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" opacity="0.8" />
+
+                    <polygon points="46,-9 48,2 59,4 48,6 46,17 44,6 33,4 44,2" fill="${c4}" />
+                    <polygon points="46,-4 47,2 53,4 47,6 46,12 45,6 39,4 45,2" fill="#ffffff" />
+                    <circle cx="46" cy="4" r="2.2" fill="#ffffff" />
+                    <polygon points="30,-2 31,3 36,4 31,5 30,10 29,5 24,4 29,3" fill="#ffffff" opacity="0.9" />
+                    <polygon points="60,-5 61,-1 65,0 61,1 60,5 59,1 55,0 59,-1" fill="${c3}" opacity="0.85" />
+
+                    <path d="M55,102 Q64,94 74,101" stroke="#1e1b4b" stroke-width="2.6" stroke-linecap="round" fill="none" />
+                    <line x1="72" y1="100" x2="79" y2="94" stroke="#1e1b4b" stroke-width="2.2" stroke-linecap="round" />
+                    <line x1="67" y1="97" x2="72" y2="90" stroke="#1e1b4b" stroke-width="2.2" stroke-linecap="round" />
+                    <line x1="60" y1="97" x2="62" y2="91" stroke="#1e1b4b" stroke-width="2" stroke-linecap="round" />
+                    <ellipse cx="62" cy="113" rx="10" ry="6" fill="${c1}" opacity="0.45" />
+                    <path d="M39,129 Q45,133 49,129" stroke="#1e1b4b" stroke-width="1.8" stroke-linecap="round" fill="none" opacity="0.85" />
+                    <ellipse cx="44" cy="123" rx="1.8" ry="2.2" fill="${c1}" opacity="0.8" />
+
+                    <g fill="#ffffff" opacity="0.95">
+                        <ellipse cx="74" cy="230" rx="26" ry="18" />
+                        <circle cx="106" cy="222" r="26" />
+                        <circle cx="140" cy="225" r="24" />
+                        <ellipse cx="174" cy="232" rx="26" ry="18" />
+                        <circle cx="122" cy="228" r="20" />
+                    </g>
+
+                    <polygon points="68,212 70,217 75,218 70,219 68,224 66,219 61,218 66,217" fill="${c4}" opacity="0.9" />
+                    <circle cx="218" cy="168" r="3" fill="#ffffff" opacity="0.85" />
+                    <polygon points="226,134 227,138 231,139 227,140 226,144 225,140 221,139 225,138" fill="${c3}" opacity="0.85" />
+                    <circle cx="228" cy="176" r="2" fill="${c1}" opacity="0.9" />
                 </g>
             `);
         },
@@ -1027,49 +1232,126 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
             const red = override || '#ef4444';
             const hasScoreboard = context?.hasScoreboard ?? true;
 
-            const halftoneTransform = hasScoreboard ? 'translate(30, 1560)' : 'translate(30, 1760)';
+            const halftoneBottomTransform = hasScoreboard ? 'translate(0, 1560)' : 'translate(0, 1805)';
 
             return (
                 <g className="story-frame-popart">
-                    {/* Top-Right Halftone Matrix */}
-                    <g transform="translate(920, 40)">
-                        <circle cx="20" cy="20" r="10" fill={yellow} />
-                        <circle cx="55" cy="20" r="14" fill={yellow} />
-                        <circle cx="90" cy="20" r="18" fill={red} />
-                        <circle cx="20" cy="55" r="7" fill={cyan} />
-                        <circle cx="55" cy="55" r="10" fill={yellow} />
-                        <circle cx="90" cy="55" r="14" fill={yellow} />
-                        <circle cx="20" cy="90" r="4" fill={cyan} />
-                        <circle cx="55" cy="90" r="7" fill={cyan} />
-                        <circle cx="90" cy="90" r="10" fill={yellow} />
-                    </g>
-                    {/* Top-Left Action Speed lines */}
-                    <line x1="0" y1="0" x2="160" y2="100" stroke={red} strokeWidth="6" />
-                    <line x1="0" y1="40" x2="120" y2="120" stroke={yellow} strokeWidth="5" />
-                    <line x1="0" y1="80" x2="80" y2="130" stroke={cyan} strokeWidth="4" />
+                    {/* Top-Right Ben-Day Halftone Matrix (Extreme top-right corner) */}
+                    <g transform="translate(970, 0)">
+                        <circle cx="90" cy="18" r="18" fill={red} />
+                        <circle cx="90" cy="54" r="14" fill={yellow} />
+                        <circle cx="90" cy="88" r="11" fill={yellow} />
+                        <circle cx="90" cy="120" r="7" fill={cyan} />
 
-                    {/* Bottom-Left Halftone Matrix */}
-                    <g transform={halftoneTransform}>
-                        <circle cx="20" cy="90" r="18" fill={red} />
-                        <circle cx="55" cy="90" r="14" fill={yellow} />
-                        <circle cx="90" cy="90" r="10" fill={yellow} />
-                        <circle cx="20" cy="55" r="14" fill={yellow} />
-                        <circle cx="55" cy="55" r="10" fill={yellow} />
-                        <circle cx="90" cy="55" r="7" fill={cyan} />
-                        <circle cx="20" cy="20" r="10" fill={yellow} />
-                        <circle cx="55" cy="20" r="7" fill={cyan} />
-                        <circle cx="90" cy="20" r="4" fill={cyan} />
+                        <circle cx="55" cy="18" r="14" fill={yellow} />
+                        <circle cx="55" cy="54" r="11" fill={yellow} />
+                        <circle cx="55" cy="88" r="8" fill={cyan} />
+                        <circle cx="55" cy="120" r="5" fill={cyan} />
+
+                        <circle cx="22" cy="18" r="10" fill={yellow} />
+                        <circle cx="22" cy="54" r="8" fill={cyan} />
+                        <circle cx="22" cy="88" r="5" fill={cyan} />
+                        <circle cx="22" cy="120" r="3.5" fill={yellow} />
+
+                        <circle cx="-8" cy="18" r="6" fill={cyan} />
+                        <circle cx="-8" cy="54" r="4.5" fill={yellow} />
                     </g>
-                    {/* Bottom-Right Action Speed lines */}
+
+                    {/* Top-Left Action Speed lines (Extreme corner 0,0) */}
+                    <line x1="0" y1="0" x2="160" y2="100" stroke={red} strokeWidth="6" strokeLinecap="round" />
+                    <line x1="0" y1="40" x2="120" y2="120" stroke={yellow} strokeWidth="5" strokeLinecap="round" />
+                    <line x1="0" y1="80" x2="80" y2="130" stroke={cyan} strokeWidth="4" strokeLinecap="round" />
+                    <polygon points="175,108 178,118 188,121 178,124 175,134 172,124 162,121 172,118" fill={yellow} />
+
+                    {/* Bottom-Left Ben-Day Halftone Matrix (Extreme bottom-left corner) */}
+                    <g transform={halftoneBottomTransform}>
+                        <circle cx="18" cy="95" r="18" fill={red} />
+                        <circle cx="18" cy="60" r="14" fill={yellow} />
+                        <circle cx="18" cy="28" r="11" fill={yellow} />
+                        <circle cx="18" cy="-2" r="7" fill={cyan} />
+
+                        <circle cx="52" cy="95" r="14" fill={yellow} />
+                        <circle cx="52" cy="60" r="11" fill={yellow} />
+                        <circle cx="52" cy="28" r="8" fill={cyan} />
+                        <circle cx="52" cy="-2" r="5" fill={cyan} />
+
+                        <circle cx="84" cy="95" r="10" fill={yellow} />
+                        <circle cx="84" cy="60" r="8" fill={cyan} />
+                        <circle cx="84" cy="28" r="5" fill={cyan} />
+                        <circle cx="84" cy="-2" r="3.5" fill={yellow} />
+
+                        <circle cx="114" cy="95" r="6" fill={cyan} />
+                        <circle cx="114" cy="60" r="4.5" fill={yellow} />
+                    </g>
+
+                    {/* Bottom-Right Action Speed lines (With complete teal line) */}
                     {hasScoreboard ? (
                         <>
-                            <line x1="1080" y1="1720" x2="920" y2="1620" stroke={red} strokeWidth="6" />
-                            <line x1="1080" y1="1680" x2="960" y2="1600" stroke={yellow} strokeWidth="5" />
+                            <line
+                                x1="1080"
+                                y1="1720"
+                                x2="920"
+                                y2="1620"
+                                stroke={red}
+                                strokeWidth="6"
+                                strokeLinecap="round"
+                            />
+                            <line
+                                x1="1080"
+                                y1="1680"
+                                x2="960"
+                                y2="1600"
+                                stroke={yellow}
+                                strokeWidth="5"
+                                strokeLinecap="round"
+                            />
+                            <line
+                                x1="1080"
+                                y1="1640"
+                                x2="1000"
+                                y2="1590"
+                                stroke={cyan}
+                                strokeWidth="4"
+                                strokeLinecap="round"
+                            />
+                            <polygon
+                                points="905,1612 902,1602 892,1599 902,1596 905,1586 908,1596 918,1599 908,1602"
+                                fill={yellow}
+                            />
                         </>
                     ) : (
                         <>
-                            <line x1="1080" y1="1920" x2="920" y2="1820" stroke={red} strokeWidth="6" />
-                            <line x1="1080" y1="1880" x2="960" y2="1800" stroke={yellow} strokeWidth="5" />
+                            <line
+                                x1="1080"
+                                y1="1920"
+                                x2="920"
+                                y2="1820"
+                                stroke={red}
+                                strokeWidth="6"
+                                strokeLinecap="round"
+                            />
+                            <line
+                                x1="1080"
+                                y1="1880"
+                                x2="960"
+                                y2="1800"
+                                stroke={yellow}
+                                strokeWidth="5"
+                                strokeLinecap="round"
+                            />
+                            <line
+                                x1="1080"
+                                y1="1840"
+                                x2="1000"
+                                y2="1790"
+                                stroke={cyan}
+                                strokeWidth="4"
+                                strokeLinecap="round"
+                            />
+                            <polygon
+                                points="905,1812 902,1802 892,1799 902,1796 905,1786 908,1796 918,1799 908,1802"
+                                fill={yellow}
+                            />
                         </>
                     )}
                 </g>
@@ -1081,38 +1363,59 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
             const red = override || '#ef4444';
             const hasScoreboard = context?.hasScoreboard ?? true;
 
-            const halftoneTransform = hasScoreboard ? 'translate(30, 1560)' : 'translate(30, 1760)';
+            const halftoneBottomTransform = hasScoreboard ? 'translate(0, 1560)' : 'translate(0, 1805)';
             const speedLines = hasScoreboard
-                ? `<line x1="1080" y1="1720" x2="920" y2="1620" stroke="${red}" stroke-width="6" />
-                   <line x1="1080" y1="1680" x2="960" y2="1600" stroke="${yellow}" stroke-width="5" />`
-                : `<line x1="1080" y1="1920" x2="920" y2="1820" stroke="${red}" stroke-width="6" />
-                   <line x1="1080" y1="1880" x2="960" y2="1800" stroke="${yellow}" stroke-width="5" />`;
+                ? `<line x1="1080" y1="1720" x2="920" y2="1620" stroke="${red}" stroke-width="6" stroke-linecap="round" />
+                   <line x1="1080" y1="1680" x2="960" y2="1600" stroke="${yellow}" stroke-width="5" stroke-linecap="round" />
+                   <line x1="1080" y1="1640" x2="1000" y2="1590" stroke="${cyan}" stroke-width="4" stroke-linecap="round" />
+                   <polygon points="905,1612 902,1602 892,1599 902,1596 905,1586 908,1596 918,1599 908,1602" fill="${yellow}" />`
+                : `<line x1="1080" y1="1920" x2="920" y2="1820" stroke="${red}" stroke-width="6" stroke-linecap="round" />
+                   <line x1="1080" y1="1880" x2="960" y2="1800" stroke="${yellow}" stroke-width="5" stroke-linecap="round" />
+                   <line x1="1080" y1="1840" x2="1000" y2="1790" stroke="${cyan}" stroke-width="4" stroke-linecap="round" />
+                   <polygon points="905,1812 902,1802 892,1799 902,1796 905,1786 908,1796 918,1799 908,1802" fill="${yellow}" />`;
 
             return createSvgString(`
-                <g transform="translate(920, 40)">
-                    <circle cx="20" cy="20" r="10" fill="${yellow}" />
-                    <circle cx="55" cy="20" r="14" fill="${yellow}" />
-                    <circle cx="90" cy="20" r="18" fill="${red}" />
-                    <circle cx="20" cy="55" r="7" fill="${cyan}" />
-                    <circle cx="55" cy="55" r="10" fill="${yellow}" />
-                    <circle cx="90" cy="55" r="14" fill="${yellow}" />
-                    <circle cx="20" cy="90" r="4" fill="${cyan}" />
-                    <circle cx="55" cy="90" r="7" fill="${cyan}" />
-                    <circle cx="90" cy="90" r="10" fill="${yellow}" />
+                <g transform="translate(970, 0)">
+                    <circle cx="90" cy="18" r="18" fill="${red}" />
+                    <circle cx="90" cy="54" r="14" fill="${yellow}" />
+                    <circle cx="90" cy="88" r="11" fill="${yellow}" />
+                    <circle cx="90" cy="120" r="7" fill="${cyan}" />
+
+                    <circle cx="55" cy="18" r="14" fill="${yellow}" />
+                    <circle cx="55" cy="54" r="11" fill="${yellow}" />
+                    <circle cx="55" cy="88" r="8" fill="${cyan}" />
+                    <circle cx="55" cy="120" r="5" fill="${cyan}" />
+
+                    <circle cx="22" cy="18" r="10" fill="${yellow}" />
+                    <circle cx="22" cy="54" r="8" fill="${cyan}" />
+                    <circle cx="22" cy="88" r="5" fill="${cyan}" />
+                    <circle cx="22" cy="120" r="3.5" fill="${yellow}" />
+
+                    <circle cx="-8" cy="18" r="6" fill="${cyan}" />
+                    <circle cx="-8" cy="54" r="4.5" fill="${yellow}" />
                 </g>
-                <line x1="0" y1="0" x2="160" y2="100" stroke="${red}" stroke-width="6" />
-                <line x1="0" y1="40" x2="120" y2="120" stroke="${yellow}" stroke-width="5" />
-                <line x1="0" y1="80" x2="80" y2="130" stroke="${cyan}" stroke-width="4" />
-                <g transform="${halftoneTransform}">
-                    <circle cx="20" cy="90" r="18" fill="${red}" />
-                    <circle cx="55" cy="90" r="14" fill="${yellow}" />
-                    <circle cx="90" cy="90" r="10" fill="${yellow}" />
-                    <circle cx="20" cy="55" r="14" fill="${yellow}" />
-                    <circle cx="55" cy="55" r="10" fill="${yellow}" />
-                    <circle cx="90" cy="55" r="7" fill="${cyan}" />
-                    <circle cx="20" cy="20" r="10" fill="${yellow}" />
-                    <circle cx="55" cy="20" r="7" fill="${cyan}" />
-                    <circle cx="90" cy="20" r="4" fill="${cyan}" />
+                <line x1="0" y1="0" x2="160" y2="100" stroke="${red}" stroke-width="6" stroke-linecap="round" />
+                <line x1="0" y1="40" x2="120" y2="120" stroke="${yellow}" stroke-width="5" stroke-linecap="round" />
+                <line x1="0" y1="80" x2="80" y2="130" stroke="${cyan}" stroke-width="4" stroke-linecap="round" />
+                <polygon points="175,108 178,118 188,121 178,124 175,134 172,124 162,121 172,118" fill="${yellow}" />
+                <g transform="${halftoneBottomTransform}">
+                    <circle cx="18" cy="95" r="18" fill="${red}" />
+                    <circle cx="18" cy="60" r="14" fill="${yellow}" />
+                    <circle cx="18" cy="28" r="11" fill="${yellow}" />
+                    <circle cx="18" cy="-2" r="7" fill="${cyan}" />
+
+                    <circle cx="52" cy="95" r="14" fill="${yellow}" />
+                    <circle cx="52" cy="60" r="11" fill="${yellow}" />
+                    <circle cx="52" cy="28" r="8" fill="${cyan}" />
+                    <circle cx="52" cy="-2" r="5" fill="${cyan}" />
+
+                    <circle cx="84" cy="95" r="10" fill="${yellow}" />
+                    <circle cx="84" cy="60" r="8" fill="${cyan}" />
+                    <circle cx="84" cy="28" r="5" fill="${cyan}" />
+                    <circle cx="84" cy="-2" r="3.5" fill="${yellow}" />
+
+                    <circle cx="114" cy="95" r="6" fill="${cyan}" />
+                    <circle cx="114" cy="60" r="4.5" fill="${yellow}" />
                 </g>
                 ${speedLines}
             `);
