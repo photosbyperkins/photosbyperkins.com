@@ -190,7 +190,7 @@ describe('storyCanvas calculations', () => {
             expect(mockCtx.scale).toHaveBeenCalled();
             expect(mockCtx.beginPath).toHaveBeenCalled();
             expect(mockCtx.stroke).toHaveBeenCalled();
-            expect(mockCtx.fillText).toHaveBeenCalledWith('P', 325, 240);
+            expect(mockCtx.fillText).toHaveBeenCalledWith('P', 325, 233);
             expect(mockCtx.restore).toHaveBeenCalled();
         });
     });

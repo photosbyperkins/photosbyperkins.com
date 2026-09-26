@@ -106,7 +106,7 @@ export function drawCameraLogoIcon(
     ctx.font = "bold 250px 'Segoe UI', 'Helvetica Neue', Arial, sans-serif";
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('P', 325, 240);
+    ctx.fillText('P', 325, 233);
 
     ctx.restore();
 }
