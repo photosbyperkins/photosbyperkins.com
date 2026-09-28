@@ -145,15 +145,15 @@ export function useSlideZoom({
                 setDragMode(false);
                 animate(scale, 1, {
                     type: 'spring',
-                    damping: 25,
-                    stiffness: 300,
+                    damping: 30,
+                    stiffness: 280,
                     onComplete: () => {
                         isAnimatingOutRef.current = false;
                         checkConstraints(1);
                     },
                 });
-                animate(panX, 0, { type: 'spring', damping: 25, stiffness: 300 });
-                animate(panY, 0, { type: 'spring', damping: 25, stiffness: 300 });
+                animate(panX, 0, { type: 'spring', damping: 30, stiffness: 280 });
+                animate(panY, 0, { type: 'spring', damping: 30, stiffness: 280 });
 
                 // Toggle UI icon immediately
                 isZoomedInternalRef.current = false;
@@ -168,8 +168,8 @@ export function useSlideZoom({
                 const s = maxScaleRef.current;
                 animate(scale, s, {
                     type: 'spring',
-                    damping: 25,
-                    stiffness: 300,
+                    damping: 30,
+                    stiffness: 280,
                     onComplete: () => {
                         isAnimatingInRef.current = false;
                         checkConstraints(s);
@@ -210,8 +210,8 @@ export function useSlideZoom({
                     }
 
                     if (targetPanX !== 0 || targetPanY !== 0) {
-                        animate(panX, targetPanX, { type: 'spring', damping: 25, stiffness: 300 });
-                        animate(panY, targetPanY, { type: 'spring', damping: 25, stiffness: 300 });
+                        animate(panX, targetPanX, { type: 'spring', damping: 30, stiffness: 280 });
+                        animate(panY, targetPanY, { type: 'spring', damping: 30, stiffness: 280 });
                     }
                 }
 
@@ -255,15 +255,15 @@ export function useSlideZoom({
             setDragMode(false);
             animate(scale, 1, {
                 type: 'spring',
-                damping: 25,
-                stiffness: 300,
+                damping: 30,
+                stiffness: 280,
                 onComplete: () => {
                     isAnimatingOutRef.current = false;
                     checkConstraints(1);
                 },
             });
-            animate(panX, 0, { type: 'spring', damping: 25, stiffness: 300 });
-            animate(panY, 0, { type: 'spring', damping: 25, stiffness: 300 });
+            animate(panX, 0, { type: 'spring', damping: 30, stiffness: 280 });
+            animate(panY, 0, { type: 'spring', damping: 30, stiffness: 280 });
 
             if (onZoomChange) onZoomChange(false);
             isZoomedInternalRef.current = false;

@@ -112,8 +112,25 @@ const PortfolioEvent = memo(function PortfolioEvent({
         if (!first.thumb || first.spriteIndex == null) return;
         const dir = first.thumb.substring(0, first.thumb.lastIndexOf('/'));
         const spriteUrl = `${dir.replace(/^\/thumbnails\//, '/scrubber/')}/sprite.webp?v=${__BUILD_NUMBER__}`;
-        const img = new Image();
-        img.src = spriteUrl;
+
+        const schedulePreheat =
+            typeof window !== 'undefined' && 'requestIdleCallback' in window
+                ? (cb: () => void) => (window as Window & { requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback(cb, { timeout: 2000 })
+                : (cb: () => void) => setTimeout(cb, 200);
+
+        const cancelPreheat =
+            typeof window !== 'undefined' && 'cancelIdleCallback' in window
+                ? (id: number) => (window as Window & { cancelIdleCallback: (id: number) => void }).cancelIdleCallback(id)
+                : (id: number) => clearTimeout(id);
+
+        const handle = schedulePreheat(() => {
+            const img = new Image();
+            img.src = spriteUrl;
+        });
+
+        return () => {
+            cancelPreheat(handle as number);
+        };
     }, [albumImages]);
 
     const highlightImages: PhotoRecord[] = useMemo(() => {
