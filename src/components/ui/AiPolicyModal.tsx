@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Sparkles, ShieldBan, ScanFace, Code } from 'lucide-react';
+import { Camera, Sparkles, Code } from 'lucide-react';
 import { useAppStore } from '../../store/useAppStore';
 import ModalShell from './ModalShell';
 import { modalFadeUp } from './modalAnimation';
@@ -27,14 +27,13 @@ export default function AiPolicyModal() {
                     variants={modalFadeUp}
                 >
                     <p>
-                        Photos featured on this site are authentic records of live sporting and community events. As the
-                        sole photographer and creator of this site, I believe in complete transparency regarding how
-                        technology, including artificial intelligence, is used in my photography and website workflow.
+                        Every photo on this site is a real moment captured from a live event. Here is exactly how modern
+                        software touches my work—and where the line stays drawn:
                     </p>
                 </motion.div>
 
                 <div className="ai-policy__cards">
-                    {/* Card 1: Sharpening and Denoising */}
+                    {/* Card 1: Real Moments */}
                     <motion.div
                         className="ai-policy__card"
                         custom={1}
@@ -43,21 +42,19 @@ export default function AiPolicyModal() {
                         variants={modalFadeUp}
                     >
                         <div className="ai-policy__card-icon" aria-hidden="true">
-                            <Sparkles size={22} />
+                            <Camera size={22} />
                         </div>
                         <div className="ai-policy__card-content">
-                            <h4>Sharpening & Denoising Only</h4>
+                            <h4>Real Moments, Not Prompts</h4>
                             <p>
-                                I may use AI-assisted tools solely for{' '}
-                                <strong>technical image quality enhancements</strong>, specifically noise reduction
-                                (denoising) and detail sharpening. These adjustments help manage high digital noise and
-                                motion clarity when shooting fast-paced action in challenging indoor or low-light sports
-                                environments.
+                                Generative AI is never used to add, remove, alter, or fabricate anything in a photo. No
+                                swapped faces, no erased referees, and no synthetic backgrounds. What you see is exactly
+                                what happened in front of the lens.
                             </p>
                         </div>
                     </motion.div>
 
-                    {/* Card 2: Prohibited Alterations */}
+                    {/* Card 2: High-ISO Cleanup */}
                     <motion.div
                         className="ai-policy__card"
                         custom={2}
@@ -66,19 +63,19 @@ export default function AiPolicyModal() {
                         variants={modalFadeUp}
                     >
                         <div className="ai-policy__card-icon" aria-hidden="true">
-                            <ShieldBan size={22} />
+                            <Sparkles size={22} />
                         </div>
                         <div className="ai-policy__card-content">
-                            <h4>No Generative Alterations or Scene Creation</h4>
+                            <h4>High-ISO Cleanup Only</h4>
                             <p>
-                                I <strong>never</strong> use AI to substantially alter photos, remove elements or
-                                people, add synthetic objects, or invent scenes. What you see is the genuine moment
-                                captured through my lens—preserving the authenticity and reality of the event.
+                                Shooting fast action in dim indoor venues pushes camera sensors hard. I use AI-assisted
+                                tools strictly for technical cleanup—taming digital grain and restoring edge clarity.
+                                It’s modern darkroom work: the light, the athletes, and the action remain untouched.
                             </p>
                         </div>
                     </motion.div>
 
-                    {/* Card 3: Build-time Face Detection */}
+                    {/* Card 3: Site Plumbing */}
                     <motion.div
                         className="ai-policy__card"
                         custom={3}
@@ -87,55 +84,18 @@ export default function AiPolicyModal() {
                         variants={modalFadeUp}
                     >
                         <div className="ai-policy__card-icon" aria-hidden="true">
-                            <ScanFace size={22} />
-                        </div>
-                        <div className="ai-policy__card-content">
-                            <h4>Build-Time Focal Area Detection</h4>
-                            <p>
-                                During the build process of this website, automated computer vision is used solely to{' '}
-                                <strong>identify faces to establish focal areas</strong> for optimal subject centering
-                                and smart cropping across thumbnails and responsive layouts. No facial recognition,
-                                identity tracking, or biometric profiling is ever performed.
-                            </p>
-                        </div>
-                    </motion.div>
-
-                    {/* Card 4: Website Coding Assistance */}
-                    <motion.div
-                        className="ai-policy__card"
-                        custom={4}
-                        initial="hidden"
-                        animate="visible"
-                        variants={modalFadeUp}
-                    >
-                        <div className="ai-policy__card-icon" aria-hidden="true">
                             <Code size={22} />
                         </div>
                         <div className="ai-policy__card-content">
-                            <h4>Website Development & Coding Assistance</h4>
+                            <h4>Site Plumbing: Cropping & Code</h4>
                             <p>
-                                For full transparency, AI coding tools and assistants may be used to help write,
-                                refactor, optimize, and maintain the{' '}
-                                <strong>underlying source code for this website</strong>. All code, infrastructure, and
-                                deployment pipelines remain curated, tested, and engineered by me.
+                                Behind the scenes, automated face detection keeps athletes centered in thumbnail crops
+                                so nobody gets cut off on mobile, and AI tools assist with site code. It’s routine
+                                plumbing—neither touches the pixels of the original photographs.
                             </p>
                         </div>
                     </motion.div>
                 </div>
-
-                <motion.div
-                    className="ai-policy__note"
-                    custom={5}
-                    initial="hidden"
-                    animate="visible"
-                    variants={modalFadeUp}
-                >
-                    <p>
-                        <strong>My Commitment to Honest Photography:</strong> While AI aids in technical refinement and
-                        code engineering, every photograph remains an uncompromised, authentic record of the moment as I
-                        captured it in real time.
-                    </p>
-                </motion.div>
             </div>
         </ModalShell>
     );
