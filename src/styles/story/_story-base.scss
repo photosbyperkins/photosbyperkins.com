@@ -14,17 +14,17 @@
 .story-export-modal {
     &__body {
         display: grid;
-        grid-template-columns: minmax(280px, min(440px, calc((100vh - 200px) * 9 / 16))) 1fr;
+        grid-template-columns: minmax(280px, min(440px, calc((100vh - 200px) * 9 / 16))) minmax(0, 1fr);
         gap: clamp(1.5rem, 3vw, 2.75rem);
         padding: 0.5rem 0;
         min-height: 0;
         align-items: flex-start;
         width: 100%;
 
-        @media (max-width: 640px) {
+        @media (max-width: 860px) {
             display: flex;
             flex-direction: column;
-            align-items: stretch;
+            align-items: center;
             gap: 0.5rem;
             min-height: 0;
             width: 100%;
@@ -45,15 +45,15 @@
         align-self: flex-start;
         width: 100%;
 
-        @media (min-width: 641px) {
+        @media (min-width: 861px) {
             position: sticky;
             top: 0.5rem;
         }
 
-        @media (max-width: 640px) {
-            align-self: flex-start;
+        @media (max-width: 860px) {
+            align-self: center;
             flex: 0 0 auto;
-            max-height: 38vh;
+            max-height: 40vh;
             width: 100%;
         }
     }
@@ -71,11 +71,17 @@
         padding: 10px;
         box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
 
-        @media (max-width: 640px) {
+        @media (max-width: 860px) {
+            max-width: min(260px, 60vw, calc(40vh * 9 / 16));
+            max-height: 40vh;
+            padding: 6px;
+            border-radius: 12px;
+        }
+
+        @media (max-width: 480px) {
             max-width: min(215px, 60vw, calc(38vh * 9 / 16));
             max-height: 38vh;
             padding: 4px;
-            border-radius: 12px;
         }
     }
 
@@ -139,12 +145,13 @@
             }
         }
 
-        @media (max-width: 640px) {
+        @media (max-width: 860px) {
             flex: 1 1 auto;
             min-height: 0;
             width: 100%;
-            max-width: 100%;
+            max-width: 620px;
             min-width: 0;
+            margin: 0 auto;
             gap: 0.5rem;
             padding-right: 0;
             overflow: hidden;
@@ -167,7 +174,7 @@
             background: rgba(0, 0, 0, 0.04);
         }
 
-        @media (max-width: 640px) {
+        @media (max-width: 860px) {
             gap: 4px;
             padding: 3px;
         }
@@ -223,11 +230,17 @@
             }
         }
 
-        @media (max-width: 640px) {
+        @media (max-width: 860px) {
+            min-height: 42px;
+            padding: 4px 4px;
+            font-size: 0.72rem;
+            gap: 2px;
+        }
+
+        @media (max-width: 480px) {
             min-height: 40px;
             padding: 4px 2px;
             font-size: 0.68rem;
-            gap: 2px;
         }
     }
 
@@ -268,14 +281,18 @@
             }
         }
 
-        @media (max-width: 640px) {
-            max-height: 255px;
+        @media (max-width: 860px) {
+            max-height: min(320px, calc(100vh - 540px));
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
-            padding: 2px 0;
+            padding: 2px 0 16px 0;
             width: 100%;
             max-width: 100%;
             min-width: 0;
+        }
+
+        @media (max-width: 480px) {
+            max-height: 255px;
         }
     }
 
@@ -288,7 +305,7 @@
         min-width: 0;
         animation: storyTabFadeIn 0.15s ease-out;
 
-        @media (max-width: 640px) {
+        @media (max-width: 860px) {
             gap: 0.5rem;
             width: 100%;
             max-width: 100%;
@@ -348,7 +365,7 @@
         align-items: center;
         gap: 6px;
 
-        @media (max-width: 640px) {
+        @media (max-width: 860px) {
             gap: 4px;
         }
     }
@@ -364,7 +381,7 @@
             transform var(--transition-fast),
             border-color var(--transition-fast);
 
-        @media (max-width: 640px) {
+        @media (max-width: 860px) {
             width: 19px;
             height: 19px;
         }
@@ -452,7 +469,7 @@
             }
         }
 
-        @media (min-width: 641px) {
+        @media (min-width: 861px) {
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -461,7 +478,7 @@
             min-height: 0;
         }
 
-        @media (max-width: 640px) {
+        @media (max-width: 860px) {
             padding: 8px 12px;
             padding-bottom: max(5.5rem, calc(env(safe-area-inset-bottom) + 4.5rem));
             overflow-y: hidden;
@@ -473,13 +490,13 @@
     }
 
     .modal-shell__container {
-        @media (min-width: 641px) {
+        @media (min-width: 861px) {
             max-width: min(1180px, 94vw);
             margin: auto;
             width: 100%;
         }
 
-        @media (max-width: 640px) {
+        @media (max-width: 860px) {
             width: 100%;
             max-width: 100%;
             min-width: 0;

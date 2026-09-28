@@ -304,7 +304,7 @@
             background: rgba(0, 0, 0, 0.025);
         }
 
-        @media (max-width: 640px) {
+        @media (max-width: 860px) {
             gap: 0.35rem;
             padding: 6px 8px;
         }
@@ -322,7 +322,7 @@
         text-transform: uppercase;
         color: var(--color-text-muted);
 
-        @media (max-width: 640px) {
+        @media (max-width: 860px) {
             font-size: 0.78rem;
         }
 
@@ -330,7 +330,7 @@
             width: 180px;
             flex-shrink: 0;
 
-            @media (max-width: 640px) {
+            @media (max-width: 860px) {
                 width: 150px;
             }
 
@@ -384,7 +384,7 @@
         cursor: pointer;
         transition: all var(--transition-fast);
 
-        @media (max-width: 640px) {
+        @media (max-width: 860px) {
             height: 28px;
             font-size: 0.74rem;
             padding: 0 8px;

@@ -121,6 +121,7 @@
             align-items: center;
             justify-content: center;
             gap: 8px;
+            padding: 0 8px;
 
             .portfolio__team-clear-icon {
                 font-weight: bold;
@@ -146,7 +147,7 @@
         @media (max-width: 600px) {
             gap: 2px;
             justify-content: flex-start;
-            padding: 0 4px;
+            padding: 0 14px;
             -webkit-mask-image: linear-gradient(
                 to right,
                 transparent 0px,

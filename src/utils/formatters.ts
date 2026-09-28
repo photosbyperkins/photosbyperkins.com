@@ -199,3 +199,16 @@ export function escapeXml(unsafe: string): string {
         }
     });
 }
+
+/**
+ * Sanitizes and normalizes raw EXIF camera model strings for display.
+ * e.g., converts "Z5_2" or "NIKON Z5_2" to standardized "Z 5 II" / "NIKON Z 5 II".
+ */
+export function formatCameraModel(model?: string): string {
+    if (!model) return '';
+    return model
+        .replace(/\bZ5_2\b/g, 'Z 5 II')
+        .replace(/(?:^|\b|\s)ℤ5_2\b/g, (match) => match.replace('ℤ5_2', 'ℤ 5 II'));
+}
+
+export const normalizeCameraModel = formatCameraModel;

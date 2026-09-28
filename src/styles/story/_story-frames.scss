@@ -60,7 +60,7 @@
             display: none;
         }
 
-        @media (max-width: 640px) {
+        @media (max-width: 860px) {
             padding: 2px 2px 4px 2px;
             margin-bottom: 2px;
             gap: 4px;
@@ -89,7 +89,7 @@
         transition: all var(--transition-fast);
         flex-shrink: 0;
 
-        @media (max-width: 640px) {
+        @media (max-width: 860px) {
             padding: 3px 8px;
             font-size: 0.66rem;
             gap: 4px;
@@ -177,14 +177,16 @@
             }
         }
 
-        @media (max-width: 640px) {
+        @media (max-width: 860px) {
             display: flex;
             flex-direction: row;
             flex-wrap: nowrap;
             overflow-x: auto;
             overflow-y: hidden;
             -webkit-overflow-scrolling: touch;
+            min-height: 0;
             max-height: 86px;
+            align-items: flex-start;
             width: 100%;
             max-width: 100%;
             min-width: 0;
@@ -213,7 +215,7 @@
         color: var(--color-text);
         min-width: 0;
 
-        @media (max-width: 640px) {
+        @media (max-width: 860px) {
             flex: 0 0 58px;
             width: 58px;
             padding: 4px 2px;
@@ -263,7 +265,7 @@
             background: #1e293b;
         }
 
-        @media (max-width: 640px) {
+        @media (max-width: 860px) {
             width: 44px;
             height: 44px;
             max-width: 44px;
@@ -277,7 +279,7 @@
         font-size: 1.3rem;
         color: var(--color-text-dim);
 
-        @media (max-width: 640px) {
+        @media (max-width: 860px) {
             font-size: 1.1rem;
         }
     }
@@ -301,7 +303,7 @@
         -webkit-box-orient: vertical;
         overflow: hidden;
 
-        @media (max-width: 640px) {
+        @media (max-width: 860px) {
             font-size: 0.62rem;
             max-width: 54px;
             white-space: nowrap;
@@ -323,7 +325,7 @@
             background: rgba(0, 0, 0, 0.02);
         }
 
-        @media (max-width: 640px) {
+        @media (max-width: 860px) {
             padding: 4px 6px;
             gap: 4px;
         }

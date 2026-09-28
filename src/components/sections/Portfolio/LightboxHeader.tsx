@@ -1,7 +1,7 @@
 import { X, Download, Share2, HelpCircle } from 'lucide-react';
 import { StoryCropIcon } from '../../ui/icons';
 import type { PhotoInput } from '../../../types';
-import { getPhotoDisplayUrl } from '../../../utils/formatters';
+import { getPhotoDisplayUrl, formatCameraModel } from '../../../utils/formatters';
 
 declare const __BUILD_NUMBER__: string;
 
@@ -121,7 +121,7 @@ export default function LightboxHeader({
                             style={exif && maxExifChars > 0 ? { minWidth: `${maxExifChars * 5.0}px` } : undefined}
                         >
                             <span className="portfolio__lightbox-data-row-top">
-                                {[exif?.cameraModel, exif?.lens].filter(Boolean).join(' • ')}
+                                {[formatCameraModel(exif?.cameraModel), exif?.lens].filter(Boolean).join(' • ')}
                             </span>
                             <span className="portfolio__lightbox-data-row-bottom">
                                 {[exif?.focalLength, exif?.aperture, exif?.shutterSpeed, exif?.iso]

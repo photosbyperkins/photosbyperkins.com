@@ -6,6 +6,7 @@ import {
     findEarliestEventForTeam,
     parseEventTitle,
     escapeXml,
+    formatCameraModel,
 } from './formatters';
 
 // Inject a known abbreviation map so tests don't depend on VITE_TEAM_ABBREVIATIONS env.
@@ -228,5 +229,24 @@ describe('escapeXml', () => {
 
     it('returns original string when no special characters present', () => {
         expect(escapeXml('1/3200 sec F2.8 ISO 1600 70mm')).toBe('1/3200 sec F2.8 ISO 1600 70mm');
+    });
+});
+
+describe('formatCameraModel', () => {
+    it('normalizes Z5_2 to Z 5 II', () => {
+        expect(formatCameraModel('Z5_2')).toBe('Z 5 II');
+        expect(formatCameraModel('NIKON Z5_2')).toBe('NIKON Z 5 II');
+        expect(formatCameraModel('NIKON ℤ5_2')).toBe('NIKON ℤ 5 II');
+    });
+
+    it('preserves standard camera models unchanged', () => {
+        expect(formatCameraModel('NIKON ℤ8')).toBe('NIKON ℤ8');
+        expect(formatCameraModel('NIKON D850')).toBe('NIKON D850');
+        expect(formatCameraModel('Panasonic Lumix DMC-GH4')).toBe('Panasonic Lumix DMC-GH4');
+    });
+
+    it('handles empty or undefined inputs safely', () => {
+        expect(formatCameraModel('')).toBe('');
+        expect(formatCameraModel(undefined)).toBe('');
     });
 });
