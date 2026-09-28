@@ -253,7 +253,7 @@ export function useStoryStudio({
         isDownloaded,
         setIsDownloaded,
         statusToast,
-        setStatusToast,
+        showToast,
         handleExportAction,
         resetExportState,
     } = useStoryExport({
@@ -354,11 +354,11 @@ export function useStoryStudio({
             attributionLogoAccent: import.meta.env.VITE_NAV_LOGO_ACCENT || 'PERKINS',
             attributionDomain: '@photosbyperkins',
         });
-        setStatusToast('Reset story format to defaults');
+        showToast('Reset story format to defaults');
     }, [
         resetStorySettings,
         resetExportState,
-        setStatusToast,
+        showToast,
         activeSiteTheme,
         presets,
         naturalDimensions.width,
@@ -370,9 +370,10 @@ export function useStoryStudio({
     ]);
 
     const handleClose = useCallback(() => {
+        resetStorySettings();
         resetExportState();
         onClose();
-    }, [resetExportState, onClose]);
+    }, [resetStorySettings, resetExportState, onClose]);
 
     const handleSelectPreset = useCallback((preset: StoryPreset) => {
         setSelectedPresetId(preset.id);
@@ -453,6 +454,7 @@ export function useStoryStudio({
         isDownloaded,
         setIsDownloaded,
         statusToast,
+        showToast,
         resetToDefaults,
         handleClose,
         handleExportAction,

@@ -43,8 +43,8 @@ export const StoryBadgesTab: React.FC<StoryBadgesTabProps> = ({
                                 setCardTheme('light');
                                 setIsDownloaded(false);
                             }}
-                            aria-label="Light badge theme"
-                            title="Light badge theme"
+                            aria-label="Light card theme"
+                            title="Light card theme"
                         >
                             <Sun size={16} />
                         </button>
@@ -57,8 +57,8 @@ export const StoryBadgesTab: React.FC<StoryBadgesTabProps> = ({
                                 setCardTheme('dark');
                                 setIsDownloaded(false);
                             }}
-                            aria-label="Dark badge theme"
-                            title="Dark badge theme"
+                            aria-label="Dark card theme"
+                            title="Dark card theme"
                         >
                             <Moon size={16} />
                         </button>

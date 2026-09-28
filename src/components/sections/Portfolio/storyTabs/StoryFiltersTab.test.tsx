@@ -63,4 +63,21 @@ describe('StoryFiltersTab', () => {
         expect(setFilterStrength).toHaveBeenCalledWith(0.5);
         expect(setIsDownloaded).toHaveBeenCalledWith(false);
     });
+
+    it('applies previewImageUrl to filter preview swatches', () => {
+        const { container } = render(
+            <StoryFiltersTab
+                activeFilterId="none"
+                setActiveFilterId={vi.fn()}
+                filterStrength={1.0}
+                setFilterStrength={vi.fn()}
+                previewImageUrl="/photos/sample_thumb.jpg"
+                setIsDownloaded={vi.fn()}
+            />
+        );
+
+        const swatches = container.querySelectorAll('.story-export-modal__filter-preview-swatch');
+        expect(swatches.length).toBeGreaterThan(0);
+        expect((swatches[0] as HTMLElement).style.backgroundImage).toContain('/photos/sample_thumb.jpg');
+    });
 });

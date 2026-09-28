@@ -594,13 +594,19 @@
     &__toast {
         margin-top: 0.4rem;
         padding: 8px 12px;
-        background: rgba(239, 68, 68, 0.15);
-        border: 1px solid rgba(239, 68, 68, 0.4);
-        color: #f87171;
+        background: rgba(16, 185, 129, 0.15);
+        border: 1px solid rgba(16, 185, 129, 0.35);
+        color: #34d399;
         font-size: 0.8rem;
         font-weight: 500;
         border-radius: 6px;
         text-align: center;
         animation: fadeIn 0.2s ease-out;
+
+        &--error {
+            background: rgba(239, 68, 68, 0.15);
+            border-color: rgba(239, 68, 68, 0.4);
+            color: #f87171;
+        }
     }
 }

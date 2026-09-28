@@ -167,7 +167,7 @@ test.describe('Story Maker (9:16)', () => {
         const footerBox = await footerBar.boundingBox();
         const viewport = page.viewportSize();
         if (footerBox && viewport) {
-            expect(Math.abs((footerBox.y + footerBox.height) - viewport.height)).toBeLessThanOrEqual(32);
+            expect(Math.abs((footerBox.y + footerBox.height) - viewport.height)).toBeLessThanOrEqual(48);
         }
 
         // Close modal

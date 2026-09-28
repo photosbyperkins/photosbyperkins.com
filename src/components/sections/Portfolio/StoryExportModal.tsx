@@ -184,91 +184,70 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
             headerActions={headerActions}
             footer={footer}
         >
-            {/* Temporary Feedback Notification / Action Status */}
-            {statusToast && (
-                <div className="story-export-modal__toast" role="status" aria-live="polite">
-                    {statusToast}
-                </div>
-            )}
-
-            <div className="story-export-modal__content">
+            <div
+                className="story-export-modal__body"
+                onClick={(e) => e.stopPropagation()}
+                onPointerDown={(e) => e.stopPropagation()}
+            >
                 {/* Visual Canvas Stage / Preview Workspace */}
                 <div className="story-export-modal__preview-pane">
-                    <div
-                        className="story-export-modal__card-scaler"
-                        style={{
-                            aspectRatio: `${STORY_ASPECT_RATIO}`,
-                        }}
-                    >
+                    <div className="story-export-modal__viewport-card">
                         {/* Interactive Cropper when in custom crop mode */}
-                        {activeMode === 'crop' && (
+                        {activeMode === 'crop' ? (
                             <StoryCropper
-                                imageSrc={displaySrc}
+                                imageSrc={withBuild(displaySrc)}
+                                fallbackSrc={withBuild(originalSrc) || withBuild(thumbSrc)}
                                 naturalWidth={naturalDimensions.width}
                                 naturalHeight={naturalDimensions.height}
                                 crop={activeCrop}
-                                onChange={handleCropChange}
+                                badges={badges}
+                                theme={cardTheme}
+                                frameId={activeFrameId}
+                                frameColorOverride={effectiveFrameColor}
+                                exif={photoObj.exif}
                                 filterId={activeFilterId}
                                 filterStrength={filterStrength}
+                                onChange={handleCropChange}
+                                onImageLoaded={(w, h) =>
+                                    setNaturalDimensions((prev) =>
+                                        prev.width === w && prev.height === h ? prev : { width: w, height: h }
+                                    )
+                                }
                             />
-                        )}
-
-                        {/* Fast live Canvas rendering for padded mode and filter rendering */}
-                        {activeMode === 'padded' && (
-                            <canvas
-                                ref={previewCanvasRef}
-                                className="story-export-modal__live-canvas"
-                                width="1080"
-                                height="1920"
-                            />
+                        ) : (
+                            <div className="story-export-modal__padded-preview">
+                                <canvas
+                                    ref={previewCanvasRef}
+                                    className="story-export-modal__canvas"
+                                    style={{ aspectRatio: `${STORY_ASPECT_RATIO}` }}
+                                    width="1080"
+                                    height="1920"
+                                />
+                                <StoryFrameOverlay
+                                    frameId={activeFrameId}
+                                    colorOverride={effectiveFrameColor}
+                                    context={frameContext}
+                                />
+                                <StoryBadges badges={badges} theme={cardTheme} />
+                            </div>
                         )}
 
                         {/* Image load error fallback */}
                         {imageError && (
-                            <div className="story-export-modal__error-placeholder">
-                                <p>Unable to load full resolution photo.</p>
-                                <img
-                                    src={thumbSrc}
-                                    alt="Fallback thumbnail"
-                                    className="story-export-modal__error-thumb"
-                                />
+                            <div className="story-export-modal__error-overlay">
+                                <span>Failed to load high-resolution image preview.</span>
                             </div>
                         )}
-
-                        {/* Interactive Frame Overlay Layer */}
-                        <StoryFrameOverlay
-                            frameId={activeFrameId}
-                            colorOverride={effectiveFrameColor}
-                            context={frameContext}
-                        />
-
-                        {/* Interactive Badges Layer (HTML preview overlay) */}
-                        <StoryBadges
-                            badges={badges}
-                            theme={cardTheme}
-                        />
-
-                        {/* Hidden native image loader for natural dimension detection */}
-                        <img
-                            src={withBuild(originalSrc)}
-                            alt=""
-                            style={{ display: 'none' }}
-                            onLoad={(e) => {
-                                const target = e.currentTarget;
-                                if (target.naturalWidth > 0 && target.naturalHeight > 0) {
-                                    setNaturalDimensions({
-                                        width: target.naturalWidth,
-                                        height: target.naturalHeight,
-                                    });
-                                }
-                            }}
-                        />
                     </div>
                 </div>
 
                 {/* Studio Control Tabs Panel */}
-                <div className="story-export-modal__tabs-panel">
-                    <div className="story-export-modal__tab-nav story-export-modal__studio-tabs" role="tablist" aria-label="Story Studio Navigation">
+                <div className="story-export-modal__controls-pane">
+                    <div
+                        className="story-export-modal__tab-nav story-export-modal__studio-tabs"
+                        role="tablist"
+                        aria-label="Story Studio Navigation"
+                    >
                         {STUDIO_TABS.map((tab) => {
                             const IconComponent = tab.icon;
                             const isActive = activeStudioTab === tab.id;
@@ -292,64 +271,80 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                         })}
                     </div>
 
-                    {/* Layout & Composition Tab Content */}
-                    {activeStudioTab === 'layout' && (
-                        <StoryLayoutTab
-                            activeMode={activeMode}
-                            setActiveMode={setActiveMode}
-                            selectedPresetId={selectedPresetId}
-                            setSelectedPresetId={setSelectedPresetId}
-                            presets={presets}
-                            onSelectPreset={handleSelectPreset}
-                            activeCrop={activeCrop}
-                            onCropChange={handleCropChange}
-                            naturalDimensions={naturalDimensions}
-                            paddedConfig={paddedConfig}
-                            setPaddedConfig={setPaddedConfig}
-                            setIsDownloaded={setIsDownloaded}
-                        />
-                    )}
+                    <div className="story-export-modal__tab-panel" role="tabpanel">
+                        {/* Layout & Composition Tab Content */}
+                        {activeStudioTab === 'layout' && (
+                            <StoryLayoutTab
+                                activeMode={activeMode}
+                                setActiveMode={setActiveMode}
+                                selectedPresetId={selectedPresetId}
+                                setSelectedPresetId={setSelectedPresetId}
+                                presets={presets}
+                                onSelectPreset={handleSelectPreset}
+                                activeCrop={activeCrop}
+                                onCropChange={handleCropChange}
+                                naturalDimensions={naturalDimensions}
+                                paddedConfig={paddedConfig}
+                                setPaddedConfig={setPaddedConfig}
+                                setIsDownloaded={setIsDownloaded}
+                            />
+                        )}
 
-                    {/* Filters & Atmosphere Tab Content */}
-                    {activeStudioTab === 'filters' && (
-                        <StoryFiltersTab
-                            activeFilterId={activeFilterId}
-                            setActiveFilterId={setActiveFilterId}
-                            filterStrength={filterStrength}
-                            setFilterStrength={setFilterStrength}
-                            setIsDownloaded={setIsDownloaded}
-                        />
-                    )}
+                        {/* Filters & Atmosphere Tab Content */}
+                        {activeStudioTab === 'filters' && (
+                            <StoryFiltersTab
+                                activeFilterId={activeFilterId}
+                                setActiveFilterId={setActiveFilterId}
+                                filterStrength={filterStrength}
+                                setFilterStrength={setFilterStrength}
+                                previewImageUrl={withBuild(thumbSrc || displaySrc)}
+                                setIsDownloaded={setIsDownloaded}
+                            />
+                        )}
 
-                    {/* Decorative Frames Tab Content */}
-                    {activeStudioTab === 'frames' && (
-                        <StoryFramesTab
-                            activeFrameId={activeFrameId}
-                            setActiveFrameId={setActiveFrameId}
-                            selectedFrameCategory={selectedFrameCategory}
-                            setSelectedFrameCategory={setSelectedFrameCategory}
-                            categoryCounts={categoryCounts}
-                            displayedFrames={displayedFrames}
-                            frameColorChoice={frameColorChoice}
-                            setFrameColorChoice={setFrameColorChoice}
-                            frameCustomColor={frameCustomColor}
-                            setFrameCustomColor={setFrameCustomColor}
-                            effectiveFrameColor={effectiveFrameColor}
-                            frameContext={frameContext}
-                            setIsDownloaded={setIsDownloaded}
-                        />
-                    )}
+                        {/* Decorative Frames Tab Content */}
+                        {activeStudioTab === 'frames' && (
+                            <StoryFramesTab
+                                activeFrameId={activeFrameId}
+                                setActiveFrameId={setActiveFrameId}
+                                selectedFrameCategory={selectedFrameCategory}
+                                setSelectedFrameCategory={setSelectedFrameCategory}
+                                categoryCounts={categoryCounts}
+                                displayedFrames={displayedFrames}
+                                frameColorChoice={frameColorChoice}
+                                setFrameColorChoice={setFrameColorChoice}
+                                frameCustomColor={frameCustomColor}
+                                setFrameCustomColor={setFrameCustomColor}
+                                effectiveFrameColor={effectiveFrameColor}
+                                frameContext={frameContext}
+                                setIsDownloaded={setIsDownloaded}
+                            />
+                        )}
 
-                    {/* Story Badges & Watermark Tab Content */}
-                    {activeStudioTab === 'badges' && (
-                        <StoryBadgesTab
-                            badges={badges}
-                            setBadges={setBadges}
-                            cardTheme={cardTheme}
-                            setCardTheme={setCardTheme}
-                            eventInfo={eventInfo}
-                            setIsDownloaded={setIsDownloaded}
-                        />
+                        {/* Story Badges & Watermark Tab Content */}
+                        {activeStudioTab === 'badges' && (
+                            <StoryBadgesTab
+                                badges={badges}
+                                setBadges={setBadges}
+                                cardTheme={cardTheme}
+                                setCardTheme={setCardTheme}
+                                eventInfo={eventInfo}
+                                setIsDownloaded={setIsDownloaded}
+                            />
+                        )}
+                    </div>
+
+                    {/* Temporary Feedback Notification / Action Status */}
+                    {statusToast && (
+                        <div
+                            className={`story-export-modal__toast ${
+                                statusToast.toLowerCase().includes('fail') ? 'story-export-modal__toast--error' : ''
+                            }`}
+                            role="status"
+                            aria-live="polite"
+                        >
+                            <span>{statusToast}</span>
+                        </div>
                     )}
                 </div>
             </div>
