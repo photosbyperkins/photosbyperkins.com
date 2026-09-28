@@ -1,16 +1,14 @@
-import { Check, Download, Moon, RotateCcw, Share2, Sun } from 'lucide-react';
+import { Check, Download, RotateCcw, Share2 } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useCanShare } from '../../../hooks/useCanShare';
+import { useStoryExport } from '../../../hooks/useStoryExport';
 import { useAppStore } from '../../../store/useAppStore';
-import { formatTeamName, getPhotoDisplayUrl, parseEventTitle } from '../../../utils/formatters';
+import { getPhotoDisplayUrl, parseEventTitle } from '../../../utils/formatters';
 import {
     calculateNormalizedCrop,
     generateStoryPresets,
-    renderStoryToBlob,
     renderStoryToCanvas,
     STORY_ASPECT_RATIO,
-    STORY_PHOTO_FILTERS,
-    STORY_PHOTO_FILTERS_MAP,
 } from '../../../utils/storyCanvas';
 import type { EventScore, PhotoInput, PhotoRecord } from '../../../types';
 import type {
@@ -24,19 +22,23 @@ import type {
 import ModalShell from '../../ui/ModalShell';
 import { StoryBadges } from './StoryBadges';
 import { StoryCropper } from './StoryCropper';
-import { STORY_FRAME_DEFINITIONS, STORY_FRAMES_MAP } from './storyFrames/frameDefinitions';
+import { STORY_FRAME_DEFINITIONS } from './storyFrames/frameDefinitions';
 import { StoryFrameOverlay } from './storyFrames/StoryFrameOverlay';
 import type { StoryFrameCategory, StoryFrameColorChoice, StoryFrameContext, StoryFrameId } from './storyFrames/types';
 import { STORY_FRAME_CATEGORIES } from './storyFrames/types';
 import { StoryLayoutTabIcon, StoryFiltersTabIcon, StoryFramesTabIcon, StoryBadgesTabIcon } from '../../ui/icons';
 import type { IconProps } from '../../ui/icons';
+import { StoryLayoutTab } from './storyTabs/StoryLayoutTab';
+import { StoryFiltersTab } from './storyTabs/StoryFiltersTab';
+import { StoryFramesTab } from './storyTabs/StoryFramesTab';
+import { StoryBadgesTab } from './storyTabs/StoryBadgesTab';
 import '../../../styles/_story-export.scss';
 
 declare const __BUILD_NUMBER__: string;
 
-export type StoryStudioTab = 'layout' | 'filters' | 'frames' | 'badges';
+type StoryStudioTab = 'layout' | 'filters' | 'frames' | 'badges';
 
-export const STUDIO_TABS: Array<{ id: StoryStudioTab; label: string; icon: React.FC<IconProps> }> = [
+const STUDIO_TABS: Array<{ id: StoryStudioTab; label: string; icon: React.FC<IconProps> }> = [
     { id: 'layout', label: 'Layout', icon: StoryLayoutTabIcon },
     { id: 'filters', label: 'Filters', icon: StoryFiltersTabIcon },
     { id: 'frames', label: 'Frames', icon: StoryFramesTabIcon },
@@ -234,8 +236,6 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         attributionDomain: '@photosbyperkins',
     }));
 
-    const [isDownloaded, setIsDownloaded] = useState(false);
-
     const photoKey = originalSrc;
     const [prevPhotoKey, setPrevPhotoKey] = useState(photoKey);
 
@@ -256,11 +256,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
             attributionLogoAccent: import.meta.env.VITE_NAV_LOGO_ACCENT || 'PERKINS',
             attributionDomain: '@photosbyperkins',
         }));
-        setIsDownloaded(false);
     }
-
-    const [isExporting, setIsExporting] = useState(false);
-    const [statusToast, setStatusToast] = useState<string | null>(null);
 
     // Studio Tab State
     const [activeStudioTab, setActiveStudioTab] = useState<StoryStudioTab>('layout');
@@ -332,6 +328,53 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         [badges.showScoreboard, badges.scoreboardTitle, badges.teams, badges.showAttribution, activeMode, photoObj.exif]
     );
 
+    // Export configuration
+    const currentConfig: StoryRenderConfig = useMemo(
+        () => ({
+            mode: activeMode,
+            crop: activeCrop,
+            padded: paddedConfig,
+            badges,
+            resolution: '1080x1920',
+            cardTheme,
+            badgeTheme: cardTheme,
+            frameId: activeFrameId,
+            frameColorOverride: effectiveFrameColor,
+            exif: photoObj.exif,
+            filterId: activeFilterId,
+            filterStrength,
+        }),
+        [
+            activeMode,
+            activeCrop,
+            paddedConfig,
+            badges,
+            cardTheme,
+            activeFrameId,
+            effectiveFrameColor,
+            photoObj.exif,
+            activeFilterId,
+            filterStrength,
+        ]
+    );
+
+    const {
+        isExporting,
+        isDownloaded,
+        setIsDownloaded,
+        statusToast,
+        setStatusToast,
+        handleExportAction,
+        resetExportState,
+    } = useStoryExport({
+        loadedImage,
+        currentConfig,
+        eventTitle: eventInfo.title,
+        year,
+        canShare,
+        photoKey,
+    });
+
     const isFirstRender = useRef(true);
     useEffect(() => {
         if (isFirstRender.current) {
@@ -374,7 +417,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
 
     const resetToDefaults = useCallback(() => {
         resetStorySettings();
-        setIsDownloaded(false);
+        resetExportState();
         setActiveStudioTab('layout');
         setCardTheme(activeSiteTheme || 'dark');
         setActiveFilterId('none');
@@ -421,10 +464,11 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
             attributionLogoAccent: import.meta.env.VITE_NAV_LOGO_ACCENT || 'PERKINS',
             attributionDomain: '@photosbyperkins',
         });
-        setIsExporting(false);
         setStatusToast('Reset story format to defaults');
     }, [
         resetStorySettings,
+        resetExportState,
+        setStatusToast,
         activeSiteTheme,
         presets,
         naturalDimensions.width,
@@ -436,11 +480,9 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
     ]);
 
     const handleClose = useCallback(() => {
-        setIsDownloaded(false);
-        setIsExporting(false);
-        setStatusToast(null);
+        resetExportState();
         onClose();
-    }, [onClose]);
+    }, [resetExportState, onClose]);
 
     // Handler when selecting a preset
     const handleSelectPreset = (preset: StoryPreset) => {
@@ -485,103 +527,12 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         });
     }, [loadedImage, activeMode, activeCrop, paddedConfig, badges, cardTheme, activeFilterId, filterStrength]);
 
-    // Export configuration
-    const currentConfig: StoryRenderConfig = useMemo(
-        () => ({
-            mode: activeMode,
-            crop: activeCrop,
-            padded: paddedConfig,
-            badges,
-            resolution: '1080x1920',
-            cardTheme,
-            badgeTheme: cardTheme,
-            frameId: activeFrameId,
-            frameColorOverride: effectiveFrameColor,
-            exif: photoObj.exif,
-            filterId: activeFilterId,
-            filterStrength,
-        }),
-        [
-            activeMode,
-            activeCrop,
-            paddedConfig,
-            badges,
-            cardTheme,
-            activeFrameId,
-            effectiveFrameColor,
-            photoObj.exif,
-            activeFilterId,
-            filterStrength,
-        ]
-    );
-
-    // Toast helper
-    const showToast = useCallback((msg: string) => {
-        setStatusToast(msg);
-        setTimeout(() => setStatusToast(null), 3000);
-    }, []);
-
-    // 1. Direct Download Action
-    const handleDownload = async () => {
-        if (!loadedImage) return;
-        setIsExporting(true);
-        try {
-            const blob = await renderStoryToBlob(loadedImage, currentConfig);
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            const cleanTitle = (eventInfo.title || 'story')
-                .toLowerCase()
-                .replace(/[^a-z0-9]/g, '-')
-                .replace(/-+/g, '-');
-            link.href = url;
-            link.download = `story-${year}-${cleanTitle}-9x16.jpg`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
-            setIsDownloaded(true);
-        } catch (err) {
-            console.error('Download error:', err);
-            showToast('Failed to download image.');
-        } finally {
-            setIsExporting(false);
-        }
-    };
-
-    // 2. Native Share Action
-    const handleNativeShare = async () => {
-        if (!loadedImage) return;
-        setIsExporting(true);
-        try {
-            const blob = await renderStoryToBlob(loadedImage, currentConfig);
-            const file = new File([blob], 'story.jpg', { type: 'image/jpeg' });
-
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                await navigator.share({
-                    files: [file],
-                    title: `Story from ${eventInfo.title || 'Photos by Perkins'}`,
-                });
-                setIsDownloaded(true);
-            } else {
-                // Fallback to download if canShare files is not supported
-                await handleDownload();
-            }
-        } catch (err) {
-            if ((err as Error).name !== 'AbortError') {
-                console.error('Share error:', err);
-                showToast('Share failed. Use Download instead.');
-            }
-        } finally {
-            setIsExporting(false);
-        }
-    };
-
     const footer = (
         <button
             className={`story-export-modal__primary-action ${
                 isDownloaded ? 'is-done story-export-modal__primary-action--done' : ''
             }`}
-            onClick={canShare ? handleNativeShare : handleDownload}
+            onClick={handleExportAction}
             disabled={isExporting || !loadedImage || isDownloaded}
             title={
                 isDownloaded
@@ -722,852 +673,61 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                     </div>
 
                     <div className="story-export-modal__tab-panel" role="tabpanel">
-                        {/* TAB 1: LAYOUT */}
                         {activeStudioTab === 'layout' && (
-                            <div className="story-export-modal__tab-content story-export-modal__tab-content--layout">
-                                {/* Mode Toggle: Smart Crop vs Padded Glass & Story Card Theme Switcher */}
-                                <div className="story-export-modal__section">
-                                    <div className="story-export-modal__top-row">
-                                        <div className="portfolio__segmented-toggle story-export-modal__segmented-control">
-                                            <button
-                                                className={`story-export-modal__seg-btn ${
-                                                    activeMode === 'crop'
-                                                        ? 'active story-export-modal__seg-btn--active'
-                                                        : ''
-                                                }`}
-                                                onClick={() => {
-                                                    setActiveMode('crop');
-                                                    setIsDownloaded(false);
-                                                }}
-                                            >
-                                                <span>9:16 Crop</span>
-                                            </button>
-                                            <button
-                                                className={`story-export-modal__seg-btn ${
-                                                    activeMode === 'padded'
-                                                        ? 'active story-export-modal__seg-btn--active'
-                                                        : ''
-                                                }`}
-                                                onClick={() => {
-                                                    setActiveMode('padded');
-                                                    setSelectedPresetId('padded-glass');
-                                                    setIsDownloaded(false);
-                                                }}
-                                            >
-                                                <span>Padded</span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Prepared Crop Presets (N-Way Segmented Toggle) */}
-                                {activeMode === 'crop' && (
-                                    <div className="story-export-modal__section">
-                                        <div className="portfolio__segmented-toggle story-export-modal__presets-grid">
-                                            {presets
-                                                .filter((p) => p.mode === 'crop')
-                                                .map((preset) => {
-                                                    const isSelected = selectedPresetId === preset.id;
-                                                    return (
-                                                        <button
-                                                            key={preset.id}
-                                                            className={`story-export-modal__preset-pill ${
-                                                                isSelected
-                                                                    ? 'active story-export-modal__preset-pill--active'
-                                                                    : ''
-                                                            }`}
-                                                            onClick={() => handleSelectPreset(preset)}
-                                                            title={preset.description}
-                                                        >
-                                                            <span>{preset.label}</span>
-                                                        </button>
-                                                    );
-                                                })}
-                                        </div>
-
-                                        {/* Zoom Slider for Custom Tuning */}
-                                        <div className="story-export-modal__zoom-control">
-                                            <div className="story-export-modal__zoom-header">
-                                                <span className="story-export-modal__sublabel">Zoom</span>
-                                                <span className="story-export-modal__zoom-value">
-                                                    {activeCrop.zoom.toFixed(1)}x
-                                                </span>
-                                            </div>
-                                            <input
-                                                type="range"
-                                                min="1.0"
-                                                max="3.0"
-                                                step="0.05"
-                                                value={activeCrop.zoom}
-                                                onChange={(e) => {
-                                                    let newZoom = parseFloat(e.target.value);
-                                                    // Magnetically snap to tick points if within radius of 0.08
-                                                    const snapPoints = [1.0, 1.5, 2.0, 2.5, 3.0];
-                                                    for (const sp of snapPoints) {
-                                                        if (Math.abs(newZoom - sp) <= 0.08) {
-                                                            newZoom = sp;
-                                                            break;
-                                                        }
-                                                    }
-                                                    const updated = calculateNormalizedCrop(
-                                                        naturalDimensions.width,
-                                                        naturalDimensions.height,
-                                                        activeCrop.centerX,
-                                                        activeCrop.centerY,
-                                                        newZoom
-                                                    );
-                                                    handleCropChange(updated);
-                                                }}
-                                                className="story-export-modal__slider"
-                                                aria-label="Crop Zoom Level"
-                                            />
-                                            <div
-                                                className="story-export-modal__zoom-ticks"
-                                                role="group"
-                                                aria-label="Zoom snap points"
-                                            >
-                                                {[1.0, 1.5, 2.0, 2.5, 3.0].map((pt) => {
-                                                    const isActive = Math.abs(activeCrop.zoom - pt) < 0.04;
-                                                    const fraction = (pt - 1.0) / (3.0 - 1.0);
-                                                    return (
-                                                        <button
-                                                            key={pt}
-                                                            type="button"
-                                                            className={`story-export-modal__zoom-tick ${
-                                                                isActive ? 'story-export-modal__zoom-tick--active' : ''
-                                                            }`}
-                                                            style={{
-                                                                left: `calc(9px + ${fraction} * (100% - 18px))`,
-                                                            }}
-                                                            onClick={() => {
-                                                                const updated = calculateNormalizedCrop(
-                                                                    naturalDimensions.width,
-                                                                    naturalDimensions.height,
-                                                                    activeCrop.centerX,
-                                                                    activeCrop.centerY,
-                                                                    pt
-                                                                );
-                                                                handleCropChange(updated);
-                                                            }}
-                                                            aria-label={`Snap zoom to ${pt.toFixed(1)}x`}
-                                                        >
-                                                            <span className="story-export-modal__zoom-tick-mark" />
-                                                            <span className="story-export-modal__zoom-tick-label">
-                                                                {pt.toFixed(1)}x
-                                                            </span>
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Padded Mode Settings */}
-                                {activeMode === 'padded' && (
-                                    <div className="story-export-modal__section">
-                                        <div className="story-export-modal__padded-settings">
-                                            <div className="story-export-modal__toggle-row">
-                                                <span>Background</span>
-                                                <div className="portfolio__segmented-toggle story-export-modal__pill-group">
-                                                    <button
-                                                        type="button"
-                                                        className={`story-export-modal__pill ${
-                                                            paddedConfig.style === 'frosted' ||
-                                                            paddedConfig.style === 'glass'
-                                                                ? 'active story-export-modal__pill--active'
-                                                                : ''
-                                                        }`}
-                                                        onClick={() => {
-                                                            setPaddedConfig((prev) => ({ ...prev, style: 'frosted' }));
-                                                            setIsDownloaded(false);
-                                                        }}
-                                                    >
-                                                        Frosted
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        className={`story-export-modal__pill ${
-                                                            paddedConfig.style === 'solid' ||
-                                                            paddedConfig.style === 'custom'
-                                                                ? 'active story-export-modal__pill--active'
-                                                                : ''
-                                                        }`}
-                                                        onClick={() => {
-                                                            setPaddedConfig((prev) => ({ ...prev, style: 'solid' }));
-                                                            setIsDownloaded(false);
-                                                        }}
-                                                    >
-                                                        Solid
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            <div className="story-export-modal__custom-color-row">
-                                                <div className="story-export-modal__quick-swatches">
-                                                    {[
-                                                        '#0a0a14',
-                                                        '#1e293b',
-                                                        '#2c1810',
-                                                        '#ffffff',
-                                                        '#f59e0b',
-                                                        '#e60000',
-                                                    ].map((color) => {
-                                                        const currentColor = (
-                                                            paddedConfig.customColor || '#0a0a14'
-                                                        ).toLowerCase();
-                                                        const isSelected = currentColor === color.toLowerCase();
-                                                        return (
-                                                            <button
-                                                                key={color}
-                                                                type="button"
-                                                                className={`story-export-modal__quick-swatch ${
-                                                                    isSelected ? 'is-active' : ''
-                                                                }`}
-                                                                style={{ backgroundColor: color }}
-                                                                onClick={() => {
-                                                                    setPaddedConfig((prev) => ({
-                                                                        ...prev,
-                                                                        customColor: color,
-                                                                    }));
-                                                                    setIsDownloaded(false);
-                                                                }}
-                                                                title={color}
-                                                                aria-label={`Select background color ${color}`}
-                                                            />
-                                                        );
-                                                    })}
-                                                </div>
-                                                <label
-                                                    className="story-export-modal__color-picker"
-                                                    title={
-                                                        paddedConfig.style === 'solid' ||
-                                                        paddedConfig.style === 'custom'
-                                                            ? 'Choose solid background color'
-                                                            : 'Choose frosted tint color'
-                                                    }
-                                                >
-                                                    <span
-                                                        className="story-export-modal__color-swatch"
-                                                        style={{
-                                                            backgroundColor: paddedConfig.customColor || '#0a0a14',
-                                                        }}
-                                                    />
-                                                    <input
-                                                        type="color"
-                                                        value={paddedConfig.customColor || '#0a0a14'}
-                                                        onChange={(e) => {
-                                                            setPaddedConfig((prev) => ({
-                                                                ...prev,
-                                                                customColor: e.target.value,
-                                                            }));
-                                                            setIsDownloaded(false);
-                                                        }}
-                                                        className="story-export-modal__color-input"
-                                                        aria-label={
-                                                            paddedConfig.style === 'solid' ||
-                                                            paddedConfig.style === 'custom'
-                                                                ? 'Solid background color'
-                                                                : 'Frosted tint color'
-                                                        }
-                                                    />
-                                                </label>
-                                                <span className="story-export-modal__hex-code">
-                                                    {(paddedConfig.customColor || '#0a0a14').toUpperCase()}
-                                                </span>
-                                            </div>
-
-                                            <div className="story-export-modal__toggle-row">
-                                                <span>Position</span>
-                                                <div className="portfolio__segmented-toggle story-export-modal__pill-group">
-                                                    <button
-                                                        type="button"
-                                                        className={`story-export-modal__pill ${
-                                                            paddedConfig.position === 'center'
-                                                                ? 'active story-export-modal__pill--active'
-                                                                : ''
-                                                        }`}
-                                                        onClick={() => {
-                                                            setPaddedConfig((prev) => ({
-                                                                ...prev,
-                                                                position: 'center',
-                                                            }));
-                                                            setIsDownloaded(false);
-                                                        }}
-                                                    >
-                                                        Centered
-                                                    </button>
-                                                    <button
-                                                        type="button"
-                                                        className={`story-export-modal__pill ${
-                                                            paddedConfig.position === 'elevated'
-                                                                ? 'active story-export-modal__pill--active'
-                                                                : ''
-                                                        }`}
-                                                        onClick={() => {
-                                                            setPaddedConfig((prev) => ({
-                                                                ...prev,
-                                                                position: 'elevated',
-                                                            }));
-                                                            setIsDownloaded(false);
-                                                        }}
-                                                    >
-                                                        Elevated
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            <div className="story-export-modal__zoom-header">
-                                                <span className="story-export-modal__sublabel">Photo Scale</span>
-                                                <span className="story-export-modal__zoom-value">
-                                                    {Math.round(paddedConfig.cardScale * 100)}%
-                                                </span>
-                                            </div>
-                                            <input
-                                                type="range"
-                                                min="0.80"
-                                                max="1"
-                                                step="0.02"
-                                                value={paddedConfig.cardScale}
-                                                onChange={(e) => {
-                                                    const scale = parseFloat(e.target.value);
-                                                    setPaddedConfig((prev) => ({ ...prev, cardScale: scale }));
-                                                    setIsDownloaded(false);
-                                                }}
-                                                className="story-export-modal__slider"
-                                                aria-label="Photo Card Scale"
-                                            />
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
+                            <StoryLayoutTab
+                                activeMode={activeMode}
+                                setActiveMode={setActiveMode}
+                                selectedPresetId={selectedPresetId}
+                                setSelectedPresetId={setSelectedPresetId}
+                                presets={presets}
+                                onSelectPreset={handleSelectPreset}
+                                activeCrop={activeCrop}
+                                onCropChange={handleCropChange}
+                                naturalDimensions={naturalDimensions}
+                                paddedConfig={paddedConfig}
+                                setPaddedConfig={setPaddedConfig}
+                                setIsDownloaded={setIsDownloaded}
+                            />
                         )}
 
-                        {/* TAB 2: FILTERS */}
                         {activeStudioTab === 'filters' && (
-                            <div className="story-export-modal__tab-content story-export-modal__tab-content--filters">
-                                <div className="story-export-modal__section story-export-modal__section--filters">
-                                    <div className="story-export-modal__filters-header">
-                                        <span className="story-export-modal__section-heading">FILTER</span>
-                                        <span className="story-export-modal__filter-current-badge">
-                                            {STORY_PHOTO_FILTERS_MAP[activeFilterId]?.label || 'None'}
-                                        </span>
-                                    </div>
-                                    <div className="story-export-modal__filters-grid">
-                                        {STORY_PHOTO_FILTERS.map((filter) => {
-                                            const isSelected = activeFilterId === filter.id;
-                                            return (
-                                                <button
-                                                    key={filter.id}
-                                                    type="button"
-                                                    className={`story-export-modal__filter-pill ${
-                                                        isSelected
-                                                            ? 'active story-export-modal__filter-pill--active'
-                                                            : ''
-                                                    }`}
-                                                    onClick={() => {
-                                                        setActiveFilterId(filter.id);
-                                                        setIsDownloaded(false);
-                                                    }}
-                                                    title={filter.description}
-                                                    aria-label={`Photo filter: ${filter.label}`}
-                                                >
-                                                    <div
-                                                        className="story-export-modal__filter-preview-swatch"
-                                                        style={{
-                                                            filter: filter.cssFilter || 'none',
-                                                            backgroundImage:
-                                                                thumbSrc || displaySrc
-                                                                    ? `url(${withBuild(thumbSrc || displaySrc)})`
-                                                                    : undefined,
-                                                        }}
-                                                        aria-hidden="true"
-                                                    />
-                                                    <span className="story-export-modal__filter-label">
-                                                        {filter.label}
-                                                    </span>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-
-                                    {activeFilterId !== 'none' && (
-                                        <div className="story-export-modal__zoom-control story-export-modal__filter-strength-control">
-                                            <div className="story-export-modal__zoom-header">
-                                                <span className="story-export-modal__sublabel">Filter Strength</span>
-                                                <span className="story-export-modal__zoom-value">
-                                                    {Math.round(filterStrength * 100)}%
-                                                </span>
-                                            </div>
-                                            <input
-                                                type="range"
-                                                min="0.1"
-                                                max="1"
-                                                step="0.05"
-                                                value={filterStrength}
-                                                onChange={(e) => {
-                                                    setFilterStrength(
-                                                        Math.max(0.1, Math.min(1.0, parseFloat(e.target.value)))
-                                                    );
-                                                    setIsDownloaded(false);
-                                                }}
-                                                className="story-export-modal__slider"
-                                                aria-label="Filter Strength"
-                                            />
-                                            <div
-                                                className="story-export-modal__zoom-ticks"
-                                                role="group"
-                                                aria-label="Filter strength snap points"
-                                            >
-                                                {[0.1, 0.25, 0.5, 0.75, 1.0].map((pt) => {
-                                                    const isActive = Math.abs(filterStrength - pt) < 0.04;
-                                                    const fraction = (pt - 0.1) / (1.0 - 0.1);
-                                                    return (
-                                                        <button
-                                                            key={pt}
-                                                            type="button"
-                                                            className={`story-export-modal__zoom-tick ${
-                                                                isActive ? 'story-export-modal__zoom-tick--active' : ''
-                                                            }`}
-                                                            style={{
-                                                                left: `calc(9px + ${fraction} * (100% - 18px))`,
-                                                            }}
-                                                            onClick={() => {
-                                                                setFilterStrength(pt);
-                                                                setIsDownloaded(false);
-                                                            }}
-                                                            aria-label={`Snap filter strength to ${Math.round(pt * 100)}%`}
-                                                        >
-                                                            <span className="story-export-modal__zoom-tick-mark" />
-                                                            <span className="story-export-modal__zoom-tick-label">
-                                                                {Math.round(pt * 100)}%
-                                                            </span>
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
+                            <StoryFiltersTab
+                                activeFilterId={activeFilterId}
+                                setActiveFilterId={setActiveFilterId}
+                                filterStrength={filterStrength}
+                                setFilterStrength={setFilterStrength}
+                                previewImageUrl={withBuild(thumbSrc || displaySrc)}
+                                setIsDownloaded={setIsDownloaded}
+                            />
                         )}
 
-                        {/* TAB 3: FRAMES */}
                         {activeStudioTab === 'frames' && (
-                            <div className="story-export-modal__tab-content story-export-modal__tab-content--frames">
-                                <div className="story-export-modal__section story-export-modal__section--frames">
-                                    <div className="story-export-modal__accordion-header story-export-modal__frames-header">
-                                        <div className="story-export-modal__accordion-title">
-                                            <span className="story-export-modal__section-heading">FRAME</span>
-                                            <span className="story-export-modal__frame-current-badge">
-                                                {STORY_FRAMES_MAP[activeFrameId]?.label || 'None'}
-                                            </span>
-                                        </div>
-                                    </div>
-
-                                    {/* Category Filter Pills Bar */}
-                                    <div
-                                        className="story-export-modal__category-bar"
-                                        role="tablist"
-                                        aria-label="Frame categories"
-                                    >
-                                        {STORY_FRAME_CATEGORIES.map((cat) => {
-                                            const isCatActive = selectedFrameCategory === cat.id;
-                                            const count = categoryCounts[cat.id] ?? 0;
-                                            return (
-                                                <button
-                                                    key={cat.id}
-                                                    type="button"
-                                                    role="tab"
-                                                    aria-selected={isCatActive}
-                                                    className={`story-export-modal__category-pill ${
-                                                        isCatActive ? 'story-export-modal__category-pill--active' : ''
-                                                    }`}
-                                                    onClick={() => setSelectedFrameCategory(cat.id)}
-                                                    title={cat.vibe}
-                                                >
-                                                    <span>{cat.label}</span>
-                                                    <span className="story-export-modal__category-count">{count}</span>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-
-                                    <div className="story-export-modal__frames-grid">
-                                        {displayedFrames.map((frame) => {
-                                            const isSelected = activeFrameId === frame.id;
-                                            return (
-                                                <button
-                                                    key={frame.id}
-                                                    type="button"
-                                                    className={`story-export-modal__frame-card ${
-                                                        isSelected ? 'story-export-modal__frame-card--active' : ''
-                                                    }`}
-                                                    onClick={() => {
-                                                        setActiveFrameId(frame.id);
-                                                        setIsDownloaded(false);
-                                                    }}
-                                                    title={frame.vibe}
-                                                >
-                                                    <div className="story-export-modal__frame-thumb">
-                                                        {frame.id === 'none' ? (
-                                                            <div className="story-export-modal__frame-none-icon">⊘</div>
-                                                        ) : (
-                                                            <svg
-                                                                viewBox="0 0 1080 1920"
-                                                                className="story-export-modal__frame-thumb-svg"
-                                                                preserveAspectRatio="none"
-                                                            >
-                                                                {frame.renderSvg(effectiveFrameColor, frameContext)}
-                                                            </svg>
-                                                        )}
-                                                    </div>
-                                                    <span className="story-export-modal__frame-name">
-                                                        {frame.label}
-                                                    </span>
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-
-                                    {/* Minimal Color / Tint Override Bar (Shown when a frame is active) */}
-                                    {activeFrameId !== 'none' && (
-                                        <div className="story-export-modal__frame-tint-row">
-                                            <div className="story-export-modal__tint-header">
-                                                <span className="story-export-modal__sublabel">Frame Tint</span>
-                                            </div>
-                                            <div className="portfolio__segmented-toggle story-export-modal__pill-group">
-                                                {(
-                                                    [
-                                                        { id: 'signature', label: 'Default' },
-                                                        { id: 'white', label: 'White' },
-                                                        { id: 'gold', label: 'Gold' },
-                                                        { id: 'red', label: 'Red' },
-                                                        { id: 'custom', label: 'Custom' },
-                                                    ] as const
-                                                ).map((choice) => {
-                                                    const isSelected = frameColorChoice === choice.id;
-                                                    return (
-                                                        <button
-                                                            key={choice.id}
-                                                            type="button"
-                                                            className={`story-export-modal__pill ${
-                                                                isSelected
-                                                                    ? 'active story-export-modal__pill--active'
-                                                                    : ''
-                                                            }`}
-                                                            onClick={() => {
-                                                                setFrameColorChoice(choice.id);
-                                                                setIsDownloaded(false);
-                                                            }}
-                                                        >
-                                                            {choice.label}
-                                                        </button>
-                                                    );
-                                                })}
-                                            </div>
-
-                                            {frameColorChoice === 'custom' && (
-                                                <div className="story-export-modal__custom-color-row">
-                                                    <div className="story-export-modal__quick-swatches">
-                                                        {['#ffffff', '#fbbf24', '#06b6d4', '#c084fc'].map((color) => (
-                                                            <button
-                                                                key={color}
-                                                                type="button"
-                                                                className={`story-export-modal__quick-swatch ${
-                                                                    frameCustomColor.toLowerCase() ===
-                                                                    color.toLowerCase()
-                                                                        ? 'is-active'
-                                                                        : ''
-                                                                }`}
-                                                                style={{ backgroundColor: color }}
-                                                                onClick={() => {
-                                                                    setFrameCustomColor(color);
-                                                                    setIsDownloaded(false);
-                                                                }}
-                                                                title={color}
-                                                                aria-label={`Select frame tint color ${color}`}
-                                                            />
-                                                        ))}
-                                                    </div>
-                                                    <label
-                                                        className="story-export-modal__color-picker"
-                                                        title="Choose custom frame tint color"
-                                                    >
-                                                        <span
-                                                            className="story-export-modal__color-swatch"
-                                                            style={{
-                                                                backgroundColor: frameCustomColor || '#ffffff',
-                                                            }}
-                                                        />
-                                                        <input
-                                                            type="color"
-                                                            value={frameCustomColor || '#ffffff'}
-                                                            onChange={(e) => {
-                                                                setFrameCustomColor(e.target.value);
-                                                                setIsDownloaded(false);
-                                                            }}
-                                                            className="story-export-modal__color-input"
-                                                            aria-label="Custom frame tint color"
-                                                        />
-                                                    </label>
-                                                    <span className="story-export-modal__hex-code">
-                                                        {(frameCustomColor || '#ffffff').toUpperCase()}
-                                                    </span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
+                            <StoryFramesTab
+                                activeFrameId={activeFrameId}
+                                setActiveFrameId={setActiveFrameId}
+                                selectedFrameCategory={selectedFrameCategory}
+                                setSelectedFrameCategory={setSelectedFrameCategory}
+                                categoryCounts={categoryCounts}
+                                displayedFrames={displayedFrames}
+                                frameColorChoice={frameColorChoice}
+                                setFrameColorChoice={setFrameColorChoice}
+                                frameCustomColor={frameCustomColor}
+                                setFrameCustomColor={setFrameCustomColor}
+                                effectiveFrameColor={effectiveFrameColor}
+                                frameContext={frameContext}
+                                setIsDownloaded={setIsDownloaded}
+                            />
                         )}
 
-                        {/* TAB 4: BADGES */}
                         {activeStudioTab === 'badges' && (
-                            <div className="story-export-modal__tab-content story-export-modal__tab-content--badges">
-                                <div className="story-export-modal__section story-export-modal__section--badges">
-                                    <div className="story-export-modal__badges-header">
-                                        <span className="story-export-modal__section-heading">BADGES</span>
-                                        <div
-                                            className="portfolio__segmented-toggle story-export-modal__theme-toggle"
-                                            role="group"
-                                            aria-label="Story badge theme"
-                                        >
-                                            <button
-                                                type="button"
-                                                className={`story-export-modal__theme-btn ${
-                                                    cardTheme === 'light'
-                                                        ? 'active story-export-modal__theme-btn--active'
-                                                        : ''
-                                                }`}
-                                                onClick={() => {
-                                                    setCardTheme('light');
-                                                    setIsDownloaded(false);
-                                                }}
-                                                aria-label="Light badge theme"
-                                                title="Light badge theme"
-                                            >
-                                                <Sun size={16} />
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className={`story-export-modal__theme-btn ${
-                                                    cardTheme === 'dark'
-                                                        ? 'active story-export-modal__theme-btn--active'
-                                                        : ''
-                                                }`}
-                                                onClick={() => {
-                                                    setCardTheme('dark');
-                                                    setIsDownloaded(false);
-                                                }}
-                                                aria-label="Dark badge theme"
-                                                title="Dark badge theme"
-                                            >
-                                                <Moon size={16} />
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div className="story-export-modal__badges-list">
-                                        <div className="story-export-modal__checkbox-row">
-                                            <label className="story-export-modal__checkbox-label">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={badges.showAttribution}
-                                                    onChange={(e) => {
-                                                        setBadges((prev) => ({
-                                                            ...prev,
-                                                            showAttribution: e.target.checked,
-                                                        }));
-                                                        setIsDownloaded(false);
-                                                    }}
-                                                />
-                                                <span className="sr-only">Photographer Attribution</span>
-                                                <div
-                                                    className={`story-export-modal__badge-preview-item ${
-                                                        !badges.showAttribution
-                                                            ? 'story-export-modal__badge-preview-item--disabled'
-                                                            : ''
-                                                    }`}
-                                                >
-                                                    <div
-                                                        className={`story-export-modal__preview-badge story-export-modal__preview-badge--attribution ${
-                                                            cardTheme === 'light'
-                                                                ? 'story-export-modal__preview-badge--light'
-                                                                : ''
-                                                        }`}
-                                                    >
-                                                        <span
-                                                            className="story-export-modal__preview-logo-icon"
-                                                            aria-hidden="true"
-                                                        />
-                                                        <span className="story-export-modal__preview-logo-text">
-                                                            {badges.attributionLogoText || 'PHOTOS BY'}{' '}
-                                                            <span className="story-export-modal__preview-logo-accent">
-                                                                {badges.attributionLogoAccent || 'PERKINS'}
-                                                            </span>
-                                                        </span>
-                                                        {badges.attributionDomain && (
-                                                            <span className="story-export-modal__preview-logo-domain">
-                                                                {badges.attributionDomain}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </label>
-                                        </div>
-
-                                        {(eventInfo.title || (eventInfo.teams && eventInfo.teams.length > 0)) && (
-                                            <div className="story-export-modal__checkbox-row">
-                                                <label className="story-export-modal__checkbox-label">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={badges.showScoreboard}
-                                                        onChange={(e) => {
-                                                            setBadges((prev) => ({
-                                                                ...prev,
-                                                                showScoreboard: e.target.checked,
-                                                            }));
-                                                            setIsDownloaded(false);
-                                                        }}
-                                                    />
-                                                    <span className="sr-only">Event Badge</span>
-                                                    <div
-                                                        className={`story-export-modal__badge-preview-item ${
-                                                            !badges.showScoreboard
-                                                                ? 'story-export-modal__badge-preview-item--disabled'
-                                                                : ''
-                                                        }`}
-                                                    >
-                                                        <div
-                                                            className={`story-export-modal__preview-badge story-export-modal__preview-badge--scoreboard ${
-                                                                cardTheme === 'light'
-                                                                    ? 'story-export-modal__preview-badge--light'
-                                                                    : ''
-                                                            }`}
-                                                        >
-                                                            {badges.matchDate && (
-                                                                <div className="story-export-modal__preview-event-date">
-                                                                    {badges.matchDate}
-                                                                </div>
-                                                            )}
-                                                            {badges.matchDate && (
-                                                                <div className="story-export-modal__preview-event-divider" />
-                                                            )}
-                                                            <div className="story-export-modal__preview-event-teams-stack">
-                                                                {badges.teams && badges.teams.length >= 2 ? (
-                                                                    <>
-                                                                        <div className="story-export-modal__preview-team-row">
-                                                                            <span className="story-export-modal__preview-team-name">
-                                                                                {formatTeamName(badges.teams[0])}
-                                                                            </span>
-                                                                            {badges.showScores !== false &&
-                                                                                badges.score1 != null && (
-                                                                                    <span
-                                                                                        className={`story-export-modal__preview-team-score ${
-                                                                                            badges.score2 != null &&
-                                                                                            Number(badges.score1) >
-                                                                                                Number(badges.score2)
-                                                                                                ? 'is-win'
-                                                                                                : ''
-                                                                                        }`}
-                                                                                    >
-                                                                                        {badges.score1}
-                                                                                    </span>
-                                                                                )}
-                                                                        </div>
-                                                                        <div className="story-export-modal__preview-team-row">
-                                                                            <span className="story-export-modal__preview-team-name">
-                                                                                {formatTeamName(badges.teams[1])}
-                                                                            </span>
-                                                                            {badges.showScores !== false &&
-                                                                                badges.score2 != null && (
-                                                                                    <span
-                                                                                        className={`story-export-modal__preview-team-score ${
-                                                                                            badges.score1 != null &&
-                                                                                            Number(badges.score2) >
-                                                                                                Number(badges.score1)
-                                                                                                ? 'is-win'
-                                                                                                : ''
-                                                                                        }`}
-                                                                                    >
-                                                                                        {badges.score2}
-                                                                                    </span>
-                                                                                )}
-                                                                        </div>
-                                                                    </>
-                                                                ) : (
-                                                                    <div className="story-export-modal__preview-team-row">
-                                                                        <span className="story-export-modal__preview-team-name">
-                                                                            {badges.scoreboardTitle ||
-                                                                                badges.teams?.[0]}
-                                                                        </span>
-                                                                    </div>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </label>
-                                                {badges.teams &&
-                                                    badges.teams.length >= 2 &&
-                                                    badges.score1 != null &&
-                                                    badges.score2 != null && (
-                                                        <div
-                                                            className={`portfolio__segmented-toggle story-export-modal__scores-toggle ${
-                                                                !badges.showScoreboard
-                                                                    ? 'story-export-modal__scores-toggle--disabled'
-                                                                    : ''
-                                                            }`}
-                                                            role="group"
-                                                            aria-label="Toggle event scores"
-                                                        >
-                                                            <button
-                                                                type="button"
-                                                                className={`story-export-modal__scores-btn ${
-                                                                    badges.showScores !== false
-                                                                        ? 'active story-export-modal__scores-btn--active'
-                                                                        : ''
-                                                                }`}
-                                                                onClick={() => {
-                                                                    setBadges((prev) => ({
-                                                                        ...prev,
-                                                                        showScores: true,
-                                                                    }));
-                                                                    setIsDownloaded(false);
-                                                                }}
-                                                                aria-label="Show event scores"
-                                                                title="Show scores"
-                                                                disabled={!badges.showScoreboard}
-                                                            >
-                                                                Scores
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                className={`story-export-modal__scores-btn ${
-                                                                    badges.showScores === false
-                                                                        ? 'active story-export-modal__scores-btn--active'
-                                                                        : ''
-                                                                }`}
-                                                                onClick={() => {
-                                                                    setBadges((prev) => ({
-                                                                        ...prev,
-                                                                        showScores: false,
-                                                                    }));
-                                                                    setIsDownloaded(false);
-                                                                }}
-                                                                aria-label="Hide event scores"
-                                                                title="Hide scores"
-                                                                disabled={!badges.showScoreboard}
-                                                            >
-                                                                Off
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
+                            <StoryBadgesTab
+                                badges={badges}
+                                setBadges={setBadges}
+                                cardTheme={cardTheme}
+                                setCardTheme={setCardTheme}
+                                eventInfo={eventInfo}
+                                setIsDownloaded={setIsDownloaded}
+                            />
                         )}
                     </div>
 

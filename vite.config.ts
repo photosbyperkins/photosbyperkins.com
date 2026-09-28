@@ -221,6 +221,7 @@ export default defineConfig(({ mode }) => {
         open: true,
     },
     test: {
+        environment: 'happy-dom',
         exclude: ['e2e/**', 'node_modules/**']
     }
     }

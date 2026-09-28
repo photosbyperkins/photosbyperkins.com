@@ -1,0 +1,292 @@
+@use '../globals' as *;
+
+// --- Interactive Story Cropper Component Styles ---
+.story-cropper {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+
+    &__viewport {
+        width: 100%;
+        position: relative;
+        overflow: hidden;
+        border-radius: 12px;
+        background: #000;
+        cursor: grab;
+        user-select: none;
+        touch-action: none;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+        container-type: inline-size;
+
+        &--dragging {
+            cursor: grabbing;
+        }
+    }
+
+    &__image-wrapper {
+        position: absolute;
+        top: 0;
+        left: 0;
+        pointer-events: none;
+    }
+
+    &__image {
+        width: 100%;
+        height: 100%;
+        display: block;
+        object-fit: fill;
+        pointer-events: none;
+    }
+
+    // Rule of Thirds Grid Lines
+    &__grid {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity var(--transition-fast);
+
+        &--visible {
+            opacity: 1;
+        }
+
+        &-col {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: rgba(255, 255, 255, 0.35);
+
+            &:nth-child(1) {
+                left: 33.333%;
+            }
+
+            &:nth-child(2) {
+                left: 66.666%;
+            }
+        }
+
+        &-row {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.35);
+
+            &:nth-child(3) {
+                top: 33.333%;
+            }
+
+            &:nth-child(4) {
+                top: 66.666%;
+            }
+        }
+    }
+
+    &__vignette {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        border-radius: 12px;
+        box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.3);
+    }
+
+    // Story Overlays & Badges (portfolio__event-header & nav__logo styles)
+    &__badge {
+        position: absolute;
+        pointer-events: none;
+        user-select: none;
+        z-index: 10;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+
+        &--scoreboard {
+            bottom: 5.5%;
+            left: 50%;
+            right: auto;
+            top: auto;
+            transform: translateX(-50%);
+            background: rgba(10, 10, 16, 0.86);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            border-radius: clamp(6px, 2.8cqw, 12px);
+            padding: clamp(3px, 1.4cqw, 6px) clamp(6px, 3cqw, 12px);
+            display: flex;
+            align-items: center;
+            gap: clamp(4px, 2.2cqw, 10px);
+            max-width: 96%;
+        }
+
+        &--attribution {
+            top: 5.5%;
+            left: 50%;
+            bottom: auto;
+            transform: translateX(-50%);
+            background: rgba(10, 10, 16, 0.84);
+            backdrop-filter: blur(16px) saturate(180%);
+            -webkit-backdrop-filter: blur(16px) saturate(180%);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            border-radius: 999px;
+            padding: clamp(2px, 1cqw, 4px) clamp(6px, 3.2cqw, 14px);
+            display: inline-flex;
+            align-items: center;
+            gap: clamp(3px, 1.4cqw, 6px);
+            white-space: nowrap;
+            max-width: 96%;
+        }
+
+        &--light {
+            background: rgba(255, 255, 255, 0.88);
+            border-color: rgba(0, 0, 0, 0.12);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+
+            .story-cropper__event-divider {
+                background: rgba(0, 0, 0, 0.15);
+            }
+
+            .story-cropper__team-name {
+                color: #111116;
+            }
+
+            .story-cropper__team-score {
+                color: rgba(0, 0, 0, 0.45);
+
+                &.is-win {
+                    color: #111116;
+                }
+            }
+
+            .story-cropper__logo-icon {
+                background-color: #111116;
+            }
+
+            .story-cropper__logo-text {
+                color: #111116;
+            }
+
+            .story-cropper__logo-accent {
+                color: var(--color-accent);
+            }
+
+            .story-cropper__logo-domain {
+                color: rgba(0, 0, 0, 0.6);
+            }
+        }
+    }
+
+    // Scoreboard Elements (matches portfolio__event-header)
+    &__event-date {
+        font-family: var(--font-condensed);
+        font-size: clamp(12px, 6.8cqw, 1.6rem);
+        font-weight: 600;
+        line-height: 1;
+        color: var(--color-accent);
+        flex-shrink: 0;
+        letter-spacing: -0.02em;
+    }
+
+    &__event-divider {
+        width: 1px;
+        height: clamp(12px, 6.8cqw, 1.6rem);
+        background: rgba(255, 255, 255, 0.2);
+        flex-shrink: 0;
+    }
+
+    &__event-teams-stack {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 2px;
+        min-width: 0;
+    }
+
+    &__team-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: clamp(4px, 2.4cqw, 12px);
+        min-width: 0;
+    }
+
+    &__team-name {
+        font-family: var(--font-condensed);
+        font-size: clamp(6.5px, 3.4cqw, 0.82rem);
+        font-weight: 700;
+        color: #ffffff;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: clamp(75px, 48cqw, 150px);
+    }
+
+    &__team-score {
+        font-family: var(--font-condensed);
+        font-size: clamp(7px, 3.6cqw, 0.85rem);
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.5);
+        line-height: 1;
+        text-align: right;
+        min-width: clamp(10px, 4.5cqw, 18px);
+
+        &.is-win {
+            color: #ffffff;
+            font-weight: 700;
+        }
+    }
+
+    // Attribution Elements (matches nav__logo)
+    &__logo-icon {
+        width: clamp(9px, 3.8cqw, 1.1em);
+        height: clamp(9px, 3.8cqw, 1.1em);
+        display: inline-block;
+        background-color: #ffffff;
+        -webkit-mask: url('/favicon.svg?v=2') no-repeat center / contain;
+        mask: url('/favicon.svg?v=2') no-repeat center / contain;
+        transform: translateY(0.04em);
+        flex-shrink: 0;
+    }
+
+    &__logo-text {
+        font-family: var(--font-condensed);
+        font-size: clamp(6.5px, 3.2cqw, 0.82rem);
+        font-weight: 300;
+        letter-spacing: 0.12em;
+        color: #ffffff;
+        text-transform: uppercase;
+        line-height: 1;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    &__logo-accent {
+        color: var(--color-accent);
+        font-weight: 300;
+    }
+
+    &__logo-domain {
+        font-family: var(--font-main, 'Outfit', sans-serif);
+        font-size: clamp(5.5px, 2.4cqw, 0.68rem);
+        font-weight: 400;
+        color: rgba(255, 255, 255, 0.65);
+        letter-spacing: 0.01em;
+        margin-left: 2px;
+        text-transform: lowercase;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    &__hint {
+        font-size: 0.72rem;
+        color: var(--color-text-dim);
+        text-align: center;
+
+        @media (max-width: 640px) {
+            display: none;
+        }
+    }
+}

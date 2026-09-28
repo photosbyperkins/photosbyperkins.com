@@ -1,173 +1,15 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { getPhotoOriginalUrl } from '../utils/formatters';
-import type { PhotoInput, FavoriteStoreItem, SharedPhotoState, EventScore } from '../types';
-import type { GearItem } from '../data/gearData';
-import type { PaddedStyleOptions, StoryPhotoFilterId } from '../utils/storyCanvas';
-import type {
-    StoryFrameCategory,
-    StoryFrameColorChoice,
-    StoryFrameId,
-} from '../components/sections/Portfolio/storyFrames/types';
+import { createModalSlice, type ModalSlice } from './slices/modalSlice';
+import { createThemeSlice, type ThemeSlice, getSystemTheme, applyThemeToDOM } from './slices/themeSlice';
+import { createPortfolioSlice, type PortfolioSlice } from './slices/portfolioSlice';
+import { createStorySlice, type StorySlice, DEFAULT_STORY_SETTINGS } from './slices/storySlice';
 
-export type ThemePreference = 'light' | 'dark' | 'system';
+export type { ThemePreference } from './slices/themeSlice';
+export type { StorySettings } from './slices/storySlice';
+export { DEFAULT_STORY_SETTINGS } from './slices/storySlice';
 
-export interface StorySettings {
-    mode: 'crop' | 'padded';
-    presetId?: string;
-    cropZoom?: number;
-    paddedConfig: PaddedStyleOptions;
-    filterId: StoryPhotoFilterId;
-    filterStrength?: number;
-    frameId: StoryFrameId;
-    frameCategory: StoryFrameCategory | 'all';
-    frameColorChoice: StoryFrameColorChoice;
-    frameCustomColor: string;
-    badgeTheme: 'dark' | 'light';
-    showAttribution: boolean;
-    showScoreboard: boolean;
-    showScores: boolean;
-}
-
-export const DEFAULT_STORY_SETTINGS: StorySettings = {
-    mode: 'crop',
-    presetId: 'center',
-    cropZoom: 1.0,
-    paddedConfig: {
-        style: 'frosted',
-        position: 'center',
-        cardScale: 0.92,
-        cardCornerRadius: 24,
-        customColor: '#0a0a14',
-    },
-    filterId: 'none',
-    filterStrength: 1.0,
-    frameId: 'none',
-    frameCategory: 'all',
-    frameColorChoice: 'signature',
-    frameCustomColor: '#ffffff',
-    badgeTheme: 'dark',
-    showAttribution: true,
-    showScoreboard: true,
-    showScores: true,
-};
-
-export interface AppStore {
-    // App Slice
-    isAboutOpen: boolean;
-    openAbout: () => void;
-    closeAbout: () => void;
-
-    isAiPolicyOpen: boolean;
-    openAiPolicy: () => void;
-    closeAiPolicy: () => void;
-
-    isCodeLicenseOpen: boolean;
-    openCodeLicense: () => void;
-    closeCodeLicense: () => void;
-
-    isPhotoLicenseOpen: boolean;
-    openPhotoLicense: () => void;
-    closePhotoLicense: () => void;
-
-    activeGear: GearItem | null;
-    openGearModal: (gear: GearItem) => void;
-    closeGearModal: () => void;
-
-    iframeUrl: string | null;
-    iframeTitle: string;
-    iframeExternalUrl: string | null;
-    openIframe: (url: string, title?: string, externalUrl?: string) => void;
-    closeIframe: () => void;
-
-    // Theme Slice
-    theme: ThemePreference;
-    activeTheme: 'light' | 'dark';
-    setTheme: (theme: ThemePreference) => void;
-
-    // Portfolio Slice
-    lightbox: {
-        images: PhotoInput[];
-        index: number;
-        eventName: string;
-        year: string;
-        isOpen: boolean;
-        maxExifChars?: number;
-        localScore?: EventScore;
-    };
-    sharedPhoto: SharedPhotoState | null;
-    favorites: FavoriteStoreItem[];
-
-    openLightbox: (
-        images: PhotoInput[],
-        index: number,
-        eventName: string,
-        year: string,
-        maxExifChars?: number,
-        localScore?: EventScore
-    ) => void;
-    closeLightbox: () => void;
-    setLightboxIndex: (index: number) => void;
-    setSharedPhoto: (sharedPhoto: SharedPhotoState | null) => void;
-    toggleFavorite: (item: FavoriteStoreItem) => void;
-    clearFavorites: () => void;
-
-    // Story Maker Settings Slice
-    storySettings: StorySettings;
-    setStorySettings: (settings: Partial<StorySettings>) => void;
-    resetStorySettings: () => void;
-}
-
-// Helper to get system preference
-const getSystemTheme = (): 'light' | 'dark' => {
-    if (typeof window === 'undefined') return 'dark';
-    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
-};
-
-// Helper to apply theme to DOM
-const applyThemeToDOM = (theme: 'light' | 'dark') => {
-    if (typeof window === 'undefined') return;
-    document.documentElement.setAttribute('data-theme', theme);
-    let metaThemeColor = document.querySelector('meta[name="theme-color"]');
-    if (!metaThemeColor) {
-        metaThemeColor = document.createElement('meta');
-        metaThemeColor.setAttribute('name', 'theme-color');
-        document.head.appendChild(metaThemeColor);
-    }
-    metaThemeColor.setAttribute('content', theme === 'dark' ? '#0a0a0f' : '#fafafa');
-};
-
-// Extract legacy favorites during initialization
-const extractLegacyFavorites = (): FavoriteStoreItem[] => {
-    if (typeof window === 'undefined') return [];
-    try {
-        const raw = localStorage.getItem('portfolio-favorites');
-        if (raw) {
-            const parsed = JSON.parse(raw);
-            const favs = parsed?.state?.favorites;
-            if (Array.isArray(favs) && favs.length > 0) {
-                return favs;
-            }
-        }
-    } catch {
-        // ignore
-    }
-    return [];
-};
-
-// Extract legacy theme
-const extractLegacyTheme = (): ThemePreference => {
-    if (typeof window === 'undefined') return 'system';
-    try {
-        const raw = localStorage.getItem('photo-theme-preference');
-        if (raw === 'light' || raw === 'dark' || raw === 'system') {
-            return raw as ThemePreference;
-        }
-    } catch {
-        // ignore
-    }
-    return 'system';
-};
+export type AppStore = ModalSlice & ThemeSlice & PortfolioSlice & StorySlice;
 
 const clearLegacyKeys = () => {
     if (typeof window === 'undefined') return;
@@ -181,105 +23,11 @@ const clearLegacyKeys = () => {
 
 export const useAppStore = create<AppStore>()(
     persist(
-        (set) => ({
-            // --- APP SLICE ---
-            isAboutOpen: false,
-            openAbout: () => set({ isAboutOpen: true }),
-            closeAbout: () => set({ isAboutOpen: false }),
-
-            isAiPolicyOpen: false,
-            openAiPolicy: () => set({ isAiPolicyOpen: true }),
-            closeAiPolicy: () => set({ isAiPolicyOpen: false }),
-
-            isCodeLicenseOpen: false,
-            openCodeLicense: () => set({ isCodeLicenseOpen: true }),
-            closeCodeLicense: () => set({ isCodeLicenseOpen: false }),
-
-            isPhotoLicenseOpen: false,
-            openPhotoLicense: () => set({ isPhotoLicenseOpen: true }),
-            closePhotoLicense: () => set({ isPhotoLicenseOpen: false }),
-
-            activeGear: null,
-            openGearModal: (gear: GearItem) => set({ activeGear: gear }),
-            closeGearModal: () => set({ activeGear: null }),
-
-            iframeUrl: null,
-            iframeTitle: 'WFTDA STATS',
-            iframeExternalUrl: null,
-            openIframe: (url: string, title: string = 'WFTDA STATS', externalUrl?: string) =>
-                set({ iframeUrl: url, iframeTitle: title, iframeExternalUrl: externalUrl || url }),
-            closeIframe: () => set({ iframeUrl: null, iframeTitle: 'WFTDA STATS', iframeExternalUrl: null }),
-
-            // --- THEME SLICE ---
-            // Fallback to legacy theme if it exists during first init
-            theme: extractLegacyTheme(),
-            activeTheme:
-                extractLegacyTheme() === 'system' ? getSystemTheme() : (extractLegacyTheme() as 'light' | 'dark'),
-            setTheme: (newTheme: ThemePreference) => {
-                const resolved = newTheme === 'system' ? getSystemTheme() : newTheme;
-                set({ theme: newTheme, activeTheme: resolved });
-                applyThemeToDOM(resolved);
-            },
-
-            // --- PORTFOLIO SLICE ---
-            lightbox: {
-                images: [],
-                index: 0,
-                eventName: '',
-                year: '',
-                isOpen: false,
-            },
-            sharedPhoto: null,
-            // Fallback to legacy favorites on first init
-            favorites: extractLegacyFavorites(),
-
-            openLightbox: (images, index, eventName, year, maxExifChars, localScore) =>
-                set({ lightbox: { images, index, eventName, year, isOpen: true, maxExifChars, localScore } }),
-
-            closeLightbox: () => set((state) => ({ lightbox: { ...state.lightbox, isOpen: false } })),
-
-            setLightboxIndex: (index) => set((state) => ({ lightbox: { ...state.lightbox, index } })),
-
-            setSharedPhoto: (sharedPhoto) => set({ sharedPhoto }),
-
-            toggleFavorite: (item) =>
-                set((state) => {
-                    const photoOriginal = getPhotoOriginalUrl(item);
-                    const isFav = state.favorites.some((f) => getPhotoOriginalUrl(f) === photoOriginal);
-
-                    if (isFav) {
-                        return {
-                            favorites: state.favorites.filter((f) => getPhotoOriginalUrl(f) !== photoOriginal),
-                        };
-                    } else {
-                        return { favorites: [...state.favorites, item] };
-                    }
-                }),
-
-            clearFavorites: () => set({ favorites: [] }),
-
-            // --- STORY SETTINGS SLICE ---
-            storySettings: DEFAULT_STORY_SETTINGS,
-            setStorySettings: (settings) =>
-                set((state) => {
-                    const nextSettings = {
-                        ...state.storySettings,
-                        ...settings,
-                        ...(settings.paddedConfig
-                            ? {
-                                  paddedConfig: {
-                                      ...state.storySettings.paddedConfig,
-                                      ...settings.paddedConfig,
-                                  },
-                              }
-                            : {}),
-                    };
-                    if (settings.filterStrength !== undefined) {
-                        nextSettings.filterStrength = Math.max(0.1, Math.min(1.0, settings.filterStrength));
-                    }
-                    return { storySettings: nextSettings };
-                }),
-            resetStorySettings: () => set({ storySettings: DEFAULT_STORY_SETTINGS }),
+        (...a) => ({
+            ...createModalSlice(...a),
+            ...createThemeSlice(...a),
+            ...createPortfolioSlice(...a),
+            ...createStorySlice(...a),
         }),
         {
             name: 'photo-app-store',
@@ -323,7 +71,6 @@ export const useAppStore = create<AppStore>()(
                 };
             },
             onRehydrateStorage: () => (state) => {
-                // Remove legacy keys now that we've hydrated or captured them
                 clearLegacyKeys();
 
                 if (state) {

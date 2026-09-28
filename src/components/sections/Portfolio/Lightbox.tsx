@@ -1,14 +1,15 @@
 import { motion, AnimatePresence, useMotionValue, animate, useTransform, type PanInfo } from 'framer-motion';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
 import LightboxSlide, { type LightboxSlideHandle } from './LightboxSlide';
 import LightboxAmbient from './LightboxAmbient';
 import LightboxHeader from './LightboxHeader';
 import LightboxScrubber from './LightboxScrubber';
-import StoryExportModal from './StoryExportModal';
 import type { PhotoInput, EventScore } from '../../../types';
+
+const StoryExportModal = lazy(() => import('./StoryExportModal'));
 
 declare const __BUILD_NUMBER__: string;
 
@@ -561,16 +562,18 @@ export default function Lightbox({
 
             {isStoryExportOpen && (
                 <div onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
-                    <StoryExportModal
-                        key={`story-export-${index}-${storyExportSessionId}`}
-                        isOpen={isStoryExportOpen}
-                        onClose={() => setIsStoryExportOpen(false)}
-                        photo={images[index]}
-                        eventName={eventName}
-                        year={year}
-                        index={index}
-                        localScore={localScore}
-                    />
+                    <Suspense fallback={null}>
+                        <StoryExportModal
+                            key={`story-export-${index}-${storyExportSessionId}`}
+                            isOpen={isStoryExportOpen}
+                            onClose={() => setIsStoryExportOpen(false)}
+                            photo={images[index]}
+                            eventName={eventName}
+                            year={year}
+                            index={index}
+                            localScore={localScore}
+                        />
+                    </Suspense>
                 </div>
             )}
         </motion.div>
