@@ -8,6 +8,7 @@ import {
     STORY_ASPECT_RATIO,
     STORY_PHOTO_FILTERS,
     STORY_PHOTO_FILTERS_MAP,
+    P_ADJUSTMENT,
 } from './storyCanvas';
 import { STORY_FRAME_DEFINITIONS } from '../components/sections/Portfolio/storyFrames/frameDefinitions';
 
@@ -190,7 +191,7 @@ describe('storyCanvas calculations', () => {
             expect(mockCtx.scale).toHaveBeenCalled();
             expect(mockCtx.beginPath).toHaveBeenCalled();
             expect(mockCtx.stroke).toHaveBeenCalled();
-            expect(mockCtx.fillText).toHaveBeenCalledWith('P', 325, 233);
+            expect(mockCtx.fillText).toHaveBeenCalledWith('P', 325, 233 + P_ADJUSTMENT);
             expect(mockCtx.restore).toHaveBeenCalled();
         });
     });

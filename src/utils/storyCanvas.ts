@@ -14,6 +14,7 @@ import { STORY_FRAMES_MAP } from '../components/sections/Portfolio/storyFrames/f
 export const STORY_ASPECT_RATIO = 9 / 16; // 0.5625
 export const STORY_WIDTH = 1080;
 export const STORY_HEIGHT = 1920;
+export const P_ADJUSTMENT = -6;
 
 export interface NormalizedCrop {
     x: number; // 0..1 (top-left X relative to image width)
@@ -106,7 +107,8 @@ export function drawCameraLogoIcon(
     ctx.font = "bold 250px 'Segoe UI', 'Helvetica Neue', Arial, sans-serif";
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('P', 325, 233);
+    // custom adjustment to center the 'P' in the lens circle
+    ctx.fillText('P', 325, 233 + P_ADJUSTMENT);
 
     ctx.restore();
 }
