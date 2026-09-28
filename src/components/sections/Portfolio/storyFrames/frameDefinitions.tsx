@@ -1,9 +1,10 @@
 import React from 'react';
 import { SAC_BEAR_PATHS } from './sacBearData';
+import { EXTENDED_FRAME_DEFINITIONS } from './extendedFrames';
 import type { StoryFrameDefinition, StoryFrameId } from './types';
 
 // Helper to wrap inner SVG content in a standard 1080x1920 SVG container
-function createSvgString(inner: string): string {
+export function createSvgString(inner: string): string {
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1080 1920" width="1080" height="1920" fill="none">${inner}</svg>`;
 }
 
@@ -19,6 +20,7 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
     {
         id: 'sac-bear',
         label: 'Capital Grizzly',
+        category: 'derby',
         vibe: 'SRD California Republic heritage & golden pride',
         signaturePalette: ['#f59e0b', '#e60000', '#1e3a8a'],
         renderSvg: (override, context) => {
@@ -147,6 +149,7 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
     {
         id: 'derby-quads',
         label: 'Derby Quads',
+        category: 'derby',
         vibe: 'Quad roller skates, speed track lines & jammer star',
         signaturePalette: ['#f97316', '#dc2626', '#ffffff'],
         renderSvg: (override, context) => {
@@ -245,6 +248,7 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
     {
         id: 'claw-marks',
         label: 'Beast Claws',
+        category: 'action',
         vibe: 'High-impact razor claw slashes & glowing embers',
         signaturePalette: ['#ef4444', '#ea580c', '#f59e0b'],
         renderSvg: (override, context) => {
@@ -318,6 +322,7 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
     {
         id: 'unicorns',
         label: 'Rainbow Unicorn',
+        category: 'cosmic',
         vibe: 'Pastel dream arches, cute starbursts & magic horn',
         signaturePalette: ['#f472b6', '#c084fc', '#38bdf8', '#facc15'],
         renderSvg: (override, context) => {
@@ -603,6 +608,7 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
     {
         id: 'intergalactic',
         label: 'Deep Space',
+        category: 'cosmic',
         vibe: 'Ringed celestial planets, streaking comets & starfield constellations',
         signaturePalette: ['#8b5cf6', '#06b6d4', '#fbbf24'],
         renderSvg: (override, context) => {
@@ -832,6 +838,7 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
     {
         id: 'celestial-moon',
         label: 'Celestial Moon',
+        category: 'cosmic',
         vibe: 'Minimalist art-deco crescent moons & gold starlight',
         signaturePalette: ['#facc15', '#e2e8f0'],
         renderSvg: (override, context) => {
@@ -914,6 +921,7 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
     {
         id: 'synthwave',
         label: '80s Synthwave',
+        category: 'retro',
         vibe: '80s retro cyber grid horizon & neon laser triangles',
         signaturePalette: ['#f43f5e', '#06b6d4'],
         renderSvg: (override, context) => {
@@ -1008,6 +1016,7 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
     {
         id: 'film-strip',
         label: '35mm Film',
+        category: 'retro',
         vibe: 'Classic analog negative perforated sprockets & frame markers',
         signaturePalette: ['#f8fafc', '#0f172a'],
         renderSvg: (override) => {
@@ -1076,6 +1085,7 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
     {
         id: 'cyber-hud',
         label: 'Cyber HUD',
+        category: 'tech',
         vibe: 'High-tech tactical viewfinder, [REC] indicator & telemetry',
         signaturePalette: ['#06b6d4', '#ef4444', '#ffffff'],
         renderSvg: (override, context) => {
@@ -1152,6 +1162,7 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
     {
         id: 'golden-sparkle',
         label: 'Golden Hour',
+        category: 'cosmic',
         vibe: 'Glamour diamond sparkles, lens flares & champagne glow',
         signaturePalette: ['#fef08a', '#fbbf24', '#ffffff'],
         renderSvg: (override, context) => {
@@ -1224,6 +1235,7 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
     {
         id: 'pop-art',
         label: 'Pop Art',
+        category: 'action',
         vibe: 'Comic action halftone dot clusters & speed lines',
         signaturePalette: ['#facc15', '#06b6d4', '#ef4444'],
         renderSvg: (override, context) => {
@@ -1424,6 +1436,7 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
     {
         id: 'street-flames',
         label: 'Hot Rod Flames',
+        category: 'action',
         vibe: 'Hot rod fire flames rising from lower corners',
         signaturePalette: ['#f59e0b', '#ef4444', '#ffffff'],
         renderSvg: (override, context) => {
@@ -1518,6 +1531,7 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
     {
         id: 'electric-lightning',
         label: 'High Voltage',
+        category: 'action',
         vibe: 'High-voltage lightning bolts, kinetic energy arcs & plasma sparks',
         signaturePalette: ['#00f0ff', '#3b82f6', '#facc15'],
         renderSvg: (override, context) => {
@@ -1789,6 +1803,7 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
     {
         id: 'through-the-lens',
         label: 'Through the Lens',
+        category: 'tech',
         vibe: 'Nikon Z 8 EVF / rear screen telemetry HUD with live photo EXIF',
         signaturePalette: ['#ffffff', '#e60000', '#22c55e'],
         renderSvg: (override, context) => {
@@ -2102,6 +2117,7 @@ export const STORY_FRAME_DEFINITIONS: StoryFrameDefinition[] = [
             `);
         },
     },
+    ...EXTENDED_FRAME_DEFINITIONS,
 ];
 
 export const STORY_FRAMES_MAP: Record<StoryFrameId, StoryFrameDefinition> = STORY_FRAME_DEFINITIONS.reduce(

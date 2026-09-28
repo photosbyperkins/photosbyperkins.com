@@ -36,11 +36,52 @@ export interface StoryPreset {
 }
 
 export interface PaddedStyleOptions {
-    style: 'glass' | 'noir' | 'custom';
+    style: 'frosted' | 'solid' | 'glass' | 'custom' | 'noir';
     customColor?: string;
     position: 'center' | 'elevated';
     cardScale: number; // 0.8..1.0 (default: 0.92)
     cardCornerRadius: number; // in pixels at 1080x1920 (default: 24)
+}
+
+/**
+ * Converts a hex or rgb color string into an rgba string with the specified or calculated opacity.
+ * Used for translucent frosted glass overlay tints.
+ */
+export function hexToRgba(hexOrRgb: string, customAlpha?: number): string {
+    const trimmed = (hexOrRgb || '').trim();
+    if (trimmed.startsWith('rgba')) {
+        return trimmed;
+    }
+    if (trimmed.startsWith('rgb')) {
+        const m = trimmed.match(/\d+/g);
+        if (m && m.length >= 3) {
+            const r = parseInt(m[0], 10);
+            const g = parseInt(m[1], 10);
+            const b = parseInt(m[2], 10);
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            const alpha = customAlpha !== undefined ? customAlpha : luminance > 0.7 ? 0.4 : 0.5;
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+    }
+    let hex = trimmed.replace('#', '');
+    if (hex.length === 3) {
+        hex = hex
+            .split('')
+            .map((c) => c + c)
+            .join('');
+    }
+    if (hex.length === 6) {
+        const num = parseInt(hex, 16);
+        if (!isNaN(num)) {
+            const r = (num >> 16) & 255;
+            const g = (num >> 8) & 255;
+            const b = num & 255;
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            const alpha = customAlpha !== undefined ? customAlpha : luminance > 0.7 ? 0.4 : 0.5;
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+    }
+    return `rgba(10, 10, 18, ${customAlpha ?? 0.5})`;
 }
 
 export interface BadgeOptions {
@@ -137,13 +178,13 @@ export const STORY_PHOTO_FILTERS: StoryPhotoFilter[] = [
     },
     {
         id: 'bw-contrast',
-        label: 'B&W Contrast',
+        label: 'B&W+',
         description: 'High contrast black & white with deep blacks',
         cssFilter: 'grayscale(100%) contrast(160%) brightness(95%)',
     },
     {
         id: 'warm',
-        label: 'Warm Vintage',
+        label: 'Vintage',
         description: 'Golden hour ambient warmth',
         cssFilter: 'sepia(28%) saturate(120%) contrast(105%) brightness(102%)',
     },
@@ -161,7 +202,7 @@ export const STORY_PHOTO_FILTERS: StoryPhotoFilter[] = [
     },
     {
         id: 'noir',
-        label: 'Moody Noir',
+        label: 'Noir',
         description: 'Dramatic deep cinematic shadows',
         cssFilter: 'contrast(130%) brightness(90%) saturate(85%)',
     },
@@ -649,7 +690,8 @@ export async function renderStoryToCanvas(
         const cornerRadius = (padded.cardCornerRadius || 24) * (targetW / STORY_WIDTH);
 
         // --- A. Background Rendering ---
-        if (padded.style === 'glass') {
+        const isFrosted = padded.style === 'frosted' || padded.style === 'glass';
+        if (isFrosted) {
             // Draw scaled background image
             const bgScale = Math.max(targetW / naturalW, targetH / naturalH);
             const bgW = naturalW * bgScale;
@@ -707,12 +749,13 @@ export async function renderStoryToCanvas(
                 ctx.restore();
             }
 
-            // Frosted glass overlay tint
-            ctx.fillStyle = config.cardTheme === 'light' ? 'rgba(255, 255, 255, 0.35)' : 'rgba(10, 10, 18, 0.45)';
+            // Frosted glass overlay tint (affected by customColor or theme default)
+            const tintColor = padded.customColor || (config.cardTheme === 'light' ? '#ffffff' : '#0a0a14');
+            ctx.fillStyle = hexToRgba(tintColor);
             ctx.fillRect(0, 0, targetW, targetH);
-        } else if (padded.style === 'custom') {
-            // Solid custom background color
-            ctx.fillStyle = padded.customColor || '#0a0a14';
+        } else if (padded.style === 'solid' || padded.style === 'custom') {
+            // Solid background color
+            ctx.fillStyle = padded.customColor || (config.cardTheme === 'light' ? '#ffffff' : '#0a0a14');
             ctx.fillRect(0, 0, targetW, targetH);
         } else {
             // Minimal Noir Dark Background (default fallback)

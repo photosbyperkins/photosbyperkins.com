@@ -16,7 +16,36 @@ export type StoryFrameId =
     | 'pop-art'
     | 'street-flames'
     | 'electric-lightning'
-    | 'through-the-lens';
+    | 'through-the-lens'
+    | 'ref-zebra'
+    | 'bout-day'
+    | 'derby-punk'
+    | 'sonic-boom'
+    | 'speed-demons'
+    | 'instant-film'
+    | 'vhs-glitch'
+    | 'risograph'
+    | 'broadcast-live'
+    | 'night-vision'
+    | 'roller-disco'
+    | 'mystic-tarot';
+
+export type StoryFrameCategory = 'derby' | 'action' | 'retro' | 'tech' | 'cosmic';
+
+export interface StoryFrameCategoryMeta {
+    id: StoryFrameCategory | 'all';
+    label: string;
+    vibe: string;
+}
+
+export const STORY_FRAME_CATEGORIES: StoryFrameCategoryMeta[] = [
+    { id: 'all', label: 'All', vibe: 'All frames' },
+    { id: 'derby', label: 'Derby & Track', vibe: 'Skates, California heritage & track culture' },
+    { id: 'action', label: 'High Voltage', vibe: 'Impact, lightning, flames & kinetics' },
+    { id: 'retro', label: 'Retro & Film', vibe: 'Analog film, VHS, riso & 80s nostalgia' },
+    { id: 'tech', label: 'Tech & HUD', vibe: 'Viewfinders, live EXIF & broadcast telemetry' },
+    { id: 'cosmic', label: 'Cosmic & Glow', vibe: 'Celestial, disco, stars & fantasy' },
+];
 
 export type StoryFrameColorChoice = 'signature' | 'white' | 'gold' | 'red' | 'custom';
 
@@ -31,6 +60,7 @@ export interface StoryFrameDefinition {
     id: StoryFrameId;
     label: string;
     vibe: string;
+    category?: StoryFrameCategory;
     signaturePalette: string[];
     renderSvg: (colorOverride?: string, context?: StoryFrameContext) => React.ReactNode;
     getSvgString: (colorOverride?: string, context?: StoryFrameContext) => string;

@@ -5,6 +5,7 @@ import {
     drawCameraLogoIcon,
     renderStoryToCanvas,
     drawStoryFrameToCanvas,
+    hexToRgba,
     STORY_ASPECT_RATIO,
     STORY_PHOTO_FILTERS,
     STORY_PHOTO_FILTERS_MAP,
@@ -357,6 +358,162 @@ describe('storyCanvas calculations', () => {
             expect(fillStyles).toContain('#1e293b');
         });
 
+        it('renders with padded solid background color correctly', async () => {
+            const fillStyles: string[] = [];
+            const mockCtx = {
+                save: vi.fn(),
+                restore: vi.fn(),
+                beginPath: vi.fn(),
+                moveTo: vi.fn(),
+                lineTo: vi.fn(),
+                quadraticCurveTo: vi.fn(),
+                arcTo: vi.fn(),
+                closePath: vi.fn(),
+                stroke: vi.fn(),
+                fill: vi.fn(),
+                clip: vi.fn(),
+                drawImage: vi.fn(),
+                fillRect: vi.fn(),
+                fillText: vi.fn(),
+                measureText: vi.fn().mockReturnValue({ width: 50 }),
+                translate: vi.fn(),
+                scale: vi.fn(),
+                strokeStyle: '',
+                set fillStyle(val: string) {
+                    fillStyles.push(val);
+                },
+                get fillStyle() {
+                    return fillStyles[fillStyles.length - 1] || '';
+                },
+                lineWidth: 0,
+                lineJoin: '',
+                lineCap: '',
+                font: '',
+                textAlign: '',
+                textBaseline: '',
+                shadowColor: '',
+                shadowBlur: 0,
+                shadowOffsetX: 0,
+                shadowOffsetY: 0,
+                imageSmoothingEnabled: false,
+                imageSmoothingQuality: 'low',
+            } as unknown as CanvasRenderingContext2D;
+
+            const mockCanvas = {
+                width: 0,
+                height: 0,
+                getContext: vi.fn().mockReturnValue(mockCtx),
+            } as unknown as HTMLCanvasElement;
+
+            const mockImg = {
+                width: 3840,
+                height: 2560,
+                naturalWidth: 3840,
+                naturalHeight: 2560,
+            } as unknown as HTMLImageElement;
+
+            await renderStoryToCanvas(
+                mockImg,
+                {
+                    mode: 'padded',
+                    crop: calculateNormalizedCrop(3840, 2560, 0.5, 0.5, 1.0),
+                    padded: {
+                        style: 'solid',
+                        customColor: '#2c1810',
+                        position: 'center',
+                        cardScale: 0.92,
+                        cardCornerRadius: 24,
+                    },
+                    badges: {
+                        showScoreboard: false,
+                        showAttribution: false,
+                    },
+                    cardTheme: 'dark',
+                },
+                mockCanvas
+            );
+
+            expect(fillStyles).toContain('#2c1810');
+        });
+
+        it('renders with padded frosted tinted background correctly', async () => {
+            const fillStyles: string[] = [];
+            const mockCtx = {
+                save: vi.fn(),
+                restore: vi.fn(),
+                beginPath: vi.fn(),
+                moveTo: vi.fn(),
+                lineTo: vi.fn(),
+                quadraticCurveTo: vi.fn(),
+                arcTo: vi.fn(),
+                closePath: vi.fn(),
+                stroke: vi.fn(),
+                fill: vi.fn(),
+                clip: vi.fn(),
+                drawImage: vi.fn(),
+                fillRect: vi.fn(),
+                fillText: vi.fn(),
+                measureText: vi.fn().mockReturnValue({ width: 50 }),
+                translate: vi.fn(),
+                scale: vi.fn(),
+                strokeStyle: '',
+                set fillStyle(val: string) {
+                    fillStyles.push(val);
+                },
+                get fillStyle() {
+                    return fillStyles[fillStyles.length - 1] || '';
+                },
+                lineWidth: 0,
+                lineJoin: '',
+                lineCap: '',
+                font: '',
+                textAlign: '',
+                textBaseline: '',
+                shadowColor: '',
+                shadowBlur: 0,
+                shadowOffsetX: 0,
+                shadowOffsetY: 0,
+                imageSmoothingEnabled: false,
+                imageSmoothingQuality: 'low',
+            } as unknown as CanvasRenderingContext2D;
+
+            const mockCanvas = {
+                width: 0,
+                height: 0,
+                getContext: vi.fn().mockReturnValue(mockCtx),
+            } as unknown as HTMLCanvasElement;
+
+            const mockImg = {
+                width: 3840,
+                height: 2560,
+                naturalWidth: 3840,
+                naturalHeight: 2560,
+            } as unknown as HTMLImageElement;
+
+            await renderStoryToCanvas(
+                mockImg,
+                {
+                    mode: 'padded',
+                    crop: calculateNormalizedCrop(3840, 2560, 0.5, 0.5, 1.0),
+                    padded: {
+                        style: 'frosted',
+                        customColor: '#e60000',
+                        position: 'center',
+                        cardScale: 0.92,
+                        cardCornerRadius: 24,
+                    },
+                    badges: {
+                        showScoreboard: false,
+                        showAttribution: false,
+                    },
+                    cardTheme: 'dark',
+                },
+                mockCanvas
+            );
+
+            expect(fillStyles).toContain('rgba(230, 0, 0, 0.5)');
+        });
+
         it('renders with decorative frame options without throwing', async () => {
             const mockCtx = {
                 save: vi.fn(),
@@ -413,8 +570,8 @@ describe('storyCanvas calculations', () => {
     });
 
     describe('storyFrameDefinitions', () => {
-        it('has 15 frame definitions including none and 14 thematic designs', () => {
-            expect(STORY_FRAME_DEFINITIONS).toHaveLength(15);
+        it('has 27 frame definitions including none and 26 thematic designs', () => {
+            expect(STORY_FRAME_DEFINITIONS).toHaveLength(27);
             const ids = STORY_FRAME_DEFINITIONS.map((f) => f.id);
             expect(ids).toContain('none');
             expect(ids).toContain('sac-bear');
@@ -431,6 +588,44 @@ describe('storyCanvas calculations', () => {
             expect(ids).toContain('street-flames');
             expect(ids).toContain('electric-lightning');
             expect(ids).toContain('through-the-lens');
+            // 12 New Frames
+            expect(ids).toContain('ref-zebra');
+            expect(ids).toContain('bout-day');
+            expect(ids).toContain('derby-punk');
+            expect(ids).toContain('sonic-boom');
+            expect(ids).toContain('speed-demons');
+            expect(ids).toContain('instant-film');
+            expect(ids).toContain('vhs-glitch');
+            expect(ids).toContain('risograph');
+            expect(ids).toContain('broadcast-live');
+            expect(ids).toContain('night-vision');
+            expect(ids).toContain('roller-disco');
+            expect(ids).toContain('mystic-tarot');
+        });
+
+        it('assigns valid categories across all 26 thematic frame designs', () => {
+            const validCategories = ['derby', 'action', 'retro', 'tech', 'cosmic'];
+            for (const frame of STORY_FRAME_DEFINITIONS) {
+                if (frame.id === 'none') {
+                    expect(frame.category).toBeUndefined();
+                } else {
+                    expect(validCategories).toContain(frame.category);
+                }
+            }
+        });
+
+        it('renders extended frames with valid SVG strings and color overrides', () => {
+            const zebra = STORY_FRAME_DEFINITIONS.find((f) => f.id === 'ref-zebra');
+            expect(zebra).toBeDefined();
+            expect(zebra!.getSvgString('#ff0000')).toContain('#ff0000');
+
+            const polaroid = STORY_FRAME_DEFINITIONS.find((f) => f.id === 'instant-film');
+            expect(polaroid).toBeDefined();
+            expect(polaroid!.getSvgString()).toContain('<rect');
+
+            const vhs = STORY_FRAME_DEFINITIONS.find((f) => f.id === 'vhs-glitch');
+            expect(vhs).toBeDefined();
+            expect(vhs!.getSvgString()).toContain('PLAY');
         });
 
         it('generates valid SVG strings with and without color override', () => {
@@ -560,11 +755,11 @@ describe('storyCanvas calculations', () => {
 
             const withoutExif = filterFrames(false);
             expect(withoutExif.some((f) => f.id === 'through-the-lens')).toBe(false);
-            expect(withoutExif).toHaveLength(14);
+            expect(withoutExif).toHaveLength(26);
 
             const withExif = filterFrames(true);
             expect(withExif.some((f) => f.id === 'through-the-lens')).toBe(true);
-            expect(withExif).toHaveLength(15);
+            expect(withExif).toHaveLength(27);
         });
 
         it('drawStoryFrameToCanvas safely resolves for none and invalid frames', async () => {
@@ -642,6 +837,28 @@ describe('storyCanvas calculations', () => {
                     expect(filter.cssFilter.length).toBeGreaterThan(0);
                 }
             }
+        });
+    });
+
+    describe('hexToRgba', () => {
+        it('converts dark hex to rgba with 0.5 alpha', () => {
+            expect(hexToRgba('#0a0a14')).toBe('rgba(10, 10, 20, 0.5)');
+        });
+
+        it('converts light hex to rgba with 0.4 alpha', () => {
+            expect(hexToRgba('#ffffff')).toBe('rgba(255, 255, 255, 0.4)');
+        });
+
+        it('converts short 3-char hex properly', () => {
+            expect(hexToRgba('#fff')).toBe('rgba(255, 255, 255, 0.4)');
+        });
+
+        it('respects customAlpha if provided', () => {
+            expect(hexToRgba('#ff0000', 0.8)).toBe('rgba(255, 0, 0, 0.8)');
+        });
+
+        it('handles rgba strings directly', () => {
+            expect(hexToRgba('rgba(10, 20, 30, 0.5)')).toBe('rgba(10, 20, 30, 0.5)');
         });
     });
 });

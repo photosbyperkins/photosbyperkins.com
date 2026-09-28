@@ -26,7 +26,8 @@ import { StoryBadges } from './StoryBadges';
 import { StoryCropper } from './StoryCropper';
 import { STORY_FRAME_DEFINITIONS, STORY_FRAMES_MAP } from './storyFrames/frameDefinitions';
 import { StoryFrameOverlay } from './storyFrames/StoryFrameOverlay';
-import type { StoryFrameColorChoice, StoryFrameContext, StoryFrameId } from './storyFrames/types';
+import type { StoryFrameCategory, StoryFrameColorChoice, StoryFrameContext, StoryFrameId } from './storyFrames/types';
+import { STORY_FRAME_CATEGORIES } from './storyFrames/types';
 import '../../../styles/_story-export.scss';
 
 declare const __BUILD_NUMBER__: string;
@@ -178,7 +179,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
 
     // Padded mode configuration
     const [paddedConfig, setPaddedConfig] = useState<PaddedStyleOptions>({
-        style: 'glass',
+        style: 'frosted',
         position: 'center',
         cardScale: 0.92,
         cardCornerRadius: 24,
@@ -229,6 +230,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
 
     // Decorative Frame States
     const [activeFrameId, setActiveFrameId] = useState<StoryFrameId>('none');
+    const [selectedFrameCategory, setSelectedFrameCategory] = useState<StoryFrameCategory | 'all'>('all');
     const [isFrameDrawerOpen, setIsFrameDrawerOpen] = useState(false);
     const [frameColorChoice, setFrameColorChoice] = useState<StoryFrameColorChoice>('signature');
     const [frameCustomColor, setFrameCustomColor] = useState<string>('#ffffff');
@@ -254,6 +256,21 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         return STORY_FRAME_DEFINITIONS.filter((f) => f.id !== 'through-the-lens' || hasExif);
     }, [hasExif]);
 
+    const displayedFrames = useMemo(() => {
+        if (selectedFrameCategory === 'all') return availableFrames;
+        // Always include 'none' so the user can easily clear the frame from any category tab
+        return availableFrames.filter((f) => f.id === 'none' || f.category === selectedFrameCategory);
+    }, [availableFrames, selectedFrameCategory]);
+
+    const categoryCounts = useMemo(() => {
+        const counts: Record<string, number> = { all: availableFrames.length };
+        for (const cat of STORY_FRAME_CATEGORIES) {
+            if (cat.id === 'all') continue;
+            counts[cat.id] = availableFrames.filter((f) => f.id === 'none' || f.category === cat.id).length;
+        }
+        return counts;
+    }, [availableFrames]);
+
     // Fallback active frame if photo does not have EXIF
     if (activeFrameId === 'through-the-lens' && !hasExif) {
         setActiveFrameId('none');
@@ -274,6 +291,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         setCardTheme(activeSiteTheme || 'dark');
         setActiveFilterId('none');
         setActiveFrameId('none');
+        setSelectedFrameCategory('all');
         setIsFrameDrawerOpen(false);
         setFrameColorChoice('signature');
         setFrameCustomColor('#ffffff');
@@ -696,12 +714,12 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                         <button
                                             type="button"
                                             className={`story-export-modal__pill ${
-                                                paddedConfig.style === 'glass'
+                                                paddedConfig.style === 'frosted' || paddedConfig.style === 'glass'
                                                     ? 'active story-export-modal__pill--active'
                                                     : ''
                                             }`}
                                             onClick={() => {
-                                                setPaddedConfig((prev) => ({ ...prev, style: 'glass' }));
+                                                setPaddedConfig((prev) => ({ ...prev, style: 'frosted' }));
                                                 setIsDownloaded(false);
                                             }}
                                         >
@@ -710,76 +728,94 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                         <button
                                             type="button"
                                             className={`story-export-modal__pill ${
-                                                paddedConfig.style === 'custom'
+                                                paddedConfig.style === 'solid' || paddedConfig.style === 'custom'
                                                     ? 'active story-export-modal__pill--active'
                                                     : ''
                                             }`}
                                             onClick={() => {
-                                                setPaddedConfig((prev) => ({ ...prev, style: 'custom' }));
+                                                setPaddedConfig((prev) => ({ ...prev, style: 'solid' }));
                                                 setIsDownloaded(false);
                                             }}
                                         >
-                                            Custom
+                                            Solid
                                         </button>
                                     </div>
                                 </div>
 
-                                {paddedConfig.style === 'custom' && (
-                                    <div className="story-export-modal__custom-color-row">
-                                        <div className="story-export-modal__quick-swatches">
-                                            {['#0a0a14', '#1e293b', '#2c1810', '#ffffff'].map((color) => (
-                                                <button
-                                                    key={color}
-                                                    type="button"
-                                                    className={`story-export-modal__quick-swatch ${
-                                                        (paddedConfig.customColor || '#0a0a14').toLowerCase() === color
-                                                            ? 'is-active'
-                                                            : ''
-                                                    }`}
-                                                    style={{ backgroundColor: color }}
-                                                    onClick={() => {
-                                                        setPaddedConfig((prev) => ({
-                                                            ...prev,
-                                                            style: 'custom',
-                                                            customColor: color,
-                                                        }));
-                                                        setIsDownloaded(false);
-                                                    }}
-                                                    title={color}
-                                                    aria-label={`Select background color ${color}`}
-                                                />
-                                            ))}
-                                        </div>
-                                        <label
-                                            className="story-export-modal__color-picker"
-                                            title="Choose custom background color"
-                                        >
-                                            <span
-                                                className="story-export-modal__color-swatch"
-                                                style={{
-                                                    backgroundColor: paddedConfig.customColor || '#0a0a14',
-                                                }}
-                                            />
-                                            <input
-                                                type="color"
-                                                value={paddedConfig.customColor || '#0a0a14'}
-                                                onChange={(e) => {
-                                                    setPaddedConfig((prev) => ({
-                                                        ...prev,
-                                                        style: 'custom',
-                                                        customColor: e.target.value,
-                                                    }));
-                                                    setIsDownloaded(false);
-                                                }}
-                                                className="story-export-modal__color-input"
-                                                aria-label="Custom background color"
-                                            />
-                                        </label>
-                                        <span className="story-export-modal__hex-code">
-                                            {(paddedConfig.customColor || '#0a0a14').toUpperCase()}
-                                        </span>
+                                <div className="story-export-modal__custom-color-row">
+                                    <div className="story-export-modal__quick-swatches">
+                                        {['#0a0a14', '#1e293b', '#2c1810', '#ffffff', '#f59e0b', '#e60000'].map(
+                                            (color) => {
+                                                const currentColor = (
+                                                    paddedConfig.customColor ||
+                                                    (cardTheme === 'light' ? '#ffffff' : '#0a0a14')
+                                                ).toLowerCase();
+                                                const isSelected = currentColor === color.toLowerCase();
+                                                return (
+                                                    <button
+                                                        key={color}
+                                                        type="button"
+                                                        className={`story-export-modal__quick-swatch ${
+                                                            isSelected ? 'is-active' : ''
+                                                        }`}
+                                                        style={{ backgroundColor: color }}
+                                                        onClick={() => {
+                                                            setPaddedConfig((prev) => ({
+                                                                ...prev,
+                                                                customColor: color,
+                                                            }));
+                                                            setIsDownloaded(false);
+                                                        }}
+                                                        title={color}
+                                                        aria-label={`Select background color ${color}`}
+                                                    />
+                                                );
+                                            }
+                                        )}
                                     </div>
-                                )}
+                                    <label
+                                        className="story-export-modal__color-picker"
+                                        title={
+                                            paddedConfig.style === 'solid' || paddedConfig.style === 'custom'
+                                                ? 'Choose solid background color'
+                                                : 'Choose frosted tint color'
+                                        }
+                                    >
+                                        <span
+                                            className="story-export-modal__color-swatch"
+                                            style={{
+                                                backgroundColor:
+                                                    paddedConfig.customColor ||
+                                                    (cardTheme === 'light' ? '#ffffff' : '#0a0a14'),
+                                            }}
+                                        />
+                                        <input
+                                            type="color"
+                                            value={
+                                                paddedConfig.customColor ||
+                                                (cardTheme === 'light' ? '#ffffff' : '#0a0a14')
+                                            }
+                                            onChange={(e) => {
+                                                setPaddedConfig((prev) => ({
+                                                    ...prev,
+                                                    customColor: e.target.value,
+                                                }));
+                                                setIsDownloaded(false);
+                                            }}
+                                            className="story-export-modal__color-input"
+                                            aria-label={
+                                                paddedConfig.style === 'solid' || paddedConfig.style === 'custom'
+                                                    ? 'Solid background color'
+                                                    : 'Frosted tint color'
+                                            }
+                                        />
+                                    </label>
+                                    <span className="story-export-modal__hex-code">
+                                        {(
+                                            paddedConfig.customColor || (cardTheme === 'light' ? '#ffffff' : '#0a0a14')
+                                        ).toUpperCase()}
+                                    </span>
+                                </div>
 
                                 <div className="story-export-modal__toggle-row">
                                     <span>Position</span>
@@ -901,40 +937,70 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                         </div>
 
                         {isFrameDrawerOpen && (
-                            <div className="story-export-modal__frames-grid">
-                                {availableFrames.map((frame) => {
-                                    const isSelected = activeFrameId === frame.id;
-                                    return (
-                                        <button
-                                            key={frame.id}
-                                            type="button"
-                                            className={`story-export-modal__frame-card ${
-                                                isSelected ? 'story-export-modal__frame-card--active' : ''
-                                            }`}
-                                            onClick={() => {
-                                                setActiveFrameId(frame.id);
-                                                setIsDownloaded(false);
-                                            }}
-                                            title={frame.vibe}
-                                        >
-                                            <div className="story-export-modal__frame-thumb">
-                                                {frame.id === 'none' ? (
-                                                    <div className="story-export-modal__frame-none-icon">⊘</div>
-                                                ) : (
-                                                    <svg
-                                                        viewBox="0 0 1080 1920"
-                                                        className="story-export-modal__frame-thumb-svg"
-                                                        preserveAspectRatio="none"
-                                                    >
-                                                        {frame.renderSvg(effectiveFrameColor, frameContext)}
-                                                    </svg>
-                                                )}
-                                            </div>
-                                            <span className="story-export-modal__frame-name">{frame.label}</span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
+                            <>
+                                {/* Category Filter Pills Bar */}
+                                <div
+                                    className="story-export-modal__category-bar"
+                                    role="tablist"
+                                    aria-label="Frame categories"
+                                >
+                                    {STORY_FRAME_CATEGORIES.map((cat) => {
+                                        const isCatActive = selectedFrameCategory === cat.id;
+                                        const count = categoryCounts[cat.id] ?? 0;
+                                        return (
+                                            <button
+                                                key={cat.id}
+                                                type="button"
+                                                role="tab"
+                                                aria-selected={isCatActive}
+                                                className={`story-export-modal__category-pill ${
+                                                    isCatActive ? 'story-export-modal__category-pill--active' : ''
+                                                }`}
+                                                onClick={() => setSelectedFrameCategory(cat.id)}
+                                                title={cat.vibe}
+                                            >
+                                                <span>{cat.label}</span>
+                                                <span className="story-export-modal__category-count">{count}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className="story-export-modal__frames-grid">
+                                    {displayedFrames.map((frame) => {
+                                        const isSelected = activeFrameId === frame.id;
+                                        return (
+                                            <button
+                                                key={frame.id}
+                                                type="button"
+                                                className={`story-export-modal__frame-card ${
+                                                    isSelected ? 'story-export-modal__frame-card--active' : ''
+                                                }`}
+                                                onClick={() => {
+                                                    setActiveFrameId(frame.id);
+                                                    setIsDownloaded(false);
+                                                }}
+                                                title={frame.vibe}
+                                            >
+                                                <div className="story-export-modal__frame-thumb">
+                                                    {frame.id === 'none' ? (
+                                                        <div className="story-export-modal__frame-none-icon">⊘</div>
+                                                    ) : (
+                                                        <svg
+                                                            viewBox="0 0 1080 1920"
+                                                            className="story-export-modal__frame-thumb-svg"
+                                                            preserveAspectRatio="none"
+                                                        >
+                                                            {frame.renderSvg(effectiveFrameColor, frameContext)}
+                                                        </svg>
+                                                    )}
+                                                </div>
+                                                <span className="story-export-modal__frame-name">{frame.label}</span>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </>
                         )}
 
                         {/* Minimal Color / Tint Override Bar (Shown when a frame is active) */}

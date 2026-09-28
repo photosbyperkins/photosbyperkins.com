@@ -105,7 +105,7 @@ test.describe('Story Maker (9:16)', () => {
         // Verify padded settings are displayed
         await expect(studioModal.locator('.story-export-modal__padded-settings')).toBeVisible();
         await expect(studioModal.locator('button:has-text("Frosted")')).toBeVisible();
-        await expect(studioModal.locator('button:has-text("Custom")')).toBeVisible();
+        await expect(studioModal.locator('button:has-text("Solid")')).toBeVisible();
 
         // Verify uniform pill toggle widths
         const bgPillGroup = studioModal.locator('.story-export-modal__toggle-row .story-export-modal__pill-group').first();
@@ -114,10 +114,13 @@ test.describe('Story Maker (9:16)', () => {
         const posBox = await posPillGroup.boundingBox();
         expect(bgBox?.width).toBeCloseTo(posBox?.width ?? 0, 1);
 
-        // Clicking Custom shows custom color row
-        await studioModal.locator('button:has-text("Custom")').click();
+        // Color row is visible in Frosted mode
         await expect(studioModal.locator('.story-export-modal__custom-color-row')).toBeVisible();
         await expect(studioModal.locator('.story-export-modal__color-picker')).toBeVisible();
+
+        // Clicking Solid keeps custom color row visible for solid fill
+        await studioModal.locator('button:has-text("Solid")').click();
+        await expect(studioModal.locator('.story-export-modal__custom-color-row')).toBeVisible();
 
         // Verify photo scale slider has max="1" and can display 100%
         const scaleSlider = studioModal.locator('input[aria-label="Photo Card Scale"]');
@@ -375,11 +378,11 @@ test.describe('Story Maker (9:16)', () => {
         let studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
         await expect(studioModal).toBeVisible({ timeout: 8000 });
 
-        // Switch to Padded mode and Custom background
+        // Switch to Padded mode and Solid background
         const paddedBtn = studioModal.locator('button:has-text("Padded")');
         await paddedBtn.click();
-        const customBtn = studioModal.locator('button:has-text("Custom")');
-        await customBtn.click();
+        const solidBtn = studioModal.locator('button:has-text("Solid")');
+        await solidBtn.click();
         await expect(studioModal.locator('.story-export-modal__custom-color-row')).toBeVisible();
 
         // 2. Close Story Maker
@@ -652,10 +655,10 @@ test.describe('Story Maker (9:16)', () => {
         await expect(frameOverlay).toHaveCSS('filter', 'none');
         await expect(bearSvg).toHaveCSS('filter', 'none');
 
-        // Select B&W Contrast filter
-        const bwContrastBtn = filterSection.locator('button:has-text("B&W Contrast")');
+        // Select B&W+ filter
+        const bwContrastBtn = filterSection.locator('button:has-text("B&W+")');
         await bwContrastBtn.click();
-        await expect(currentFilterBadge).toHaveText('B&W Contrast');
+        await expect(currentFilterBadge).toHaveText('B&W+');
         await expect(bwContrastBtn).toHaveClass(/active/);
         await expect(cropperImg).toHaveCSS('filter', /grayscale\(1\)|grayscale\(100%\)/);
 
