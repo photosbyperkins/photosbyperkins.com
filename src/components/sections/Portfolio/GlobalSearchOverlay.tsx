@@ -50,6 +50,7 @@ export default function GlobalSearchOverlay({
 
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
+                e.stopPropagation();
                 onClose();
             }
         };
@@ -130,6 +131,14 @@ export default function GlobalSearchOverlay({
                                 <X size={20} />
                             </button>
                         </div>
+                    </div>
+
+                    <div className="sr-only" role="status" aria-live="polite">
+                        {currentQuery
+                            ? isTeams
+                                ? `${filteredTeams.length} ${filteredTeams.length === 1 ? 'team' : 'teams'} found`
+                                : `${filteredGear.length} ${filteredGear.length === 1 ? 'gear item' : 'gear items'} found`
+                            : ''}
                     </div>
 
                     <div className="portfolio__global-search-content">

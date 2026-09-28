@@ -32,9 +32,11 @@ export function useFocusTrap(
         const handleFocusTrap = (e: KeyboardEvent) => {
             if (e.key !== 'Tab' || !containerRef.current) return;
 
-            const focusable = containerRef.current.querySelectorAll<HTMLElement>(
-                'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-            );
+            const focusable = Array.from(
+                containerRef.current.querySelectorAll<HTMLElement>(
+                    'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+                )
+            ).filter((el) => !el.hasAttribute('disabled') && el.getAttribute('aria-hidden') !== 'true');
 
             if (focusable.length === 0) return;
 

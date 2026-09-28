@@ -21,8 +21,8 @@
         align-items: center;
         gap: 6px;
         padding: 0 16px;
-        height: 32px;
-        border-radius: 16px;
+        min-height: 44px;
+        border-radius: 22px;
         background: rgba(var(--color-bg-rgb), 0.65);
         border: none;
         -webkit-backdrop-filter: blur(4px);
@@ -32,7 +32,7 @@
             content: '';
             position: absolute;
             inset: 0;
-            border-radius: 16px;
+            border-radius: 22px;
             padding: 1px;
             background: linear-gradient(
                 135deg,

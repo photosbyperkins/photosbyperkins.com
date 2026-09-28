@@ -102,6 +102,13 @@ export default function SharedFavoritesPanel({ photos, onClose }: SharedFavorite
             footer={footer}
             style={{ display: isLightboxOpen ? 'none' : undefined }}
         >
+            <div className="sr-only" role="status" aria-live="polite">
+                {isZipping
+                    ? `Generating zip archive, ${zipProgress}% completed`
+                    : addedToFavorites
+                      ? 'Added to your favorites'
+                      : ''}
+            </div>
             <div className="portfolio__event">
                 <div className="portfolio__event-grid">
                     {photos.map((photo, i) => {

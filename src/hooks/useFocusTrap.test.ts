@@ -127,4 +127,39 @@ describe('useFocusTrap', () => {
 
         expect(document.activeElement).toBe(outsideBtn);
     });
+
+    it('skips disabled and aria-hidden elements during Tab navigation', () => {
+        const container = document.createElement('div');
+        const btn1 = document.createElement('button');
+        const disabledBtn = document.createElement('button');
+        disabledBtn.setAttribute('disabled', 'true');
+        const hiddenBtn = document.createElement('button');
+        hiddenBtn.setAttribute('aria-hidden', 'true');
+        const btn2 = document.createElement('button');
+
+        container.appendChild(btn1);
+        container.appendChild(disabledBtn);
+        container.appendChild(hiddenBtn);
+        container.appendChild(btn2);
+        document.body.appendChild(container);
+
+        renderHook(() => useFocusTrap({ current: container }, true));
+
+        act(() => {
+            vi.advanceTimersByTime(20);
+        });
+
+        btn2.focus();
+        expect(document.activeElement).toBe(btn2);
+
+        // Tab from btn2 wraps directly to btn1, skipping disabled and aria-hidden
+        const tabEvent = new KeyboardEvent('keydown', {
+            key: 'Tab',
+            bubbles: true,
+            cancelable: true,
+        });
+        window.dispatchEvent(tabEvent);
+
+        expect(document.activeElement).toBe(btn1);
+    });
 });

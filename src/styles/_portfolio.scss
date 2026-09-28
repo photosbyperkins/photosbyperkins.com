@@ -44,6 +44,8 @@
             transition: color var(--transition-fast);
             white-space: nowrap;
             flex: 1;
+            min-height: 44px;
+            min-width: 44px;
             max-width: 48px;
             text-align: center;
             height: 100%;

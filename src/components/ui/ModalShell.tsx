@@ -48,6 +48,7 @@ export default function ModalShell({
         if (isOpen) {
             const handleKeyDown = (e: KeyboardEvent) => {
                 if (e.key === 'Escape') {
+                    e.stopPropagation();
                     onClose();
                 }
             };
