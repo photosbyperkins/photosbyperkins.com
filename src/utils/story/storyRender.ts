@@ -12,6 +12,15 @@ export async function renderStoryToCanvas(
     config: StoryRenderConfig,
     targetCanvas?: HTMLCanvasElement
 ): Promise<HTMLCanvasElement> {
+    // Ensure all custom web fonts (e.g. Outfit, Barlow Condensed) are fully loaded before rasterization
+    if (typeof document !== 'undefined' && 'fonts' in document && document.fonts?.ready) {
+        try {
+            await document.fonts.ready;
+        } catch {
+            // Ignore font loading errors, proceed with fallback fonts
+        }
+    }
+
     const canvas = targetCanvas || document.createElement('canvas');
 
     // Parse target resolution

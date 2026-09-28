@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type { StoryRenderConfig } from '../utils/storyCanvas';
 import { renderStoryToBlob } from '../utils/storyCanvas';
 
@@ -38,6 +38,16 @@ export function useStoryExport({
     const [isExporting, setIsExporting] = useState(false);
     const [isDownloaded, setIsDownloaded] = useState(false);
     const [statusToast, setStatusToast] = useState<string | null>(null);
+    const activeUrlsRef = useRef<Set<string>>(new Set());
+
+    // Clean up any remaining blob URLs on unmount to prevent memory leaks
+    useEffect(() => {
+        const urls = activeUrlsRef.current;
+        return () => {
+            urls.forEach((url) => URL.revokeObjectURL(url));
+            urls.clear();
+        };
+    }, []);
 
     const [prevPhotoKey, setPrevPhotoKey] = useState(photoKey);
     if (photoKey !== prevPhotoKey) {
@@ -63,6 +73,7 @@ export function useStoryExport({
         try {
             const blob = await renderStoryToBlob(loadedImage, currentConfig);
             const url = URL.createObjectURL(blob);
+            activeUrlsRef.current.add(url);
             const link = document.createElement('a');
             const cleanTitle = (eventTitle || 'story')
                 .toLowerCase()
@@ -73,7 +84,10 @@ export function useStoryExport({
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            setTimeout(() => {
+                URL.revokeObjectURL(url);
+                activeUrlsRef.current.delete(url);
+            }, 1000);
             setIsDownloaded(true);
         } catch (err) {
             console.error('Download error:', err);
