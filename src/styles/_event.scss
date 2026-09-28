@@ -501,5 +501,9 @@
             width: 100%;
             container-type: inline-size;
         }
+
+        &--virtual-row {
+            contain: layout style;
+        }
     }
 }
