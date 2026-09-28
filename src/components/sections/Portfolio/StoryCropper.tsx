@@ -1,6 +1,6 @@
 import React, { useRef, useState, useCallback } from 'react';
 import type { NormalizedCrop, BadgeOptions, StoryPhotoFilterId } from '../../../utils/storyCanvas';
-import { calculateNormalizedCrop, STORY_ASPECT_RATIO, STORY_PHOTO_FILTERS_MAP } from '../../../utils/storyCanvas';
+import { calculateNormalizedCrop, STORY_ASPECT_RATIO, getStoryFilterCss } from '../../../utils/storyCanvas';
 import { StoryBadges } from './StoryBadges';
 import type { StoryFrameId, StoryFrameContext } from './storyFrames/types';
 import { StoryFrameOverlay } from './storyFrames/StoryFrameOverlay';
@@ -18,6 +18,7 @@ interface StoryCropperProps {
     frameColorOverride?: string;
     exif?: ExifData;
     filterId?: StoryPhotoFilterId;
+    filterStrength?: number;
     onChange: (crop: NormalizedCrop) => void;
     onImageLoaded?: (width: number, height: number) => void;
 }
@@ -34,11 +35,11 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
     frameColorOverride,
     exif,
     filterId,
+    filterStrength,
     onChange,
     onImageLoaded,
 }) => {
-    const activeFilter = filterId ? STORY_PHOTO_FILTERS_MAP[filterId] : undefined;
-    const filterCss = activeFilter && activeFilter.id !== 'none' ? activeFilter.cssFilter : undefined;
+    const filterCss = filterId && filterId !== 'none' ? getStoryFilterCss(filterId, filterStrength ?? 1.0) : undefined;
 
     const containerRef = useRef<HTMLDivElement>(null);
     const [isDragging, setIsDragging] = useState(false);

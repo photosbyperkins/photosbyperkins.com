@@ -1,10 +1,56 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { getPhotoOriginalUrl } from '../utils/formatters';
 import type { PhotoInput, FavoriteStoreItem, SharedPhotoState, EventScore } from '../types';
 import type { GearItem } from '../data/gearData';
+import type { PaddedStyleOptions, StoryPhotoFilterId } from '../utils/storyCanvas';
+import type {
+    StoryFrameCategory,
+    StoryFrameColorChoice,
+    StoryFrameId,
+} from '../components/sections/Portfolio/storyFrames/types';
 
 export type ThemePreference = 'light' | 'dark' | 'system';
+
+export interface StorySettings {
+    mode: 'crop' | 'padded';
+    presetId?: string;
+    cropZoom?: number;
+    paddedConfig: PaddedStyleOptions;
+    filterId: StoryPhotoFilterId;
+    filterStrength?: number;
+    frameId: StoryFrameId;
+    frameCategory: StoryFrameCategory | 'all';
+    frameColorChoice: StoryFrameColorChoice;
+    frameCustomColor: string;
+    badgeTheme: 'dark' | 'light';
+    showAttribution: boolean;
+    showScoreboard: boolean;
+    showScores: boolean;
+}
+
+export const DEFAULT_STORY_SETTINGS: StorySettings = {
+    mode: 'crop',
+    presetId: 'center',
+    cropZoom: 1.0,
+    paddedConfig: {
+        style: 'frosted',
+        position: 'center',
+        cardScale: 0.92,
+        cardCornerRadius: 24,
+        customColor: '#0a0a14',
+    },
+    filterId: 'none',
+    filterStrength: 1.0,
+    frameId: 'none',
+    frameCategory: 'all',
+    frameColorChoice: 'signature',
+    frameCustomColor: '#ffffff',
+    badgeTheme: 'dark',
+    showAttribution: true,
+    showScoreboard: true,
+    showScores: true,
+};
 
 export interface AppStore {
     // App Slice
@@ -65,6 +111,11 @@ export interface AppStore {
     setSharedPhoto: (sharedPhoto: SharedPhotoState | null) => void;
     toggleFavorite: (item: FavoriteStoreItem) => void;
     clearFavorites: () => void;
+
+    // Story Maker Settings Slice
+    storySettings: StorySettings;
+    setStorySettings: (settings: Partial<StorySettings>) => void;
+    resetStorySettings: () => void;
 }
 
 // Helper to get system preference
@@ -206,13 +257,71 @@ export const useAppStore = create<AppStore>()(
                 }),
 
             clearFavorites: () => set({ favorites: [] }),
+
+            // --- STORY SETTINGS SLICE ---
+            storySettings: DEFAULT_STORY_SETTINGS,
+            setStorySettings: (settings) =>
+                set((state) => {
+                    const nextSettings = {
+                        ...state.storySettings,
+                        ...settings,
+                        ...(settings.paddedConfig
+                            ? {
+                                  paddedConfig: {
+                                      ...state.storySettings.paddedConfig,
+                                      ...settings.paddedConfig,
+                                  },
+                              }
+                            : {}),
+                    };
+                    if (settings.filterStrength !== undefined) {
+                        nextSettings.filterStrength = Math.max(0.1, Math.min(1.0, settings.filterStrength));
+                    }
+                    return { storySettings: nextSettings };
+                }),
+            resetStorySettings: () => set({ storySettings: DEFAULT_STORY_SETTINGS }),
         }),
         {
             name: 'photo-app-store',
+            storage: createJSONStorage(() => {
+                if (typeof window !== 'undefined' && window.localStorage) {
+                    return window.localStorage;
+                }
+                const memoryStorage: Record<string, string> = {};
+                return {
+                    getItem: (name: string) => memoryStorage[name] ?? null,
+                    setItem: (name: string, value: string) => {
+                        memoryStorage[name] = value;
+                    },
+                    removeItem: (name: string) => {
+                        delete memoryStorage[name];
+                    },
+                };
+            }),
             partialize: (state) => ({
                 favorites: state.favorites,
                 theme: state.theme,
+                storySettings: state.storySettings,
             }),
+            merge: (persistedState, currentState) => {
+                const persisted = (persistedState as Partial<AppStore>) || {};
+                const persistedFilterStrength = persisted.storySettings?.filterStrength;
+                return {
+                    ...currentState,
+                    ...persisted,
+                    storySettings: {
+                        ...DEFAULT_STORY_SETTINGS,
+                        ...(persisted.storySettings || {}),
+                        ...(persistedFilterStrength !== undefined
+                            ? { filterStrength: Math.max(0.1, Math.min(1.0, persistedFilterStrength)) }
+                            : {}),
+                        paddedConfig: {
+                            ...DEFAULT_STORY_SETTINGS.paddedConfig,
+                            ...(persisted.storySettings?.paddedConfig || {}),
+                        },
+                    },
+                };
+            },
             onRehydrateStorage: () => (state) => {
                 // Remove legacy keys now that we've hydrated or captured them
                 clearLegacyKeys();

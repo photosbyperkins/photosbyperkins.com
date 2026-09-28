@@ -1,4 +1,4 @@
-import { Check, Download, Moon, Share2, Sun } from 'lucide-react';
+import { Check, Download, Moon, RotateCcw, Share2, Sun } from 'lucide-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useCanShare } from '../../../hooks/useCanShare';
 import { useAppStore } from '../../../store/useAppStore';
@@ -170,42 +170,65 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         });
     }, [naturalDimensions, photoObj.focusX, photoObj.focusY, photoObj.faces]);
 
-    // Active state
+    // Active state from App Store
     const activeSiteTheme = useAppStore((state) => state.activeTheme);
-    const [cardTheme, setCardTheme] = useState<'dark' | 'light'>(() => activeSiteTheme || 'dark');
+    const storySettings = useAppStore((state) => state.storySettings);
+    const setStorySettings = useAppStore((state) => state.setStorySettings);
+    const resetStorySettings = useAppStore((state) => state.resetStorySettings);
 
-    const [selectedPresetId, setSelectedPresetId] = useState<string>(
-        () => presets.find((p) => p.isDefault)?.id || 'center'
+    const [cardTheme, setCardTheme] = useState<'dark' | 'light'>(
+        () => storySettings.badgeTheme || activeSiteTheme || 'dark'
     );
-    const [activeMode, setActiveMode] = useState<'crop' | 'padded'>('crop');
-    const [activeCrop, setActiveCrop] = useState<NormalizedCrop>(() =>
-        calculateNormalizedCrop(
+
+    const [selectedPresetId, setSelectedPresetId] = useState<string>(() => {
+        if (storySettings.mode === 'padded') return 'padded-glass';
+        if (storySettings.presetId && presets.some((p) => p.id === storySettings.presetId)) {
+            return storySettings.presetId;
+        }
+        return presets.find((p) => p.isDefault)?.id || 'center';
+    });
+    const [activeMode, setActiveMode] = useState<'crop' | 'padded'>(() => storySettings.mode || 'crop');
+    const [activeCrop, setActiveCrop] = useState<NormalizedCrop>(() => {
+        if (storySettings.mode === 'padded') {
+            return calculateNormalizedCrop(naturalDimensions.width, naturalDimensions.height, 0.5, 0.5, 1.0);
+        }
+        const matchedPreset = storySettings.presetId ? presets.find((p) => p.id === storySettings.presetId) : undefined;
+        if (matchedPreset) {
+            return matchedPreset.crop;
+        }
+        const def = presets.find((p) => p.isDefault);
+        if (def) {
+            return def.crop;
+        }
+        const zoom = storySettings.cropZoom || 1.0;
+        return calculateNormalizedCrop(
             naturalDimensions.width,
             naturalDimensions.height,
             photoObj.focusX ?? 0.5,
             photoObj.focusY ?? 0.5,
-            1.0
-        )
-    );
+            zoom
+        );
+    });
 
     // Padded mode configuration
-    const [paddedConfig, setPaddedConfig] = useState<PaddedStyleOptions>({
-        style: 'frosted',
-        position: 'center',
-        cardScale: 0.92,
-        cardCornerRadius: 24,
-    });
+    const [paddedConfig, setPaddedConfig] = useState<PaddedStyleOptions>(() => ({
+        style: storySettings.paddedConfig?.style || 'frosted',
+        position: storySettings.paddedConfig?.position || 'center',
+        cardScale: storySettings.paddedConfig?.cardScale ?? 0.92,
+        cardCornerRadius: storySettings.paddedConfig?.cardCornerRadius ?? 24,
+        customColor: storySettings.paddedConfig?.customColor || '#0a0a14',
+    }));
 
     // Story Badges
     const [badges, setBadges] = useState<BadgeOptions>(() => ({
-        showScoreboard: Boolean(eventInfo.teams.length >= 2 || eventInfo.title),
-        showScores: true,
+        showScoreboard: storySettings.showScoreboard ?? Boolean(eventInfo.teams.length >= 2 || eventInfo.title),
+        showScores: storySettings.showScores ?? true,
         scoreboardTitle: eventInfo.title,
         teams: eventInfo.teams,
         score1: localScore?.team1Score ?? null,
         score2: localScore?.team2Score ?? null,
         matchDate: eventInfo.date,
-        showAttribution: true,
+        showAttribution: storySettings.showAttribution ?? true,
         attributionLogoText: import.meta.env.VITE_NAV_LOGO_TEXT || 'PHOTOS BY',
         attributionLogoAccent: import.meta.env.VITE_NAV_LOGO_ACCENT || 'PERKINS',
         attributionDomain: '@photosbyperkins',
@@ -219,19 +242,20 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
     // Sync default badges when photo changes during render without cascading effects
     if (photoKey !== prevPhotoKey) {
         setPrevPhotoKey(photoKey);
-        setBadges({
-            showScoreboard: Boolean(eventInfo.teams.length >= 2 || eventInfo.title),
-            showScores: true,
+        setBadges((prev) => ({
+            ...prev,
             scoreboardTitle: eventInfo.title,
             teams: eventInfo.teams,
             score1: localScore?.team1Score ?? null,
             score2: localScore?.team2Score ?? null,
             matchDate: eventInfo.date,
-            showAttribution: true,
+            showScoreboard: prev.showScoreboard,
+            showScores: prev.showScores,
+            showAttribution: prev.showAttribution,
             attributionLogoText: import.meta.env.VITE_NAV_LOGO_TEXT || 'PHOTOS BY',
             attributionLogoAccent: import.meta.env.VITE_NAV_LOGO_ACCENT || 'PERKINS',
             attributionDomain: '@photosbyperkins',
-        });
+        }));
         setIsDownloaded(false);
     }
 
@@ -242,13 +266,20 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
     const [activeStudioTab, setActiveStudioTab] = useState<StoryStudioTab>('layout');
 
     // Photo Filter State
-    const [activeFilterId, setActiveFilterId] = useState<StoryPhotoFilterId>('none');
+    const [activeFilterId, setActiveFilterId] = useState<StoryPhotoFilterId>(() => storySettings.filterId || 'none');
+    const [filterStrength, setFilterStrength] = useState<number>(() =>
+        Math.max(0.1, Math.min(1.0, storySettings.filterStrength ?? 1.0))
+    );
 
     // Decorative Frame States
-    const [activeFrameId, setActiveFrameId] = useState<StoryFrameId>('none');
-    const [selectedFrameCategory, setSelectedFrameCategory] = useState<StoryFrameCategory | 'all'>('all');
-    const [frameColorChoice, setFrameColorChoice] = useState<StoryFrameColorChoice>('signature');
-    const [frameCustomColor, setFrameCustomColor] = useState<string>('#ffffff');
+    const [activeFrameId, setActiveFrameId] = useState<StoryFrameId>(() => storySettings.frameId || 'none');
+    const [selectedFrameCategory, setSelectedFrameCategory] = useState<StoryFrameCategory | 'all'>(
+        () => storySettings.frameCategory || 'all'
+    );
+    const [frameColorChoice, setFrameColorChoice] = useState<StoryFrameColorChoice>(
+        () => storySettings.frameColorChoice || 'signature'
+    );
+    const [frameCustomColor, setFrameCustomColor] = useState<string>(() => storySettings.frameCustomColor || '#ffffff');
 
     const effectiveFrameColor = useMemo(() => {
         if (frameColorChoice === 'signature') return undefined;
@@ -301,11 +332,53 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         [badges.showScoreboard, badges.scoreboardTitle, badges.teams, badges.showAttribution, activeMode, photoObj.exif]
     );
 
+    const isFirstRender = useRef(true);
+    useEffect(() => {
+        if (isFirstRender.current) {
+            isFirstRender.current = false;
+            return;
+        }
+        setStorySettings({
+            mode: activeMode,
+            presetId: selectedPresetId,
+            cropZoom: activeCrop.zoom,
+            paddedConfig,
+            filterId: activeFilterId,
+            filterStrength,
+            frameId: activeFrameId,
+            frameCategory: selectedFrameCategory,
+            frameColorChoice,
+            frameCustomColor,
+            badgeTheme: cardTheme,
+            showAttribution: badges.showAttribution,
+            showScoreboard: badges.showScoreboard,
+            showScores: badges.showScores ?? true,
+        });
+    }, [
+        activeMode,
+        selectedPresetId,
+        activeCrop.zoom,
+        paddedConfig,
+        activeFilterId,
+        filterStrength,
+        activeFrameId,
+        selectedFrameCategory,
+        frameColorChoice,
+        frameCustomColor,
+        cardTheme,
+        badges.showAttribution,
+        badges.showScoreboard,
+        badges.showScores,
+        setStorySettings,
+    ]);
+
     const resetToDefaults = useCallback(() => {
+        resetStorySettings();
         setIsDownloaded(false);
         setActiveStudioTab('layout');
         setCardTheme(activeSiteTheme || 'dark');
         setActiveFilterId('none');
+        setFilterStrength(1.0);
         setActiveFrameId('none');
         setSelectedFrameCategory('all');
         setFrameColorChoice('signature');
@@ -329,7 +402,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
             );
         }
         setPaddedConfig({
-            style: 'glass',
+            style: 'frosted',
             customColor: '#0a0a14',
             position: 'center',
             cardScale: 0.92,
@@ -349,8 +422,9 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
             attributionDomain: '@photosbyperkins',
         });
         setIsExporting(false);
-        setStatusToast(null);
+        setStatusToast('Reset story format to defaults');
     }, [
+        resetStorySettings,
         activeSiteTheme,
         presets,
         naturalDimensions.width,
@@ -362,9 +436,11 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
     ]);
 
     const handleClose = useCallback(() => {
-        resetToDefaults();
+        setIsDownloaded(false);
+        setIsExporting(false);
+        setStatusToast(null);
         onClose();
-    }, [resetToDefaults, onClose]);
+    }, [onClose]);
 
     // Handler when selecting a preset
     const handleSelectPreset = (preset: StoryPreset) => {
@@ -399,13 +475,15 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
             },
             resolution: '1080x1920', // fast live preview
             cardTheme,
+            badgeTheme: cardTheme,
             filterId: activeFilterId,
+            filterStrength,
         };
 
         renderStoryToCanvas(loadedImage, config, previewCanvasRef.current).catch((err: unknown) => {
             console.error('Preview render error:', err);
         });
-    }, [loadedImage, activeMode, activeCrop, paddedConfig, badges, cardTheme, activeFilterId]);
+    }, [loadedImage, activeMode, activeCrop, paddedConfig, badges, cardTheme, activeFilterId, filterStrength]);
 
     // Export configuration
     const currentConfig: StoryRenderConfig = useMemo(
@@ -416,10 +494,12 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
             badges,
             resolution: '1080x1920',
             cardTheme,
+            badgeTheme: cardTheme,
             frameId: activeFrameId,
             frameColorOverride: effectiveFrameColor,
             exif: photoObj.exif,
             filterId: activeFilterId,
+            filterStrength,
         }),
         [
             activeMode,
@@ -431,6 +511,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
             effectiveFrameColor,
             photoObj.exif,
             activeFilterId,
+            filterStrength,
         ]
     );
 
@@ -535,6 +616,18 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         </button>
     );
 
+    const headerActions = (
+        <button
+            type="button"
+            className="modal-shell__action-btn"
+            onClick={resetToDefaults}
+            title="Reset story format to defaults"
+            aria-label="Reset story format to defaults"
+        >
+            <RotateCcw size={18} />
+        </button>
+    );
+
     return (
         <ModalShell
             isOpen={isOpen}
@@ -543,6 +636,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
             ariaLabel="Story Maker"
             maxWidth="wide"
             className="story-export-modal"
+            headerActions={headerActions}
             footer={footer}
         >
             <div
@@ -566,6 +660,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                 frameColorOverride={effectiveFrameColor}
                                 exif={photoObj.exif}
                                 filterId={activeFilterId}
+                                filterStrength={filterStrength}
                                 onChange={handleCropChange}
                                 onImageLoaded={(w, h) =>
                                     setNaturalDimensions((prev) =>
@@ -819,8 +914,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                                         '#e60000',
                                                     ].map((color) => {
                                                         const currentColor = (
-                                                            paddedConfig.customColor ||
-                                                            (cardTheme === 'light' ? '#ffffff' : '#0a0a14')
+                                                            paddedConfig.customColor || '#0a0a14'
                                                         ).toLowerCase();
                                                         const isSelected = currentColor === color.toLowerCase();
                                                         return (
@@ -856,17 +950,12 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                                     <span
                                                         className="story-export-modal__color-swatch"
                                                         style={{
-                                                            backgroundColor:
-                                                                paddedConfig.customColor ||
-                                                                (cardTheme === 'light' ? '#ffffff' : '#0a0a14'),
+                                                            backgroundColor: paddedConfig.customColor || '#0a0a14',
                                                         }}
                                                     />
                                                     <input
                                                         type="color"
-                                                        value={
-                                                            paddedConfig.customColor ||
-                                                            (cardTheme === 'light' ? '#ffffff' : '#0a0a14')
-                                                        }
+                                                        value={paddedConfig.customColor || '#0a0a14'}
                                                         onChange={(e) => {
                                                             setPaddedConfig((prev) => ({
                                                                 ...prev,
@@ -884,10 +973,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                                     />
                                                 </label>
                                                 <span className="story-export-modal__hex-code">
-                                                    {(
-                                                        paddedConfig.customColor ||
-                                                        (cardTheme === 'light' ? '#ffffff' : '#0a0a14')
-                                                    ).toUpperCase()}
+                                                    {(paddedConfig.customColor || '#0a0a14').toUpperCase()}
                                                 </span>
                                             </div>
 
@@ -1004,6 +1090,64 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                             );
                                         })}
                                     </div>
+
+                                    {activeFilterId !== 'none' && (
+                                        <div className="story-export-modal__zoom-control story-export-modal__filter-strength-control">
+                                            <div className="story-export-modal__zoom-header">
+                                                <span className="story-export-modal__sublabel">Filter Strength</span>
+                                                <span className="story-export-modal__zoom-value">
+                                                    {Math.round(filterStrength * 100)}%
+                                                </span>
+                                            </div>
+                                            <input
+                                                type="range"
+                                                min="0.1"
+                                                max="1"
+                                                step="0.05"
+                                                value={filterStrength}
+                                                onChange={(e) => {
+                                                    setFilterStrength(
+                                                        Math.max(0.1, Math.min(1.0, parseFloat(e.target.value)))
+                                                    );
+                                                    setIsDownloaded(false);
+                                                }}
+                                                className="story-export-modal__slider"
+                                                aria-label="Filter Strength"
+                                            />
+                                            <div
+                                                className="story-export-modal__zoom-ticks"
+                                                role="group"
+                                                aria-label="Filter strength snap points"
+                                            >
+                                                {[0.1, 0.25, 0.5, 0.75, 1.0].map((pt) => {
+                                                    const isActive = Math.abs(filterStrength - pt) < 0.04;
+                                                    const fraction = (pt - 0.1) / (1.0 - 0.1);
+                                                    return (
+                                                        <button
+                                                            key={pt}
+                                                            type="button"
+                                                            className={`story-export-modal__zoom-tick ${
+                                                                isActive ? 'story-export-modal__zoom-tick--active' : ''
+                                                            }`}
+                                                            style={{
+                                                                left: `calc(9px + ${fraction} * (100% - 18px))`,
+                                                            }}
+                                                            onClick={() => {
+                                                                setFilterStrength(pt);
+                                                                setIsDownloaded(false);
+                                                            }}
+                                                            aria-label={`Snap filter strength to ${Math.round(pt * 100)}%`}
+                                                        >
+                                                            <span className="story-export-modal__zoom-tick-mark" />
+                                                            <span className="story-export-modal__zoom-tick-label">
+                                                                {Math.round(pt * 100)}%
+                                                            </span>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -1187,7 +1331,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                         <div
                                             className="portfolio__segmented-toggle story-export-modal__theme-toggle"
                                             role="group"
-                                            aria-label="Story card theme"
+                                            aria-label="Story badge theme"
                                         >
                                             <button
                                                 type="button"
@@ -1200,8 +1344,8 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                                     setCardTheme('light');
                                                     setIsDownloaded(false);
                                                 }}
-                                                aria-label="Light card theme"
-                                                title="Light card theme"
+                                                aria-label="Light badge theme"
+                                                title="Light badge theme"
                                             >
                                                 <Sun size={16} />
                                             </button>
@@ -1216,8 +1360,8 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                                     setCardTheme('dark');
                                                     setIsDownloaded(false);
                                                 }}
-                                                aria-label="Dark card theme"
-                                                title="Dark card theme"
+                                                aria-label="Dark badge theme"
+                                                title="Dark badge theme"
                                             >
                                                 <Moon size={16} />
                                             </button>

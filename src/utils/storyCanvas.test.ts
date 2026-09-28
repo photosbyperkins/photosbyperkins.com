@@ -6,6 +6,8 @@ import {
     renderStoryToCanvas,
     drawStoryFrameToCanvas,
     hexToRgba,
+    isColorLight,
+    getStoryFilterCss,
     STORY_ASPECT_RATIO,
     STORY_PHOTO_FILTERS,
     STORY_PHOTO_FILTERS_MAP,
@@ -278,6 +280,89 @@ describe('storyCanvas calculations', () => {
             expect(fillStyles).toContain('rgba(255, 255, 255, 0.88)');
             expect(fillStyles).toContain('#111116');
             expect(fillStyles).toContain('#e60000');
+        });
+
+        it('ensures light cardTheme only affects badges and not the frosted background tint', async () => {
+            const fillStyles: string[] = [];
+            const mockCtx = {
+                save: vi.fn(),
+                restore: vi.fn(),
+                beginPath: vi.fn(),
+                moveTo: vi.fn(),
+                lineTo: vi.fn(),
+                quadraticCurveTo: vi.fn(),
+                arcTo: vi.fn(),
+                closePath: vi.fn(),
+                stroke: vi.fn(),
+                fill: vi.fn(),
+                clip: vi.fn(),
+                drawImage: vi.fn(),
+                fillRect: vi.fn(),
+                fillText: vi.fn(),
+                measureText: vi.fn().mockReturnValue({ width: 50 }),
+                translate: vi.fn(),
+                scale: vi.fn(),
+                strokeStyle: '',
+                set fillStyle(val: string) {
+                    fillStyles.push(val);
+                },
+                get fillStyle() {
+                    return fillStyles[fillStyles.length - 1] || '';
+                },
+                lineWidth: 0,
+                lineJoin: '',
+                lineCap: '',
+                font: '',
+                textAlign: '',
+                textBaseline: '',
+                shadowColor: '',
+                shadowBlur: 0,
+                shadowOffsetX: 0,
+                shadowOffsetY: 0,
+                imageSmoothingEnabled: false,
+                imageSmoothingQuality: 'low',
+            } as unknown as CanvasRenderingContext2D;
+
+            const mockCanvas = {
+                width: 0,
+                height: 0,
+                getContext: vi.fn().mockReturnValue(mockCtx),
+            } as unknown as HTMLCanvasElement;
+
+            const mockImg = {
+                width: 3840,
+                height: 2560,
+                naturalWidth: 3840,
+                naturalHeight: 2560,
+            } as unknown as HTMLImageElement;
+
+            await renderStoryToCanvas(
+                mockImg,
+                {
+                    mode: 'padded',
+                    crop: calculateNormalizedCrop(3840, 2560, 0.5, 0.5, 1.0),
+                    padded: { style: 'frosted', position: 'center', cardScale: 0.92, cardCornerRadius: 24 },
+                    badges: {
+                        showScoreboard: true,
+                        scoreboardTitle: 'Team A vs Team B',
+                        teams: ['Team A', 'Team B'],
+                        score1: 10,
+                        score2: 5,
+                        showAttribution: true,
+                    },
+                    cardTheme: 'light',
+                },
+                mockCanvas
+            );
+
+            // Frosted background tint must stay dark (#0a0a14 -> rgba(10, 10, 20, 0.5))
+            expect(fillStyles).toContain('rgba(10, 10, 20, 0.5)');
+            // Must NOT contain light background tint
+            expect(fillStyles).not.toContain('rgba(255, 255, 255, 0.4)');
+
+            // Badges MUST still receive light theme
+            expect(fillStyles).toContain('rgba(255, 255, 255, 0.88)');
+            expect(fillStyles).toContain('#111116');
         });
 
         it('renders with padded custom background color correctly', async () => {
@@ -859,6 +944,40 @@ describe('storyCanvas calculations', () => {
 
         it('handles rgba strings directly', () => {
             expect(hexToRgba('rgba(10, 20, 30, 0.5)')).toBe('rgba(10, 20, 30, 0.5)');
+        });
+    });
+
+    describe('isColorLight', () => {
+        it('detects light colors correctly', () => {
+            expect(isColorLight('#ffffff')).toBe(true);
+            expect(isColorLight('#f59e0b')).toBe(true);
+            expect(isColorLight('rgb(255, 255, 255)')).toBe(true);
+        });
+
+        it('detects dark colors correctly', () => {
+            expect(isColorLight('#0a0a14')).toBe(false);
+            expect(isColorLight('#1e293b')).toBe(false);
+            expect(isColorLight('#000000')).toBe(false);
+            expect(isColorLight('rgb(10, 10, 20)')).toBe(false);
+        });
+    });
+
+    describe('getStoryFilterCss', () => {
+        it('returns none for none filter or zero strength', () => {
+            expect(getStoryFilterCss('none', 1.0)).toBe('none');
+            expect(getStoryFilterCss('bw', 0)).toBe('none');
+        });
+
+        it('returns standard filter string at full 1.0 strength', () => {
+            expect(getStoryFilterCss('bw', 1.0)).toBe('grayscale(100%) contrast(108%)');
+            expect(getStoryFilterCss('warm', 1.0)).toBe('sepia(28%) saturate(120%) contrast(105%) brightness(102%)');
+            expect(getStoryFilterCss('vivid', 1.0)).toBe('contrast(115%) saturate(140%) brightness(102%)');
+        });
+
+        it('scales filter parameters proportionally at partial strength', () => {
+            expect(getStoryFilterCss('bw', 0.5)).toBe('grayscale(50%) contrast(104%)');
+            expect(getStoryFilterCss('bw-contrast', 0.5)).toBe('grayscale(50%) contrast(130%) brightness(98%)');
+            expect(getStoryFilterCss('warm', 0.5)).toBe('sepia(14%) saturate(110%) contrast(103%) brightness(101%)');
         });
     });
 });

@@ -84,6 +84,39 @@ export function hexToRgba(hexOrRgb: string, customAlpha?: number): string {
     return `rgba(10, 10, 18, ${customAlpha ?? 0.5})`;
 }
 
+/**
+ * Determines whether a color is light or dark based on standard perceived luminance.
+ */
+export function isColorLight(hexOrRgb: string): boolean {
+    const trimmed = (hexOrRgb || '').trim();
+    if (trimmed.startsWith('rgb')) {
+        const m = trimmed.match(/\d+/g);
+        if (m && m.length >= 3) {
+            const r = parseInt(m[0], 10);
+            const g = parseInt(m[1], 10);
+            const b = parseInt(m[2], 10);
+            return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6;
+        }
+    }
+    let hex = trimmed.replace('#', '');
+    if (hex.length === 3) {
+        hex = hex
+            .split('')
+            .map((c) => c + c)
+            .join('');
+    }
+    if (hex.length === 6) {
+        const num = parseInt(hex, 16);
+        if (!isNaN(num)) {
+            const r = (num >> 16) & 255;
+            const g = (num >> 8) & 255;
+            const b = num & 255;
+            return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.6;
+        }
+    }
+    return false;
+}
+
 export interface BadgeOptions {
     showScoreboard: boolean;
     showScores?: boolean;
@@ -220,6 +253,35 @@ export const STORY_PHOTO_FILTERS_MAP = Object.fromEntries(STORY_PHOTO_FILTERS.ma
     StoryPhotoFilter
 >;
 
+/**
+ * Calculates CSS filter string for a given filter and strength level (0..1).
+ */
+export function getStoryFilterCss(filterId: StoryPhotoFilterId, strength = 1.0): string {
+    if (!filterId || filterId === 'none' || strength <= 0) return 'none';
+    const clamped = Math.max(0, Math.min(1, strength));
+    if (clamped >= 0.99) {
+        return STORY_PHOTO_FILTERS_MAP[filterId]?.cssFilter || 'none';
+    }
+    switch (filterId) {
+        case 'bw':
+            return `grayscale(${Math.round(100 * clamped)}%) contrast(${Math.round(100 + 8 * clamped)}%)`;
+        case 'bw-contrast':
+            return `grayscale(${Math.round(100 * clamped)}%) contrast(${Math.round(100 + 60 * clamped)}%) brightness(${Math.round(100 - 5 * clamped)}%)`;
+        case 'warm':
+            return `sepia(${Math.round(28 * clamped)}%) saturate(${Math.round(100 + 20 * clamped)}%) contrast(${Math.round(100 + 5 * clamped)}%) brightness(${Math.round(100 + 2 * clamped)}%)`;
+        case 'vivid':
+            return `contrast(${Math.round(100 + 15 * clamped)}%) saturate(${Math.round(100 + 40 * clamped)}%) brightness(${Math.round(100 + 2 * clamped)}%)`;
+        case 'matte':
+            return `contrast(${Math.round(100 - 12 * clamped)}%) brightness(${Math.round(100 + 8 * clamped)}%) saturate(${Math.round(100 - 10 * clamped)}%)`;
+        case 'noir':
+            return `contrast(${Math.round(100 + 30 * clamped)}%) brightness(${Math.round(100 - 10 * clamped)}%) saturate(${Math.round(100 - 15 * clamped)}%)`;
+        case 'sepia':
+            return `sepia(${Math.round(75 * clamped)}%) contrast(${Math.round(100 + 5 * clamped)}%) brightness(${Math.round(100 - 2 * clamped)}%)`;
+        default:
+            return 'none';
+    }
+}
+
 export interface StoryRenderConfig {
     mode: 'crop' | 'padded';
     crop: NormalizedCrop;
@@ -227,10 +289,12 @@ export interface StoryRenderConfig {
     badges: BadgeOptions;
     resolution?: '1080x1920' | '1440x2560' | '2160x3840';
     cardTheme?: 'dark' | 'light';
+    badgeTheme?: 'dark' | 'light';
     frameId?: StoryFrameId;
     frameColorOverride?: string;
     exif?: ExifData;
     filterId?: StoryPhotoFilterId;
+    filterStrength?: number;
 }
 
 /**
@@ -661,9 +725,8 @@ export async function renderStoryToCanvas(
         return canvas;
     }
 
-    // Resolve optional photo filter
-    const activeFilter = config.filterId ? STORY_PHOTO_FILTERS_MAP[config.filterId] : undefined;
-    const filterCss = activeFilter && activeFilter.id !== 'none' ? activeFilter.cssFilter : '';
+    // Resolve optional photo filter with strength
+    const filterCss = config.filterId ? getStoryFilterCss(config.filterId, config.filterStrength ?? 1.0) : '';
 
     // ==========================================
     // 1. RENDER MODE: CROP (9:16)
@@ -750,13 +813,13 @@ export async function renderStoryToCanvas(
                 ctx.restore();
             }
 
-            // Frosted glass overlay tint (affected by customColor or theme default)
-            const tintColor = padded.customColor || (config.cardTheme === 'light' ? '#ffffff' : '#0a0a14');
+            // Frosted glass overlay tint (affected by customColor, NOT by badge theme)
+            const tintColor = padded.customColor || '#0a0a14';
             ctx.fillStyle = hexToRgba(tintColor);
             ctx.fillRect(0, 0, targetW, targetH);
         } else if (padded.style === 'solid' || padded.style === 'custom') {
-            // Solid background color
-            ctx.fillStyle = padded.customColor || (config.cardTheme === 'light' ? '#ffffff' : '#0a0a14');
+            // Solid background color (affected by customColor, NOT by badge theme)
+            ctx.fillStyle = padded.customColor || '#0a0a14';
             ctx.fillRect(0, 0, targetW, targetH);
         } else {
             // Minimal Noir Dark Background (default fallback)
@@ -787,16 +850,17 @@ export async function renderStoryToCanvas(
                 : (targetH - cardH) / 2;
 
         const effectiveRadius = cardX <= 2 ? 0 : cornerRadius;
+        const isCustomBgLight = Boolean(padded.customColor && isColorLight(padded.customColor));
 
         // Render Drop Shadow
         ctx.save();
-        ctx.shadowColor = config.cardTheme === 'light' ? 'rgba(0, 0, 0, 0.25)' : 'rgba(0, 0, 0, 0.55)';
+        ctx.shadowColor = isCustomBgLight ? 'rgba(0, 0, 0, 0.25)' : 'rgba(0, 0, 0, 0.55)';
         ctx.shadowBlur = Math.round(40 * (targetW / STORY_WIDTH));
         ctx.shadowOffsetX = 0;
         ctx.shadowOffsetY = Math.round(18 * (targetW / STORY_WIDTH));
 
         drawRoundRect(ctx, cardX, cardY, cardW, cardH, effectiveRadius);
-        ctx.fillStyle = config.cardTheme === 'light' ? '#ffffff' : '#0a0a0f';
+        ctx.fillStyle = isCustomBgLight ? '#ffffff' : '#0a0a0f';
         ctx.fill();
         ctx.restore();
 
@@ -811,7 +875,7 @@ export async function renderStoryToCanvas(
         ctx.filter = 'none';
 
         // Subtle 1px Glass Border
-        ctx.strokeStyle = config.cardTheme === 'light' ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.2)';
+        ctx.strokeStyle = isCustomBgLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.2)';
         ctx.lineWidth = Math.max(1.5, 2 * (targetW / STORY_WIDTH));
         ctx.stroke();
         ctx.restore();
@@ -916,7 +980,7 @@ export async function renderStoryToCanvas(
         const cardX = (targetW - cardW) / 2;
         const badgeY = targetH - cardH - Math.round(105 * resScale);
 
-        const isLight = config.cardTheme === 'light';
+        const isLight = (config.badgeTheme || config.cardTheme) === 'light';
 
         // Draw Card Background (Frosted Glass)
         ctx.save();
@@ -1022,7 +1086,7 @@ export async function renderStoryToCanvas(
 
     // --- Attribution Badge (nav__logo style) ---
     if (badges.showAttribution) {
-        const isLight = config.cardTheme === 'light';
+        const isLight = (config.badgeTheme || config.cardTheme) === 'light';
         const pillH = Math.round(86 * resScale);
         const pillR = pillH / 2;
         const attrY = Math.round(105 * resScale);

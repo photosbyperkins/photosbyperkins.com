@@ -40,11 +40,11 @@ export interface StoryFrameCategoryMeta {
 
 export const STORY_FRAME_CATEGORIES: StoryFrameCategoryMeta[] = [
     { id: 'all', label: 'All', vibe: 'All frames' },
-    { id: 'derby', label: 'Derby & Track', vibe: 'Skates, California heritage & track culture' },
-    { id: 'action', label: 'High Voltage', vibe: 'Impact, lightning, flames & kinetics' },
-    { id: 'retro', label: 'Retro & Film', vibe: 'Analog film, VHS, riso & 80s nostalgia' },
-    { id: 'tech', label: 'Tech & HUD', vibe: 'Viewfinders, live EXIF & broadcast telemetry' },
-    { id: 'cosmic', label: 'Cosmic & Glow', vibe: 'Celestial, disco, stars & fantasy' },
+    { id: 'derby', label: 'Derby', vibe: 'Skates, California heritage & track culture' },
+    { id: 'action', label: 'Action', vibe: 'Impact, lightning, flames & kinetics' },
+    { id: 'retro', label: 'Retro', vibe: 'Analog film, VHS, riso & 80s nostalgia' },
+    { id: 'tech', label: 'Tech', vibe: 'Viewfinders, live EXIF & broadcast telemetry' },
+    { id: 'cosmic', label: 'Cosmic', vibe: 'Celestial, disco, stars & fantasy' },
 ];
 
 export type StoryFrameColorChoice = 'signature' | 'white' | 'gold' | 'red' | 'custom';
