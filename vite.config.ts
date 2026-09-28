@@ -142,7 +142,7 @@ export default defineConfig(({ mode }) => {
                 },
             workbox: {
                 cleanupOutdatedCaches: true,
-                globPatterns: ['**/*.{js,css,ico,png,svg,html}'], // Included html to guarantee atomic updates with JS chunks
+                globPatterns: ['**/*.{js,css,ico,png,svg,html,woff,woff2}'], // Included fonts and html for complete offline capability
                 navigateFallback: '/index.html',
                 navigateFallbackDenylist: [/^\/zips\//, /^\/share\//],
                 runtimeCaching: [
