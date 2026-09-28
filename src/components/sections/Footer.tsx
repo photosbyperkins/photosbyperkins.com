@@ -4,6 +4,7 @@ import { useAppStore } from '../../store/useAppStore';
 import '../../styles/_footer.scss';
 
 export default function Footer() {
+    const openAbout = useAppStore((state) => state.openAbout);
     const openAiPolicy = useAppStore((state) => state.openAiPolicy);
     const openCodeLicense = useAppStore((state) => state.openCodeLicense);
     const openPhotoLicense = useAppStore((state) => state.openPhotoLicense);
@@ -32,6 +33,16 @@ export default function Footer() {
                 <div className="footer__actions">
                     <div className="footer__group footer__group--links">
                         <div className="footer__links">
+                            <button
+                                type="button"
+                                onClick={openAbout}
+                                className="footer__link footer__about-btn"
+                            >
+                                About Me
+                            </button>
+                            <span className="footer__link-divider" aria-hidden="true">
+                                •
+                            </span>
                             <button type="button" onClick={openAiPolicy} className="footer__link footer__ai-policy-btn">
                                 AI Policy
                             </button>

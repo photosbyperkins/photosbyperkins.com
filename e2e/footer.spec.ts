@@ -24,10 +24,12 @@ test.describe('Footer Redesign (One-Line Bar)', () => {
     });
 
     test('should display legal policy triggers on right side of footer', async ({ page }) => {
+        const aboutBtn = page.locator('button.footer__about-btn');
         const aiBtn = page.locator('button.footer__ai-policy-btn');
         const codeBtn = page.locator('button.footer__code-license-btn');
         const photoBtn = page.locator('button.footer__license-btn');
 
+        await expect(aboutBtn).toBeVisible();
         await expect(aiBtn).toBeVisible();
         await expect(codeBtn).toBeVisible();
         await expect(photoBtn).toBeVisible();

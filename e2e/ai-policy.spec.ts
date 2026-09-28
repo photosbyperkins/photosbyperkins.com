@@ -6,12 +6,13 @@ test.describe('AI Policy Overlay', () => {
         await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
     });
 
-    test('should display footer links in order: 1. AI Policy, 2. Code License, 3. Photo License', async ({ page }) => {
+    test('should display footer links in order: 1. About Me, 2. AI Policy, 3. Code License, 4. Photo License', async ({ page }) => {
         const links = page.locator('.footer__links button');
-        await expect(links).toHaveCount(3);
-        await expect(links.nth(0)).toHaveText('AI Policy');
-        await expect(links.nth(1)).toContainText('Code License');
-        await expect(links.nth(2)).toContainText('Photo License');
+        await expect(links).toHaveCount(4);
+        await expect(links.nth(0)).toHaveText('About Me');
+        await expect(links.nth(1)).toHaveText('AI Policy');
+        await expect(links.nth(2)).toContainText('Code License');
+        await expect(links.nth(3)).toContainText('Photo License');
     });
 
     test('should open Code License in native modal', async ({ page }) => {
