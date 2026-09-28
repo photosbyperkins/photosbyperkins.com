@@ -50,7 +50,10 @@ export default function PortfolioEventTitle({
                     <div className="portfolio__event-teams">
                         {finalTeams.map((team, i) => {
                             const formats = getTeamNameFormats(team);
-                            const hasVariations = formats.full !== formats.mid || formats.mid !== formats.short;
+                            const hasVariations =
+                                formats.full !== formats.short ||
+                                formats.full !== formats.mid ||
+                                formats.mid !== formats.short;
 
                             return (
                                 <h2 key={i} title={team}>

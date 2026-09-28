@@ -86,6 +86,7 @@ export function hexToRgba(hexOrRgb: string, customAlpha?: number): string {
 
 export interface BadgeOptions {
     showScoreboard: boolean;
+    showScores?: boolean;
     scoreboardTitle?: string;
     teams?: string[];
     score1?: string | number | null;
@@ -874,8 +875,9 @@ export async function renderStoryToCanvas(
         if (hasTeams) {
             t1Name = formatTeamName(badges.teams![0]).toUpperCase();
             t2Name = formatTeamName(badges.teams![1]).toUpperCase();
-            s1Str = badges.score1 != null ? `${badges.score1}` : '';
-            s2Str = badges.score2 != null ? `${badges.score2}` : '';
+            const renderScores = badges.showScores !== false;
+            s1Str = renderScores && badges.score1 != null ? `${badges.score1}` : '';
+            s2Str = renderScores && badges.score2 != null ? `${badges.score2}` : '';
 
             if (s1Str && s2Str) {
                 const num1 = Number(s1Str);

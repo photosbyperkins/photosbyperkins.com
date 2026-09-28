@@ -82,7 +82,9 @@
         position: fixed;
         inset: 0;
         z-index: var(--z-modal);
-        @include apple-glass;
+        background: rgba(var(--color-bg-rgb), 0.96);
+        -webkit-backdrop-filter: blur(24px);
+        backdrop-filter: blur(24px);
         display: flex;
         flex-direction: column;
     }
@@ -129,7 +131,10 @@
         top: 0;
         padding-top: max(1.25rem, calc(env(safe-area-inset-top) + 0.5rem));
         padding-bottom: 0.85rem;
-        @include apple-glass;
+        background: rgba(var(--color-bg-rgb), 0.96);
+        -webkit-backdrop-filter: blur(24px);
+        backdrop-filter: blur(24px);
+        border-bottom: 1px solid var(--color-border);
 
         &-inner {
             display: flex;

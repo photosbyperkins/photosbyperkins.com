@@ -66,6 +66,12 @@
             & > * {
                 pointer-events: auto;
             }
+
+            .portfolio__lightbox-help-btn {
+                @media (max-width: 400px) {
+                    display: none !important;
+                }
+            }
         }
 
         &-top-center {

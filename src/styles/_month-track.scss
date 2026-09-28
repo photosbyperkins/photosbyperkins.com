@@ -321,12 +321,12 @@
                 cursor: pointer !important;
                 pointer-events: auto !important;
 
-                // Generous hit target area for mobile/touch accessibility (44px target width)
+                // Generous hit target area for mobile/touch accessibility (44x44px touch target)
                 &::after {
                     content: '';
                     position: absolute;
-                    top: -2px;
-                    bottom: -2px;
+                    top: -10px;
+                    bottom: -10px;
                     left: -12px;
                     right: -12px;
                     z-index: 1;

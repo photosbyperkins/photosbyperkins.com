@@ -11,6 +11,11 @@ vi.mock('./constants', () => ({
         'Happy Valley Derby Darlins': 'HVDD',
         'San Luis Obispo County Junior Roller Derby': 'SLOCO Juniors',
         'San Luis Obispo County Roller Derby': 'SLOCO',
+        'Rose City Rollers': 'RCR',
+        'Rose City': 'RCR',
+        'California Derby Galaxy': 'CDG',
+        'Sacred City Roller Derby': 'SCRD',
+        'Sacred City': 'SCRD',
         Juarez: 'Juárez',
         Headshots: '',
     },
@@ -37,7 +42,7 @@ describe('formatTeamName', () => {
     });
 
     it('leaves names unchanged if no rules apply', () => {
-        expect(formatTeamName('Rose City Rollers')).toBe('Rose City Rollers');
+        expect(formatTeamName('Gotham Rollergirls')).toBe('Gotham Rollergirls');
         expect(formatTeamName('Texas Rollergirls')).toBe('Texas Rollergirls');
     });
 });
@@ -80,6 +85,27 @@ describe('getTeamNameFormats', () => {
         expect(formats.full).toBe('San Luis Obispo County Junior Roller Derby');
         expect(formats.mid).toBe('SLOCO Juniors');
         expect(formats.short).toBe('SLOCO');
+    });
+
+    it('formats Rose City High Rollers to High Rollers in short mode', () => {
+        const formats = getTeamNameFormats('Rose City High Rollers');
+        expect(formats.full).toBe('Rose City High Rollers');
+        expect(formats.mid).toBe('RCR High Rollers');
+        expect(formats.short).toBe('High Rollers');
+    });
+
+    it('formats California Derby Galaxy Big Bang to Big Bang in short mode', () => {
+        const formats = getTeamNameFormats('California Derby Galaxy Big Bang');
+        expect(formats.full).toBe('California Derby Galaxy Big Bang');
+        expect(formats.mid).toBe('CDG Big Bang');
+        expect(formats.short).toBe('Big Bang');
+    });
+
+    it('formats Sacred City Disciples to Disciples in short mode', () => {
+        const formats = getTeamNameFormats('Sacred City Disciples');
+        expect(formats.full).toBe('Sacred City Disciples');
+        expect(formats.mid).toBe('SCRD Disciples');
+        expect(formats.short).toBe('Disciples');
     });
 });
 

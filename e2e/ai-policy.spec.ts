@@ -135,10 +135,9 @@ test.describe('AI Policy Overlay', () => {
 
         // Verify key policy provisions
         const content = overlay.locator('.ai-policy__container');
-        await expect(content).toContainText('Sharpening & Denoising');
-        await expect(content).toContainText('No Generative Alterations');
-        await expect(content).toContainText('Build-Time Focal Area Detection');
-        await expect(content).toContainText('Website Development & Coding Assistance');
+        await expect(content).toContainText('Real Moments, Not Prompts');
+        await expect(content).toContainText('High-ISO Cleanup Only');
+        await expect(content).toContainText('Site Plumbing: Cropping & Code');
     });
 
     test('should have correct ARIA attributes', async ({ page }) => {

@@ -133,3 +133,109 @@ export const StoryCropIcon = ({ size = 18, className = '', style, ...props }: Ic
 );
 
 export { StoryCropIcon as PhoneCropIcon };
+
+/**
+ * StoryLayoutTabIcon
+ * Custom SVG icon representing a 9:16 portrait story canvas with crop/padding alignment bounds.
+ */
+export const StoryLayoutTabIcon = ({ size = 18, className = '', style, ...props }: IconProps) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={className}
+        style={{ flexShrink: 0, ...style }}
+        {...props}
+    >
+        <rect x="5" y="2" width="14" height="20" rx="2.5" />
+        <line x1="10" y1="5" x2="14" y2="5" />
+        <rect x="8" y="8" width="8" height="8" rx="1" strokeDasharray="2 2" strokeWidth="1.5" />
+    </svg>
+);
+
+/**
+ * StoryFiltersTabIcon
+ * Custom SVG icon representing chromatic tonal filters with a refraction star.
+ */
+export const StoryFiltersTabIcon = ({ size = 18, className = '', style, ...props }: IconProps) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={className}
+        style={{ flexShrink: 0, ...style }}
+        {...props}
+    >
+        <circle cx="9" cy="11" r="5.5" />
+        <circle cx="15" cy="13" r="5.5" />
+        <path d="M18 2v4M16 4h4" strokeWidth="1.75" />
+    </svg>
+);
+
+/**
+ * StoryFramesTabIcon
+ * Custom SVG icon representing an artistic picture frame with corner brackets.
+ */
+export const StoryFramesTabIcon = ({ size = 18, className = '', style, ...props }: IconProps) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={className}
+        style={{ flexShrink: 0, ...style }}
+        {...props}
+    >
+        <rect x="3" y="3" width="18" height="18" rx="2" />
+        <rect x="7" y="7" width="10" height="10" rx="1" strokeWidth="1.5" />
+        <path d="M3 8V3h5" />
+        <path d="M21 8V3h-5" />
+        <path d="M3 16v5h5" />
+        <path d="M21 16v5h-5" />
+    </svg>
+);
+
+/**
+ * StoryBadgesTabIcon
+ * Custom SVG icon representing an athletic championship badge shield with a star emblem.
+ */
+export const StoryBadgesTabIcon = ({ size = 18, className = '', style, ...props }: IconProps) => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width={size}
+        height={size}
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className={className}
+        style={{ flexShrink: 0, ...style }}
+        {...props}
+    >
+        <path d="M12 2L4 5.5v6.2c0 5.4 3.4 10.3 8 11.8 4.6-1.5 8-6.4 8-11.8V5.5L12 2Z" />
+        <polygon
+            points="12 7.5 13.3 10.2 16.2 10.6 14.1 12.6 14.6 15.5 12 14.1 9.4 15.5 9.9 12.6 7.8 10.6 10.7 10.2 12 7.5"
+            fill="currentColor"
+            stroke="none"
+        />
+    </svg>
+);

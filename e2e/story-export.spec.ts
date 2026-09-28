@@ -49,6 +49,13 @@ test.describe('Story Maker (9:16)', () => {
         const count = await presetPills.count();
         expect(count).toBeGreaterThan(0);
 
+        // Check 4 studio tabs
+        await expect(studioModal.locator('.story-export-modal__studio-tab-btn')).toHaveCount(4);
+        await expect(studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Layout")')).toBeVisible();
+        await expect(studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Filters")')).toBeVisible();
+        await expect(studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Frames")')).toBeVisible();
+        await expect(studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Badges")')).toBeVisible();
+
         // Check download action button
         const downloadBtn = studioModal.locator('.story-export-modal__primary-action');
         await expect(downloadBtn).toContainText('Download Story Card');
@@ -275,6 +282,7 @@ test.describe('Story Maker (9:16)', () => {
         }
 
         // 3. Test toggling attribution badge checkbox updates preview
+        await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Badges")').click();
         const attributionCheckbox = studioModal.locator('label:has-text("Photographer Attribution") input[type="checkbox"]');
         await attributionCheckbox.uncheck();
         await expect(attributionBadge).not.toBeVisible();
@@ -294,6 +302,9 @@ test.describe('Story Maker (9:16)', () => {
         await page.keyboard.press('c');
         const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
         await expect(studioModal).toBeVisible({ timeout: 8000 });
+
+        // Switch to Badges tab where theme toggle is now located
+        await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Badges")').click();
 
         // Find story card theme switcher toggle
         const themeToggle = studioModal.locator('.story-export-modal__theme-toggle');
@@ -329,6 +340,51 @@ test.describe('Story Maker (9:16)', () => {
             await expect(attributionBadge).toHaveClass(/story-cropper__badge--light/);
         } else {
             await expect(attributionBadge).not.toHaveClass(/story-cropper__badge--light/);
+        }
+    });
+
+    test('should toggle scores on and off in event badge', async ({ page }) => {
+        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
+        await photo.waitFor({ timeout: 10000 });
+        await photo.click();
+
+        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
+        await expect(lightbox).toBeVisible({ timeout: 10000 });
+
+        await page.keyboard.press('c');
+        const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
+        await expect(studioModal).toBeVisible({ timeout: 8000 });
+
+        // Navigate to Badges tab
+        await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Badges")').click();
+
+        // Check if event has scores toggle
+        const scoresToggle = studioModal.locator('.story-export-modal__scores-toggle');
+        if (await scoresToggle.isVisible()) {
+            const scoreboardBadge = studioModal.locator('.story-cropper__badge--scoreboard');
+            const previewScores = studioModal.locator('.story-export-modal__preview-team-score');
+
+            // Initially scores should be visible
+            await expect(scoreboardBadge.locator('.story-cropper__team-score').first()).toBeVisible();
+            await expect(previewScores.first()).toBeVisible();
+
+            // Toggle scores off
+            const offBtn = scoresToggle.locator('button:has-text("Off")');
+            await offBtn.click();
+            await expect(offBtn).toHaveClass(/story-export-modal__scores-btn--active/);
+
+            // Scores should now be hidden in both cropper overlay and mini preview
+            await expect(scoreboardBadge.locator('.story-cropper__team-score')).toHaveCount(0);
+            await expect(previewScores).toHaveCount(0);
+
+            // Toggle scores back on
+            const scoresBtn = scoresToggle.locator('button:has-text("Scores")');
+            await scoresBtn.click();
+            await expect(scoresBtn).toHaveClass(/story-export-modal__scores-btn--active/);
+
+            // Scores should be restored
+            await expect(scoreboardBadge.locator('.story-cropper__team-score').first()).toBeVisible();
+            await expect(previewScores.first()).toBeVisible();
         }
     });
 
@@ -400,7 +456,7 @@ test.describe('Story Maker (9:16)', () => {
         await expect(studioModal.locator('.story-export-modal__padded-settings')).not.toBeVisible();
     });
 
-    test('should support expanding frame accordion, selecting frames, and applying tint', async ({ page }) => {
+    test('should support selecting frames and applying tint', async ({ page }) => {
         const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
         await photo.waitFor({ timeout: 10000 });
         await photo.click();
@@ -412,16 +468,18 @@ test.describe('Story Maker (9:16)', () => {
         const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
         await expect(studioModal).toBeVisible({ timeout: 8000 });
 
-        // Locate Frame accordion header
-        const accordionHeader = studioModal.locator('.story-export-modal__accordion-header');
-        await expect(accordionHeader).toBeVisible();
+        // Switch to Frames tab
+        await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Frames")').click();
+
+        // Locate Frame header
+        const framesHeader = studioModal.locator('.story-export-modal__frames-header');
+        await expect(framesHeader).toBeVisible();
         await expect(studioModal.locator('.story-export-modal__frame-current-badge')).toHaveText('None');
 
         // Initially no frame overlay in viewport
         await expect(studioModal.locator('.story-frame-overlay')).toHaveCount(0);
 
-        // Click to expand accordion drawer
-        await accordionHeader.click();
+        // Frames grid is visible in Frames tab
         const framesGrid = studioModal.locator('.story-export-modal__frames-grid');
         await expect(framesGrid).toBeVisible();
 
@@ -467,15 +525,7 @@ test.describe('Story Maker (9:16)', () => {
         await expect(studioModal.locator('.story-export-modal__frame-current-badge')).toHaveText('Beast Claws');
         await expect(frameOverlay.locator('.story-frame-claw-marks')).toBeVisible();
 
-        // Collapse accordion drawer
-        await accordionHeader.click();
-        await expect(framesGrid).not.toBeVisible();
-
-        // Overlay remains visible while collapsed
-        await expect(frameOverlay).toBeVisible();
-
-        // Re-open and select "None"
-        await accordionHeader.click();
+        // Select "None"
         const noneCard = framesGrid.locator('button:has-text("None")');
         await noneCard.click();
         await expect(studioModal.locator('.story-export-modal__frame-current-badge')).toHaveText('None');
@@ -495,16 +545,16 @@ test.describe('Story Maker (9:16)', () => {
         const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
         await expect(studioModal).toBeVisible({ timeout: 8000 });
 
-        // Open frame drawer and select Capital Grizzly
-        const accordionHeader = studioModal.locator('.story-export-modal__accordion-header');
-        await accordionHeader.click();
+        // Switch to Frames tab and select Capital Grizzly
+        await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Frames")').click();
         const bearCard = studioModal.locator('.story-export-modal__frames-grid button:has-text("Capital Grizzly")');
         await bearCard.click();
 
         const frameOverlay = studioModal.locator('.story-frame-overlay');
         await expect(frameOverlay).toBeVisible();
 
-        // Check if scoreboard checkbox is present
+        // Switch to Badges tab to check/toggle event scoreboard badge
+        await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Badges")').click();
         const scoreboardCheckbox = studioModal.locator('label:has-text("Event Badge") input[type="checkbox"]');
         if (await scoreboardCheckbox.isVisible() && (await scoreboardCheckbox.isChecked())) {
             // When scoreboard badge is active, bear is elevated into the flank
@@ -584,9 +634,8 @@ test.describe('Story Maker (9:16)', () => {
         const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
         await expect(studioModal).toBeVisible({ timeout: 8000 });
 
-        // Open frame drawer
-        const accordionHeader = studioModal.locator('.story-export-modal__accordion-header');
-        await accordionHeader.click();
+        // Switch to Frames tab
+        await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Frames")').click();
 
         const ttlCard = studioModal.locator('.story-export-modal__frames-grid button:has-text("Through the Lens")');
         if (await ttlCard.isVisible()) {
@@ -622,6 +671,9 @@ test.describe('Story Maker (9:16)', () => {
         const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
         await expect(studioModal).toBeVisible({ timeout: 8000 });
 
+        // Switch to Filters tab
+        await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Filters")').click();
+
         // Verify filter section and initial state
         const filterSection = studioModal.locator('.story-export-modal__section--filters');
         await expect(filterSection).toBeVisible();
@@ -632,7 +684,7 @@ test.describe('Story Maker (9:16)', () => {
         await expect(cropperImg).toBeVisible();
 
         // Select B&W filter
-        const bwBtn = filterSection.locator('button:has-text("B&W"):not(:has-text("Contrast"))');
+        const bwBtn = filterSection.getByRole('button', { name: 'Photo filter: B&W', exact: true });
         await bwBtn.click();
         await expect(currentFilterBadge).toHaveText('B&W');
         await expect(bwBtn).toHaveClass(/active/);
@@ -640,9 +692,8 @@ test.describe('Story Maker (9:16)', () => {
         // Verify cropper image has grayscale filter applied
         await expect(cropperImg).toHaveCSS('filter', /grayscale\(1\)|grayscale\(100%\)/);
 
-        // Open frame drawer and select Capital Grizzly frame
-        const accordionHeader = studioModal.locator('.story-export-modal__accordion-header');
-        await accordionHeader.click();
+        // Switch to Frames tab and select Capital Grizzly frame
+        await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Frames")').click();
         const bearCard = studioModal.locator('.story-export-modal__frames-grid button:has-text("Capital Grizzly")');
         await bearCard.click();
 
@@ -655,7 +706,8 @@ test.describe('Story Maker (9:16)', () => {
         await expect(frameOverlay).toHaveCSS('filter', 'none');
         await expect(bearSvg).toHaveCSS('filter', 'none');
 
-        // Select B&W+ filter
+        // Switch back to Filters tab and select B&W+ filter
+        await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Filters")').click();
         const bwContrastBtn = filterSection.locator('button:has-text("B&W+")');
         await bwContrastBtn.click();
         await expect(currentFilterBadge).toHaveText('B&W+');

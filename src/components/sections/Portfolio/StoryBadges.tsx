@@ -12,6 +12,7 @@ export const StoryBadges: React.FC<StoryBadgesProps> = ({ badges, theme = 'dark'
 
     const isLight = theme === 'light';
     const lightClass = isLight ? 'story-cropper__badge--light' : '';
+    const renderScores = badges.showScores !== false;
 
     return (
         <>
@@ -25,7 +26,7 @@ export const StoryBadges: React.FC<StoryBadgesProps> = ({ badges, theme = 'dark'
                             <>
                                 <div className="story-cropper__team-row">
                                     <span className="story-cropper__team-name">{formatTeamName(badges.teams[0])}</span>
-                                    {badges.score1 != null && (
+                                    {renderScores && badges.score1 != null && (
                                         <span
                                             className={`story-cropper__team-score ${
                                                 badges.score2 != null && Number(badges.score1) > Number(badges.score2)
@@ -39,7 +40,7 @@ export const StoryBadges: React.FC<StoryBadgesProps> = ({ badges, theme = 'dark'
                                 </div>
                                 <div className="story-cropper__team-row">
                                     <span className="story-cropper__team-name">{formatTeamName(badges.teams[1])}</span>
-                                    {badges.score2 != null && (
+                                    {renderScores && badges.score2 != null && (
                                         <span
                                             className={`story-cropper__team-score ${
                                                 badges.score1 != null && Number(badges.score2) > Number(badges.score1)
