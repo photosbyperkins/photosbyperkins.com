@@ -69,7 +69,7 @@ export default function Nav() {
             <nav className="nav" ref={navRef}>
                 <div className="container">
                     <div className="nav__inner">
-                        <button className="nav__logo" onClick={openAbout} aria-label="About Me">
+                        <button className="nav__logo" onClick={openAbout} aria-label="Behind the Lens">
                             <span className="nav__logo-icon" aria-hidden="true" />
                             <span className="nav__logo-text">
                                 {import.meta.env.VITE_NAV_LOGO_TEXT || 'JANE'}{' '}

@@ -1,39 +1,15 @@
-export interface PhotoExif {
-    cameraModel?: string;
-    lens?: string;
-    focalLength?: string;
-    aperture?: string;
-    shutterSpeed?: string;
-    iso?: string;
-    isPrime?: boolean;
-    gearLensId?: string;
-}
+import type { ExifData, FaceBox, PhotoRecord } from '../../src/types';
 
-export interface FaceBox {
-    x: number;
-    y: number;
-    w?: number;
-    h?: number;
-    confidence?: number;
-}
+export type { FaceBox };
+export type PhotoExif = ExifData;
 
-export interface PhotoObject {
+export interface PhotoObject extends PhotoRecord {
     source: string;
-    thumb: string;
-    original: string;
-    focusX?: number;
-    focusY?: number;
-    faces?: FaceBox[];
     faceScore?: number;
     recapScore?: number;
-    width?: number;
-    height?: number;
-    spriteIndex?: number;
-    exif?: PhotoExif;
     absPath?: string;
     basename?: string;
     normalized?: string;
-    tiny?: string;
 }
 
 export type Photo = string | PhotoObject;

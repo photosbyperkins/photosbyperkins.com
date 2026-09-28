@@ -1,5 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { formatTeamName, getTeamNameFormats, getPhotoDisplayUrl, findEarliestEventForTeam } from './formatters';
+import {
+    formatTeamName,
+    getTeamNameFormats,
+    getPhotoDisplayUrl,
+    findEarliestEventForTeam,
+    parseEventTitle,
+    escapeXml,
+} from './formatters';
 
 // Inject a known abbreviation map so tests don't depend on VITE_TEAM_ABBREVIATIONS env.
 vi.mock('./constants', () => ({
@@ -168,5 +175,58 @@ describe('findEarliestEventForTeam', () => {
         expect(findEarliestEventForTeam(sample2026Events, 'Nonexistent Team')).toBeNull();
         expect(findEarliestEventForTeam([], 'Motherlode Area Derby')).toBeNull();
         expect(findEarliestEventForTeam(sample2026Events, '')).toBeNull();
+    });
+});
+
+describe('parseEventTitle', () => {
+    it('correctly parses teams and detects versus match', () => {
+        const parsed = parseEventTitle('05.10 Sacramento Roller Derby vs Bay Area Derby', '2026');
+        expect(parsed.baseDatePrefix).toBe('05.10');
+        expect(parsed.mainTitle).toBe('Sacramento Roller Derby vs Bay Area Derby');
+        expect(parsed.teams).toEqual(['Sacramento Roller Derby', 'Bay Area Derby']);
+        expect(parsed.isVersusMatch).toBe(true);
+    });
+
+    it('handles "versus" and "vs." case-insensitively', () => {
+        const parsed = parseEventTitle('03.14 Team Alpha versus Team Beta', '2026');
+        expect(parsed.teams).toEqual(['Team Alpha', 'Team Beta']);
+        expect(parsed.isVersusMatch).toBe(true);
+
+        const parsedDot = parseEventTitle('03.14 Team Alpha vs. Team Beta', '2026');
+        expect(parsedDot.teams).toEqual(['Team Alpha', 'Team Beta']);
+        expect(parsedDot.isVersusMatch).toBe(true);
+    });
+
+    it('identifies non-versus events cleanly', () => {
+        const parsed = parseEventTitle('04.01 Annual League Headshots', '2026');
+        expect(parsed.baseDatePrefix).toBe('04.01');
+        expect(parsed.mainTitle).toBe('Annual League Headshots');
+        expect(parsed.teams).toEqual(['Annual League Headshots']);
+        expect(parsed.isVersusMatch).toBe(false);
+    });
+
+    it('handles bracketed year prefix correctly', () => {
+        const parsed = parseEventTitle('[2025] 11.20 Team A vs Team B');
+        expect(parsed.parsedYear).toBe('2025');
+        expect(parsed.baseDatePrefix).toBe('11.20');
+        expect(parsed.teams).toEqual(['Team A', 'Team B']);
+        expect(parsed.isVersusMatch).toBe(true);
+    });
+});
+
+describe('escapeXml', () => {
+    it('escapes basic xml entities', () => {
+        expect(escapeXml('<script>alert("xss")</script>')).toBe(
+            '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;'
+        );
+        expect(escapeXml("Tom & Jerry's")).toBe('Tom &amp; Jerry&apos;s');
+    });
+
+    it('returns empty string when given empty string', () => {
+        expect(escapeXml('')).toBe('');
+    });
+
+    it('returns original string when no special characters present', () => {
+        expect(escapeXml('1/3200 sec F2.8 ISO 1600 70mm')).toBe('1/3200 sec F2.8 ISO 1600 70mm');
     });
 });

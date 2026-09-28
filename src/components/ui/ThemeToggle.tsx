@@ -7,7 +7,8 @@ interface ThemeToggleProps {
 }
 
 export default function ThemeToggle({ variant = 'floating' }: ThemeToggleProps) {
-    const { activeTheme, setTheme } = useAppStore();
+    const activeTheme = useAppStore((state) => state.activeTheme);
+    const setTheme = useAppStore((state) => state.setTheme);
     const [scrolled, setScrolled] = useState(false);
     const uniqueId = useId();
 

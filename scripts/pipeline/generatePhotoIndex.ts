@@ -44,22 +44,22 @@ const SKIP_DIRS = [
     'photo fb',
 ];
 
-function isSkipped(dirName: string) {
+export function isSkipped(dirName: string) {
     const n = dirName.toLowerCase();
     return SKIP_DIRS.some((s) => n === s || n.startsWith(s + ' '));
 }
 
-function isAlbumDir(dirName: string) {
+export function isAlbumDir(dirName: string) {
     const n = dirName.toLowerCase();
     return n.includes('resize') || n.includes('final');
 }
 
-function isHighlightDir(dirName: string) {
+export function isHighlightDir(dirName: string) {
     const n = dirName.toLowerCase();
     return n.includes('highlight') || n.includes('hightlight');
 }
 
-function shuffle<T>(arr: T[]): T[] {
+export function shuffle<T>(arr: T[]): T[] {
     const a = [...arr];
     for (let i = a.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
@@ -93,14 +93,14 @@ function getJpgsRecursive(dir: string, maxDepth = 2): string[] {
     return result;
 }
 
-function toWebPath(absPath: string, isThumb = false) {
+export function toWebPath(absPath: string, isThumb = false) {
     const root = isThumb ? path.join(process.cwd(), 'build', 'thumbnails') : process.cwd();
     const relative = path.relative(root, absPath);
     const prefix = isThumb ? '/thumbnails/' : '/';
     return prefix + relative.split(path.sep).join('/');
 }
 
-function slugify(text: string) {
+export function slugify(text: string) {
     return text
         .toString()
         .toLowerCase()
@@ -110,7 +110,7 @@ function slugify(text: string) {
         .replace(/--+/g, '-');
 }
 
-function normalizeBasename(filename: string) {
+export function normalizeBasename(filename: string) {
     return filename
         .toLowerCase()
         .replace(/^(_sharpened_|_denoise_)+/, '') // Strip top-level processing prefixes

@@ -34,7 +34,7 @@ export default function Footer() {
                     <div className="footer__group footer__group--links">
                         <div className="footer__links">
                             <button type="button" onClick={openAbout} className="footer__link footer__about-btn">
-                                About Me
+                                Behind the Lens
                             </button>
                             <span className="footer__link-divider" aria-hidden="true">
                                 •

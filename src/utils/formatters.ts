@@ -1,5 +1,5 @@
 import { TEAM_ABBREVIATIONS } from './constants';
-import type { FavoriteStoreItem, PhotoInput } from '../types';
+import type { FavoriteStoreItem, PhotoInput, PhotoRecord } from '../types';
 export function formatTeamName(teamName: string): string {
     return getTeamNameFormats(teamName).mid;
 }
@@ -48,7 +48,20 @@ export function getTeamNameFormats(teamName: string): TeamNameFormats {
     return { full, mid, short };
 }
 
-export function parseEventTitle(eventName: string, originalYear?: string, selectedYear?: string) {
+export interface ParsedEventTitle {
+    parsedYear?: string;
+    baseDatePrefix: string;
+    mainTitle: string;
+    datePrefix: string;
+    teams: string[];
+    isVersusMatch: boolean;
+}
+
+export function parseEventTitle(
+    eventName: string,
+    originalYear?: string,
+    selectedYear?: string
+): ParsedEventTitle {
     const titleMatch = eventName.match(/^(?:\[(\d{4})\]\s*)?(\d{2}\.\d{2})\s+(.*)/);
     const parsedYear = titleMatch ? titleMatch[1] : undefined;
     const baseDatePrefix = titleMatch ? titleMatch[2] : '';
@@ -82,7 +95,19 @@ export function parseEventTitle(eventName: string, originalYear?: string, select
         }
     }
 
-    return { parsedYear, baseDatePrefix, mainTitle, datePrefix };
+    const teams = mainTitle
+        .split(/\s+(?:vs\.?|versus)\s+/i)
+        .map((t) => t.trim())
+        .filter(Boolean);
+
+    return {
+        parsedYear,
+        baseDatePrefix,
+        mainTitle,
+        datePrefix,
+        teams,
+        isVersusMatch: teams.length >= 2,
+    };
 }
 
 /**
@@ -94,6 +119,21 @@ export function resolvePhotoInput(item: FavoriteStoreItem): PhotoInput {
         return item.photo;
     }
     return item as PhotoInput;
+}
+
+/**
+ * Canonicalizes any FavoriteStoreItem or PhotoInput into a strict PhotoRecord.
+ * Ensures downstream components can safely read .original, .thumb, .focusX, etc.
+ */
+export function toPhotoRecord(item: FavoriteStoreItem): PhotoRecord {
+    const photo = resolvePhotoInput(item);
+    if (typeof photo === 'string') {
+        return {
+            original: photo,
+            thumb: photo,
+        };
+    }
+    return photo;
 }
 
 /** Returns the original (full-res jpg) URL from any FavoriteStoreItem. */
@@ -136,4 +176,26 @@ export function findEarliestEventForTeam(events: [string, { albumSlug?: string }
         }
     }
     return null;
+}
+
+/**
+ * Escapes special XML/SVG characters (<, >, &, ', ") to prevent injection and markup breakage.
+ */
+export function escapeXml(unsafe: string): string {
+    return unsafe.replace(/[<>&'"]/g, (c) => {
+        switch (c) {
+            case '<':
+                return '&lt;';
+            case '>':
+                return '&gt;';
+            case '&':
+                return '&amp;';
+            case '\'':
+                return '&apos;';
+            case '"':
+                return '&quot;';
+            default:
+                return c;
+        }
+    });
 }

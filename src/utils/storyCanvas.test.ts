@@ -713,16 +713,16 @@ describe('storyCanvas calculations', () => {
             expect(vhs!.getSvgString()).toContain('PLAY');
         });
 
-        it('generates valid SVG strings with and without color override', () => {
+        it('generates valid SVG strings with and without color override', async () => {
             const bear = STORY_FRAME_DEFINITIONS.find((f) => f.id === 'sac-bear');
             expect(bear).toBeDefined();
 
-            const defaultSvg = bear!.getSvgString();
+            const defaultSvg = await bear!.getSvgString();
             expect(defaultSvg).toContain('<svg');
             expect(defaultSvg).toContain('viewBox="0 0 1080 1920"');
             expect(defaultSvg).toContain('#f59e0b');
 
-            const customSvg = bear!.getSvgString('#3b82f6');
+            const customSvg = await bear!.getSvgString('#3b82f6');
             expect(customSvg).toContain('#3b82f6');
         });
 
@@ -859,19 +859,22 @@ describe('storyCanvas calculations', () => {
             ).resolves.toBeUndefined();
         });
 
-        it('dynamically adapts frame layout based on context (badges present vs absent)', () => {
+        it('dynamically adapts frame layout based on context (badges present vs absent)', async () => {
             const bear = STORY_FRAME_DEFINITIONS.find((f) => f.id === 'sac-bear');
             expect(bear).toBeDefined();
 
             // When scoreboard is present, bear is elevated into the flank
-            const bearWithScoreboard = bear!.getSvgString(undefined, { hasScoreboard: true, hasAttribution: true });
+            const bearWithScoreboard = await bear!.getSvgString(undefined, {
+                hasScoreboard: true,
+                hasAttribution: true,
+            });
             expect(bearWithScoreboard).toContain('translate(750, 1510)');
             // Top racing stripe splits around attribution
             expect(bearWithScoreboard).toContain('x1="140" y1="117" x2="250"');
             expect(bearWithScoreboard).toContain('x1="830" y1="117" x2="940"');
 
             // When scoreboard is absent, bear descends into the corner
-            const bearWithoutScoreboard = bear!.getSvgString(undefined, {
+            const bearWithoutScoreboard = await bear!.getSvgString(undefined, {
                 hasScoreboard: false,
                 hasAttribution: false,
             });

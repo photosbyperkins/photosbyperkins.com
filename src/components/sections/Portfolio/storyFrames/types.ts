@@ -63,5 +63,5 @@ export interface StoryFrameDefinition {
     category?: StoryFrameCategory;
     signaturePalette: string[];
     renderSvg: (colorOverride?: string, context?: StoryFrameContext) => React.ReactNode;
-    getSvgString: (colorOverride?: string, context?: StoryFrameContext) => string;
+    getSvgString: (colorOverride?: string, context?: StoryFrameContext) => string | Promise<string>;
 }

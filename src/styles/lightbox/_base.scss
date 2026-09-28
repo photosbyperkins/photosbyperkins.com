@@ -1,0 +1,193 @@
+@use '../globals' as *;
+
+.portfolio {
+    // --- Lightbox Base & Viewport ---
+    &__lightbox {
+        position: fixed;
+        inset: 0;
+        z-index: var(--z-lightbox);
+        background: var(--color-bg);
+        transition: background-color var(--transition-fast);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+
+        img {
+            object-fit: contain;
+            border-radius: 2px;
+            cursor: grab;
+            user-select: none;
+            touch-action: none;
+
+            &:active {
+                cursor: grabbing;
+            }
+        }
+
+        &-track-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: grab;
+
+            &:active {
+                cursor: grabbing;
+            }
+        }
+
+        &-track {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 300vw;
+            height: 100%;
+            touch-action: none;
+            will-change: transform;
+        }
+
+        &-slide {
+            width: 100vw;
+            height: 100%;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            &--prev,
+            &--next {
+                // Ensure adjacent tracking slides are fully opaque and sharp BEFORE swiping
+                // to eliminate the "fade from white" transparency effect.
+                opacity: 1;
+            }
+        }
+
+        &-image-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        &-ambient {
+            position: absolute;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+
+            &-img {
+                position: absolute;
+                inset: 0;
+                width: 100%;
+                height: 100%;
+                background-size: cover;
+                background-position: center;
+                filter: blur(70px) saturate(130%);
+                transform: scale(1.25);
+                will-change: opacity;
+            }
+
+            &-glass {
+                position: absolute;
+                inset: 0;
+                // Instagram uses a strong dark or light tint overlay over top the mega-blurred image
+                // instead of an expensive browser backdrop-filter
+                background: rgba(0, 0, 0, 0.65);
+            }
+
+            html[data-theme='light'] &-glass {
+                background: rgba(255, 255, 255, 0.65);
+            }
+        }
+
+        &-image-full {
+            position: relative;
+            z-index: 1;
+            max-width: 100%;
+            max-height: 100%;
+            width: auto;
+            height: auto;
+            object-fit: contain;
+            border-radius: 4px;
+        }
+
+        &-nav-overlay {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 15%;
+            min-width: 60px;
+            max-width: 120px;
+            z-index: var(--z-lightbox-controls);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            pointer-events: auto;
+
+            &--left {
+                left: 0;
+                justify-content: flex-start;
+                padding-left: 1.5rem;
+            }
+
+            &--right {
+                right: 0;
+                justify-content: flex-end;
+                padding-right: 1.5rem;
+            }
+
+            @media (hover: hover) {
+                &:hover .portfolio__lightbox-nav-btn {
+                    opacity: 1;
+                    transform: scale(1.05);
+                    background: rgba(var(--color-bg-rgb), 0.85);
+                }
+            }
+        }
+
+        &-nav-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            border-radius: 6px;
+            background: rgba(var(--color-bg-rgb), 0.5);
+            -webkit-backdrop-filter: blur(8px);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--glass-border);
+            color: var(--color-text);
+            opacity: 0.3;
+            transform: scale(0.95);
+            transition: all var(--transition-fast) cubic-bezier(0.2, 0.8, 0.2, 1);
+
+            svg {
+                transition: transform var(--transition-fast);
+            }
+
+            @media (max-width: 768px) {
+                opacity: 0;
+            }
+        }
+
+        &.is-theater-mode {
+            .portfolio__lightbox-scrubber,
+            .portfolio__lightbox-top-left,
+            .portfolio__lightbox-top-center,
+            .portfolio__lightbox-top-right > .portfolio__lightbox-action,
+            .portfolio__lightbox-nav-overlay {
+                opacity: 0;
+                pointer-events: none;
+            }
+        }
+    }
+}

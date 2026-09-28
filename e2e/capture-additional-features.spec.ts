@@ -34,7 +34,7 @@ test.describe('Additional Feature Screen Captures', () => {
         }
 
         // 3. Desktop About Modal
-        const aboutBtn = page.locator('button.nav__logo-btn, button[aria-label="About Me"]').first();
+        const aboutBtn = page.locator('button.nav__logo-btn, button[aria-label="Behind the Lens"], button[aria-label="About Me"]').first();
         if (await aboutBtn.isVisible()) {
             await aboutBtn.click();
             await page.waitForTimeout(800);

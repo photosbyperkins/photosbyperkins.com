@@ -4,13 +4,14 @@ import path from 'path';
 import type { IndexState, RecapDefinitions } from './types.js';
 import { logger } from './logger';
 import { GEAR_REGISTRY, getGearItem } from '../../src/data/gearData.js';
+import { parseEventTitle } from '../../src/utils/formatters.js';
 
 const WFTDA_FILE = path.join(process.cwd(), 'data', 'wftda-matches.json');
 const INDEX_FILE = path.join(process.cwd(), 'public', 'data', 'index.json');
 const YEARS_DIR = path.join(process.cwd(), 'public', 'data', 'years');
 const GEAR_DIR = path.join(process.cwd(), 'public', 'data', 'gear');
 
-function slugify(text: string) {
+export function slugify(text: string) {
     return text
         .toString()
         .toLowerCase()
@@ -20,7 +21,7 @@ function slugify(text: string) {
         .replace(/--+/g, '-'); // Replace multiple - with single -
 }
 
-function generateRecapImages(eventsObj: Record<string, any>) {
+export function generateRecapImages(eventsObj: Record<string, any>) {
     const eventsArray = Object.entries(eventsObj);
     const validEvents = eventsArray.filter(([eventName]) => !eventName.toLowerCase().includes('headshot')).reverse();
     
@@ -35,14 +36,7 @@ function generateRecapImages(eventsObj: Record<string, any>) {
         const focusX = typeof photoInput === 'object' ? photoInput.focusX : undefined;
         const focusY = typeof photoInput === 'object' ? photoInput.focusY : undefined;
 
-        const titleMatch = eventName.match(/^(?:\[(\d{4})\]\s*)?(\d{2}\.\d{2})\s+(.*)/);
-        const baseDatePrefix = titleMatch ? titleMatch[2] : '';
-        const mainTitle = titleMatch ? titleMatch[3] : eventName;
-
-        const teams = mainTitle
-            .split(/\s+(?:vs|versus)\s+/i)
-            .map((t) => t.trim())
-            .filter(Boolean);
+        const { baseDatePrefix, teams } = parseEventTitle(eventName);
 
         return {
             src,
@@ -92,15 +86,71 @@ function generateRecapImages(eventsObj: Record<string, any>) {
     return images;
 }
 
-function writeChunkedFile(baseDir: string, baseName: string, dataEvents: Record<string, any>, extraPayload: any, chunkSize = 10) {
+export interface ChunkPartPayload<T = unknown> {
+    events: Record<string, T>;
+    nextPart?: string;
+    recapCount?: number;
+    recapEvents?: unknown[];
+    stats?: unknown;
+    [key: string]: unknown;
+}
+
+export function sortTaggedEvents<T extends { earliestTime?: number }>(
+    events: Record<string, T>
+): Record<string, T> {
+    const entries = Object.entries(events).sort((a, b) => {
+        const [keyA, evA] = a;
+        const [keyB, evB] = b;
+
+        // Keys look like "[2024] 10.22 Event"
+        const yearA = keyA.match(/^\[(\d{4})\]/)?.[1] || '';
+        const yearB = keyB.match(/^\[(\d{4})\]/)?.[1] || '';
+
+        if (yearA !== yearB) {
+            return yearB.localeCompare(yearA); // Latest year first
+        }
+
+        const dateA = keyA.match(/\] (\d{2}\.\d{2})/)?.[1] || '';
+        const dateB = keyB.match(/\] (\d{2}\.\d{2})/)?.[1] || '';
+
+        if (dateA !== dateB) {
+            return dateB.localeCompare(dateA); // Latest date first
+        }
+
+        const timeA = evA.earliestTime || 0;
+        const timeB = evB.earliestTime || 0;
+        if (timeA !== timeB) {
+            return timeB - timeA; // Latest time first
+        }
+
+        return keyB.localeCompare(keyA);
+    });
+
+    const sorted: Record<string, T> = {};
+    for (const [k, v] of entries) {
+        sorted[k] = v;
+    }
+    return sorted;
+}
+
+export function writeChunkedFile<T = unknown>(
+    baseDir: string,
+    baseName: string,
+    dataEvents: Record<string, T>,
+    extraPayload?: Record<string, unknown>,
+    chunkSize = 10
+): string[] {
+    const writtenFiles: string[] = [];
     const eventEntries = Object.entries(dataEvents);
-    
+
     if (eventEntries.length === 0) {
-        fs.writeFileSync(path.join(baseDir, `${baseName}.json`), JSON.stringify({ events: {}, ...extraPayload }, null, 0));
-        return;
+        const filePath = path.join(baseDir, `${baseName}.json`);
+        fs.writeFileSync(filePath, JSON.stringify({ events: {}, ...extraPayload }, null, 0));
+        writtenFiles.push(filePath);
+        return writtenFiles;
     }
 
-    const parts = [];
+    const parts: [string, T][][] = [];
     for (let i = 0; i < eventEntries.length; i += chunkSize) {
         parts.push(eventEntries.slice(i, i + chunkSize));
     }
@@ -111,25 +161,29 @@ function writeChunkedFile(baseDir: string, baseName: string, dataEvents: Record<
         const fileName = isFirst ? `${baseName}.json` : `${baseName}_part${i + 1}.json`;
         const nextPart = isLast ? null : `${baseName}_part${i + 2}`;
 
-        const eventsObj: Record<string, any> = {};
+        const eventsObj: Record<string, T> = {};
         for (const [k, v] of parts[i]) {
             eventsObj[k] = v;
         }
 
-        const payload: any = {
-            events: eventsObj
+        const payload: ChunkPartPayload<T> = {
+            events: eventsObj,
         };
-        
+
         if (nextPart) {
             payload.nextPart = nextPart;
         }
-        
+
         if (isFirst && extraPayload) {
             Object.assign(payload, extraPayload);
         }
 
-        fs.writeFileSync(path.join(baseDir, fileName), JSON.stringify(payload, null, 0));
+        const filePath = path.join(baseDir, fileName);
+        fs.writeFileSync(filePath, JSON.stringify(payload, null, 0));
+        writtenFiles.push(filePath);
     }
+
+    return writtenFiles;
 }
 
 export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
@@ -387,17 +441,13 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
             processedYearData[eventName] = evMeta;
 
             // Extract Teams
-            const titleMatch = eventName.match(/^(\d{2}\.\d{2})\s+(.*)/);
-            const baseDatePrefix = titleMatch ? titleMatch[1] : '';
-            const mainTitle = titleMatch ? titleMatch[2] : eventName;
-
-            const parts = mainTitle.split(/\s+(?:vs\.?|versus)\s+/i);
+            const { baseDatePrefix, mainTitle, teams: parts } = parseEventTitle(eventName);
             const isHeadshots = mainTitle.toLowerCase().includes('headshots');
             const isSRDRoundRobin = mainTitle.toLowerCase().includes('sacramento roller derby round robin');
 
             if (parts.length > 1 || isHeadshots || isSRDRoundRobin) {
                 // It's a matchup, headshots, or Round Robin!
-                const extractedTeams = parts.map((p) => p.trim()).filter(Boolean);
+                const extractedTeams = parts;
 
                 let finalTeams: string[];
                 if (isSRDRoundRobin) {
@@ -572,40 +622,7 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
         uniqueTeams.push({ name: anyTeamData.name, slug: teamSlug, count: Object.keys(anyTeamData.events).length });
         
         // Sort team events in reverse chronological order across all years
-        const sortedTeamEvents: Record<string, any> = {};
-        const teamEventEntries = Object.entries(teamData.events).sort((a: [string, any], b: [string, any]) => {
-            const keyA = a[0];
-            const keyB = b[0];
-            const evA = a[1];
-            const evB = b[1];
-            
-            // Keys look like "[2024] 10.22 Event"
-            const yearA = keyA.match(/^\[(\d{4})\]/)?.[1] || '';
-            const yearB = keyB.match(/^\[(\d{4})\]/)?.[1] || '';
-            
-            if (yearA !== yearB) {
-                return yearB.localeCompare(yearA); // Latest year first
-            }
-            
-            const dateA = keyA.match(/\] (\d{2}\.\d{2})/)?.[1] || '';
-            const dateB = keyB.match(/\] (\d{2}\.\d{2})/)?.[1] || '';
-            
-            if (dateA !== dateB) {
-                return dateB.localeCompare(dateA); // Latest date first
-            }
-            
-            const timeA = evA.earliestTime || 0;
-            const timeB = evB.earliestTime || 0;
-            if (timeA !== timeB) {
-                return timeB - timeA; // Latest time first
-            }
-            
-            return keyB.localeCompare(keyA);
-        });
-        
-        for (const [k, v] of teamEventEntries) {
-            sortedTeamEvents[k] = v;
-        }
+        const sortedTeamEvents = sortTaggedEvents(teamData.events);
 
         // We no longer generate recap slices for teams since the random hero logic
         // often pulls images of the opposing team
@@ -639,38 +656,7 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
         });
 
         // Sort gear events in reverse chronological order across all years
-        const sortedGearEvents: Record<string, any> = {};
-        const gearEventEntries = Object.entries(gearEntry.events).sort((a: [string, any], b: [string, any]) => {
-            const keyA = a[0];
-            const keyB = b[0];
-            const evA = a[1];
-            const evB = b[1];
-
-            // Keys look like "[2024] 10.22 Event"
-            const yearA = keyA.match(/^\[(\d{4})\]/)?.[1] || '';
-            const yearB = keyB.match(/^\[(\d{4})\]/)?.[1] || '';
-            if (yearA !== yearB) {
-                return yearB.localeCompare(yearA);
-            }
-
-            const dateA = keyA.match(/\] (\d{2}\.\d{2})/)?.[1] || '';
-            const dateB = keyB.match(/\] (\d{2}\.\d{2})/)?.[1] || '';
-            if (dateA !== dateB) {
-                return dateB.localeCompare(dateA);
-            }
-
-            const timeA = evA.earliestTime || 0;
-            const timeB = evB.earliestTime || 0;
-            if (timeA !== timeB) {
-                return timeB - timeA;
-            }
-
-            return keyB.localeCompare(keyA);
-        });
-
-        for (const [k, v] of gearEventEntries) {
-            sortedGearEvents[k] = v;
-        }
+        const sortedGearEvents = sortTaggedEvents(gearEntry.events);
 
         writeChunkedFile(GEAR_DIR, gearId, sortedGearEvents, { recapCount: 0, recapEvents: [] });
     }

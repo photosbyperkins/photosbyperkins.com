@@ -1,17 +1,17 @@
 import { useRef, useMemo, useCallback, useState, useEffect } from 'react';
 import ProgressiveImage from '../../ui/ProgressiveImage';
-import type { PhotoInput, EventScore } from '../../../types';
+import type { PhotoRecord, EventScore } from '../../../types';
 
 declare const __BUILD_NUMBER__: string;
 
 interface VirtualizedAlbumGridProps {
-    photos: PhotoInput[];
+    photos: PhotoRecord[];
     eventName: string;
     selectedYear: string;
     maxExifChars?: number;
     localScore?: EventScore;
     openLightbox: (
-        images: PhotoInput[],
+        images: PhotoRecord[],
         idx: number,
         name: string,
         year: string,
@@ -77,7 +77,7 @@ export default function VirtualizedAlbumGrid({
     }, []);
 
     const rows = useMemo(() => {
-        const groups: PhotoInput[][] = [];
+        const groups: PhotoRecord[][] = [];
         for (let i = 0; i < photos.length; i += cycleSize) {
             groups.push(photos.slice(i, i + cycleSize));
         }
@@ -161,15 +161,15 @@ export default function VirtualizedAlbumGrid({
                             paddingBottom: '4px',
                         }}
                     >
-                        {rowPhotos.map((url, colIdx) => {
+                        {rowPhotos.map((photo, colIdx) => {
                             const globalIdx = startIndex + colIdx;
-                            const origUrl = typeof url === 'string' ? url : url.original;
-                            const rawThumbUrl = typeof url === 'string' ? url : url.thumb || url.original;
+                            const origUrl = photo.original;
+                            const rawThumbUrl = photo.thumb || photo.original;
                             const thumbUrl = rawThumbUrl.includes('?v=')
                                 ? rawThumbUrl
                                 : `${rawThumbUrl}?v=${__BUILD_NUMBER__}`;
-                            const focusX = typeof url === 'string' ? undefined : url.focusX;
-                            const focusY = typeof url === 'string' ? undefined : url.focusY;
+                            const focusX = photo.focusX;
+                            const focusY = photo.focusY;
 
                             return (
                                 <button

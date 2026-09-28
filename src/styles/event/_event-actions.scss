@@ -1,0 +1,58 @@
+@use '../globals' as *;
+
+.portfolio {
+    &__event {
+        .portfolio__event-meta {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: nowrap;
+            flex-shrink: 0;
+            margin-top: 0.25rem;
+
+            .portfolio__zip-btn {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0;
+                width: 40px;
+                text-decoration: none;
+                background: var(--color-bg-2);
+                border: 1px solid var(--color-border);
+                color: var(--color-text-muted);
+                height: 36px;
+                border-radius: 6px;
+                cursor: pointer;
+                transition: all var(--transition-fast);
+
+                @media (hover: hover) {
+                    &:hover {
+                        color: var(--color-text);
+                        border-color: var(--color-text-muted);
+                        background: var(--color-bg-3);
+                    }
+                }
+
+                svg {
+                    margin-top: -1px;
+                }
+            }
+        }
+
+        .portfolio__stat-tag {
+            display: flex;
+            align-items: center;
+            height: 32px;
+            font-family: var(--font-condensed);
+            font-size: 0.8rem;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            color: var(--color-text-muted);
+            background: var(--color-bg-2);
+            border: 1px solid var(--color-border);
+            padding: 0 0.75rem;
+            border-radius: 6px;
+            white-space: nowrap;
+        }
+    }
+}

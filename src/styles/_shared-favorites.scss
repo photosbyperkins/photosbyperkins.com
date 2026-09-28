@@ -1,0 +1,82 @@
+@use './globals' as *;
+
+// Shared Favorites Panel
+.shared-favorites-overlay {
+    &__body {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+
+        .portfolio__event {
+            margin-top: 0; // Override inherited :first-child margin from _event.scss
+        }
+    }
+
+    .modal-shell__footer-bar-inner {
+        .shared-favorites-overlay__btn {
+            flex: 1;
+            max-width: 220px;
+        }
+    }
+
+    // Matches portfolio__zip-btn spec from _event.scss
+    &__btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        height: 32px;
+        min-width: 36px;
+        padding: 0 0.6rem;
+        white-space: nowrap;
+        text-decoration: none;
+        background: transparent;
+        border: 1px solid var(--color-border);
+        color: var(--color-text-muted);
+        border-radius: 3px;
+        cursor: pointer;
+        font-family: var(--font-condensed);
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        transition: all var(--transition-fast);
+
+        @media (hover: hover) {
+            &:hover {
+                color: var(--color-text);
+                border-color: var(--color-text-muted);
+            }
+        }
+
+        svg {
+            margin-top: -1px;
+            flex-shrink: 0;
+        }
+
+        &.is-done {
+            color: var(--color-accent);
+            border-color: var(--color-accent);
+            opacity: 0.7;
+            cursor: default;
+        }
+
+        &.is-cta {
+            background: var(--color-accent);
+            border-color: var(--color-accent);
+            color: #fff;
+
+            @media (hover: hover) {
+                &:hover {
+                    opacity: 0.85;
+                }
+            }
+
+            &.is-done {
+                background: transparent;
+                color: var(--color-accent);
+                border-color: var(--color-accent);
+                opacity: 0.7;
+            }
+        }
+    }
+}

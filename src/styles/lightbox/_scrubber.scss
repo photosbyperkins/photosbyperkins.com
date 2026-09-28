@@ -1,0 +1,137 @@
+@use '../globals' as *;
+
+.portfolio {
+    // --- Lightbox Filmstrip Scrubber ---
+    &__lightbox {
+        &-scrubber {
+            position: absolute;
+            bottom: max(20px, env(safe-area-inset-bottom));
+            left: 0;
+            right: 0;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            overflow: clip;
+            pointer-events: none;
+            z-index: var(--z-lightbox-controls);
+            transition: opacity var(--transition-fast);
+            mask-image: linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%);
+            -webkit-mask-image: linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%);
+
+            &-track {
+                display: flex;
+                align-items: center;
+                flex-shrink: 0;
+                width: max-content;
+                pointer-events: none;
+            }
+
+            &-thumb {
+                position: relative;
+                width: 72px;
+                min-width: 72px;
+                height: 48px;
+                background-size: cover;
+                background-position: center;
+                box-sizing: border-box;
+                cursor: pointer;
+                pointer-events: auto;
+                border-radius: 4px;
+                flex-shrink: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            &-playhead {
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 72px;
+                height: 48px;
+                border: 2px solid white;
+                border-radius: 4px;
+                box-sizing: border-box;
+                pointer-events: auto;
+                z-index: 3;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: transparent;
+                overflow: visible;
+            }
+
+            &-counter {
+                position: absolute;
+                top: 100%;
+                left: 50%;
+                transform: translateX(-50%);
+                margin-top: 4px;
+                white-space: nowrap;
+                font-size: 10px;
+                font-weight: 600;
+                letter-spacing: 0.5px;
+                color: white;
+                text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+                pointer-events: none;
+            }
+
+            &-heart {
+                position: absolute;
+                inset: 0;
+                background: transparent;
+                border: none;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+                color: white;
+                opacity: 1;
+                transition: all 0.15s ease;
+                border-radius: 2px;
+                padding: 0;
+
+                @media (hover: hover) {
+                    &:hover {
+                        opacity: 1;
+                    }
+                }
+
+                &.is-active {
+                    color: var(--color-accent);
+                    opacity: 1;
+
+                    svg {
+                        filter: drop-shadow(0 0 8px var(--color-accent-glow));
+                        animation: heart-pop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                    }
+                }
+
+                &-layer {
+                    position: absolute;
+                    inset: 0;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    pointer-events: none;
+                }
+            }
+        }
+    }
+}
+
+@keyframes heart-pop {
+    0% {
+        transform: scale(1);
+    }
+    45% {
+        transform: scale(1.38);
+    }
+    75% {
+        transform: scale(0.92);
+    }
+    100% {
+        transform: scale(1);
+    }
+}

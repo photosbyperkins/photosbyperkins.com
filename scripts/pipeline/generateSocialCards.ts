@@ -5,6 +5,7 @@ import sharp from 'sharp';
 import 'dotenv/config';
 import type { IndexState } from './types';
 import { logger } from './logger';
+import { parseEventTitle } from '../../src/utils/formatters.js';
 const DIST_DIR = path.join(process.cwd(), 'dist');
 const OUTPUT_DIR = path.join(DIST_DIR, 'social-cards');
 const CACHE_MANIFEST_PATH = path.join(OUTPUT_DIR, '.cache.json');
@@ -108,13 +109,7 @@ export async function generateSocialCards(data: IndexState) {
         return short.toUpperCase();
     }
 
-    // Helper to parse event title exactly like the UI
-    function parseEventTitle(eventName: string) {
-        const titleMatch = eventName.match(/^(?:\[(\d{4})\]\s*)?(\d{2}\.\d{2})\s+(.*)/);
-        const datePrefix = titleMatch ? titleMatch[2] : '';
-        const mainTitle = titleMatch ? titleMatch[3] : eventName;
-        return { datePrefix, mainTitle };
-    }
+
 
     for (const year in data) {
         for (const event in data[year]) {
@@ -153,8 +148,8 @@ export async function generateSocialCards(data: IndexState) {
                 continue;
             }
 
-            const { datePrefix, mainTitle } = parseEventTitle(event);
-            const teams = mainTitle.split(/\s+(?:vs|versus)\s+/i).map(t => formatTeamName(t.trim()));
+            const { datePrefix, mainTitle, teams: rawTeams } = parseEventTitle(event);
+            const teams = rawTeams.map((t) => formatTeamName(t));
 
             const safeLogoText = escapeXml(LOGO_TEXT);
             const safeLogoAccent = escapeXml(LOGO_ACCENT);

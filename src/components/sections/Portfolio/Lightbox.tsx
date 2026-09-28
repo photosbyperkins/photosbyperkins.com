@@ -1,5 +1,5 @@
-import { motion, AnimatePresence, useMotionValue, animate, useTransform, type PanInfo } from 'framer-motion';
-import { ChevronLeft, ChevronRight, X } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
@@ -7,6 +7,7 @@ import LightboxSlide, { type LightboxSlideHandle } from './LightboxSlide';
 import LightboxAmbient from './LightboxAmbient';
 import LightboxHeader from './LightboxHeader';
 import LightboxScrubber from './LightboxScrubber';
+import LightboxHelp from './LightboxHelp';
 import type { PhotoInput, EventScore } from '../../../types';
 
 const StoryExportModal = lazy(() => import('./StoryExportModal'));
@@ -31,6 +32,7 @@ import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock';
 import { useFocusTrap } from '../../../hooks/useFocusTrap';
 import { useLightboxNavigation } from '../../../hooks/useLightboxNavigation';
 import { useImagePreloader } from '../../../hooks/useImagePreloader';
+import { useLightboxGestures } from '../../../hooks/useLightboxGestures';
 import { getPhotoDisplayUrl } from '../../../utils/formatters';
 
 export default function Lightbox({
@@ -44,15 +46,14 @@ export default function Lightbox({
     onSetIndex,
 }: LightboxProps) {
     const canShare = useCanShare();
-    const { favorites, toggleFavorite } = useAppStore();
+    const favorites = useAppStore((state) => state.favorites);
+    const toggleFavorite = useAppStore((state) => state.toggleFavorite);
     const reducedMotion = useReducedMotion();
     const lightboxRef = useRef<HTMLDivElement>(null);
 
-    const x = useMotionValue(0);
     const containerRef = useRef<HTMLDivElement>(null);
     const slideRef = useRef<LightboxSlideHandle>(null);
     const recentlyDragged = useRef<{ x: number; y: number } | null>(null);
-    const [isAnimating, setIsAnimating] = useState(false);
     const [isZoomed, setIsZoomed] = useState(false);
 
     const [isTheaterMode, setIsTheaterMode] = useState(false);
@@ -135,79 +136,6 @@ export default function Lightbox({
         return () => window.removeEventListener('resize', handleResize);
     }, [handleResize]);
 
-    const currentOpacity = useTransform(x, [-windowWidth, 0, windowWidth], [0, 1, 0]);
-    const prevOpacity = useTransform(x, [0, windowWidth], [0, 1]);
-    const nextOpacity = useTransform(x, [-windowWidth, 0], [1, 0]);
-
-    // Map the horizontal swipe down to a 72px physical tracking shift
-    const dragShift = useTransform(x, [-windowWidth, 0, windowWidth], [-72, 0, 72]);
-
-    // How many slices to render (viewport width + buffer for drag overshoot)
-    const visibleSlices = Math.max(5, Math.ceil(windowWidth / 72) + 8);
-    // Ensure odd number so there's a perfectly centered item
-    const sliceCount = visibleSlices % 2 === 0 ? visibleSlices + 1 : visibleSlices;
-    const maxDist = Math.floor(sliceCount / 2);
-
-    // The center slice (offset 0) is at position maxDist in the rendered array.
-    // Its center is at (maxDist * 72 + 36) from the track's left edge.
-    // To place that at the viewport center:
-    const trackX = useTransform(dragShift, (shift) => windowWidth / 2 - (maxDist * 72 + 36) + shift);
-
-    // Drive scrubber thumb opacities from drag progress
-    // Current active thumb fades from 1 → 0.5 as drag progresses
-    const thumbOpacity0 = useTransform(x, [-windowWidth, 0, windowWidth], [0.5, 1, 0.5]);
-    // Previous thumb (offset -1) brightens when dragging right (going to previous)
-    const thumbOpacityPrev = useTransform(x, [0, windowWidth], [0.5, 1]);
-    // Next thumb (offset +1) brightens when dragging left (going to next)
-    const thumbOpacityNext = useTransform(x, [-windowWidth, 0], [1, 0.5]);
-    const paginate = useCallback(
-        async (newDirection: number) => {
-            if (isAnimating) return;
-            setIsAnimating(true);
-            setIsZoomed(false);
-
-            const nextIndex = (index + newDirection + images.length) % images.length;
-
-            // Animate the track
-            await animate(
-                x,
-                newDirection > 0 ? -window.innerWidth : window.innerWidth,
-                reducedMotion
-                    ? {
-                          type: 'tween',
-                          duration: 0,
-                      }
-                    : {
-                          type: 'spring',
-                          stiffness: 450,
-                          damping: 40,
-                          restDelta: 0.5,
-                      }
-            );
-
-            // Preload the ambient thumbnail for the destination photo to avoid flash
-            // (skip when using sprite — it's already fully loaded)
-            if (!spriteUrl) {
-                const nextThumbSrc = getThumbSrc(images[nextIndex]);
-                if (nextThumbSrc) {
-                    await new Promise<void>((resolve) => {
-                        const img = new Image();
-                        img.onload = () => resolve();
-                        img.onerror = () => resolve();
-                        img.src = nextThumbSrc;
-                        setTimeout(resolve, 200);
-                    });
-                }
-            }
-
-            // Update index and reset position
-            onSetIndex(nextIndex);
-            x.set(0);
-            setIsAnimating(false);
-        },
-        [isAnimating, index, images, x, onSetIndex, spriteUrl, getThumbSrc, reducedMotion]
-    );
-
     const handleToggleFavorite = useCallback(() => {
         toggleFavorite({
             photo: images[index],
@@ -250,6 +178,38 @@ export default function Lightbox({
         setIsStoryExportOpen(true);
     }, []);
 
+    const currentPhoto = images[index];
+    const isFavorite = checkIfFavorite(currentPhoto);
+
+    const {
+        x,
+        isAnimating,
+        maxDist,
+        currentOpacity,
+        prevOpacity,
+        nextOpacity,
+        trackX,
+        thumbOpacity0,
+        thumbOpacityPrev,
+        thumbOpacityNext,
+        filledHeartOpacity,
+        emptyHeartOpacity,
+        filledHeartScale,
+        paginate,
+        onDragEnd,
+    } = useLightboxGestures({
+        images,
+        index,
+        windowWidth,
+        reducedMotion,
+        spriteUrl,
+        isFavorite,
+        checkIfFavorite,
+        getThumbSrc,
+        onSetIndex,
+        onZoomReset: () => setIsZoomed(false),
+    });
+
     useLightboxNavigation({
         onClose: isStoryExportOpen
             ? () => setIsStoryExportOpen(false)
@@ -269,33 +229,6 @@ export default function Lightbox({
 
     useBodyScrollLock(true);
     useFocusTrap(lightboxRef, true);
-
-    const currentPhoto = images[index];
-
-    const isFavorite = checkIfFavorite(currentPhoto);
-
-    // Drive the playhead heart crossfade from drag progress
-    const prevPhoto = images[(index - 1 + images.length) % images.length];
-    const nextPhoto = images[(index + 1) % images.length];
-    const isPrevFavorite = checkIfFavorite(prevPhoto);
-    const isNextFavorite = checkIfFavorite(nextPhoto);
-
-    const filledHeartOpacity = useTransform(x, (latest) => {
-        const progress = Math.min(1, Math.abs(latest) / windowWidth);
-        const current = isFavorite ? 1 : 0;
-        if (latest > 0) {
-            // Dragging right → going to previous
-            const target = isPrevFavorite ? 1 : 0;
-            return current + (target - current) * progress;
-        } else if (latest < 0) {
-            // Dragging left → going to next
-            const target = isNextFavorite ? 1 : 0;
-            return current + (target - current) * progress;
-        }
-        return current;
-    });
-    const emptyHeartOpacity = useTransform(filledHeartOpacity, (v) => 1 - v);
-    const filledHeartScale = useTransform(filledHeartOpacity, (v) => 0.8 + v * 0.2);
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -331,18 +264,6 @@ export default function Lightbox({
             document.title = prevTitle;
         };
     }, [eventName, year]);
-
-    const onDragEnd = (_e: MouseEvent | TouchEvent | PointerEvent, { offset, velocity }: PanInfo) => {
-        const swipeThreshold = 50;
-        if (offset.x < -swipeThreshold || velocity.x < -500) {
-            paginate(1);
-        } else if (offset.x > swipeThreshold || velocity.x > 500) {
-            paginate(-1);
-        } else {
-            // Snap back to center
-            animate(x, 0, { type: 'spring', stiffness: 450, damping: 40 });
-        }
-    };
 
     const content = (
         <motion.div
@@ -493,72 +414,10 @@ export default function Lightbox({
                 }
             />
 
-            <AnimatePresence>
-                {!canShare && isHelpOpen && (
-                    <motion.div
-                        className="portfolio__lightbox-help-overlay"
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.95 }}
-                        transition={{ duration: 0.2 }}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setIsHelpOpen(false);
-                        }}
-                    >
-                        <div className="portfolio__lightbox-help-card" onClick={(e) => e.stopPropagation()}>
-                            <div className="portfolio__lightbox-help-header">
-                                <h3>Keyboard Shortcuts</h3>
-                                <button
-                                    className="portfolio__lightbox-help-close"
-                                    onClick={() => setIsHelpOpen(false)}
-                                    aria-label="Close shortcuts"
-                                >
-                                    <X size={16} />
-                                </button>
-                            </div>
-                            <div className="portfolio__lightbox-help-grid">
-                                <div className="portfolio__lightbox-help-item">
-                                    <kbd>→</kbd> / <kbd>Space</kbd>
-                                    <span>Next photo</span>
-                                </div>
-                                <div className="portfolio__lightbox-help-item">
-                                    <kbd>←</kbd>
-                                    <span>Previous photo</span>
-                                </div>
-                                <div className="portfolio__lightbox-help-item">
-                                    <kbd>F</kbd> / <kbd>L</kbd>
-                                    <span>Toggle favorite</span>
-                                </div>
-                                <div className="portfolio__lightbox-help-item">
-                                    <kbd>Z</kbd>
-                                    <span>Toggle 100% zoom</span>
-                                </div>
-                                <div className="portfolio__lightbox-help-item">
-                                    <kbd>T</kbd>
-                                    <span>Toggle theater mode</span>
-                                </div>
-                                <div className="portfolio__lightbox-help-item">
-                                    <kbd>D</kbd>
-                                    <span>Download original photo</span>
-                                </div>
-                                <div className="portfolio__lightbox-help-item">
-                                    <kbd>C</kbd>
-                                    <span>Story Maker</span>
-                                </div>
-                                <div className="portfolio__lightbox-help-item">
-                                    <kbd>Esc</kbd>
-                                    <span>Close lightbox</span>
-                                </div>
-                                <div className="portfolio__lightbox-help-item">
-                                    <kbd>?</kbd>
-                                    <span>Toggle this help</span>
-                                </div>
-                            </div>
-                        </div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            <LightboxHelp
+                isOpen={!canShare && isHelpOpen}
+                onClose={() => setIsHelpOpen(false)}
+            />
 
             {isStoryExportOpen && (
                 <div onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>

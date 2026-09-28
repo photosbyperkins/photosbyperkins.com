@@ -1,0 +1,216 @@
+@use '../globals' as *;
+
+.portfolio {
+    // --- Lightbox Header & Controls ---
+    &__lightbox {
+        &-top-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            padding: 16px 1.5rem;
+            z-index: var(--z-lightbox-controls);
+            background: transparent;
+            pointer-events: none;
+
+            button {
+                pointer-events: auto;
+            }
+        }
+
+        &-top-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            pointer-events: none;
+            position: relative;
+            transition: opacity var(--transition-fast);
+
+            & > * {
+                pointer-events: auto;
+            }
+        }
+
+        &-top-right {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            pointer-events: none;
+            position: relative;
+
+            & > * {
+                pointer-events: auto;
+            }
+
+            .portfolio__lightbox-help-btn {
+                @media (max-width: 400px) {
+                    display: none !important;
+                }
+            }
+        }
+
+        &-top-center {
+            position: absolute;
+            left: 50%;
+            top: 16px;
+            transform: translateX(-50%);
+            pointer-events: none;
+            z-index: var(--z-lightbox-controls);
+        }
+
+        &-data-display {
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            color: var(--color-text);
+            background: rgba(var(--color-bg-rgb), 0.65);
+            border: 1px solid var(--glass-border);
+            -webkit-backdrop-filter: blur(4px);
+            backdrop-filter: blur(4px);
+            border-radius: 6px;
+            height: 40px;
+            padding: 0 16px;
+            width: auto;
+            justify-content: center;
+            pointer-events: none;
+            user-select: none;
+            cursor: default;
+            position: relative;
+
+            &--empty {
+                opacity: 0.4;
+                font-style: italic;
+            }
+        }
+
+        &-data-info {
+            display: flex;
+            flex-direction: column;
+            white-space: nowrap;
+            font-size: 10px;
+            line-height: 1.1;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        &-data-row-top {
+            font-weight: 600;
+            color: var(--color-text);
+        }
+
+        &-data-row-bottom {
+            color: var(--color-text-muted);
+        }
+
+        &-menu {
+            position: absolute;
+            top: 52px;
+            left: 0;
+            background: rgba(20, 20, 20, 0.85);
+            -webkit-backdrop-filter: blur(12px);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 6px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            min-width: 160px;
+            pointer-events: auto;
+            transform-origin: top left;
+        }
+
+        &-menu-item {
+            background: transparent;
+            border: none;
+            color: white;
+            padding: 10px 12px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            font-family: var(--font-primary);
+            font-size: 0.95rem;
+
+            svg {
+                opacity: 0.8;
+            }
+
+            &.is-disabled {
+                opacity: 0.4;
+                cursor: not-allowed;
+            }
+
+            @media (hover: hover) {
+                &:hover:not(.is-disabled) {
+                    background: rgba(255, 255, 255, 0.1);
+
+                    svg {
+                        opacity: 1;
+                    }
+                }
+            }
+        }
+
+        &-action {
+            background: rgba(var(--color-bg-rgb), 0.65);
+            border: 1px solid var(--glass-border);
+            color: var(--color-text-muted);
+            width: 40px;
+            height: 40px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            -webkit-backdrop-filter: blur(4px);
+            backdrop-filter: blur(4px);
+            overflow: hidden;
+
+            @media (hover: hover) {
+                &:hover {
+                    background: rgba(var(--color-bg-rgb), 0.9);
+                    color: var(--color-text);
+                }
+            }
+        }
+
+        &-action-group {
+            display: flex;
+            flex-direction: row;
+            background: rgba(var(--color-bg-rgb), 0.65);
+            border: 1px solid var(--glass-border);
+            border-radius: 6px;
+            overflow: hidden;
+            -webkit-backdrop-filter: blur(4px);
+            backdrop-filter: blur(4px);
+
+            @media (max-width: 768px) {
+                flex-direction: column;
+            }
+
+            .portfolio__lightbox-action {
+                background: transparent;
+                border: none;
+                border-radius: 0;
+                -webkit-backdrop-filter: none;
+                backdrop-filter: none;
+
+                @media (hover: hover) {
+                    &:hover {
+                        background: rgba(var(--color-text-rgb), 0.1);
+                        color: var(--color-text);
+                    }
+                }
+            }
+        }
+    }
+}

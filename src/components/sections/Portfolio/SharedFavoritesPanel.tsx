@@ -1,7 +1,9 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Save, Heart } from 'lucide-react';
 import { useCanShare } from '../../../hooks/useCanShare';
 import { useAppStore } from '../../../store/useAppStore';
+import { useZipWorker } from '../../../hooks/useZipWorker';
+import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock';
 import ProgressiveImage from '../../ui/ProgressiveImage';
 import ModalShell from '../../ui/ModalShell';
 import type { PhotoInput } from '../../../types';
@@ -18,27 +20,11 @@ export default function SharedFavoritesPanel({ photos, onClose }: SharedFavorite
     const openLightbox = useAppStore((state) => state.openLightbox);
     const isLightboxOpen = useAppStore((state) => state.lightbox.isOpen);
 
-    // Zip download state
-    const [isZipping, setIsZipping] = useState(false);
-    const [zipProgress, setZipProgress] = useState(0);
     const [addedToFavorites, setAddedToFavorites] = useState(false);
-    const zipWorkerRef = useRef<Worker | null>(null);
-
-    useEffect(() => {
-        return () => {
-            zipWorkerRef.current?.terminate();
-        };
-    }, []);
+    const { isZipping, zipProgress, startZipping } = useZipWorker();
 
     // Re-apply body scroll lock when lightbox closes
-    useEffect(() => {
-        if (!isLightboxOpen && photos.length > 0) {
-            document.body.style.overflow = 'hidden';
-        }
-        return () => {
-            document.body.style.overflow = '';
-        };
-    }, [isLightboxOpen, photos.length]);
+    useBodyScrollLock(Boolean(photos.length > 0 && !isLightboxOpen));
 
     const handleAddToFavorites = useCallback(() => {
         const store = useAppStore.getState();
@@ -55,44 +41,10 @@ export default function SharedFavoritesPanel({ photos, onClose }: SharedFavorite
     }, [photos]);
 
     const handleDownloadZip = useCallback(() => {
-        if (isZipping) return;
-        setIsZipping(true);
-        setZipProgress(0);
-
-        const worker = new Worker(new URL('../../../workers/zipWorker.ts', import.meta.url), { type: 'module' });
-        zipWorkerRef.current = worker;
-
-        worker.onmessage = (e) => {
-            if (e.data.type === 'progress') {
-                setZipProgress(Math.round(e.data.progress));
-            } else if (e.data.type === 'done') {
-                const { blob, filename } = e.data;
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = filename;
-                a.click();
-                URL.revokeObjectURL(url);
-
-                setZipProgress(100);
-                setTimeout(() => {
-                    setIsZipping(false);
-                    setZipProgress(0);
-                }, 1500);
-
-                worker.terminate();
-                zipWorkerRef.current = null;
-            } else if (e.data.type === 'error') {
-                console.error('Zip error:', e.data.error);
-                setIsZipping(false);
-                worker.terminate();
-                zipWorkerRef.current = null;
-            }
-        };
-
+        if (isZipping || photos.length === 0) return;
         const urls = photos.map((item) => (typeof item === 'string' ? item : item.original));
-        worker.postMessage({ urls, filename: 'Shared-Favorites.zip' });
-    }, [isZipping, photos]);
+        startZipping(urls, 'Shared-Favorites.zip');
+    }, [isZipping, photos, startZipping]);
 
     const footer = (
         <>
@@ -168,6 +120,7 @@ export default function SharedFavoritesPanel({ photos, onClose }: SharedFavorite
                                 role="button"
                                 tabIndex={0}
                                 aria-label={`View shared favorites photo ${i + 1}`}
+                                onClick={() => openLightbox(photos, i, 'Shared Favorites', '')}
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter' || e.key === ' ') {
                                         e.preventDefault();
@@ -179,7 +132,6 @@ export default function SharedFavoritesPanel({ photos, onClose }: SharedFavorite
                                     src={thumbUrl}
                                     placeholder={null}
                                     alt={`Shared favorites photo ${i + 1}`}
-                                    onClick={() => openLightbox(photos, i, 'Shared Favorites', '')}
                                     objectPosition={
                                         focusX != null && focusY != null
                                             ? `${focusX * 100}% ${focusY * 100}%`

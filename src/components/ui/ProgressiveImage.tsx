@@ -99,8 +99,7 @@ export default function ProgressiveImage({
                 alt={alt || ''}
                 loading={priority ? 'eager' : 'lazy'}
                 decoding={priority ? 'sync' : 'async'}
-                // @ts-expect-error fetchpriority attribute is supported in modern browsers
-                fetchpriority={priority ? 'high' : 'auto'}
+                fetchPriority={priority ? 'high' : 'auto'}
                 width="600"
                 height="400"
                 onLoad={handleLoad}

@@ -1,0 +1,263 @@
+@use '../globals' as *;
+
+.portfolio {
+    &__event {
+        &-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            flex-wrap: nowrap;
+
+            @media (max-width: 600px) {
+                gap: 1.25rem;
+            }
+        }
+
+        &-title-side {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            min-width: 0;
+
+            &--link {
+                text-decoration: none;
+                color: inherit;
+            }
+
+            @media (max-width: 600px) {
+                gap: 1rem;
+            }
+        }
+
+        &-title-stack {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            margin-left: -0.75rem;
+            position: relative;
+            min-width: 0;
+
+            &:first-child {
+                margin-left: 0;
+            }
+
+            @media (max-width: 600px) {
+                margin-left: -0.6rem;
+                gap: 0.15rem;
+
+                &:first-child {
+                    margin-left: 0;
+                }
+            }
+        }
+
+        &-teams-row {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            min-width: 0;
+
+            @media (max-width: 600px) {
+                gap: 1rem;
+            }
+        }
+
+        .portfolio__event-scores {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 2rem;
+            margin: 0;
+            margin-right: -0.5rem;
+            text-align: right;
+
+            &:has(> span:only-child) {
+                height: 2.5rem;
+            }
+
+            @media (max-width: 600px) {
+                height: 1.7rem;
+                margin-right: -0.25rem;
+
+                &:has(> span:only-child) {
+                    height: 2.1rem;
+                }
+            }
+        }
+
+        .portfolio__team-score {
+            font-family: var(--font-condensed);
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--color-text-muted);
+            line-height: 1;
+
+            @media (max-width: 600px) {
+                font-size: 0.8rem;
+            }
+
+            &.is-win {
+                color: var(--color-text);
+                font-weight: 700;
+            }
+        }
+
+        .portfolio__wftda-badge {
+            display: inline-flex;
+            align-items: center;
+            background: transparent;
+            transition: all var(--transition-fast);
+            text-decoration: none;
+            flex-shrink: 0;
+            position: absolute;
+            top: -1rem;
+            left: 0;
+            white-space: nowrap;
+
+            span {
+                font-family: var(--font-condensed);
+                font-size: 0.9rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: #f5a2c6;
+                transition: all var(--transition-fast);
+                line-height: 1;
+            }
+
+            @media (max-width: 600px) {
+                top: -0.75rem;
+
+                span {
+                    font-size: 0.75rem;
+                }
+            }
+        }
+
+        &-date {
+            font-family: var(--font-condensed);
+            font-size: 2.7rem;
+            font-weight: 400;
+            line-height: 1;
+            color: var(--color-accent);
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            height: 2.5rem;
+            margin: 0;
+            transform: translateY(-0.1rem);
+
+            @media (max-width: 600px) {
+                font-size: 2rem;
+                height: 2.1rem;
+                transform: translateY(-0.05rem);
+            }
+        }
+
+        &-teams {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 2rem;
+            margin: 0;
+            min-width: 0;
+
+            &:has(> h2:only-child),
+            &:has(> h3:only-child) {
+                height: 2.5rem;
+            }
+
+            @media (max-width: 600px) {
+                height: 1.7rem;
+
+                &:has(> h2:only-child),
+                &:has(> h3:only-child) {
+                    height: 2.1rem;
+                }
+            }
+
+            h2,
+            h3 {
+                font-family: var(--font-condensed);
+                font-size: 0.9rem;
+                font-weight: 700;
+                letter-spacing: 0.05em;
+                text-transform: uppercase;
+                color: var(--color-text);
+                margin: 0;
+                line-height: 1;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+
+                @media (max-width: 600px) {
+                    font-size: 0.75rem;
+                }
+
+                &:only-child {
+                    font-size: 2.5rem;
+                    line-height: 1;
+                    height: 100%;
+                    display: flex;
+                    align-items: center;
+                    transform: translateY(-0.1rem);
+                    font-weight: 300;
+                    letter-spacing: -0.05em;
+                    padding-right: 0.1em;
+
+                    @media (max-width: 600px) {
+                        font-size: 2rem;
+                        height: 2.1rem;
+                        transform: translateY(-0.05rem);
+                    }
+                }
+
+                &:nth-child(n + 2) {
+                    color: var(--color-text-muted);
+                    font-weight: 600;
+                    font-size: 0.9rem;
+                    line-height: 1;
+
+                    @media (max-width: 600px) {
+                        font-size: 0.75rem;
+                    }
+                }
+            }
+
+            .portfolio__team-name--desktop {
+                display: block;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+
+                @media (max-width: 1024px) {
+                    display: none;
+                }
+            }
+
+            .portfolio__team-name--tablet {
+                display: none;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+
+                @media (max-width: 1024px) and (min-width: 601px) {
+                    display: block;
+                }
+            }
+
+            .portfolio__team-name--mobile {
+                display: none;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+
+                @media (max-width: 600px) {
+                    display: block;
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,73 @@
+@use '../globals' as *;
+
+.portfolio {
+    &__event {
+        &-grid {
+            width: 100%;
+            display: grid;
+            gap: 4px;
+
+            // Mobile: 3 columns
+            grid-template-columns: repeat(3, 1fr);
+            grid-auto-rows: calc(((100cqw + 4px) / 3) * (2 / 3) - 4px);
+
+            @media (min-width: 768px) {
+                // Tablet: 4 columns
+                grid-template-columns: repeat(4, 1fr);
+                grid-auto-rows: calc(((100cqw + 4px) / 4) * (2 / 3) - 4px);
+            }
+
+            @media (min-width: 1024px) {
+                // Desktop: 5 columns
+                grid-template-columns: repeat(5, 1fr);
+                grid-auto-rows: calc(((100cqw + 4px) / 5) * (2 / 3) - 4px);
+            }
+
+            .portfolio__grid-item {
+                position: relative;
+                border-radius: 2px;
+                overflow: hidden;
+                background: #ffffff;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                cursor: pointer;
+
+                .progressive-image {
+                    width: 100%;
+                    height: 100%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                img {
+                    width: 100%;
+                    height: 100%;
+                    object-fit: cover;
+                    object-position: var(--img-object-pos, center);
+                    display: block;
+                    cursor: pointer;
+                    transition:
+                        transform var(--transition-fast),
+                        filter var(--transition-fast);
+
+                    @media (hover: hover) {
+                        &:hover {
+                            filter: brightness(1.1);
+                        }
+                    }
+                }
+            }
+        }
+
+        &--virtual-container {
+            width: 100%;
+            container-type: inline-size;
+        }
+
+        &--virtual-row {
+            contain: layout style;
+        }
+    }
+}

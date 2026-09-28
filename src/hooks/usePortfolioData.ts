@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { parseEventTitle } from '../utils/formatters';
 import type { YearData, PhotoInput, FavoriteStoreItem, SeasonStats } from '../types';
@@ -14,6 +14,13 @@ interface CachedYearPayload {
     stats?: SeasonStats;
 }
 const yearDataCache: Record<string, CachedYearPayload> = {};
+
+/** Internal helper for testing to reset the module-level year cache */
+export function _clearYearDataCache(): void {
+    for (const key in yearDataCache) {
+        delete yearDataCache[key];
+    }
+}
 
 interface FetchPayload {
     events: YearData;
@@ -51,48 +58,55 @@ export function usePortfolioData({
 
     const favorites = useAppStore((state) => state.favorites);
     const isLightboxOpen = useAppStore((state) => state.lightbox.isOpen);
-    const [displayFavorites, setDisplayFavorites] = useState(favorites);
 
-    useEffect(() => {
-        if (!isLightboxOpen) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setDisplayFavorites(favorites);
+    // Freeze favorites snapshot when lightbox is open so background list doesn't shift
+    const [prevIsLightboxOpen, setPrevIsLightboxOpen] = useState(isLightboxOpen);
+    const [frozenFavorites, setFrozenFavorites] = useState(favorites);
+
+    if (isLightboxOpen !== prevIsLightboxOpen) {
+        setPrevIsLightboxOpen(isLightboxOpen);
+        if (isLightboxOpen) {
+            setFrozenFavorites(favorites);
         }
-    }, [favorites, isLightboxOpen]);
+    }
 
+    const displayFavorites = isLightboxOpen ? frozenFavorites : favorites;
+
+    const isFavoritesTab = selectedTab === 'favorites';
+
+    // Derive favorites yearData during render instead of cascading useEffect setState
+    const favoritesYearData: YearData = useMemo((): YearData => {
+        if (!isFavoritesTab) return {};
+        const sorted = [...displayFavorites].sort((a: FavoriteStoreItem, b: FavoriteStoreItem) => {
+            const getTimestamp = (item: FavoriteStoreItem) => {
+                if (!item || typeof item !== 'object' || !('eventName' in item)) return 0;
+                const { baseDatePrefix, parsedYear } = parseEventTitle(item.eventName, item.year);
+                const year = parsedYear || item.year || '2000';
+                if (baseDatePrefix) {
+                    const [month, day] = baseDatePrefix.split('.');
+                    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).getTime();
+                }
+                return new Date(parseInt(year), 0, 1).getTime();
+            };
+            return getTimestamp(b) - getTimestamp(a);
+        });
+
+        return {
+            Favorites: {
+                album: sorted as unknown as PhotoInput[],
+                highlights: [],
+                date: null,
+            },
+        };
+    }, [isFavoritesTab, displayFavorites]);
+
+    const prevTabRef = useRef(selectedTab);
     useEffect(() => {
-        if (selectedTab === 'favorites') {
-            const sorted = [...displayFavorites].sort((a: FavoriteStoreItem, b: FavoriteStoreItem) => {
-                const getTimestamp = (item: FavoriteStoreItem) => {
-                    if (!item || typeof item !== 'object' || !('eventName' in item)) return 0;
-                    const { baseDatePrefix, parsedYear } = parseEventTitle(item.eventName, item.year);
-                    const year = parsedYear || item.year || '2000';
-                    if (baseDatePrefix) {
-                        const [month, day] = baseDatePrefix.split('.');
-                        return new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).getTime();
-                    }
-                    return new Date(parseInt(year), 0, 1).getTime();
-                };
-                return getTimestamp(b) - getTimestamp(a);
-            });
-
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setYearData({
-                Favorites: {
-                    album: sorted as unknown as PhotoInput[],
-                    highlights: [],
-                    date: null,
-                },
-            });
-            setRecapCount(0);
-            setRecapEvents([]);
-            setStats(undefined);
-            setIsRecapLoaded(true);
-            if (onDataLoadAction) {
-                onDataLoadAction();
-            }
+        if (selectedTab === 'favorites' && prevTabRef.current !== 'favorites') {
+            onDataLoadAction?.();
         }
-    }, [selectedTab, displayFavorites, onDataLoadAction]);
+        prevTabRef.current = selectedTab;
+    }, [selectedTab, onDataLoadAction]);
 
     const getForTab = useCallback(
         (tabSlug: string, setData: boolean, isTeamMode: boolean) => {
@@ -256,10 +270,10 @@ export function usePortfolioData({
     }, [selectedTab, years, isRecapLoaded, isGearMode, prefetchTab]);
 
     return {
-        yearData,
-        recapCount,
-        recapEvents,
-        stats,
+        yearData: isFavoritesTab ? favoritesYearData : yearData,
+        recapCount: isFavoritesTab ? 0 : recapCount,
+        recapEvents: isFavoritesTab ? [] : recapEvents,
+        stats: isFavoritesTab ? undefined : stats,
         setIsRecapLoaded,
         prefetchTab,
     };

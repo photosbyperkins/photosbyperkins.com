@@ -1,28 +1,24 @@
 import { useInView } from 'framer-motion';
-import Fuse from 'fuse.js';
-import { Search, X, Heart } from 'lucide-react';
-import React, { useState, useRef, useEffect, useCallback, useMemo, Suspense } from 'react';
+import { Search } from 'lucide-react';
+import React, { useState, useRef, useEffect, useMemo, Suspense } from 'react';
 import { createPortal } from 'react-dom';
-import { matchPath, useLocation, Link } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
+import { usePortfolioRoute } from '../../../hooks/usePortfolioRoute';
 import { usePortfolioData } from '../../../hooks/usePortfolioData';
 import { usePortfolioScroll } from '../../../hooks/usePortfolioScroll';
+import { usePortfolioSearch } from '../../../hooks/usePortfolioSearch';
 import { useStickyHeader } from '../../../hooks/useStickyHeader';
 import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock';
 import { useAppStore } from '../../../store/useAppStore';
-import {
-    formatTeamName,
-    getTeamNameFormats,
-    parseEventTitle,
-    findEarliestEventForTeam,
-} from '../../../utils/formatters';
-import { getGearItem, GEAR_REGISTRY } from '../../../data/gearData';
+import { buildEventRows, getSeasonHighlights } from '../../../utils/portfolioTransforms';
+import { GEAR_REGISTRY } from '../../../data/gearData';
 import Recap from '../Recap';
 import PortfolioEvent from './PortfolioEvent';
 import SharedFavoritesPanel from './SharedFavoritesPanel';
 import PortfolioMonthTrack from './PortfolioMonthTrack';
 import GearInfoHeader from './GearInfoHeader';
-import type { GearMeta } from './GearFilter';
-import { scrollToElement } from '../../../utils/scroll';
+import PortfolioYearNav from './PortfolioYearNav';
+import PortfolioSeasonStrip from './PortfolioSeasonStrip';
 
 const LightboxContainer = React.lazy(() => import('./LightboxContainer'));
 const GlobalSearchOverlay = React.lazy(() => import('./GlobalSearchOverlay'));
@@ -30,23 +26,19 @@ const GlobalSearchOverlay = React.lazy(() => import('./GlobalSearchOverlay'));
 import { useSharedFavorites } from '../../../hooks/useSharedFavorites';
 import '../../../styles/_portfolio.scss';
 
-declare const __BUILD_NUMBER__: string;
-
 interface PortfolioProps {
     years: string[];
 }
 
-interface TeamMeta {
-    name: string;
-    slug: string;
-    count: number;
-}
-
 export default function Portfolio({ years }: PortfolioProps) {
     const location = useLocation();
-    const params = useMemo(() => new URLSearchParams(location.search), [location.search]);
-    const initialSearchOpen = params.get('search') === 'true' || !!params.get('q');
-    const initialSearchQuery = params.get('q') || '';
+    const {
+        selectedTab,
+        isGearRoute,
+        activeRouteSlug,
+        initialSearchOpen,
+        initialSearchQuery,
+    } = usePortfolioRoute({ years });
 
     const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState(initialSearchOpen);
     const [hasEverOpenedSearch, setHasEverOpenedSearch] = useState(initialSearchOpen);
@@ -63,89 +55,25 @@ export default function Portfolio({ years }: PortfolioProps) {
 
     useBodyScrollLock(isGlobalSearchOpen);
 
-    const [lastPortfolioPath, setLastPortfolioPath] = useState(location.pathname);
-
-    useEffect(() => {
-        if (location.pathname.startsWith('/portfolio')) {
-            // eslint-disable-next-line react-hooks/set-state-in-effect
-            setLastPortfolioPath(location.pathname);
-        }
-    }, [location.pathname]);
-
-    const matchPathStr = location.pathname.startsWith('/portfolio') ? location.pathname : lastPortfolioPath;
-
-    const yearMatch = matchPath('/portfolio/:year', matchPathStr);
-    const teamMatch = matchPath('/portfolio/team/:slug', matchPathStr);
-    const gearMatch = matchPath('/portfolio/gear/:slug', matchPathStr);
-    // Deep link: /portfolio/:year/:event/:photo
-    const deepLinkMatch = matchPath('/portfolio/:year/:event/:photo', matchPathStr);
-    // Event-only deep link: /portfolio/:year/:event (no photo index)
-    const eventDeepMatch = !deepLinkMatch ? matchPath('/portfolio/:year/:event', matchPathStr) : null;
-
-    const isGearRoute = Boolean(gearMatch);
-    const isTeamRoute = !isGearRoute && Boolean(teamMatch);
-    const activeRouteSlug =
-        gearMatch?.params.slug ||
-        teamMatch?.params.slug ||
-        deepLinkMatch?.params.year ||
-        eventDeepMatch?.params.year ||
-        yearMatch?.params.year;
-
-    // Moved URLSearchParams to the top to initialize search state
-    const initialYear = activeRouteSlug || params?.get('year');
-    // Deep link event/photo take priority over query params
-    const initialEvent = deepLinkMatch?.params.event || eventDeepMatch?.params.event || params?.get('event');
-    const initialPhoto = deepLinkMatch?.params.photo || params?.get('photo');
-
-    const setSharedPhoto = useAppStore((state) => state.setSharedPhoto);
     const isLightboxOpen = useAppStore((state) => state.lightbox.isOpen);
 
-    const selectedTab = (() => {
-        if (isGearRoute && activeRouteSlug) return activeRouteSlug;
-        if (isTeamRoute && activeRouteSlug) return activeRouteSlug;
-        if (activeRouteSlug === 'favorites') return 'favorites';
-        if (activeRouteSlug && years.includes(activeRouteSlug)) return activeRouteSlug;
-        return initialYear && years.includes(initialYear) ? initialYear : years[0] || '';
-    })();
-
-    const [teamIndex, setTeamIndex] = useState<TeamMeta[]>([]);
-    const [teamSearchQuery, setTeamSearchQuery] = useState(initialSearchQuery);
-    const hasFetchedTeams = useRef(false);
-
-    const [gearIndex, setGearIndex] = useState<GearMeta[]>([]);
-    const [gearSearchQuery, setGearSearchQuery] = useState('');
-    const hasFetchedGear = useRef(false);
-
-    const fetchTeamIndex = useCallback(() => {
-        if (hasFetchedTeams.current) return;
-        hasFetchedTeams.current = true;
-        fetch(`/data/teams/index.json?build=${__BUILD_NUMBER__}`)
-            .then((res) => {
-                if (!res.ok) throw new Error('Failed to fetch teams index');
-                return res.json();
-            })
-            .then((data) => setTeamIndex(data))
-            .catch((err) => console.error('Failed to load teams index:', err));
-    }, []);
-
-    const fetchGearIndex = useCallback(() => {
-        if (hasFetchedGear.current) return;
-        hasFetchedGear.current = true;
-        fetch(`/data/gear/index.json?build=${__BUILD_NUMBER__}`)
-            .then((res) => {
-                if (!res.ok) throw new Error('Failed to fetch gear index');
-                return res.json();
-            })
-            .then((data) => setGearIndex(data))
-            .catch((err) => console.error('Failed to load gear index:', err));
-    }, []);
-
-    useEffect(() => {
-        if (initialSearchOpen || isGearRoute) {
-            fetchTeamIndex();
-            fetchGearIndex();
-        }
-    }, [initialSearchOpen, isGearRoute, fetchTeamIndex, fetchGearIndex]);
+    const {
+        teamIndex,
+        gearIndex,
+        isTeamIndexLoading,
+        isGearIndexLoading,
+        teamSearchQuery,
+        setTeamSearchQuery,
+        gearSearchQuery,
+        setGearSearchQuery,
+        filteredTeams,
+        filteredGear,
+        ensureIndexesLoaded,
+    } = usePortfolioSearch({
+        initialSearchQuery,
+        initialSearchOpen,
+        isGearRoute,
+    });
 
     const { stickyRef, sentinelRef } = useStickyHeader();
 
@@ -164,20 +92,7 @@ export default function Portfolio({ years }: PortfolioProps) {
             scrollOnNextDataLoadRef.current = true;
             prevRouteHash.current = currentRouteHash;
         }
-    }, [activeRouteSlug, scrollOnNextDataLoadRef]);
-
-    useEffect(() => {
-        if (initialYear && initialEvent && (years.includes(initialYear) || isTeamRoute || isGearRoute)) {
-            const index = initialPhoto ? parseInt(initialPhoto, 10) : undefined;
-            let decodedEvent = initialEvent;
-            try {
-                decodedEvent = decodeURIComponent(initialEvent);
-            } catch {
-                // Keep raw string if URI decoding fails
-            }
-            setSharedPhoto({ eventName: decodedEvent, photoIndex: index });
-        }
-    }, [initialYear, initialEvent, initialPhoto, years, isTeamRoute, isGearRoute, setSharedPhoto]);
+    }, [activeRouteSlug, scrollOnNextDataLoadRef, setTeamSearchQuery, setGearSearchQuery]);
 
     const { sharedFavorites, clearSharedFavorites } = useSharedFavorites();
 
@@ -203,188 +118,37 @@ export default function Portfolio({ years }: PortfolioProps) {
         return gearIndex.find((g) => g.id === activeRouteSlug) || null;
     }, [isGearRoute, activeRouteSlug, gearIndex]);
 
-    const totalEvents = stats?.totalEvents || events.length;
-
-    const totalPhotos = stats?.totalPhotos || events.reduce((sum, [, ev]) => sum + (ev.photoCount || 0), 0);
-
-    const firstSeenTeam = useMemo(() => {
-        if (!stats?.firstSeenTeams || stats.firstSeenTeams.length === 0) return null;
-        // Seeded by selectedTab (year string) so it doesn't flicker on re-renders but is random per year
-        const seed = parseInt(selectedTab) || 42;
-        const index = Math.floor(Math.abs(Math.sin(seed) * 10000)) % stats.firstSeenTeams.length;
-        return stats.firstSeenTeams[index];
-    }, [stats, selectedTab]);
-
-    const mostSeenTeam = useMemo(() => {
-        if (!stats?.mostSeenTeams || stats.mostSeenTeams.length === 0) return null;
-        const seed = parseInt(selectedTab) || 42;
-        const index = Math.floor(Math.abs(Math.sin(seed) * 10000)) % stats.mostSeenTeams.length;
-        return stats.mostSeenTeams[index];
-    }, [stats, selectedTab]);
-
-    const cameraGear = useMemo(
-        () => getGearItem(stats?.mostUsedCameraId || stats?.mostUsedCamera, selectedTab, 'camera'),
-        [stats?.mostUsedCameraId, stats?.mostUsedCamera, selectedTab]
+    const {
+        totalEvents,
+        totalPhotos,
+        firstSeenTeam,
+        mostSeenTeam,
+        cameraGear,
+        lensGear,
+    } = useMemo(
+        () => getSeasonHighlights(stats, events, selectedTab),
+        [stats, events, selectedTab]
     );
 
-    const lensGear = useMemo(
-        () => getGearItem(stats?.mostUsedLensId || stats?.mostUsedLens, selectedTab, 'lens'),
-        [stats?.mostUsedLensId, stats?.mostUsedLens, selectedTab]
-    );
-
-    // In multi-year modes (team and gear), build a list of rows: either an event entry or a year-divider string.
-    type EventRow =
-        | { type: 'event'; eventName: string; ev: (typeof yearData)[string]; evIdx: number }
-        | { type: 'divider'; year: string };
     const isFavoritesTab = selectedTab === 'favorites';
-    const eventRows = isMultiYearMode
-        ? (() => {
-              const rows: EventRow[] = [];
-              let lastYear: string | null = null;
-              let eventCounter = 0;
-              for (const [eventName, ev] of events) {
-                  const { parsedYear } = parseEventTitle(eventName, ev.originalYear);
-                  const year = parsedYear || ev.originalYear || selectedTab;
-                  if (year !== lastYear) {
-                      if (year) rows.push({ type: 'divider', year });
-                      lastYear = year ?? null;
-                  }
-                  rows.push({ type: 'event', eventName, ev, evIdx: eventCounter++ });
-              }
-              return rows;
-          })()
-        : events.map(([eventName, ev], evIdx) => ({ type: 'event' as const, eventName, ev, evIdx }));
-    const activeTeamMeta = isTeamMode ? teamIndex.find((t) => t.slug === selectedTab) : null;
-
-    const fuse = useMemo(
-        () =>
-            new Fuse(teamIndex, {
-                keys: ['name', 'slug'],
-                threshold: 0.3,
-                ignoreLocation: true,
-            }),
-        [teamIndex]
+    const eventRows = useMemo(
+        () => buildEventRows(events, selectedTab, isMultiYearMode),
+        [events, selectedTab, isMultiYearMode]
     );
-
-    const gearFuse = useMemo(
-        () =>
-            new Fuse(gearIndex, {
-                keys: ['name', 'compactName', 'shortName', 'brand', 'type', 'searchAliases'],
-                threshold: 0.35,
-                ignoreLocation: true,
-            }),
-        [gearIndex]
-    );
-
-    const filteredGear = useMemo(() => {
-        if (!gearSearchQuery.trim()) return gearIndex;
-        return gearFuse.search(gearSearchQuery).map((result) => result.item);
-    }, [gearFuse, gearIndex, gearSearchQuery]);
-
-    const filteredTeams = useMemo(() => {
-        if (!teamSearchQuery.trim()) return teamIndex;
-        return fuse.search(teamSearchQuery).map((result) => result.item);
-    }, [fuse, teamIndex, teamSearchQuery]);
+    const activeTeamMeta = isTeamMode ? teamIndex.find((t) => t.slug === selectedTab) || null : null;
 
     const navPortalTarget = typeof document !== 'undefined' ? document.getElementById('nav-extension-portal') : null;
 
     const yearsSelectorContent = (
-        <nav className="portfolio__years" aria-label="Year Navigation">
-            {isGearRoute && currentGearItem ? (
-                <Link
-                    to="/portfolio"
-                    className="portfolio__active-filter active"
-                    aria-label={`Remove filter for ${currentGearItem.name}`}
-                    title={`Remove filter for ${currentGearItem.name}`}
-                    onClick={() => {
-                        window.scrollTo({ top: 0, behavior: 'instant' });
-                    }}
-                >
-                    <span>{currentGearItem.compactName || currentGearItem.name}</span>
-                    <span className="portfolio__team-clear-icon" aria-hidden="true">
-                        <X size={15} strokeWidth={3} />
-                    </span>
-                </Link>
-            ) : isTeamMode && activeTeamMeta ? (
-                <Link
-                    to="/portfolio"
-                    className="portfolio__active-filter active"
-                    aria-label={`Remove filter for ${activeTeamMeta.name}`}
-                    title={`Remove filter for ${activeTeamMeta.name}`}
-                    onClick={() => {
-                        window.scrollTo({ top: 0, behavior: 'instant' });
-                    }}
-                >
-                    <span>{formatTeamName(activeTeamMeta.name)}</span>
-                    <span className="portfolio__team-clear-icon" aria-hidden="true">
-                        <X size={15} strokeWidth={3} />
-                    </span>
-                </Link>
-            ) : (
-                <>
-                    {years.map((y) => (
-                        <Link
-                            key={y}
-                            to={`/portfolio/${y}`}
-                            className={`${y === selectedTab ? 'active' : ''}`}
-                            aria-label={`Season ${y}`}
-                            onPointerEnter={() => prefetchTab(y)}
-                            onFocus={() => prefetchTab(y)}
-                            onClick={(e) => {
-                                if (y === selectedTab) {
-                                    e.preventDefault();
-                                }
-                                window.scrollTo({ top: 0, behavior: 'instant' });
-                            }}
-                        >
-                            <span className="portfolio__year-full" style={{ transform: 'translateY(1px)' }}>
-                                {y}
-                            </span>
-                            <span
-                                className="portfolio__year-short"
-                                aria-hidden="true"
-                                style={{ transform: 'translateY(1px)' }}
-                            >
-                                {y.slice(-2)}
-                            </span>
-                        </Link>
-                    ))}
-                    <Link
-                        to="/portfolio/favorites"
-                        className={`${selectedTab === 'favorites' ? 'active' : ''}`}
-                        onClick={(e) => {
-                            if (selectedTab === 'favorites') {
-                                e.preventDefault();
-                            }
-                            window.scrollTo({ top: 0, behavior: 'instant' });
-                        }}
-                        title="Favorites"
-                        aria-label="Favorites"
-                    >
-                        <span className="portfolio__year-full">
-                            <Heart
-                                size={16}
-                                fill={selectedTab === 'favorites' ? 'currentColor' : 'none'}
-                                style={{
-                                    color: selectedTab === 'favorites' ? 'var(--color-accent)' : 'inherit',
-                                    transform: 'translateY(3px)',
-                                }}
-                            />
-                        </span>
-                        <span className="portfolio__year-short">
-                            <Heart
-                                size={16}
-                                fill={selectedTab === 'favorites' ? 'currentColor' : 'none'}
-                                style={{
-                                    color: selectedTab === 'favorites' ? 'var(--color-accent)' : 'inherit',
-                                    transform: 'translateY(3px)',
-                                }}
-                            />
-                        </span>
-                    </Link>
-                </>
-            )}
-        </nav>
+        <PortfolioYearNav
+            years={years}
+            selectedTab={selectedTab}
+            isGearRoute={isGearRoute}
+            currentGearItem={currentGearItem}
+            isTeamMode={isTeamMode}
+            activeTeamMeta={activeTeamMeta}
+            prefetchTab={prefetchTab}
+        />
     );
 
     return (
@@ -401,118 +165,16 @@ export default function Portfolio({ years }: PortfolioProps) {
                             onRecapLoadComplete={() => setIsRecapLoaded(true)}
                         >
                             {stats && (
-                                <div className="portfolio__season-summary">
-                                    <div className="portfolio__season-strip">
-                                        <div className="portfolio__season-stat-compact portfolio__season-stat-compact--events">
-                                            <span className="portfolio__season-stat-label">Games</span>
-                                            <span className="portfolio__season-stat-value">{totalEvents}</span>
-                                        </div>
-                                        {totalPhotos > 0 && (
-                                            <div className="portfolio__season-stat-compact portfolio__season-stat-compact--photos">
-                                                <span className="portfolio__season-stat-label">Photos</span>
-                                                <span className="portfolio__season-stat-value">
-                                                    {totalPhotos.toLocaleString()}
-                                                </span>
-                                            </div>
-                                        )}
-                                        {firstSeenTeam ? (
-                                            <div className="portfolio__season-stat-compact portfolio__season-stat-compact--first-seen">
-                                                <span className="portfolio__season-stat-label">First Seen</span>
-                                                <button
-                                                    type="button"
-                                                    className="portfolio__season-stat-value portfolio__season-stat-btn"
-                                                    title={`Scroll to event: ${firstSeenTeam}`}
-                                                    aria-label={`Scroll to event: ${firstSeenTeam}`}
-                                                    onClick={() => {
-                                                        const foundEventName = findEarliestEventForTeam(
-                                                            events,
-                                                            firstSeenTeam
-                                                        );
-                                                        if (foundEventName) {
-                                                            const elementId = `event-${foundEventName.replace(/[^a-zA-Z0-9-]/g, '-')}`;
-                                                            scrollToElement(elementId);
-                                                        }
-                                                    }}
-                                                >
-                                                    {getTeamNameFormats(firstSeenTeam).short || firstSeenTeam}
-                                                </button>
-                                            </div>
-                                        ) : mostSeenTeam ? (
-                                            <div className="portfolio__season-stat-compact portfolio__season-stat-compact--team">
-                                                <span className="portfolio__season-stat-label">Most Seen</span>
-                                                <span className="portfolio__season-stat-value" title={mostSeenTeam}>
-                                                    {getTeamNameFormats(mostSeenTeam).short || mostSeenTeam}
-                                                </span>
-                                            </div>
-                                        ) : null}
-                                        {stats.mostUsedCamera && (
-                                            <div className="portfolio__season-stat-compact portfolio__season-stat-compact--camera">
-                                                <span className="portfolio__season-stat-label">
-                                                    <Heart
-                                                        size={10}
-                                                        style={{
-                                                            display: 'inline',
-                                                            marginRight: '4px',
-                                                            transform: 'translateY(-1px)',
-                                                        }}
-                                                        fill="var(--color-text-muted)"
-                                                    />
-                                                    Camera
-                                                </span>
-                                                {cameraGear ? (
-                                                    <Link
-                                                        to={`/portfolio/gear/${cameraGear.id}`}
-                                                        className="portfolio__season-stat-value portfolio__season-stat-btn"
-                                                        title={`View photos taken with ${cameraGear.name}`}
-                                                        aria-label={`View photos taken with ${cameraGear.name}`}
-                                                        onClick={() => {
-                                                            window.scrollTo({ top: 0, behavior: 'instant' });
-                                                        }}
-                                                    >
-                                                        {stats.mostUsedCamera}
-                                                    </Link>
-                                                ) : (
-                                                    <span className="portfolio__season-stat-value">
-                                                        {stats.mostUsedCamera}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        )}
-                                        {stats.mostUsedLens && (
-                                            <div className="portfolio__season-stat-compact portfolio__season-stat-compact--lens">
-                                                <span className="portfolio__season-stat-label">
-                                                    <Heart
-                                                        size={10}
-                                                        style={{
-                                                            display: 'inline',
-                                                            marginRight: '4px',
-                                                            transform: 'translateY(-1px)',
-                                                        }}
-                                                        fill="var(--color-text-muted)"
-                                                    />
-                                                    Lens
-                                                </span>
-                                                {lensGear ? (
-                                                    <Link
-                                                        to={`/portfolio/gear/${lensGear.id}`}
-                                                        className="portfolio__season-stat-value portfolio__season-stat-btn"
-                                                        title={`View photos taken with ${lensGear.name}`}
-                                                        aria-label={`View photos taken with ${lensGear.name}`}
-                                                        onClick={() => {
-                                                            window.scrollTo({ top: 0, behavior: 'instant' });
-                                                        }}
-                                                    >
-                                                        {stats.mostUsedLens}
-                                                    </Link>
-                                                ) : (
-                                                    <span className="portfolio__season-stat-value">
-                                                        {stats.mostUsedLens}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
+                                <PortfolioSeasonStrip
+                                    stats={stats}
+                                    totalEvents={totalEvents}
+                                    totalPhotos={totalPhotos}
+                                    firstSeenTeam={firstSeenTeam}
+                                    mostSeenTeam={mostSeenTeam}
+                                    cameraGear={cameraGear}
+                                    lensGear={lensGear}
+                                    events={events}
+                                />
                             )}
                         </Recap>
                     </div>
@@ -573,11 +235,11 @@ export default function Portfolio({ years }: PortfolioProps) {
                         teamSearchQuery={teamSearchQuery}
                         setTeamSearchQuery={setTeamSearchQuery}
                         filteredTeams={filteredTeams}
-                        isTeamIndexLoading={teamIndex.length === 0}
+                        isTeamIndexLoading={isTeamIndexLoading}
                         gearSearchQuery={gearSearchQuery}
                         setGearSearchQuery={setGearSearchQuery}
                         filteredGear={filteredGear}
-                        isGearIndexLoading={gearIndex.length === 0}
+                        isGearIndexLoading={isGearIndexLoading}
                     />
                 )}
             </Suspense>
@@ -591,8 +253,7 @@ export default function Portfolio({ years }: PortfolioProps) {
                     <button
                         className="portfolio__global-floating-search"
                         onClick={() => {
-                            fetchTeamIndex();
-                            fetchGearIndex();
+                            ensureIndexesLoaded();
                             setHasEverOpenedSearch(true);
                             setIsGlobalSearchOpen(true);
                         }}

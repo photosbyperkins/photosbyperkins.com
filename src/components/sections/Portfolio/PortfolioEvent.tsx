@@ -1,19 +1,24 @@
 import { motion, useInView } from 'framer-motion';
-import { Save, Star, Heart, Share2 } from 'lucide-react';
 import { useState, useEffect, useMemo, useRef, useCallback, memo } from 'react';
 import { useCanShare } from '../../../hooks/useCanShare';
 import { useEventAlbum } from '../../../hooks/useEventAlbum';
 import { useAppStore } from '../../../store/useAppStore';
-import { buildFavoritesShareUrl } from '../../../utils/favoritesUrl';
-import { formatTeamName, getPhotoOriginalUrl, parseEventTitle, resolvePhotoInput } from '../../../utils/formatters';
-import { FullAlbumIcon } from '../../ui/icons';
-import ProgressiveImage from '../../ui/ProgressiveImage';
+import { getPhotoOriginalUrl, parseEventTitle, toPhotoRecord } from '../../../utils/formatters';
 import VirtualizedAlbumGrid from './VirtualizedAlbumGrid';
 import PortfolioEventTitle from './PortfolioEventTitle';
+import { EventActions } from './eventComponents/EventActions';
+import { EventHighlights } from './eventComponents/EventHighlights';
+import { EventGrid } from './eventComponents/EventGrid';
+import { EventEmptyFavorites } from './eventComponents/EventEmptyFavorites';
 import { useZipWorker } from '../../../hooks/useZipWorker';
 import { scrollToElement } from '../../../utils/scroll';
-import { GEAR_REGISTRY, getGearItem } from '../../../data/gearData';
-import type { EventData, PhotoInput, FavoriteStoreItem } from '../../../types';
+import {
+    filterAlbumByGear,
+    computeFeaturedPhotos,
+    buildAlbumIndexMap,
+    sortTeamsByScore,
+} from '../../../utils/eventTransforms';
+import type { EventData, PhotoInput, PhotoRecord, FavoriteStoreItem } from '../../../types';
 
 declare const __BUILD_NUMBER__: string;
 
@@ -89,28 +94,14 @@ const PortfolioEvent = memo(function PortfolioEvent({
         setEv,
     });
 
-    const rawAlbumImages: PhotoInput[] = useMemo(() => {
+    const rawAlbumImages: PhotoRecord[] = useMemo(() => {
         if (!ev.album) return [];
-        return ev.album.map((item: unknown) => resolvePhotoInput(item as FavoriteStoreItem));
+        return ev.album.map((item: unknown) => toPhotoRecord(item as FavoriteStoreItem));
     }, [ev.album]);
 
-    const albumImages: PhotoInput[] = useMemo(() => {
-        if (!activeGearId) return rawAlbumImages;
-        const gear = GEAR_REGISTRY[activeGearId];
-        if (!gear) return rawAlbumImages;
-
+    const albumImages: PhotoRecord[] = useMemo(() => {
         const effectiveYear = ev.originalYear || selectedYear;
-
-        return rawAlbumImages.filter((item) => {
-            if (!item || typeof item !== 'object' || !item.exif) return false;
-            if (gear.type === 'camera') {
-                const match = getGearItem(item.exif.cameraModel, effectiveYear, 'camera');
-                return match?.id === activeGearId;
-            } else {
-                const match = getGearItem(item.exif.gearLensId || item.exif.lens, effectiveYear, 'lens');
-                return match?.id === activeGearId;
-            }
-        });
+        return filterAlbumByGear(rawAlbumImages, activeGearId, effectiveYear);
     }, [rawAlbumImages, activeGearId, ev.originalYear, selectedYear]);
 
     // Warm the scrubber sprite into browser cache as soon as album data arrives.
@@ -118,16 +109,16 @@ const PortfolioEvent = memo(function PortfolioEvent({
     useEffect(() => {
         if (albumImages.length === 0) return;
         const first = albumImages[0];
-        if (typeof first === 'string' || !first.thumb || first.spriteIndex == null) return;
+        if (!first.thumb || first.spriteIndex == null) return;
         const dir = first.thumb.substring(0, first.thumb.lastIndexOf('/'));
         const spriteUrl = `${dir.replace(/^\/thumbnails\//, '/scrubber/')}/sprite.webp?v=${__BUILD_NUMBER__}`;
         const img = new Image();
         img.src = spriteUrl;
     }, [albumImages]);
 
-    const highlightImages: PhotoInput[] = useMemo(() => {
+    const highlightImages: PhotoRecord[] = useMemo(() => {
         if (!ev.highlights) return [];
-        return ev.highlights.map((item: unknown) => resolvePhotoInput(item as FavoriteStoreItem));
+        return ev.highlights.map((item: unknown) => toPhotoRecord(item as FavoriteStoreItem));
     }, [ev.highlights]);
 
     useEffect(() => {
@@ -174,117 +165,23 @@ const PortfolioEvent = memo(function PortfolioEvent({
     // Pre-compute a O(1) map from original URL → album index.
     // Replaces the repeated O(n) findIndex call inside featuredPhotos.map.
     const albumIndexMap = useMemo(() => {
-        const m = new Map<string, number>();
-        albumImages.forEach((ai: PhotoInput, i: number) => {
-            const url = typeof ai === 'string' ? ai : ai.original;
-            m.set(url, i);
-        });
-        return m;
+        return buildAlbumIndexMap(albumImages);
     }, [albumImages]);
 
-    const featuredPhotos: PhotoInput[] = useMemo(() => {
-        let photos: PhotoInput[] = [...highlightImages];
-
-        // Build a Set of album URLs for O(n) lookups instead of O(n²) nested .some()
-        const albumUrlSet = new Set(albumImages.map((ai: PhotoInput) => getPhotoOriginalUrl(ai)));
-
-        // Filter out highlights that don't exist in the album (orphaned highlights)
-        if (photos.length > 0 && albumImages.length > 0) {
-            photos = photos.filter((h: PhotoInput) => {
-                const hUrl = getPhotoOriginalUrl(h);
-                return albumUrlSet.has(hUrl);
-            });
-        }
-
-        const getIndex = (src: FavoriteStoreItem) => {
-            const url = getPhotoOriginalUrl(src);
-            if (!url) return 0;
-            const filename = url.split('/').pop() || '';
-            // Match the last numeric group before the extension to avoid prefix digit collisions
-            const match = filename.match(/(\d+)\.[^.]+$/);
-            return match ? parseInt(match[1], 10) : 0;
-        };
-
-        if (photos.length === 0) {
-            if (albumImages.length > 0) {
-                photos = albumImages.slice(0, 5);
-            }
-        } else {
-            // Sort existing highlights sequentially
-            photos.sort((a: FavoriteStoreItem, b: FavoriteStoreItem) => getIndex(a) - getIndex(b));
-
-            if (photos.length < 5 && albumImages.length > 0) {
-                const remaining = 5 - photos.length;
-                const featuredUrlSet = new Set(photos.map((f: PhotoInput) => getPhotoOriginalUrl(f)));
-                const extras = albumImages
-                    .filter((a: PhotoInput) => !featuredUrlSet.has(getPhotoOriginalUrl(a)))
-                    .slice(0, remaining);
-                extras.sort((a: FavoriteStoreItem, b: FavoriteStoreItem) => getIndex(a) - getIndex(b));
-                photos = [...photos, ...extras];
-            }
-        }
-
-        return photos.slice(0, 5);
+    const featuredPhotos: PhotoRecord[] = useMemo(() => {
+        return computeFeaturedPhotos(albumImages, highlightImages);
     }, [albumImages, highlightImages]);
 
     // Parsing title logic
-    const { mainTitle, datePrefix } = parseEventTitle(eventName, ev.originalYear, selectedYear);
-    // Split by vs/versus first
-    const baseTeams = mainTitle
-        .split(/\s+(?:vs|versus)\s+/i)
-        .map((t) => t.trim())
-        .filter(Boolean);
+    const { mainTitle, datePrefix, teams: baseTeams } = parseEventTitle(eventName, ev.originalYear, selectedYear);
 
-    let activeSortedTeams = baseTeams;
-    if (activeTeamName) {
-        const activeTerms = activeTeamName.toLowerCase().split(/\s+/).filter(Boolean);
-        activeSortedTeams = [...baseTeams].sort((a, b) => {
-            const aRaw = a.toLowerCase();
-            const bRaw = b.toLowerCase();
-            const aDisplay = formatTeamName(a).toLowerCase();
-            const bDisplay = formatTeamName(b).toLowerCase();
+    const { finalTeams, shouldShowScores } = useMemo(() => {
+        return sortTeamsByScore(baseTeams, ev.wftdaMatch, ev.localScore, activeTeamName);
+    }, [baseTeams, ev.wftdaMatch, ev.localScore, activeTeamName]);
 
-            const aScore = activeTerms.filter((term) => aRaw.includes(term) || aDisplay.includes(term)).length;
-            const bScore = activeTerms.filter((term) => bRaw.includes(term) || bDisplay.includes(term)).length;
-
-            return bScore - aScore;
-        });
-    }
-
-    const hasLocalScore = ev.localScore && ev.localScore.team1Score !== null && ev.localScore.team2Score !== null;
-    const shouldShowScores = activeSortedTeams.length > 1 && !!(ev.wftdaMatch || hasLocalScore);
     const eventScore =
         ev.localScore ||
         (ev.wftdaMatch ? { team1Score: ev.wftdaMatch.score1, team2Score: ev.wftdaMatch.score2 } : undefined);
-
-    const finalTeams = shouldShowScores
-        ? [...activeSortedTeams].sort((a, b) => {
-              const getExpectedScore = (tm: string) => {
-                  if (ev.wftdaMatch) {
-                      const t1 = ev.wftdaMatch.team1.toLowerCase();
-                      const t2 = ev.wftdaMatch.team2.toLowerCase();
-                      const tCurr = formatTeamName(tm).toLowerCase();
-                      const tRaw = tm.toLowerCase();
-
-                      if (t1.includes(tCurr) || tCurr.includes(t1) || t1.includes(tRaw) || tRaw.includes(t1)) {
-                          return Number(ev.wftdaMatch.score1) || -1;
-                      }
-                      if (t2.includes(tCurr) || tCurr.includes(t2) || t2.includes(tRaw) || tRaw.includes(t2)) {
-                          return Number(ev.wftdaMatch.score2) || -1;
-                      }
-                      return -1;
-                  } else if (hasLocalScore) {
-                      const originalTeams = mainTitle.split(/\s+(?:vs|versus)\s+/i).map((t) => t.trim());
-                      if (tm === originalTeams[0]) return Number(ev.localScore!.team1Score) || -1;
-                      if (tm === originalTeams[1]) return Number(ev.localScore!.team2Score) || -1;
-                      return -1;
-                  }
-                  return -1;
-              };
-
-              return getExpectedScore(b) - getExpectedScore(a);
-          })
-        : activeSortedTeams;
 
     const titleBlock = (
         <PortfolioEventTitle
@@ -310,143 +207,26 @@ const PortfolioEvent = memo(function PortfolioEvent({
             <div className="portfolio__event-header">
                 {titleBlock}
 
-                <div className="portfolio__event-meta">
-                    {ev.date && <span className="portfolio__stat-tag">{ev.date}</span>}
-
-                    {ev.zip && !canShare && eventName !== 'Favorites' && (
-                        <a
-                            href={`${ev.zip}?v=${__BUILD_NUMBER__}`}
-                            download
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="portfolio__zip-btn"
-                            title="Download All Original Photos (.zip)"
-                        >
-                            <Save size={16} />
-                        </a>
-                    )}
-
-                    {canShare && eventName !== 'Favorites' && (
-                        <button
-                            className="portfolio__zip-btn"
-                            onClick={async () => {
-                                const shareUrl = `${window.location.origin}/portfolio/${encodeURIComponent(selectedYear)}/${encodeURIComponent(eventName)}`;
-                                try {
-                                    await navigator.share({
-                                        title: eventName,
-                                        text: `Check out photos from ${eventName}`,
-                                        url: shareUrl,
-                                    });
-                                } catch (err) {
-                                    if ((err as Error).name !== 'AbortError') {
-                                        console.error('Share failed:', err);
-                                    }
-                                }
-                            }}
-                            title="Share Album"
-                            aria-label="Share Album"
-                        >
-                            <Share2 size={16} />
-                        </button>
-                    )}
-
-                    {eventName === 'Favorites' && canShare && ev.album && ev.album.length > 0 && (
-                        <button
-                            className="portfolio__zip-btn"
-                            onClick={async () => {
-                                const favorites = useAppStore.getState().favorites;
-                                const shareUrl = await buildFavoritesShareUrl(favorites);
-                                try {
-                                    await navigator.share({
-                                        title: 'My Favorite Photos',
-                                        text: `Check out my ${favorites.length} favorite photos!`,
-                                        url: shareUrl,
-                                    });
-                                } catch (err) {
-                                    if ((err as Error).name !== 'AbortError') {
-                                        console.error('Share failed:', err);
-                                    }
-                                }
-                            }}
-                            title="Share Favorites"
-                            aria-label="Share Favorites"
-                        >
-                            <Share2 size={16} />
-                        </button>
-                    )}
-
-                    {eventName === 'Favorites' && !canShare && ev.album && ev.album.length > 0 && (
-                        <button
-                            className="portfolio__zip-btn"
-                            onClick={handleDownloadFavorites}
-                            disabled={isZipping}
-                            title="Download Favorites as .zip"
-                            style={{
-                                cursor: isZipping ? 'wait' : 'pointer',
-                                backgroundImage: isZipping
-                                    ? 'linear-gradient(to bottom, var(--color-accent) 100%, transparent 100%)'
-                                    : 'none',
-                                backgroundSize: `100% ${isZipping ? zipProgress : 0}%`,
-                                backgroundRepeat: 'no-repeat',
-                                backgroundPosition: 'top center',
-                                transition:
-                                    'background-size 0.2s ease-out, border-color 0.2s ease-out, color 0.2s ease-out',
-                                borderColor: isZipping ? 'var(--color-accent)' : undefined,
-                                color: isZipping ? (zipProgress > 50 ? '#fff' : 'var(--color-accent)') : undefined,
-                            }}
-                        >
-                            <Save size={16} />
-                        </button>
-                    )}
-
-                    {eventName !== 'Favorites' && (
-                        <div className="portfolio__segmented-toggle">
-                            <button
-                                className={`portfolio__segment-btn ${!isGridView ? 'active' : ''}`}
-                                onClick={toggleGridView}
-                                aria-label="Show Featured Photos"
-                                aria-pressed={!isGridView}
-                                title="Show Featured Photos"
-                            >
-                                <Star size={16} />
-                            </button>
-                            <button
-                                className={`portfolio__segment-btn ${isGridView ? 'active' : ''}`}
-                                onClick={toggleGridView}
-                                aria-label="Show Full Album"
-                                aria-pressed={isGridView}
-                                title="Show Full Album"
-                            >
-                                <FullAlbumIcon size={16} />
-                            </button>
-                        </div>
-                    )}
-                </div>
+                <EventActions
+                    eventName={eventName}
+                    date={ev.date}
+                    zip={ev.zip}
+                    canShare={canShare}
+                    selectedYear={selectedYear}
+                    hasAlbumPhotos={Boolean(ev.album && ev.album.length > 0)}
+                    isZipping={isZipping}
+                    zipProgress={zipProgress}
+                    onDownloadFavorites={handleDownloadFavorites}
+                    isGridView={isGridView}
+                    onToggleGridView={toggleGridView}
+                />
             </div>
             {ev.description && <p className="portfolio__event-desc">{ev.description}</p>}
 
             {isVisible ? (
                 <>
                     {eventName === 'Favorites' && (!ev.album || ev.album.length === 0) ? (
-                        <div
-                            className="portfolio__empty-state"
-                            style={{ padding: '3rem 1rem', color: 'var(--color-text-muted)', textAlign: 'center' }}
-                        >
-                            <Heart size={48} strokeWidth={1} style={{ marginBottom: '1rem', opacity: 0.5 }} />
-                            <p
-                                style={{
-                                    margin: 0,
-                                    fontFamily: 'var(--font-condensed)',
-                                    fontSize: '1.2rem',
-                                    letterSpacing: '0.05em',
-                                }}
-                            >
-                                NO FAVORITES YET
-                            </p>
-                            <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.9rem' }}>
-                                Click the heart icon on any photo to add it here.
-                            </p>
-                        </div>
+                        <EventEmptyFavorites />
                     ) : isGridView || eventName === 'Favorites' ? (
                         albumImages.length >
                             (parseInt(import.meta.env.VITE_VIRTUAL_GRID_THRESHOLD || '50', 10) || 50) &&
@@ -466,138 +246,32 @@ const PortfolioEvent = memo(function PortfolioEvent({
                                 )}
                             </>
                         ) : (
-                            <div className="portfolio__event-grid">
-                                {albumImages.map((url: PhotoInput, i) => {
-                                    const origUrl = typeof url === 'string' ? url : url.original;
-                                    const rawThumbUrl = typeof url === 'string' ? url : url.thumb || url.original;
-                                    const thumbUrl = rawThumbUrl.includes('?v=')
-                                        ? rawThumbUrl
-                                        : `${rawThumbUrl}?v=${__BUILD_NUMBER__}`;
-
-                                    const focusX = typeof url === 'string' ? undefined : url.focusX;
-                                    const focusY = typeof url === 'string' ? undefined : url.focusY;
-
-                                    return (
-                                        <div
-                                            key={origUrl}
-                                            className="portfolio__grid-item"
-                                            role="button"
-                                            tabIndex={0}
-                                            aria-label={`View ${eventName} photo ${i + 1}`}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter' || e.key === ' ') {
-                                                    e.preventDefault();
-                                                    openLightbox(
-                                                        albumImages,
-                                                        i,
-                                                        eventName,
-                                                        selectedYear,
-                                                        ev.maxExifChars,
-                                                        eventScore
-                                                    );
-                                                }
-                                            }}
-                                        >
-                                            <ProgressiveImage
-                                                src={thumbUrl}
-                                                placeholder={null}
-                                                alt={`${eventName} photo ${i + 1}`}
-                                                onClick={() =>
-                                                    openLightbox(
-                                                        albumImages,
-                                                        i,
-                                                        eventName,
-                                                        selectedYear,
-                                                        ev.maxExifChars,
-                                                        eventScore
-                                                    )
-                                                }
-                                                objectPosition={
-                                                    focusX != null && focusY != null
-                                                        ? `${focusX * 100}% ${focusY * 100}%`
-                                                        : 'center'
-                                                }
-                                            />
-                                        </div>
-                                    );
-                                })}
-                                {loading && <div className="portfolio__loading">Loading photos...</div>}
-                                {fetchError && (
-                                    <div className="portfolio__error">Error loading photos. Please try refreshing.</div>
-                                )}
-                            </div>
+                            <EventGrid
+                                albumImages={albumImages}
+                                eventName={eventName}
+                                selectedYear={selectedYear}
+                                maxExifChars={ev.maxExifChars}
+                                eventScore={eventScore}
+                                loading={loading}
+                                fetchError={fetchError}
+                                openLightbox={openLightbox}
+                            />
                         )
                     ) : (
-                        <div className="portfolio__event-featured">
-                            {featuredPhotos.length > 0 ? (
-                                featuredPhotos.map((url, i) => {
-                                    const isLast = i === 4;
-                                    const origUrl = typeof url === 'string' ? url : url.original;
-                                    const rawThumbUrl = typeof url === 'string' ? url : url.thumb || url.original;
-                                    const thumbUrl = rawThumbUrl.includes('?v=')
-                                        ? rawThumbUrl
-                                        : `${rawThumbUrl}?v=${__BUILD_NUMBER__}`;
-                                    const albumIndex = albumIndexMap.get(origUrl) ?? -1;
-
-                                    const focusX = typeof url === 'string' ? undefined : url.focusX;
-                                    const focusY = typeof url === 'string' ? undefined : url.focusY;
-
-                                    return (
-                                        <div
-                                            key={origUrl}
-                                            className={`portfolio__featured-item ${isLast && totalPhotos > 5 ? 'has-overlay-mobile' : ''}`}
-                                            role="button"
-                                            tabIndex={0}
-                                            aria-label={`View ${eventName} featured photo ${i + 1}`}
-                                            onClick={() =>
-                                                openLightbox(
-                                                    albumImages,
-                                                    albumIndex !== -1 ? albumIndex : 0,
-                                                    eventName,
-                                                    selectedYear,
-                                                    ev.maxExifChars,
-                                                    eventScore
-                                                )
-                                            }
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter' || e.key === ' ') {
-                                                    e.preventDefault();
-                                                    openLightbox(
-                                                        albumImages,
-                                                        albumIndex !== -1 ? albumIndex : 0,
-                                                        eventName,
-                                                        selectedYear,
-                                                        ev.maxExifChars,
-                                                        eventScore
-                                                    );
-                                                }
-                                            }}
-                                        >
-                                            <ProgressiveImage
-                                                src={thumbUrl}
-                                                placeholder={null}
-                                                alt={`${eventName} featured photo ${i + 1}`}
-                                                priority={evIdx === 0 && i < 2}
-                                                objectPosition={
-                                                    focusX != null && focusY != null
-                                                        ? `${focusX * 100}% ${focusY * 100}%`
-                                                        : 'center'
-                                                }
-                                            />
-                                            {isLast && totalPhotos > 5 && (
-                                                <div className="portfolio__featured-overlay portfolio__featured-overlay--mobile">
-                                                    <span>+{totalPhotos - 5}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })
-                            ) : (
-                                <div className="portfolio__event-placeholder portfolio__event-placeholder--featured">
-                                    {loading ? 'Loading photos...' : fetchError ? 'Error loading photos' : ''}
-                                </div>
-                            )}
-                        </div>
+                        <EventHighlights
+                            featuredPhotos={featuredPhotos}
+                            albumImages={albumImages}
+                            albumIndexMap={albumIndexMap}
+                            eventName={eventName}
+                            selectedYear={selectedYear}
+                            totalPhotos={totalPhotos}
+                            maxExifChars={ev.maxExifChars}
+                            eventScore={eventScore}
+                            evIdx={evIdx}
+                            loading={loading}
+                            fetchError={fetchError}
+                            openLightbox={openLightbox}
+                        />
                     )}
                 </>
             ) : (
