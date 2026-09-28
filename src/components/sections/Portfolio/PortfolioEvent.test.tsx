@@ -8,7 +8,12 @@ import type { EventData } from '../../../types';
 
 vi.mock('framer-motion', () => ({
     motion: {
-        article: ({ children, className, id, ...props }: React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }) => (
+        article: ({
+            children,
+            className,
+            id,
+            ...props
+        }: React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }) => (
             <article className={className} id={id} {...props}>
                 {children}
             </article>
@@ -33,9 +38,7 @@ describe('PortfolioEvent', () => {
 
     const mockEvent: EventData = {
         date: '2024-03-01',
-        highlights: [
-            { original: '/photos/h1.webp', thumb: '/photos/h1_thumb.webp', width: 1200, height: 800 },
-        ],
+        highlights: [{ original: '/photos/h1.webp', thumb: '/photos/h1_thumb.webp', width: 1200, height: 800 }],
         album: [
             { original: '/photos/h1.webp', thumb: '/photos/h1_thumb.webp', width: 1200, height: 800 },
             { original: '/photos/h2.webp', thumb: '/photos/h2_thumb.webp', width: 1200, height: 800 },

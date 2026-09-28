@@ -78,6 +78,6 @@ describe('StoryFiltersTab', () => {
 
         const swatches = container.querySelectorAll('.story-export-modal__filter-preview-swatch');
         expect(swatches.length).toBeGreaterThan(0);
-        expect((swatches[0] as HTMLElement).style.backgroundImage).toContain('/photos/sample_thumb.jpg');
+        expect((swatches[0] as HTMLImageElement).src).toContain('/photos/sample_thumb.jpg');
     });
 });

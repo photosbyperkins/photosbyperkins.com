@@ -414,10 +414,7 @@ export default function Lightbox({
                 }
             />
 
-            <LightboxHelp
-                isOpen={!canShare && isHelpOpen}
-                onClose={() => setIsHelpOpen(false)}
-            />
+            <LightboxHelp isOpen={!canShare && isHelpOpen} onClose={() => setIsHelpOpen(false)} />
 
             {isStoryExportOpen && (
                 <div onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>

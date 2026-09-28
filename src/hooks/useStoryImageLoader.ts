@@ -24,10 +24,7 @@ export interface UseStoryImageLoaderReturn {
 /**
  * Custom hook to load full/display image into HTMLImageElement with multi-tier fallback and CORS resilience.
  */
-export function useStoryImageLoader({
-    photo,
-    isOpen,
-}: UseStoryImageLoaderOptions): UseStoryImageLoaderReturn {
+export function useStoryImageLoader({ photo, isOpen }: UseStoryImageLoaderOptions): UseStoryImageLoaderReturn {
     const photoObj: PhotoRecord = useMemo(() => {
         return typeof photo === 'string' ? { original: photo, thumb: photo } : photo;
     }, [photo]);

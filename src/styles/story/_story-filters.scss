@@ -51,9 +51,9 @@
     &__filters-grid {
         display: flex;
         flex-wrap: wrap;
-        gap: 4px;
-        padding: 4px;
-        background: rgba(0, 0, 0, 0.3);
+        gap: 6px;
+        padding: 6px;
+        background: rgba(0, 0, 0, 0.2);
         border-radius: 8px;
         border: 1px solid var(--color-border);
         width: 100%;
@@ -68,7 +68,9 @@
             flex-wrap: nowrap;
             overflow-x: auto;
             -webkit-overflow-scrolling: touch;
-            padding: 4px;
+            scroll-snap-type: x proximity;
+            padding: 6px 4px;
+            gap: 8px;
             width: 100%;
             max-width: 100%;
             min-width: 0;
@@ -86,57 +88,72 @@
         align-items: center;
         gap: 6px;
         flex: 1 1 calc(25% - 6px);
-        min-width: 64px;
+        min-width: 68px;
         padding: 8px 6px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        text-align: center;
         border-radius: 8px;
-        border: 1px solid transparent;
-        background: transparent;
+        border: 1px solid var(--color-border);
+        background: rgba(255, 255, 255, 0.03);
         color: var(--color-text-muted);
         cursor: pointer;
         transition: all var(--transition-fast);
         overflow: hidden;
+        text-align: center;
 
         @media (max-width: 860px) {
-            flex: 0 0 auto;
-            min-width: 58px;
-            padding: 6px 8px;
-            gap: 4px;
+            flex: 0 0 66px;
+            width: 66px;
+            min-width: 66px;
+            padding: 6px 4px;
+            gap: 5px;
+            scroll-snap-align: start;
+        }
+
+        html[data-theme='light'] & {
+            background: rgba(255, 255, 255, 0.8);
         }
 
         &:hover {
             color: var(--color-text);
             background: rgba(255, 255, 255, 0.08);
+            border-color: var(--color-border-hover);
+            transform: translateY(-2px);
 
             html[data-theme='light'] & {
-                background: rgba(0, 0, 0, 0.06);
+                background: #ffffff;
             }
         }
 
         &.active,
         &--active {
-            background: var(--color-accent) !important;
-            color: #ffffff !important;
-            box-shadow: 0 2px 8px var(--color-accent-glow);
+            border-color: var(--color-accent);
+            background: rgba(230, 0, 0, 0.14) !important;
+            box-shadow: 0 0 10px rgba(230, 0, 0, 0.25);
+            color: var(--color-accent) !important;
             font-weight: 700;
 
+            html[data-theme='light'] & {
+                background: rgba(230, 0, 0, 0.08) !important;
+            }
+
             .story-export-modal__filter-preview-swatch {
-                border-color: #ffffff;
-                box-shadow: 0 0 0 1px #ffffff;
+                border-color: var(--color-accent);
+                box-shadow: 0 0 0 1.5px var(--color-accent);
             }
         }
     }
 
     &__filter-preview-swatch {
-        width: 44px;
-        height: 32px;
+        width: 48px;
+        height: 48px;
         border-radius: 6px;
-        background-size: cover;
-        background-position: center;
+        object-fit: cover;
+        display: block;
+        transform: translateZ(0);
+        -webkit-transform: translateZ(0);
+        will-change: transform;
         background-color: rgba(120, 120, 128, 0.25);
-        border: 1px solid var(--color-border);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
         transition:
             transform var(--transition-fast),
             border-color var(--transition-fast),
@@ -144,17 +161,32 @@
         pointer-events: none;
 
         @media (max-width: 860px) {
-            width: 38px;
-            height: 28px;
-            border-radius: 4px;
+            width: 46px;
+            height: 46px;
+            border-radius: 6px;
+        }
+
+        html[data-theme='light'] & {
+            border-color: rgba(0, 0, 0, 0.15);
+            background-color: rgba(0, 0, 0, 0.06);
         }
     }
 
     &__filter-label {
+        font-family: var(--font-condensed);
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.02em;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
         max-width: 100%;
         line-height: 1.2;
+
+        @media (max-width: 860px) {
+            font-size: 0.65rem;
+            max-width: 60px;
+        }
     }
 }

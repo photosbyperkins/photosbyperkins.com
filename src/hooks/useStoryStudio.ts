@@ -1,11 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { useStoryExport } from './useStoryExport';
-import {
-    calculateNormalizedCrop,
-    generateStoryPresets,
-    renderStoryToCanvas,
-} from '../utils/storyCanvas';
+import { calculateNormalizedCrop, generateStoryPresets, renderStoryToCanvas } from '../utils/storyCanvas';
 import { STORY_FRAME_DEFINITIONS } from '../components/sections/Portfolio/storyFrames/frameDefinitions';
 import { STORY_FRAME_CATEGORIES } from '../components/sections/Portfolio/storyFrames/types';
 import type {
@@ -248,22 +244,15 @@ export function useStoryStudio({
         ]
     );
 
-    const {
-        isExporting,
-        isDownloaded,
-        setIsDownloaded,
-        statusToast,
-        showToast,
-        handleExportAction,
-        resetExportState,
-    } = useStoryExport({
-        loadedImage,
-        currentConfig,
-        eventTitle: eventInfo.title,
-        year,
-        canShare,
-        photoKey,
-    });
+    const { isExporting, isDownloaded, setIsDownloaded, statusToast, showToast, handleExportAction, resetExportState } =
+        useStoryExport({
+            loadedImage,
+            currentConfig,
+            eventTitle: eventInfo.title,
+            year,
+            canShare,
+            photoKey,
+        });
 
     const isFirstRender = useRef(true);
     useEffect(() => {
@@ -375,18 +364,24 @@ export function useStoryStudio({
         onClose();
     }, [resetStorySettings, resetExportState, onClose]);
 
-    const handleSelectPreset = useCallback((preset: StoryPreset) => {
-        setSelectedPresetId(preset.id);
-        setActiveMode(preset.mode);
-        setActiveCrop(preset.crop);
-        setIsDownloaded(false);
-    }, [setIsDownloaded]);
+    const handleSelectPreset = useCallback(
+        (preset: StoryPreset) => {
+            setSelectedPresetId(preset.id);
+            setActiveMode(preset.mode);
+            setActiveCrop(preset.crop);
+            setIsDownloaded(false);
+        },
+        [setIsDownloaded]
+    );
 
-    const handleCropChange = useCallback((newCrop: NormalizedCrop) => {
-        setActiveCrop(newCrop);
-        setSelectedPresetId('custom');
-        setIsDownloaded(false);
-    }, [setIsDownloaded]);
+    const handleCropChange = useCallback(
+        (newCrop: NormalizedCrop) => {
+            setActiveCrop(newCrop);
+            setSelectedPresetId('custom');
+            setIsDownloaded(false);
+        },
+        [setIsDownloaded]
+    );
 
     // Live preview canvas ref
     const previewCanvasRef = useRef<HTMLCanvasElement>(null);

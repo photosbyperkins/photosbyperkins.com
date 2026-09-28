@@ -108,14 +108,7 @@ describe('VirtualizedAlbumGrid', () => {
         fireEvent.click(secondPhotoButton);
 
         expect(openLightbox).toHaveBeenCalledTimes(1);
-        expect(openLightbox).toHaveBeenCalledWith(
-            mockPhotos,
-            1,
-            'Championship Match',
-            '2024',
-            45,
-            localScore
-        );
+        expect(openLightbox).toHaveBeenCalledWith(mockPhotos, 1, 'Championship Match', '2024', 45, localScore);
     });
 
     it('attaches and detaches scroll listeners safely', () => {

@@ -44,8 +44,7 @@ describe('useImagePreloader', () => {
         { original: '/photo-4.webp', src: '/photo-4.webp', thumb: '/photo-4.webp', width: 800, height: 600 },
     ];
 
-    const getDisplaySrc = (photo: PhotoInput) =>
-        typeof photo === 'string' ? photo : photo.src;
+    const getDisplaySrc = (photo: PhotoInput) => (typeof photo === 'string' ? photo : photo.src);
 
     it('does not preload if mainImageLoaded is false', () => {
         renderHook(() =>

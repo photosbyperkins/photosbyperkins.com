@@ -25,9 +25,7 @@ describe('GearInfoHeader', () => {
     };
 
     it('renders badges row and title row with official link', () => {
-        const { container } = render(
-            <GearInfoHeader gear={mockGear} totalPhotos={2175} totalEvents={21} />
-        );
+        const { container } = render(<GearInfoHeader gear={mockGear} totalPhotos={2175} totalEvents={21} />);
 
         // Verify badges
         expect(screen.getByText('lens')).toBeDefined();
@@ -53,9 +51,7 @@ describe('GearInfoHeader', () => {
             officialUrl: '',
         };
 
-        const { container } = render(
-            <GearInfoHeader gear={gearWithoutUrl} totalPhotos={10} totalEvents={1} />
-        );
+        const { container } = render(<GearInfoHeader gear={gearWithoutUrl} totalPhotos={10} totalEvents={1} />);
 
         const titleRow = container.querySelector('.gear-info-card__title-row');
         expect(titleRow).not.toBeNull();

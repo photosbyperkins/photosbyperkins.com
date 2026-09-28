@@ -32,13 +32,9 @@ interface PortfolioProps {
 
 export default function Portfolio({ years }: PortfolioProps) {
     const location = useLocation();
-    const {
-        selectedTab,
-        isGearRoute,
-        activeRouteSlug,
-        initialSearchOpen,
-        initialSearchQuery,
-    } = usePortfolioRoute({ years });
+    const { selectedTab, isGearRoute, activeRouteSlug, initialSearchOpen, initialSearchQuery } = usePortfolioRoute({
+        years,
+    });
 
     const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState(initialSearchOpen);
     const [hasEverOpenedSearch, setHasEverOpenedSearch] = useState(initialSearchOpen);
@@ -118,14 +114,7 @@ export default function Portfolio({ years }: PortfolioProps) {
         return gearIndex.find((g) => g.id === activeRouteSlug) || null;
     }, [isGearRoute, activeRouteSlug, gearIndex]);
 
-    const {
-        totalEvents,
-        totalPhotos,
-        firstSeenTeam,
-        mostSeenTeam,
-        cameraGear,
-        lensGear,
-    } = useMemo(
+    const { totalEvents, totalPhotos, firstSeenTeam, mostSeenTeam, cameraGear, lensGear } = useMemo(
         () => getSeasonHighlights(stats, events, selectedTab),
         [stats, events, selectedTab]
     );

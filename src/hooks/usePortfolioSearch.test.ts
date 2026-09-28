@@ -10,8 +10,26 @@ describe('usePortfolioSearch', () => {
     ];
 
     const mockGear = [
-        { id: 'sony-a9iii', name: 'Sony Alpha 9 III', compactName: 'A9 III', shortName: 'A9 III', brand: 'Sony', type: 'camera' as const, photoCount: 200, eventCount: 10 },
-        { id: 'canon-r5', name: 'Canon EOS R5', compactName: 'R5', shortName: 'R5', brand: 'Canon', type: 'camera' as const, photoCount: 150, eventCount: 8 },
+        {
+            id: 'sony-a9iii',
+            name: 'Sony Alpha 9 III',
+            compactName: 'A9 III',
+            shortName: 'A9 III',
+            brand: 'Sony',
+            type: 'camera' as const,
+            photoCount: 200,
+            eventCount: 10,
+        },
+        {
+            id: 'canon-r5',
+            name: 'Canon EOS R5',
+            compactName: 'R5',
+            shortName: 'R5',
+            brand: 'Canon',
+            type: 'camera' as const,
+            photoCount: 150,
+            eventCount: 8,
+        },
     ];
 
     beforeEach(() => {
@@ -50,9 +68,7 @@ describe('usePortfolioSearch', () => {
     });
 
     it('automatically triggers fetch if initialSearchOpen is true', async () => {
-        const { result } = renderHook(() =>
-            usePortfolioSearch({ initialSearchOpen: true })
-        );
+        const { result } = renderHook(() => usePortfolioSearch({ initialSearchOpen: true }));
 
         await waitFor(() => {
             expect(result.current.teamIndex).toEqual(mockTeams);
@@ -102,9 +118,7 @@ describe('usePortfolioSearch', () => {
     });
 
     it('filters gear based on gearSearchQuery', async () => {
-        const { result } = renderHook(() =>
-            usePortfolioSearch({ isGearRoute: true })
-        );
+        const { result } = renderHook(() => usePortfolioSearch({ isGearRoute: true }));
 
         await waitFor(() => {
             expect(result.current.gearIndex.length).toBe(2);
@@ -124,9 +138,7 @@ describe('usePortfolioSearch', () => {
         globalThis.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
         const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-        const { result } = renderHook(() =>
-            usePortfolioSearch({ initialSearchOpen: true })
-        );
+        const { result } = renderHook(() => usePortfolioSearch({ initialSearchOpen: true }));
 
         await waitFor(() => {
             expect(result.current.isTeamIndexLoading).toBe(false);

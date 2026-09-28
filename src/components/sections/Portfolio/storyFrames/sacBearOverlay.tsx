@@ -9,12 +9,7 @@ export interface SacBearGraphicProps {
     highlight: string;
 }
 
-export function SacBearGraphic({
-    transform,
-    primary,
-    accent,
-    highlight,
-}: SacBearGraphicProps) {
+export function SacBearGraphic({ transform, primary, accent, highlight }: SacBearGraphicProps) {
     const [paths, setPaths] = useState<BearPathDef[] | null>(null);
 
     useEffect(() => {

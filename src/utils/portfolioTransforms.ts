@@ -3,8 +3,7 @@ import { getGearItem } from '../data/gearData';
 import { parseEventTitle } from './formatters';
 
 export type EventRow =
-    | { type: 'event'; eventName: string; ev: EventData; evIdx: number }
-    | { type: 'divider'; year: string };
+    { type: 'event'; eventName: string; ev: EventData; evIdx: number } | { type: 'divider'; year: string };
 
 /**
  * Builds the visual list of event rows, inserting year divider banners

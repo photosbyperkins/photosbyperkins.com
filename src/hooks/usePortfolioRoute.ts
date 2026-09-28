@@ -38,9 +38,7 @@ export function usePortfolioRoute({ years }: UsePortfolioRouteOptions): Portfoli
         }
     }
 
-    const matchPathStr = location.pathname.startsWith('/portfolio')
-        ? location.pathname
-        : lastPortfolioPath;
+    const matchPathStr = location.pathname.startsWith('/portfolio') ? location.pathname : lastPortfolioPath;
 
     const yearMatch = matchPath('/portfolio/:year', matchPathStr);
     const teamMatch = matchPath('/portfolio/team/:slug', matchPathStr);

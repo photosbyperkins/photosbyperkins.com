@@ -65,10 +65,7 @@ describe('useDebounce', () => {
     it('uses the latest callback reference', () => {
         let count = 0;
         const fn1 = vi.fn(() => count);
-        const { result, rerender } = renderHook(
-            ({ cb }) => useDebounce(cb, 100),
-            { initialProps: { cb: fn1 } }
-        );
+        const { result, rerender } = renderHook(({ cb }) => useDebounce(cb, 100), { initialProps: { cb: fn1 } });
 
         act(() => {
             result.current();

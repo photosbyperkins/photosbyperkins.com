@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {
-    filterAlbumByGear,
-    computeFeaturedPhotos,
-    buildAlbumIndexMap,
-    sortTeamsByScore,
-} from './eventTransforms';
+import { filterAlbumByGear, computeFeaturedPhotos, buildAlbumIndexMap, sortTeamsByScore } from './eventTransforms';
 import type { PhotoRecord, WftdaMatch, EventScore } from '../types';
 
 describe('eventTransforms', () => {

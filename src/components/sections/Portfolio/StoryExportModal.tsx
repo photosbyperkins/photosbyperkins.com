@@ -260,12 +260,16 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                     aria-controls={`tabpanel-${tab.id}`}
                                     id={`tab-${tab.id}`}
                                     className={`story-export-modal__tab-btn story-export-modal__studio-tab-btn ${
-                                        isActive ? 'story-export-modal__tab-btn--active story-export-modal__studio-tab-btn--active' : ''
+                                        isActive
+                                            ? 'story-export-modal__tab-btn--active story-export-modal__studio-tab-btn--active'
+                                            : ''
                                     }`}
                                     onClick={() => setActiveStudioTab(tab.id)}
                                 >
                                     <IconComponent size={18} className="story-export-modal__studio-tab-icon" />
-                                    <span className="story-export-modal__tab-label story-export-modal__studio-tab-label">{tab.label}</span>
+                                    <span className="story-export-modal__tab-label story-export-modal__studio-tab-label">
+                                        {tab.label}
+                                    </span>
                                 </button>
                             );
                         })}

@@ -115,12 +115,18 @@ const PortfolioEvent = memo(function PortfolioEvent({
 
         const schedulePreheat =
             typeof window !== 'undefined' && 'requestIdleCallback' in window
-                ? (cb: () => void) => (window as Window & { requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => number }).requestIdleCallback(cb, { timeout: 2000 })
+                ? (cb: () => void) =>
+                      (
+                          window as Window & {
+                              requestIdleCallback: (cb: () => void, opts?: { timeout: number }) => number;
+                          }
+                      ).requestIdleCallback(cb, { timeout: 2000 })
                 : (cb: () => void) => setTimeout(cb, 200);
 
         const cancelPreheat =
             typeof window !== 'undefined' && 'cancelIdleCallback' in window
-                ? (id: number) => (window as Window & { cancelIdleCallback: (id: number) => void }).cancelIdleCallback(id)
+                ? (id: number) =>
+                      (window as Window & { cancelIdleCallback: (id: number) => void }).cancelIdleCallback(id)
                 : (id: number) => clearTimeout(id);
 
         const handle = schedulePreheat(() => {

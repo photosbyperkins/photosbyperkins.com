@@ -8,9 +8,23 @@ export interface LightboxHelpProps {
 }
 
 const SHORTCUTS: { keys: React.ReactNode; label: string }[] = [
-    { keys: <><kbd>→</kbd> / <kbd>Space</kbd></>, label: 'Next photo' },
+    {
+        keys: (
+            <>
+                <kbd>→</kbd> / <kbd>Space</kbd>
+            </>
+        ),
+        label: 'Next photo',
+    },
     { keys: <kbd>←</kbd>, label: 'Previous photo' },
-    { keys: <><kbd>F</kbd> / <kbd>L</kbd></>, label: 'Toggle favorite' },
+    {
+        keys: (
+            <>
+                <kbd>F</kbd> / <kbd>L</kbd>
+            </>
+        ),
+        label: 'Toggle favorite',
+    },
     { keys: <kbd>Z</kbd>, label: 'Toggle 100% zoom' },
     { keys: <kbd>T</kbd>, label: 'Toggle theater mode' },
     { keys: <kbd>D</kbd>, label: 'Download original photo' },
@@ -37,10 +51,7 @@ export default function LightboxHelp({ isOpen, onClose }: LightboxHelpProps) {
                         onClose();
                     }}
                 >
-                    <div
-                        className="portfolio__lightbox-help-card"
-                        onClick={(e) => e.stopPropagation()}
-                    >
+                    <div className="portfolio__lightbox-help-card" onClick={(e) => e.stopPropagation()}>
                         <div className="portfolio__lightbox-help-header">
                             <h3>Keyboard Shortcuts</h3>
                             <button

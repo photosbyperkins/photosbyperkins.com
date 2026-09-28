@@ -45,14 +45,21 @@ export const StoryFiltersTab: React.FC<StoryFiltersTabProps> = ({
                                 title={filter.description}
                                 aria-label={`Photo filter: ${filter.label}`}
                             >
-                                <div
-                                    className="story-export-modal__filter-preview-swatch"
-                                    style={{
-                                        filter: filter.cssFilter || 'none',
-                                        backgroundImage: previewImageUrl ? `url(${previewImageUrl})` : undefined,
-                                    }}
-                                    aria-hidden="true"
-                                />
+                                {previewImageUrl ? (
+                                    <img
+                                        src={previewImageUrl}
+                                        alt=""
+                                        className="story-export-modal__filter-preview-swatch"
+                                        style={{
+                                            filter: filter.cssFilter || 'none',
+                                            WebkitFilter: filter.cssFilter || 'none',
+                                        }}
+                                        loading="eager"
+                                        decoding="sync"
+                                    />
+                                ) : (
+                                    <div className="story-export-modal__filter-preview-swatch" />
+                                )}
                                 <span className="story-export-modal__filter-label">{filter.label}</span>
                             </button>
                         );

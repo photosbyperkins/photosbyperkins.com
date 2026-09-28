@@ -113,10 +113,9 @@ describe('usePortfolioData', () => {
     });
 
     it('serves from module cache without network request when switching back to cached year', async () => {
-        const { result, rerender } = renderHook(
-            ({ tab }) => usePortfolioData({ selectedTab: tab, years }),
-            { initialProps: { tab: '2026' } }
-        );
+        const { result, rerender } = renderHook(({ tab }) => usePortfolioData({ selectedTab: tab, years }), {
+            initialProps: { tab: '2026' },
+        });
 
         await waitFor(() => {
             expect(result.current.yearData['03.15 Match A']).toBeDefined();
@@ -149,9 +148,7 @@ describe('usePortfolioData', () => {
             expect(result.current.yearData['04.01 Sac Derby']).toBeDefined();
         });
 
-        const fetchUrls = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls.map(
-            (call) => call[0] as string
-        );
+        const fetchUrls = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls.map((call) => call[0] as string);
         expect(fetchUrls.some((url) => url.includes('/data/teams/sac-derby.json'))).toBe(true);
     });
 
@@ -168,9 +165,7 @@ describe('usePortfolioData', () => {
             expect(result.current.yearData['06.01 Gear Event']).toBeDefined();
         });
 
-        const fetchUrls = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls.map(
-            (call) => call[0] as string
-        );
+        const fetchUrls = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls.map((call) => call[0] as string);
         expect(fetchUrls.some((url) => url.includes('/data/gear/sony-a9iii.json'))).toBe(true);
     });
 
@@ -308,10 +303,9 @@ describe('usePortfolioData', () => {
             return Promise.reject(new Error('Unknown url'));
         }) as unknown as typeof fetch;
 
-        const { result, rerender } = renderHook(
-            ({ tab }) => usePortfolioData({ selectedTab: tab, years }),
-            { initialProps: { tab: '2026' } }
-        );
+        const { result, rerender } = renderHook(({ tab }) => usePortfolioData({ selectedTab: tab, years }), {
+            initialProps: { tab: '2026' },
+        });
 
         // Immediately switch to 2025 before 2026 resolves
         rerender({ tab: '2025' });

@@ -66,9 +66,7 @@ export function computeFeaturedPhotos(
         if (photos.length < maxCount && albumImages.length > 0) {
             const remaining = maxCount - photos.length;
             const featuredUrlSet = new Set(photos.map((f) => f.original));
-            const extras = albumImages
-                .filter((a) => !featuredUrlSet.has(a.original))
-                .slice(0, remaining);
+            const extras = albumImages.filter((a) => !featuredUrlSet.has(a.original)).slice(0, remaining);
             extras.sort((a, b) => getPhotoNumericIndex(a) - getPhotoNumericIndex(b));
             photos = [...photos, ...extras];
         }
@@ -115,9 +113,7 @@ export function sortTeamsByScore(
         });
     }
 
-    const hasLocalScore = Boolean(
-        localScore && localScore.team1Score !== null && localScore.team2Score !== null
-    );
+    const hasLocalScore = Boolean(localScore && localScore.team1Score !== null && localScore.team2Score !== null);
     const shouldShowScores = activeSortedTeams.length > 1 && Boolean(wftdaMatch || hasLocalScore);
 
     const finalTeams = shouldShowScores

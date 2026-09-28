@@ -57,11 +57,7 @@ export interface ParsedEventTitle {
     isVersusMatch: boolean;
 }
 
-export function parseEventTitle(
-    eventName: string,
-    originalYear?: string,
-    selectedYear?: string
-): ParsedEventTitle {
+export function parseEventTitle(eventName: string, originalYear?: string, selectedYear?: string): ParsedEventTitle {
     const titleMatch = eventName.match(/^(?:\[(\d{4})\]\s*)?(\d{2}\.\d{2})\s+(.*)/);
     const parsedYear = titleMatch ? titleMatch[1] : undefined;
     const baseDatePrefix = titleMatch ? titleMatch[2] : '';
@@ -190,7 +186,7 @@ export function escapeXml(unsafe: string): string {
                 return '&gt;';
             case '&':
                 return '&amp;';
-            case '\'':
+            case "'":
                 return '&apos;';
             case '"':
                 return '&quot;';

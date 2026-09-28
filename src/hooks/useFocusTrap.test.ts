@@ -37,9 +37,7 @@ describe('useFocusTrap', () => {
         container.appendChild(btn2);
         document.body.appendChild(container);
 
-        renderHook(() =>
-            useFocusTrap({ current: container }, true, { current: btn2 })
-        );
+        renderHook(() => useFocusTrap({ current: container }, true, { current: btn2 }));
 
         act(() => {
             vi.advanceTimersByTime(20);

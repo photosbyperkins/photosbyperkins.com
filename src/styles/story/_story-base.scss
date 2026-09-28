@@ -53,8 +53,15 @@
         @media (max-width: 860px) {
             align-self: center;
             flex: 0 0 auto;
-            max-height: 40vh;
+            max-height: min(45vh, calc(100vh - 340px));
             width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        @media (max-width: 860px) and (max-height: 700px) {
+            max-height: 32vh;
         }
     }
 
@@ -72,16 +79,16 @@
         box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
 
         @media (max-width: 860px) {
-            max-width: min(260px, 60vw, calc(40vh * 9 / 16));
-            max-height: 40vh;
-            padding: 6px;
+            max-width: min(260px, 68vw, calc(min(45vh, calc(100vh - 340px)) * 9 / 16));
+            max-height: min(45vh, calc(100vh - 340px));
+            padding: 5px;
             border-radius: 12px;
         }
 
-        @media (max-width: 480px) {
-            max-width: min(215px, 60vw, calc(38vh * 9 / 16));
-            max-height: 38vh;
-            padding: 4px;
+        @media (max-width: 860px) and (max-height: 700px) {
+            max-width: min(180px, 55vw, calc(32vh * 9 / 16));
+            max-height: 32vh;
+            padding: 3px;
         }
     }
 
@@ -155,6 +162,8 @@
             gap: 0.5rem;
             padding-right: 0;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
             max-height: none;
         }
     }
@@ -208,7 +217,9 @@
         }
 
         @media (hover: hover) {
-            &:hover:not(.active):not(.story-export-modal__studio-tab-btn--active):not(.story-export-modal__tab-btn--active) {
+            &:hover:not(.active):not(.story-export-modal__studio-tab-btn--active):not(
+                    .story-export-modal__tab-btn--active
+                ) {
                 color: var(--color-text);
                 background: rgba(255, 255, 255, 0.05);
 
@@ -282,7 +293,9 @@
         }
 
         @media (max-width: 860px) {
-            max-height: min(320px, calc(100vh - 540px));
+            flex: 1 1 auto;
+            min-height: 0;
+            max-height: none;
             overflow-y: auto;
             -webkit-overflow-scrolling: touch;
             padding: 2px 0 16px 0;
@@ -292,7 +305,7 @@
         }
 
         @media (max-width: 480px) {
-            max-height: 255px;
+            max-height: none;
         }
     }
 
@@ -480,7 +493,7 @@
 
         @media (max-width: 860px) {
             padding: 8px 12px;
-            padding-bottom: max(5.5rem, calc(env(safe-area-inset-bottom) + 4.5rem));
+            padding-bottom: max(4.25rem, calc(env(safe-area-inset-bottom) + 3.75rem));
             overflow-y: hidden;
             display: flex;
             flex-direction: column;

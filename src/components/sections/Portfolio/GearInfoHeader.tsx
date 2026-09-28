@@ -17,8 +17,8 @@ export const GearInfoHeader: React.FC<GearInfoHeaderProps> = ({ gear, totalPhoto
                         <span className="gear-info-card__badge gear-info-card__badge--type">{gear.type}</span>
                         <span className="gear-info-card__badge gear-info-card__badge--brand">{gear.brand}</span>
                         <span className="gear-info-card__stats-pill">
-                            {totalPhotos.toLocaleString()} {totalPhotos === 1 ? 'Photo' : 'Photos'} across{' '}
-                            {totalEvents} {totalEvents === 1 ? 'Event' : 'Events'}
+                            {totalPhotos.toLocaleString()} {totalPhotos === 1 ? 'Photo' : 'Photos'} across {totalEvents}{' '}
+                            {totalEvents === 1 ? 'Event' : 'Events'}
                         </span>
                     </div>
 

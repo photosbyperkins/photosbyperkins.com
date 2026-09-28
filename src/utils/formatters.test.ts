@@ -217,9 +217,7 @@ describe('parseEventTitle', () => {
 
 describe('escapeXml', () => {
     it('escapes basic xml entities', () => {
-        expect(escapeXml('<script>alert("xss")</script>')).toBe(
-            '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;'
-        );
+        expect(escapeXml('<script>alert("xss")</script>')).toBe('&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;');
         expect(escapeXml("Tom & Jerry's")).toBe('Tom &amp; Jerry&apos;s');
     });
 
