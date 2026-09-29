@@ -86,7 +86,7 @@ test.describe('Lightbox', () => {
         await expect(downloadBtn).toBeVisible();
     });
 
-    test('should arrange action group vertically on mobile and horizontally on desktop', async ({ page }) => {
+    test('should arrange action group horizontally in consolidated top bar', async ({ page }) => {
         const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
         await photo.waitFor({ timeout: 10000 });
         await photo.click();
@@ -97,14 +97,8 @@ test.describe('Lightbox', () => {
         const actionGroup = lightbox.locator('.portfolio__lightbox-action-group');
         await expect(actionGroup).toBeVisible();
 
-        const viewport = page.viewportSize();
         const flexDirection = await actionGroup.evaluate((el) => window.getComputedStyle(el).flexDirection);
-
-        if (viewport && viewport.width <= 768) {
-            expect(flexDirection).toBe('column');
-        } else {
-            expect(flexDirection).toBe('row');
-        }
+        expect(flexDirection).toBe('row');
 
         // Verify top-bar row alignment: first action button, EXIF data display, and close button share the same top edge
         const firstAction = actionGroup.locator('button').first();

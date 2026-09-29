@@ -180,10 +180,8 @@
         }
 
         &.is-theater-mode {
+            .portfolio__lightbox-top-bar,
             .portfolio__lightbox-scrubber,
-            .portfolio__lightbox-top-left,
-            .portfolio__lightbox-top-center,
-            .portfolio__lightbox-top-right > .portfolio__lightbox-action,
             .portfolio__lightbox-nav-overlay {
                 opacity: 0;
                 pointer-events: none;

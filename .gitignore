@@ -39,6 +39,7 @@ __pycache__/
 ARCHITECTURE_AND_FEATURE_IDEAS.md
 test-results/
 playwright-report/
+screenshots/
 
 # Local Overrides and Generation
 icon.svg
