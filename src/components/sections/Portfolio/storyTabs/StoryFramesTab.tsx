@@ -117,83 +117,130 @@ export const StoryFramesTab: React.FC<StoryFramesTabProps> = ({
                         <div className="story-export-modal__tint-header">
                             <span className="story-export-modal__sublabel">Frame Tint</span>
                         </div>
-                        <div className="portfolio__segmented-toggle story-export-modal__pill-group">
-                            {(
-                                [
-                                    { id: 'signature', label: 'Default' },
-                                    { id: 'white', label: 'White' },
-                                    { id: 'gold', label: 'Gold' },
-                                    { id: 'red', label: 'Red' },
-                                    { id: 'custom', label: 'Custom' },
-                                ] as const
-                            ).map((choice) => {
-                                const isSelected = frameColorChoice === choice.id;
-                                return (
-                                    <button
-                                        key={choice.id}
-                                        type="button"
-                                        className={`story-export-modal__pill ${
-                                            isSelected ? 'active story-export-modal__pill--active' : ''
-                                        }`}
-                                        onClick={() => {
-                                            setFrameColorChoice(choice.id);
-                                            setIsDownloaded(false);
-                                        }}
-                                    >
-                                        {choice.label}
-                                    </button>
-                                );
-                            })}
-                        </div>
+                        <div className="story-export-modal__custom-color-row">
+                            <div className="story-export-modal__quick-swatches">
+                                {[
+                                    { id: 'signature', label: 'Default', isDefault: true, color: undefined },
+                                    { id: 'white', label: 'White', isDefault: false, color: '#ffffff' },
+                                    { id: 'gold', label: 'Gold', isDefault: false, color: '#f59e0b' },
+                                    { id: 'red', label: 'Red', isDefault: false, color: '#e60000' },
+                                    { id: 'cyan', label: 'Cyan', isDefault: false, color: '#06b6d4' },
+                                ].map((preset) => {
+                                    const isSelected =
+                                        preset.id === 'signature'
+                                            ? frameColorChoice === 'signature'
+                                            : preset.id === 'white'
+                                              ? frameColorChoice === 'white' ||
+                                                (frameColorChoice === 'custom' &&
+                                                    frameCustomColor.toLowerCase() === '#ffffff')
+                                              : preset.id === 'gold'
+                                                ? frameColorChoice === 'gold' ||
+                                                  (frameColorChoice === 'custom' &&
+                                                      (frameCustomColor.toLowerCase() === '#f59e0b' ||
+                                                          frameCustomColor.toLowerCase() === '#fbbf24'))
+                                                : preset.id === 'red'
+                                                  ? frameColorChoice === 'red' ||
+                                                    (frameColorChoice === 'custom' &&
+                                                        frameCustomColor.toLowerCase() === '#e60000')
+                                                  : frameColorChoice === 'custom' &&
+                                                    frameCustomColor.toLowerCase() === '#06b6d4';
 
-                        {frameColorChoice === 'custom' && (
-                            <div className="story-export-modal__custom-color-row">
-                                <div className="story-export-modal__quick-swatches">
-                                    {['#ffffff', '#fbbf24', '#06b6d4', '#c084fc'].map((color) => (
+                                    return (
                                         <button
-                                            key={color}
+                                            key={preset.id}
                                             type="button"
                                             className={`story-export-modal__quick-swatch ${
-                                                frameCustomColor.toLowerCase() === color.toLowerCase()
-                                                    ? 'is-active'
-                                                    : ''
-                                            }`}
-                                            style={{ backgroundColor: color }}
+                                                preset.isDefault ? 'story-export-modal__quick-swatch--default' : ''
+                                            } ${isSelected ? 'is-active' : ''}`}
+                                            style={preset.color ? { backgroundColor: preset.color } : undefined}
                                             onClick={() => {
-                                                setFrameCustomColor(color);
+                                                if (preset.id === 'signature') {
+                                                    setFrameColorChoice('signature');
+                                                } else if (preset.id === 'white') {
+                                                    setFrameColorChoice('white');
+                                                    setFrameCustomColor('#ffffff');
+                                                } else if (preset.id === 'gold') {
+                                                    setFrameColorChoice('gold');
+                                                    setFrameCustomColor('#f59e0b');
+                                                } else if (preset.id === 'red') {
+                                                    setFrameColorChoice('red');
+                                                    setFrameCustomColor('#e60000');
+                                                } else {
+                                                    setFrameColorChoice('custom');
+                                                    setFrameCustomColor('#06b6d4');
+                                                }
                                                 setIsDownloaded(false);
                                             }}
-                                            title={color}
-                                            aria-label={`Select frame tint color ${color}`}
+                                            title={preset.label}
+                                            aria-label={`Frame tint: ${preset.label}`}
                                         />
-                                    ))}
-                                </div>
-                                <label
-                                    className="story-export-modal__color-picker"
-                                    title="Choose custom frame tint color"
-                                >
-                                    <span
-                                        className="story-export-modal__color-swatch"
-                                        style={{
-                                            backgroundColor: frameCustomColor || '#ffffff',
-                                        }}
-                                    />
-                                    <input
-                                        type="color"
-                                        value={frameCustomColor || '#ffffff'}
-                                        onChange={(e) => {
-                                            setFrameCustomColor(e.target.value);
-                                            setIsDownloaded(false);
-                                        }}
-                                        className="story-export-modal__color-input"
-                                        aria-label="Custom frame tint color"
-                                    />
-                                </label>
-                                <span className="story-export-modal__hex-code">
-                                    {(frameCustomColor || '#ffffff').toUpperCase()}
-                                </span>
+                                    );
+                                })}
                             </div>
-                        )}
+                            {(() => {
+                                const isAnyPresetActive =
+                                    frameColorChoice === 'signature' ||
+                                    frameColorChoice === 'white' ||
+                                    frameColorChoice === 'gold' ||
+                                    frameColorChoice === 'red' ||
+                                    (frameColorChoice === 'custom' &&
+                                        ['#ffffff', '#f59e0b', '#fbbf24', '#e60000', '#06b6d4'].includes(
+                                            (frameCustomColor || '').toLowerCase()
+                                        ));
+                                const isCustomPickerActive = frameColorChoice === 'custom' && !isAnyPresetActive;
+                                const pickerValue =
+                                    frameColorChoice === 'white'
+                                        ? '#ffffff'
+                                        : frameColorChoice === 'gold'
+                                          ? '#f59e0b'
+                                          : frameColorChoice === 'red'
+                                            ? '#e60000'
+                                            : frameColorChoice === 'custom' && frameCustomColor
+                                              ? frameCustomColor
+                                              : '#06b6d4';
+                                const hexDisplay =
+                                    frameColorChoice === 'signature'
+                                        ? 'DEFAULT'
+                                        : (effectiveFrameColor || frameCustomColor || '#FFFFFF').toUpperCase();
+
+                                return (
+                                    <>
+                                        <label
+                                            className={`story-export-modal__color-picker ${
+                                                isCustomPickerActive ? 'is-active' : ''
+                                            }`}
+                                            title="Choose custom frame tint color"
+                                        >
+                                            <span
+                                                className="story-export-modal__color-swatch"
+                                                style={{
+                                                    backgroundColor:
+                                                        frameColorChoice === 'signature'
+                                                            ? frameCustomColor || '#ffffff'
+                                                            : pickerValue,
+                                                }}
+                                            />
+                                            <input
+                                                type="color"
+                                                value={
+                                                    frameColorChoice === 'signature'
+                                                        ? frameCustomColor || '#ffffff'
+                                                        : pickerValue
+                                                }
+                                                onChange={(e) => {
+                                                    setFrameColorChoice('custom');
+                                                    setFrameCustomColor(e.target.value);
+                                                    setIsDownloaded(false);
+                                                }}
+                                                className="story-export-modal__color-input"
+                                                aria-label="Custom frame tint color"
+                                            />
+                                        </label>
+                                        <span className="story-export-modal__hex-code">{hexDisplay}</span>
+                                    </>
+                                );
+                            })()}
+                        </div>
                     </div>
                 )}
             </div>

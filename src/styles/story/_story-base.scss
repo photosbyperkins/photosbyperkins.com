@@ -53,7 +53,7 @@
         @media (max-width: 860px) {
             align-self: center;
             flex: 0 0 auto;
-            max-height: min(45vh, calc(100vh - 340px));
+            max-height: min(37vh, calc(100vh - 430px));
             width: 100%;
             display: flex;
             align-items: center;
@@ -61,7 +61,7 @@
         }
 
         @media (max-width: 860px) and (max-height: 700px) {
-            max-height: 32vh;
+            max-height: 28vh;
         }
     }
 
@@ -79,15 +79,15 @@
         box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
 
         @media (max-width: 860px) {
-            max-width: min(260px, 68vw, calc(min(45vh, calc(100vh - 340px)) * 9 / 16));
-            max-height: min(45vh, calc(100vh - 340px));
+            max-width: min(240px, 62vw, calc(min(37vh, calc(100vh - 430px)) * 9 / 16));
+            max-height: min(37vh, calc(100vh - 430px));
             padding: 5px;
             border-radius: 12px;
         }
 
         @media (max-width: 860px) and (max-height: 700px) {
-            max-width: min(180px, 55vw, calc(32vh * 9 / 16));
-            max-height: 32vh;
+            max-width: min(160px, 50vw, calc(28vh * 9 / 16));
+            max-height: 28vh;
             padding: 3px;
         }
     }
@@ -161,7 +161,7 @@
             margin: 0 auto;
             gap: 0.5rem;
             padding-right: 0;
-            overflow: hidden;
+            overflow: visible;
             display: flex;
             flex-direction: column;
             max-height: none;
@@ -409,7 +409,12 @@
 
         &.is-active {
             border: 2px solid var(--color-accent);
+            box-shadow: 0 0 0 1px var(--color-accent);
             transform: scale(1.1);
+        }
+
+        &--default {
+            background: linear-gradient(135deg, #e60000 0%, #fbbf24 50%, #06b6d4 100%);
         }
     }
 
@@ -426,6 +431,14 @@
         cursor: pointer;
         overflow: hidden;
         margin-left: 2px;
+        transition:
+            border-color var(--transition-fast),
+            box-shadow var(--transition-fast);
+
+        &.is-active {
+            border-color: var(--color-accent);
+            box-shadow: 0 0 0 1.5px var(--color-accent);
+        }
     }
 
     &__color-swatch {
@@ -461,6 +474,7 @@
     }
 
     .modal-shell__content {
+        padding-bottom: 0 !important;
         scrollbar-width: thin;
         scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
 
@@ -492,9 +506,8 @@
         }
 
         @media (max-width: 860px) {
-            padding: 8px 12px;
-            padding-bottom: max(4.25rem, calc(env(safe-area-inset-bottom) + 3.75rem));
-            overflow-y: hidden;
+            padding: 8px 12px 0 12px !important;
+            overflow-y: auto;
             display: flex;
             flex-direction: column;
             width: 100%;

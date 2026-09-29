@@ -49,6 +49,7 @@ test.describe('Lightbox', () => {
 
         const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
         await expect(lightbox).toBeVisible({ timeout: 5000 });
+        await page.waitForTimeout(400);
 
         // Get initial counter text
         const counter = lightbox.locator('.portfolio__lightbox-scrubber-counter');
@@ -187,6 +188,7 @@ test.describe('Lightbox', () => {
 
         const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
         await expect(lightbox).toBeVisible({ timeout: 5000 });
+        await page.waitForTimeout(400);
 
         const counter = lightbox.locator('.portfolio__lightbox-scrubber-counter');
         const initialText = await counter.textContent();

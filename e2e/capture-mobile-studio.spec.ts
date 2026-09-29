@@ -2,8 +2,17 @@ import { test, expect } from '@playwright/test';
 import * as path from 'path';
 
 test.describe('Mobile Studio Screenshot Capture', () => {
+    test.use({
+        viewport: { width: 402, height: 874 },
+        deviceScaleFactor: 3,
+        isMobile: true,
+        hasTouch: true,
+        userAgent:
+            'Mozilla/5.0 (iPhone; CPU iPhone OS 19_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/19.0 Mobile/15E148 Safari/604.1',
+    });
+
     test('capture all mobile studio tabs in light and dark mode', async ({ page }) => {
-        const artifactDir = 'C:/Users/micha/.gemini/antigravity/brain/c75a3805-ef02-4dfb-a348-ae4696ad5adc';
+        const artifactDir = 'C:/Users/micha/.gemini/antigravity/brain/3af11443-3f63-4b23-a069-31408a4b0d54';
 
         const runCapturePass = async (mode: 'light' | 'dark') => {
             const prefix = mode === 'dark' ? 'mobile_studio_dark_' : 'mobile_studio_';
@@ -68,7 +77,7 @@ test.describe('Mobile Studio Screenshot Capture', () => {
             if (await grizzlyFrame.isVisible()) {
                 await grizzlyFrame.click();
                 await page.waitForTimeout(400);
-                const goldTint = studioModal.locator('.story-export-modal__pill:has-text("Gold")');
+                const goldTint = studioModal.locator('button[title="Gold"]');
                 if (await goldTint.isVisible()) {
                     await goldTint.click();
                 }

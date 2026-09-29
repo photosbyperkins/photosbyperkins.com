@@ -505,15 +505,11 @@ test.describe('Story Maker (9:16)', () => {
         await expect(studioModal.locator('.story-export-modal__tint-header svg')).toHaveCount(0);
         await expect(studioModal.locator('.story-export-modal__badge-icon')).toHaveCount(0);
 
-        // Click Gold tint
-        const goldBtn = tintRow.locator('button:has-text("Gold")');
+        // Click Gold tint swatch
+        const goldBtn = tintRow.locator('button[title="Gold"]');
         await goldBtn.click();
-        await expect(goldBtn).toHaveClass(/active/);
+        await expect(goldBtn).toHaveClass(/is-active/);
 
-        // Click Custom tint
-        const customTintBtn = tintRow.locator('button:has-text("Custom")');
-        await customTintBtn.click();
-        await expect(customTintBtn).toHaveClass(/active/);
         // Verify custom color row appears under Frame Tint with swatches and color picker input
         await expect(tintRow.locator('.story-export-modal__custom-color-row')).toHaveCount(1);
         const customColorInput = tintRow.locator('input[type="color"]');
