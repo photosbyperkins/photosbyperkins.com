@@ -74,9 +74,12 @@
             }
 
             @media (max-width: 600px) {
-                padding: 0.35rem 2px;
+                padding: 0.35rem 0;
                 font-size: 0.85rem;
-                letter-spacing: 0.05em;
+                letter-spacing: 0.02em;
+                min-width: 0;
+                max-width: none;
+                flex: 1 1 0;
 
                 .portfolio__year-full {
                     display: none;
@@ -84,6 +87,11 @@
 
                 .portfolio__year-short {
                     display: block;
+                }
+
+                &::after {
+                    left: 2px;
+                    right: 2px;
                 }
 
                 &.active {
@@ -125,6 +133,18 @@
             padding: 0 12px;
             white-space: nowrap;
 
+            &::after {
+                left: 0;
+                right: 0;
+            }
+
+            @media (max-width: 600px) {
+                flex: 0 0 auto;
+                width: auto;
+                min-width: 44px;
+                padding: 0 8px;
+            }
+
             .portfolio__team-clear-icon {
                 font-weight: bold;
                 opacity: 0.7;
@@ -147,23 +167,16 @@
         }
 
         @media (max-width: 600px) {
-            gap: 2px;
-            justify-content: flex-start;
-            padding: 0 14px;
-            -webkit-mask-image: linear-gradient(
-                to right,
-                transparent 0px,
-                black 12px,
-                black calc(100% - 12px),
-                transparent 100%
-            );
-            mask-image: linear-gradient(
-                to right,
-                transparent 0px,
-                black 12px,
-                black calc(100% - 12px),
-                transparent 100%
-            );
+            gap: 0;
+            justify-content: space-between;
+            padding: 0;
+            overflow-x: hidden;
+            -webkit-mask-image: none;
+            mask-image: none;
+
+            &:has(.portfolio__active-filter) {
+                overflow-x: auto;
+            }
         }
     }
 
