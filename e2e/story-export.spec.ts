@@ -552,14 +552,14 @@ test.describe('Story Maker (9:16)', () => {
         const scoreboardCheckbox = studioModal.locator('label:has-text("Event Badge") input[type="checkbox"]');
         if (await scoreboardCheckbox.isVisible() && (await scoreboardCheckbox.isChecked())) {
             // When scoreboard badge is active, bear is elevated into the flank
-            const bearGroup = frameOverlay.locator('.story-frame-sac-bear g[transform*="1510"]');
+            const bearGroup = frameOverlay.locator('.story-frame-sac-bear g[transform*="1530"]');
             await expect(bearGroup).toBeVisible();
 
             // Uncheck scoreboard badge
             await scoreboardCheckbox.uncheck();
 
             // Bear dynamically repositions down to the bottom corner
-            const bearLowerGroup = frameOverlay.locator('.story-frame-sac-bear g[transform*="1680"]');
+            const bearLowerGroup = frameOverlay.locator('.story-frame-sac-bear g[transform*="1690"]');
             await expect(bearLowerGroup).toBeVisible();
 
             // Re-check scoreboard badge -> bear dynamically elevates back

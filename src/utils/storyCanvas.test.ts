@@ -732,7 +732,7 @@ describe('storyCanvas calculations', () => {
 
             const svg = cosmos!.getSvgString();
             expect(svg).toContain('rotate(-22)');
-            expect(svg).toContain('x1="-30" y1="80" x2="220" y2="210"'); // comet trail
+            expect(svg).toContain('x1="-30" y1="80" x2="200" y2="190"'); // comet trail
             expect(svg).toContain('points="50,420 75,490 35,570 85,660 50,740"'); // constellation
             expect(svg).toContain('#fbbf24'); // gold starlight
         });
@@ -748,7 +748,7 @@ describe('storyCanvas calculations', () => {
             expect(svg).toContain('#facc15');
 
             const svgNoScoreboard = lightning!.getSvgString(undefined, { hasScoreboard: false });
-            expect(svgNoScoreboard).toContain('L130,1820'); // full ground strike
+            expect(svgNoScoreboard).toContain('L130,1830'); // full ground strike
         });
 
         it('renders rainbow unicorn frame with flowing mane waves, spiral horn, and cloud base', () => {
@@ -756,7 +756,7 @@ describe('storyCanvas calculations', () => {
             expect(unicorn).toBeDefined();
 
             const svg = unicorn!.getSvgString(undefined, { hasScoreboard: true });
-            expect(svg).toContain('translate(800, 1370) scale(1.15)'); // docked above scoreboard
+            expect(svg).toContain('translate(860, 1630) scale(0.92)'); // docked flanking scoreboard
             expect(svg).toContain('#f472b6'); // pink
             expect(svg).toContain('#c084fc'); // purple
             expect(svg).toContain('#38bdf8'); // cyan
@@ -764,7 +764,7 @@ describe('storyCanvas calculations', () => {
             expect(svg).toContain('points="46,-9 48,2 59,4 48,6 46,17 44,6 33,4 44,2"'); // horn tip magic star
 
             const svgNoScoreboard = unicorn!.getSvgString(undefined, { hasScoreboard: false });
-            expect(svgNoScoreboard).toContain('translate(800, 1590) scale(1.15)'); // lower corner placement
+            expect(svgNoScoreboard).toContain('translate(860, 1660) scale(1.05)'); // lower corner placement
         });
 
         it('renders pop-art frame with extreme corner halftone matrix and full lower-right speed lines including teal', () => {
@@ -774,13 +774,13 @@ describe('storyCanvas calculations', () => {
             // With scoreboard
             const svgWithSb = popArt!.getSvgString(undefined, { hasScoreboard: true });
             expect(svgWithSb).toContain('translate(970, 0)'); // top-right extreme corner
-            expect(svgWithSb).toContain('translate(0, 1560)'); // docked lower-left
-            expect(svgWithSb).toContain('x1="1080" y1="1640" x2="1000" y2="1590" stroke="#06b6d4"'); // teal/cyan line
+            expect(svgWithSb).toContain('translate(0, 1750)'); // docked lower-left
+            expect(svgWithSb).toContain('x1="1080" y1="1810" x2="1000" y2="1760" stroke="#06b6d4"'); // teal/cyan line
 
             // Without scoreboard
             const svgNoSb = popArt!.getSvgString(undefined, { hasScoreboard: false });
-            expect(svgNoSb).toContain('translate(0, 1805)'); // extreme bottom-left corner
-            expect(svgNoSb).toContain('x1="1080" y1="1840" x2="1000" y2="1790" stroke="#06b6d4"'); // teal/cyan line in bottom-right corner
+            expect(svgNoSb).toContain('translate(0, 1800)'); // extreme bottom-left corner
+            expect(svgNoSb).toContain('x1="1080" y1="1810" x2="1000" y2="1760" stroke="#06b6d4"'); // teal/cyan line in bottom-right corner
         });
 
         it('renders through-the-lens frame with real EXIF telemetry on bottom bar', () => {
@@ -817,10 +817,10 @@ describe('storyCanvas calculations', () => {
             // Center focus point indicator removed per user request
             expect(svgWithExif).not.toContain('width="72" height="72"');
 
-            // With attribution, top bracket docks below attribution pill at Y=230
-            expect(svgWithExif).toContain('L 110,230');
-            // With scoreboard, bottom bracket docks above scoreboard badge at Y=1640
-            expect(svgWithExif).toContain('L 110,1640');
+            // With attribution, top bracket docks below attribution pill at Y=150
+            expect(svgWithExif).toContain('L 110,150');
+            // With scoreboard, bottom bracket docks above scoreboard badge at Y=1680
+            expect(svgWithExif).toContain('L 110,1680');
 
             // When scoreboard and attribution are false, bottom bar remains pinned at 1820
             const svgNoScoreboard = ttl!.getSvgString(undefined, {
@@ -828,8 +828,8 @@ describe('storyCanvas calculations', () => {
                 hasAttribution: false,
             });
             expect(svgNoScoreboard).toContain('y="1820"');
-            // Top bracket docks at Y=140 without attribution
-            expect(svgNoScoreboard).toContain('L 110,140');
+            // Top bracket docks at Y=90 without attribution
+            expect(svgNoScoreboard).toContain('L 110,90');
             // Bottom bracket docks at Y=1780 without scoreboard (above pinned telemetry bar)
             expect(svgNoScoreboard).toContain('L 110,1780');
         });
@@ -868,7 +868,7 @@ describe('storyCanvas calculations', () => {
                 hasScoreboard: true,
                 hasAttribution: true,
             });
-            expect(bearWithScoreboard).toContain('translate(750, 1510)');
+            expect(bearWithScoreboard).toContain('translate(760, 1530)');
             // Top racing stripe splits around attribution
             expect(bearWithScoreboard).toContain('x1="140" y1="117" x2="250"');
             expect(bearWithScoreboard).toContain('x1="830" y1="117" x2="940"');
@@ -878,7 +878,7 @@ describe('storyCanvas calculations', () => {
                 hasScoreboard: false,
                 hasAttribution: false,
             });
-            expect(bearWithoutScoreboard).toContain('translate(660, 1680)');
+            expect(bearWithoutScoreboard).toContain('translate(680, 1690)');
             // Top racing stripe spans continuously across
             expect(bearWithoutScoreboard).toContain('x1="140" y1="117" x2="940"');
 
@@ -886,7 +886,7 @@ describe('storyCanvas calculations', () => {
             const derby = STORY_FRAME_DEFINITIONS.find((f) => f.id === 'derby-quads');
             expect(derby).toBeDefined();
             const derbyWithScoreboard = derby!.getSvgString(undefined, { hasScoreboard: true });
-            expect(derbyWithScoreboard).toContain('translate(50, 1530)');
+            expect(derbyWithScoreboard).toContain('translate(45, 1660)');
             const derbyWithoutScoreboard = derby!.getSvgString(undefined, { hasScoreboard: false });
             expect(derbyWithoutScoreboard).toContain('translate(60, 1720)');
         });

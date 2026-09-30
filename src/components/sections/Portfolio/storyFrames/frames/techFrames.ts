@@ -14,22 +14,36 @@ export const TECH_FRAMES: StoryFrameDefinition[] = [
             const recRed = override || '#ef4444';
             const textCol = override || '#ffffff';
             const hasAttribution = context?.hasAttribution ?? true;
-            const telemetryX = hasAttribution ? '1040' : '1020';
+            const hasScoreboard = context?.hasScoreboard ?? true;
+
+            const topY = hasAttribution ? 148 : 80;
+            const bottomY = hasScoreboard ? 1730 : 1820;
 
             return `
+                {/* 4 Corner Viewfinder Brackets */}
                 <path d="M40,120 L40,40 L120,40" stroke="${primary}" stroke-width="5" fill="none" />
                 <path d="M1040,120 L1040,40 L960,40" stroke="${primary}" stroke-width="5" fill="none" />
                 <path d="M40,1800 L40,1880 L120,1880" stroke="${primary}" stroke-width="5" fill="none" />
                 <path d="M1040,1800 L1040,1880 L960,1880" stroke="${primary}" stroke-width="5" fill="none" />
-                <g transform="translate(60, 80)">
+
+                {/* Top-Left REC Indicator */}
+                <g transform="translate(60, ${topY - 10})">
                     <circle cx="10" cy="10" r="7" fill="${recRed}" />
-                    <text x="26" y="16" fill="${textCol}" font-family="monospace" font-size="22" font-weight="bold">REC 4K</text>
+                    <text x="26" y="16" fill="${textCol}" font-family="monospace" font-size="20" font-weight="bold">REC 4K</text>
                 </g>
+
+                {/* Top-Right Telemetry */}
+                <text x="1020" y="${topY + 6}" fill="${primary}" font-family="monospace" font-size="18" text-anchor="end" opacity="0.9">60 FPS • RAW</text>
+
+                {/* Left & Right Mid-Crosshairs */}
                 <line x1="20" y1="960" x2="50" y2="960" stroke="${primary}" stroke-width="3" />
                 <line x1="35" y1="945" x2="35" y2="975" stroke="${primary}" stroke-width="2" />
                 <line x1="1060" y1="960" x2="1030" y2="960" stroke="${primary}" stroke-width="3" />
                 <line x1="1045" y1="945" x2="1045" y2="975" stroke="${primary}" stroke-width="2" />
-                <text x="${telemetryX}" y="95" fill="${primary}" font-family="monospace" font-size="18" text-anchor="end" opacity="0.9">60 FPS • RAW</text>
+
+                {/* Bottom Balanced Status Readouts */}
+                <text x="60" y="${bottomY}" fill="${primary}" font-family="monospace" font-size="15" opacity="0.8">BATT // 94%</text>
+                <text x="1020" y="${bottomY}" fill="${primary}" font-family="monospace" font-size="15" text-anchor="end" opacity="0.8">ISO // AUTO</text>
             `;
         }
     ),
@@ -68,8 +82,8 @@ export const TECH_FRAMES: StoryFrameDefinition[] = [
             const focalLengthText = escapeXml(rawFocal);
 
             const bottomBarY = 1820;
-            const topBracketY = hasAttribution ? 230 : 140;
-            const bracketBottomY = hasScoreboard ? 1640 : 1780;
+            const topBracketY = hasAttribution ? 150 : 90;
+            const bracketBottomY = hasScoreboard ? 1680 : 1780;
 
             return `
                 <path d="M 50,${topBracketY + 60} L 50,${topBracketY} L 110,${topBracketY}" stroke="${textColor}" stroke-width="3" fill="none" opacity="0.8" />
@@ -126,23 +140,36 @@ export const TECH_FRAMES: StoryFrameDefinition[] = [
             const red = override || '#ef4444';
             const borderCol = override || '#3b82f6';
             const hasAttribution = context?.hasAttribution ?? true;
-            const topY = hasAttribution ? 210 : 80;
+            const hasScoreboard = context?.hasScoreboard ?? true;
+
+            const topY = hasAttribution ? 148 : 80;
+            const bottomY = hasScoreboard ? 1730 : 1820;
 
             return `
-                <g transform="translate(840, ${topY})">
-                    <rect x="0" y="0" width="180" height="42" rx="8" fill="rgba(17, 17, 22, 0.85)" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" />
-                    <circle cx="28" cy="21" r="7" fill="${red}" />
-                    <text x="46" y="28" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="800" letter-spacing="0.1em">LIVE</text>
-                    <line x1="105" y1="12" x2="105" y2="30" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" />
-                    <text x="116" y="27" fill="${red}" font-family="monospace" font-size="14" font-weight="bold">HD</text>
+                {/* Top-Right LIVE HD Pill */}
+                <g transform="translate(860, ${topY - 20})">
+                    <rect x="0" y="0" width="160" height="38" rx="8" fill="rgba(17, 17, 22, 0.88)" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" />
+                    <circle cx="24" cy="19" r="6" fill="${red}" />
+                    <text x="40" y="25" fill="#ffffff" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="800" letter-spacing="0.1em">LIVE</text>
+                    <line x1="94" y1="10" x2="94" y2="28" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" />
+                    <text x="105" y="24" fill="${red}" font-family="monospace" font-size="13" font-weight="bold">HD</text>
                 </g>
-                <g transform="translate(60, ${topY})">
-                    <text x="0" y="28" fill="#ffffff" font-family="monospace" font-size="18" font-weight="bold" opacity="0.85">CAM 01 // 60 FPS</text>
+
+                {/* Top-Left Camera Source */}
+                <g transform="translate(60, ${topY - 20})">
+                    <rect x="0" y="0" width="170" height="38" rx="8" fill="rgba(17, 17, 22, 0.88)" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" />
+                    <text x="85" y="24" fill="#ffffff" font-family="monospace" font-size="14" font-weight="bold" letter-spacing="0.08em" text-anchor="middle">CAM 01 // 60 FPS</text>
                 </g>
-                <path d="M40,260 L40,180 L120,180" stroke="${borderCol}" stroke-width="3" fill="none" opacity="0.75" />
-                <path d="M1040,260 L1040,180 L960,180" stroke="${borderCol}" stroke-width="3" fill="none" opacity="0.75" />
-                <path d="M40,1720 L40,1800 L120,1800" stroke="${borderCol}" stroke-width="3" fill="none" opacity="0.75" />
-                <path d="M1040,1720 L1040,1800 L960,1800" stroke="${borderCol}" stroke-width="3" fill="none" opacity="0.75" />
+
+                {/* Corner Broadcast Framing */}
+                <path d="M40,240 L40,160 L120,160" stroke="${borderCol}" stroke-width="3.5" fill="none" opacity="0.8" />
+                <path d="M1040,240 L1040,160 L960,160" stroke="${borderCol}" stroke-width="3.5" fill="none" opacity="0.8" />
+                <path d="M40,1680 L40,1760 L120,1760" stroke="${borderCol}" stroke-width="3.5" fill="none" opacity="0.8" />
+                <path d="M1040,1680 L1040,1760 L960,1760" stroke="${borderCol}" stroke-width="3.5" fill="none" opacity="0.8" />
+
+                {/* Bottom Symmetrical Studio Lower-Third Info */}
+                <text x="60" y="${bottomY}" fill="#ffffff" font-family="monospace" font-size="14" font-weight="bold" opacity="0.75">CH 01 // WFTDA</text>
+                <text x="1020" y="${bottomY}" fill="#ffffff" font-family="monospace" font-size="14" font-weight="bold" text-anchor="end" opacity="0.75">CHAMPIONSHIP TOUR</text>
             `;
         }
     ),
@@ -155,29 +182,37 @@ export const TECH_FRAMES: StoryFrameDefinition[] = [
         (override, context) => {
             const green = override || '#10b981';
             const hasAttribution = context?.hasAttribution ?? true;
-            const compassY = hasAttribution ? 210 : 80;
+            const hasScoreboard = context?.hasScoreboard ?? true;
+
+            const compassY = hasAttribution ? 215 : 90;
+            const bottomY = hasScoreboard ? 1730 : 1820;
 
             return `
+                {/* Azimuth Compass Tape (Clear of attribution badge) */}
                 <g transform="translate(540, ${compassY})">
-                    <line x1="-200" y1="0" x2="200" y2="0" stroke="${green}" stroke-width="2" opacity="0.8" />
-                    <line x1="-150" y1="0" x2="-150" y2="8" stroke="${green}" stroke-width="2" />
-                    <line x1="-100" y1="0" x2="-100" y2="8" stroke="${green}" stroke-width="2" />
-                    <line x1="-50" y1="0" x2="-50" y2="8" stroke="${green}" stroke-width="2" />
-                    <line x1="0" y1="0" x2="0" y2="14" stroke="${green}" stroke-width="2" />
-                    <line x1="50" y1="0" x2="50" y2="8" stroke="${green}" stroke-width="2" />
-                    <line x1="100" y1="0" x2="100" y2="8" stroke="${green}" stroke-width="2" />
-                    <line x1="150" y1="0" x2="150" y2="8" stroke="${green}" stroke-width="2" />
-                    <polygon points="0,22 -6,30 6,30" fill="${green}" />
-                    <text x="0" y="-8" fill="${green}" font-family="monospace" font-size="16" font-weight="bold" text-anchor="middle">045° NE</text>
+                    <line x1="-180" y1="0" x2="180" y2="0" stroke="${green}" stroke-width="2" opacity="0.8" />
+                    <line x1="-150" y1="0" x2="-150" y2="8" stroke="${green}" stroke-width="1.5" />
+                    <line x1="-100" y1="0" x2="-100" y2="8" stroke="${green}" stroke-width="1.5" />
+                    <line x1="-50" y1="0" x2="-50" y2="8" stroke="${green}" stroke-width="1.5" />
+                    <line x1="0" y1="0" x2="0" y2="12" stroke="${green}" stroke-width="2" />
+                    <line x1="50" y1="0" x2="50" y2="8" stroke="${green}" stroke-width="1.5" />
+                    <line x1="100" y1="0" x2="100" y2="8" stroke="${green}" stroke-width="1.5" />
+                    <line x1="150" y1="0" x2="150" y2="8" stroke="${green}" stroke-width="1.5" />
+                    <polygon points="0,18 -5,26 5,26" fill="${green}" />
+                    <text x="0" y="-8" fill="${green}" font-family="monospace" font-size="15" font-weight="bold" text-anchor="middle">045° NE</text>
                 </g>
-                <g transform="translate(540, 960)">
-                    <circle cx="0" cy="0" r="12" stroke="${green}" stroke-width="2" fill="none" opacity="0.6" />
-                    <circle cx="0" cy="0" r="3" fill="${green}" />
-                    <line x1="-60" y1="0" x2="-20" y2="0" stroke="${green}" stroke-width="2" />
-                    <line x1="20" y1="0" x2="60" y2="0" stroke="${green}" stroke-width="2" />
-                    <line x1="0" y1="-60" x2="0" y2="-20" stroke="${green}" stroke-width="2" />
-                    <line x1="0" y1="20" x2="0" y2="60" stroke="${green}" stroke-width="2" />
+
+                {/* Center Crosshair (Subtle, unobstructed) */}
+                <g transform="translate(540, 960)" opacity="0.4">
+                    <circle cx="0" cy="0" r="10" stroke="${green}" stroke-width="1.5" fill="none" />
+                    <circle cx="0" cy="0" r="2.5" fill="${green}" />
+                    <line x1="-45" y1="0" x2="-18" y2="0" stroke="${green}" stroke-width="1.5" />
+                    <line x1="18" y1="0" x2="45" y2="0" stroke="${green}" stroke-width="1.5" />
+                    <line x1="0" y1="-45" x2="0" y2="-18" stroke="${green}" stroke-width="1.5" />
+                    <line x1="0" y1="18" x2="0" y2="45" stroke="${green}" stroke-width="1.5" />
                 </g>
+
+                {/* Left & Right Flank Mil-Reticule Elevation Ladders */}
                 <g transform="translate(80, 960)">
                     <line x1="0" y1="-80" x2="20" y2="-80" stroke="${green}" stroke-width="2" />
                     <line x1="0" y1="-40" x2="14" y2="-40" stroke="${green}" stroke-width="1.5" />
@@ -192,8 +227,13 @@ export const TECH_FRAMES: StoryFrameDefinition[] = [
                     <line x1="0" y1="40" x2="14" y2="40" stroke="${green}" stroke-width="1.5" />
                     <line x1="0" y1="80" x2="20" y2="80" stroke="${green}" stroke-width="2" />
                 </g>
-                <g transform="translate(60, 1780)">
-                    <text x="0" y="0" fill="${green}" font-family="monospace" font-size="16" font-weight="bold" opacity="0.8">NVG // GAIN: +12dB • FOV: 40°</text>
+
+                {/* Bottom Symmetrical Telemetry Flanks */}
+                <g transform="translate(60, ${bottomY})">
+                    <text x="0" y="0" fill="${green}" font-family="monospace" font-size="14" font-weight="bold" opacity="0.85">${hasScoreboard ? 'GAIN: +12dB' : 'NVG // GAIN: +12dB • FOV: 40°'}</text>
+                </g>
+                <g transform="translate(1020, ${bottomY})">
+                    <text x="0" y="0" fill="${green}" font-family="monospace" font-size="14" font-weight="bold" text-anchor="end" opacity="0.85">${hasScoreboard ? 'IR: ON • 98%' : 'IR ILLUM: ON • BAT: 98%'}</text>
                 </g>
             `;
         }

@@ -13,12 +13,16 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
             const c2 = override || '#c084fc';
             const c3 = override || '#38bdf8';
             const c4 = override || '#facc15';
+            const hasAttribution = context?.hasAttribution ?? true;
             const hasScoreboard = context?.hasScoreboard ?? true;
+
+            const topY = hasAttribution ? 148 : 80;
             const unicornTransform = hasScoreboard
-                ? 'translate(800, 1370) scale(1.15)'
-                : 'translate(800, 1590) scale(1.15)';
+                ? 'translate(860, 1630) scale(0.92)'
+                : 'translate(860, 1660) scale(1.05)';
 
             return `
+                {/* Top-Left Rainbow Arch & Clouds */}
                 <path d="M-30,220 C100,220 220,100 220,-30" stroke="${c1}" stroke-width="16" fill="none" />
                 <path d="M-30,200 C85,200 200,85 200,-30" stroke="${c2}" stroke-width="16" fill="none" />
                 <path d="M-30,180 C70,180 180,70 180,-30" stroke="${c3}" stroke-width="16" fill="none" />
@@ -26,8 +30,17 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
                 <circle cx="190" cy="50" r="26" fill="#ffffff" opacity="0.85" />
                 <circle cx="220" cy="65" r="20" fill="#ffffff" opacity="0.85" />
                 <circle cx="65" cy="190" r="24" fill="#ffffff" opacity="0.85" />
-                <polygon points="980,100 985,115 1000,120 985,125 980,140 975,125 960,120 975,115" fill="${c4}" />
-                <polygon points="920,160 923,172 935,175 923,178 920,190 917,178 905,175 917,172" fill="${c1}" />
+
+                {/* Top-Right Dream Cloud & Magic Starbursts */}
+                <g transform="translate(980, ${topY})">
+                    <circle cx="10" cy="-10" r="24" fill="#ffffff" opacity="0.85" />
+                    <circle cx="-16" cy="6" r="20" fill="#ffffff" opacity="0.85" />
+                    <circle cx="28" cy="10" r="18" fill="#ffffff" opacity="0.85" />
+                    <polygon points="0,-35 4,-12 25,0 4,12 0,35 -4,12 -25,0 -4,-12" fill="${c4}" />
+                    <circle cx="0" cy="0" r="3" fill="#ffffff" />
+                </g>
+
+                {/* Bottom Unicorn Mascot on Cloud Flank */}
                 <g transform="${unicornTransform}">
                     <path d="M96,62 C125,40 170,44 198,68 C212,80 214,96 198,104 C184,110 172,100 178,88 C182,78 165,62 118,74 Z" fill="${c2}" />
                     <path d="M112,82 C145,68 190,78 214,105 C226,118 225,134 208,142 C194,148 184,136 190,125 C195,114 175,98 124,106 Z" fill="${c3}" />
@@ -78,11 +91,6 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
                         <ellipse cx="174" cy="232" rx="26" ry="18" />
                         <circle cx="122" cy="228" r="20" />
                     </g>
-
-                    <polygon points="68,212 70,217 75,218 70,219 68,224 66,219 61,218 66,217" fill="${c4}" opacity="0.9" />
-                    <circle cx="218" cy="168" r="3" fill="#ffffff" opacity="0.85" />
-                    <polygon points="226,134 227,138 231,139 227,140 226,144 225,140 221,139 225,138" fill="${c3}" opacity="0.85" />
-                    <circle cx="228" cy="176" r="2" fill="${c1}" opacity="0.9" />
                 </g>
             `;
         }
@@ -97,69 +105,54 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
             const p1 = override || '#8b5cf6';
             const p2 = override || '#06b6d4';
             const gold = override || '#fbbf24';
+            const hasAttribution = context?.hasAttribution ?? true;
             const hasScoreboard = context?.hasScoreboard ?? true;
-            const moonTransform = hasScoreboard ? 'translate(80, 1530)' : 'translate(90, 1750)';
-            const rightAnchorTransform = hasScoreboard ? 'translate(970, 1540)' : 'translate(960, 1760)';
+
+            const topY = hasAttribution ? 148 : 100;
+            const moonTransform = hasScoreboard ? 'translate(90, 1730)' : 'translate(90, 1800)';
+            const rightAnchorTransform = hasScoreboard ? 'translate(980, 1730)' : 'translate(980, 1800)';
 
             return `
-                <g transform="translate(930, 130) rotate(-22)">
+                {/* Top-Right Ringed Celestial Planet */}
+                <g transform="translate(950, ${topY}) rotate(-22)">
                     <path d="M-85,0 A85,18 0 0,1 85,0" stroke="${p2}" stroke-width="6" fill="none" opacity="0.8" />
                     <path d="M-66,0 A66,13 0 0,1 66,0" stroke="${p1}" stroke-width="3.5" fill="none" opacity="0.9" />
-                    <circle cx="0" cy="0" r="40" fill="${p1}" />
-                    <path d="M-38,-12 Q0,-8 38,-12" stroke="#a78bfa" stroke-width="5" fill="none" opacity="0.8" />
-                    <path d="M-40,2 Q0,6 40,2" stroke="${p2}" stroke-width="4" fill="none" opacity="0.75" />
-                    <path d="M-36,16 Q0,20 36,16" stroke="#c084fc" stroke-width="4" fill="none" opacity="0.7" />
+                    <circle cx="0" cy="0" r="38" fill="${p1}" />
+                    <path d="M-38,-12 Q0,-8 38,-12" stroke="#a78bfa" stroke-width="4.5" fill="none" opacity="0.8" />
+                    <path d="M-40,2 Q0,6 40,2" stroke="${p2}" stroke-width="3.5" fill="none" opacity="0.75" />
+                    <path d="M-36,16 Q0,20 36,16" stroke="#c084fc" stroke-width="3.5" fill="none" opacity="0.7" />
                     <path d="M85,0 A85,18 0 0,1 -85,0" stroke="${p2}" stroke-width="6" fill="none" opacity="0.95" />
                     <path d="M66,0 A66,13 0 0,1 -66,0" stroke="${p1}" stroke-width="3.5" fill="none" opacity="0.95" />
                     <path d="M78,0 A78,16 0 0,1 -78,0" stroke="#ffffff" stroke-width="1.2" fill="none" opacity="0.75" />
-                    <circle cx="75" cy="-35" r="5" fill="${gold}" />
-                    <circle cx="-65" cy="42" r="3.5" fill="${p2}" />
                 </g>
+
+                {/* Top-Left Streaking Comet & Orbit Rays */}
                 <g opacity="0.95">
-                    <line x1="-30" y1="80" x2="220" y2="210" stroke="${p2}" stroke-width="3" opacity="0.85" />
-                    <line x1="10" y1="75" x2="215" y2="202" stroke="#ffffff" stroke-width="1.5" opacity="0.9" />
-                    <line x1="-50" y1="95" x2="180" y2="218" stroke="${p1}" stroke-width="2" opacity="0.6" stroke-dasharray="12 8" />
-                    <polygon points="220,206 230,210 220,214 214,210" fill="#ffffff" />
-                    <circle cx="218" cy="210" r="6" fill="${p2}" opacity="0.6" />
-                    <circle cx="160" cy="175" r="2.5" fill="${gold}" />
-                    <circle cx="100" cy="142" r="2" fill="#ffffff" />
-                    <circle cx="40" cy="110" r="1.5" fill="${p2}" />
+                    <line x1="-30" y1="80" x2="200" y2="190" stroke="${p2}" stroke-width="3" opacity="0.85" />
+                    <line x1="10" y1="75" x2="195" y2="182" stroke="#ffffff" stroke-width="1.5" opacity="0.9" />
+                    <polygon points="200,186 210,190 200,194 194,190" fill="#ffffff" />
+                    <circle cx="198" cy="190" r="5" fill="${p2}" opacity="0.6" />
                 </g>
-                <path d="M-20,130 A260,260 0 0,1 260,-20" stroke="${p2}" stroke-width="2" stroke-dasharray="10 8" fill="none" opacity="0.65" />
-                <path d="M-20,170 A300,300 0 0,1 300,-20" stroke="${p1}" stroke-width="1.5" stroke-dasharray="6 6" fill="none" opacity="0.45" />
+                <path d="M-20,130 A260,260 0 0,1 260,-20" stroke="${p2}" stroke-width="2" stroke-dasharray="10 8" fill="none" opacity="0.6" />
 
-                <polygon points="985,280 990,295 1005,300 990,305 985,320 980,305 965,300 980,295" fill="${gold}" />
-                <circle cx="985" cy="300" r="2.5" fill="#ffffff" />
-
+                {/* Flank Constellation Points */}
                 <polygon points="80,290 84,302 96,306 84,310 80,322 76,310 64,306 76,302" fill="#ffffff" opacity="0.9" />
                 <polygon points="1010,480 1013,490 1023,493 1013,496 1010,506 1007,496 997,493 1007,490" fill="${gold}" opacity="0.85" />
-                <polygon points="50,750 53,760 63,763 53,766 50,776 47,766 37,763 47,760" fill="${p2}" opacity="0.9" />
+                <polyline points="50,420 75,490 35,570 85,660 50,740" stroke="${p2}" stroke-width="1.8" stroke-dasharray="5 5" fill="none" opacity="0.65" />
+                <circle cx="50" cy="420" r="4.5" fill="#ffffff" />
+                <circle cx="75" cy="490" r="5" fill="${gold}" />
+                <circle cx="35" cy="570" r="4" fill="#ffffff" />
+                <circle cx="85" cy="660" r="5" fill="${p1}" />
+                <circle cx="50" cy="740" r="4.5" fill="${gold}" />
 
-                <polyline points="50,420 75,490 35,570 85,660 50,740" stroke="${p2}" stroke-width="1.8" stroke-dasharray="5 5" fill="none" opacity="0.7" />
-                <circle cx="50" cy="420" r="5" fill="#ffffff" />
-                <circle cx="50" cy="420" r="9" fill="${p2}" opacity="0.3" />
-                <circle cx="75" cy="490" r="6" fill="${gold}" />
-                <circle cx="75" cy="490" r="10" fill="${gold}" opacity="0.25" />
-                <circle cx="35" cy="570" r="4.5" fill="#ffffff" />
-                <circle cx="85" cy="660" r="5.5" fill="${p1}" />
-                <circle cx="85" cy="660" r="9" fill="${p1}" opacity="0.3" />
-                <circle cx="50" cy="740" r="5" fill="${gold}" />
-
-                <circle cx="950" cy="380" r="2" fill="#ffffff" opacity="0.7" />
-                <circle cx="1025" cy="410" r="2.5" fill="${p2}" opacity="0.8" />
-                <circle cx="60" cy="350" r="2" fill="${gold}" opacity="0.75" />
-                <circle cx="1020" cy="630" r="2" fill="#ffffff" opacity="0.6" />
-
+                {/* Bottom-Left Moon & Orbit */}
                 <g transform="${moonTransform}">
-                    <path d="M-20,-32 A36,36 0 0,0 22,32 A28,28 0 0,1 -20,-32 Z" fill="${gold}" />
-                    <circle cx="-2" cy="-4" r="3" fill="#d97706" opacity="0.6" />
-                    <circle cx="-8" cy="10" r="2" fill="#d97706" opacity="0.6" />
-                    <ellipse cx="38" cy="8" rx="42" ry="14" stroke="${p2}" stroke-width="2" stroke-dasharray="6 4" fill="none" transform="rotate(-15 38 8)" opacity="0.8" />
-                    <circle cx="38" cy="8" r="4" fill="#ffffff" />
-                    <circle cx="68" cy="1" r="2.5" fill="${p1}" />
-                    <polygon points="75,28 78,34 84,36 78,38 75,44 72,38 66,36 72,34" fill="${gold}" />
+                    <path d="M-18,-28 A30,30 0 0,0 20,28 A24,24 0 0,1 -18,-28 Z" fill="${gold}" />
+                    <ellipse cx="32" cy="6" rx="36" ry="12" stroke="${p2}" stroke-width="1.8" stroke-dasharray="6 4" fill="none" transform="rotate(-15 32 6)" opacity="0.8" />
+                    <circle cx="32" cy="6" r="3.5" fill="#ffffff" />
                 </g>
 
+                {/* Bottom-Right Golden Starburst Flank */}
                 <g transform="${rightAnchorTransform}">
                     <polygon points="0,-18 5,-5 18,0 5,5 0,18 -5,5 -18,0 -5,-5" fill="${gold}" />
                     <circle cx="0" cy="0" r="3" fill="#ffffff" />
@@ -179,26 +172,50 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
             const gold = override || '#facc15';
             const silver = override || '#e2e8f0';
             const hasScoreboard = context?.hasScoreboard ?? true;
-            const starburstTransform = hasScoreboard ? 'translate(960, 1590)' : 'translate(980, 1800)';
+            const hasAttribution = context?.hasAttribution ?? true;
+
+            const topY = hasAttribution ? 148 : 80;
+            const bottomY = hasScoreboard ? 1730 : 1820;
+
+            const starburst = (col: string) => `
+                <polygon points="0,-36 7,-10 36,0 7,10 0,36 -7,10 -36,0 -7,-10" fill="${col}" />
+                <polygon points="0,-18 4,-5 18,0 4,5 0,18 -4,5 -18,0 -4,-5" fill="#ffffff" />
+            `;
 
             return `
-                <g transform="translate(80, 80)">
-                    <path d="M-20,-35 A40,40 0 0,0 25,35 A30,30 0 0,1 -20,-35 Z" fill="${gold}" />
-                    <line x1="40" y1="-20" x2="40" y2="40" stroke="${silver}" stroke-width="1.5" />
-                    <polygon points="40,40 37,47 40,54 43,47" fill="${gold}" />
+                {/* Top-Left Crescent Moon */}
+                <g transform="translate(80, ${topY})">
+                    <path d="M-18,-30 A34,34 0 0,0 22,30 A26,26 0 0,1 -18,-30 Z" fill="${gold}" />
+                    <line x1="36" y1="-18" x2="36" y2="34" stroke="${silver}" stroke-width="1.5" />
+                    <polygon points="36,34 33,40 36,46 39,40" fill="${gold}" />
                 </g>
-                <circle cx="35" cy="450" r="5" fill="${gold}" />
-                <circle cx="35" cy="750" r="3.5" fill="${silver}" />
-                <circle cx="35" cy="1050" r="5" fill="${gold}" />
-                <circle cx="35" cy="1350" r="3.5" fill="${silver}" />
-                <circle cx="1045" cy="450" r="3.5" fill="${silver}" />
-                <circle cx="1045" cy="750" r="5" fill="${gold}" />
-                <circle cx="1045" cy="1050" r="3.5" fill="${silver}" />
-                <circle cx="1045" cy="1350" r="5" fill="${gold}" />
-                <g transform="${starburstTransform}">
-                    <polygon points="0,-45 8,-12 45,0 8,12 0,45 -8,12 -45,0 -8,-12" fill="${gold}" />
-                    <polygon points="0,-25 5,-7 25,0 5,7 0,25 -5,7 -25,0 -5,-7" fill="#ffffff" />
+
+                {/* Top-Right Mirrored Crescent Moon */}
+                <g transform="translate(1000, ${topY}) scale(-1, 1)">
+                    <path d="M-18,-30 A34,34 0 0,0 22,30 A26,26 0 0,1 -18,-30 Z" fill="${gold}" />
+                    <line x1="36" y1="-18" x2="36" y2="34" stroke="${silver}" stroke-width="1.5" />
+                    <polygon points="36,34 33,40 36,46 39,40" fill="${gold}" />
                 </g>
+
+                {/* Left & Right Border Starlight Beads */}
+                <circle cx="35" cy="450" r="4" fill="${gold}" />
+                <circle cx="35" cy="750" r="3" fill="${silver}" />
+                <circle cx="35" cy="1050" r="4" fill="${gold}" />
+                <circle cx="35" cy="1350" r="3" fill="${silver}" />
+                <circle cx="1045" cy="450" r="3" fill="${silver}" />
+                <circle cx="1045" cy="750" r="4" fill="${gold}" />
+                <circle cx="1045" cy="1050" r="3" fill="${silver}" />
+                <circle cx="1045" cy="1350" r="4" fill="${gold}" />
+
+                {/* Bottom Symmetrical Celestial Starbursts */}
+                <g transform="translate(90, ${bottomY})">
+                    ${starburst(gold)}
+                </g>
+                <g transform="translate(990, ${bottomY})">
+                    ${starburst(gold)}
+                </g>
+
+                {/* 4 Art-Deco Corner Brackets */}
                 <path d="M30,140 L30,50 L120,50" stroke="${gold}" stroke-width="2" fill="none" />
                 <path d="M1050,140 L1050,50 L960,50" stroke="${gold}" stroke-width="2" fill="none" />
                 <path d="M30,1780 L30,1870 L120,1870" stroke="${gold}" stroke-width="2" fill="none" />
@@ -215,30 +232,34 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
         (override, context) => {
             const gold = override || '#fbbf24';
             const light = override || '#fef08a';
+            const hasAttribution = context?.hasAttribution ?? true;
             const hasScoreboard = context?.hasScoreboard ?? true;
 
-            const flareTransform = hasScoreboard ? 'translate(90, 1590)' : 'translate(100, 1820)';
-            const starTransform = hasScoreboard ? 'translate(980, 1600)' : 'translate(990, 1830)';
+            const topY = hasAttribution ? 148 : 80;
+            const bottomY = hasScoreboard ? 1730 : 1820;
+
+            const sparkle = (scale: number) => `
+                <g transform="scale(${scale})">
+                    <polygon points="0,-48 10,-12 48,0 10,12 0,48 -10,12 -48,0 -10,-12" fill="${gold}" />
+                    <polygon points="0,-26 5,-7 26,0 5,7 0,26 -5,7 -26,0 -5,-7" fill="#ffffff" />
+                    <circle cx="28" cy="-28" r="3" fill="${light}" />
+                    <circle cx="-28" cy="28" r="2.5" fill="${gold}" />
+                </g>
+            `;
 
             return `
-                <g transform="translate(980, 80)">
-                    <polygon points="0,-60 12,-16 60,0 12,16 0,60 -12,16 -60,0 -12,-16" fill="${gold}" />
-                    <polygon points="0,-35 7,-9 35,0 7,9 0,35 -7,9 -35,0 -7,-9" fill="#ffffff" />
-                    <circle cx="-50" cy="50" r="4" fill="${light}" />
-                    <circle cx="30" cy="80" r="3" fill="${gold}" />
+                {/* 4 Symmetrical Glamour Sparkles */}
+                <g transform="translate(90, ${topY})">
+                    ${sparkle(0.85)}
                 </g>
-                <g transform="translate(90, 80)">
-                    <polygon points="0,-40 8,-10 40,0 8,10 0,40 -8,10 -40,0 -8,-10" fill="${light}" />
-                    <circle cx="30" cy="-20" r="3" fill="#ffffff" />
-                    <circle cx="-25" cy="30" r="5" fill="${gold}" />
+                <g transform="translate(990, ${topY})">
+                    ${sparkle(0.85)}
                 </g>
-                <g transform="${flareTransform}">
-                    <polygon points="0,-55 11,-15 55,0 11,15 0,55 -11,15 -55,0 -11,-15" fill="${gold}" />
-                    <polygon points="0,-30 6,-8 30,0 6,8 0,30 -6,8 -30,0 -6,-8" fill="#ffffff" />
-                    <circle cx="45" cy="-40" r="4" fill="${light}" />
+                <g transform="translate(90, ${bottomY})">
+                    ${sparkle(0.85)}
                 </g>
-                <g transform="${starTransform}">
-                    <polygon points="0,-30 6,-8 30,0 6,8 0,30 -6,8 -30,0 -6,-8" fill="${light}" />
+                <g transform="translate(990, ${bottomY})">
+                    ${sparkle(0.85)}
                 </g>
             `;
         }
@@ -254,35 +275,51 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
             const purple = override || '#8b5cf6';
             const gold = override || '#facc15';
             const hasAttribution = context?.hasAttribution ?? true;
-            const topY = hasAttribution ? 210 : 80;
+            const topY = hasAttribution ? 148 : 90;
+
+            const mirrorBall = `
+                <line x1="0" y1="-80" x2="0" y2="-32" stroke="${gold}" stroke-width="2" />
+                <circle cx="0" cy="0" r="34" fill="rgba(255,255,255,0.15)" stroke="${gold}" stroke-width="2.5" />
+                <ellipse cx="0" cy="0" rx="34" ry="10" stroke="${gold}" stroke-width="1.5" fill="none" opacity="0.6" />
+                <ellipse cx="0" cy="0" rx="34" ry="20" stroke="${gold}" stroke-width="1.5" fill="none" opacity="0.6" />
+                <line x1="-34" y1="0" x2="34" y2="0" stroke="${gold}" stroke-width="1.5" opacity="0.6" />
+                <line x1="0" y1="-34" x2="0" y2="34" stroke="${gold}" stroke-width="1.5" opacity="0.6" />
+                <polygon points="0,-52 5,-36 20,-36 8,-26 12,-10 0,-20 -12,-10 -8,-26 -20,-36 -5,-36" fill="${pink}" opacity="0.85" />
+            `;
 
             return `
-                <g transform="translate(960, ${topY})">
-                    <line x1="0" y1="-80" x2="0" y2="-36" stroke="${gold}" stroke-width="2" />
-                    <circle cx="0" cy="0" r="38" fill="rgba(255,255,255,0.15)" stroke="${gold}" stroke-width="3" />
-                    <ellipse cx="0" cy="0" rx="38" ry="12" stroke="${gold}" stroke-width="1.5" fill="none" opacity="0.6" />
-                    <ellipse cx="0" cy="0" rx="38" ry="24" stroke="${gold}" stroke-width="1.5" fill="none" opacity="0.6" />
-                    <line x1="-38" y1="0" x2="38" y2="0" stroke="${gold}" stroke-width="1.5" opacity="0.6" />
-                    <line x1="0" y1="-38" x2="0" y2="38" stroke="${gold}" stroke-width="1.5" opacity="0.6" />
-                    <polygon points="0,-60 6,-42 24,-42 10,-30 15,-12 0,-24 -15,-12 -10,-30 -24,-42 -6,-42" fill="${pink}" opacity="0.8" />
+                {/* Symmetrical Top Mirror Balls */}
+                <g transform="translate(100, ${topY})">
+                    ${mirrorBall}
                 </g>
-                <path d="M0,1720 Q180,1720 180,1920" stroke="${pink}" stroke-width="4" fill="none" opacity="0.8" />
-                <path d="M0,1740 Q160,1740 160,1920" stroke="${purple}" stroke-width="3" fill="none" opacity="0.7" />
-                <path d="M0,1760 Q140,1760 140,1920" stroke="${gold}" stroke-width="2" fill="none" opacity="0.6" />
-                <path d="M1080,1720 Q900,1720 900,1920" stroke="${pink}" stroke-width="4" fill="none" opacity="0.8" />
-                <path d="M1080,1740 Q920,1740 920,1920" stroke="${purple}" stroke-width="3" fill="none" opacity="0.7" />
-                <path d="M1080,1760 Q940,1760 940,1920" stroke="${gold}" stroke-width="2" fill="none" opacity="0.6" />
-                <g transform="translate(90, 380)">
-                    <polygon points="0,-24 5,-6 24,0 5,6 0,24 -5,6 -24,0 -5,-6" fill="${gold}" />
-                    <circle cx="0" cy="0" r="3" fill="#ffffff" />
+                <g transform="translate(980, ${topY})">
+                    ${mirrorBall}
                 </g>
-                <g transform="translate(1010, 720)">
-                    <polygon points="0,-24 5,-6 24,0 5,6 0,24 -5,6 -24,0 -5,-6" fill="${gold}" />
-                    <circle cx="0" cy="0" r="3" fill="#ffffff" />
+
+                {/* Symmetrical Bottom Disco Neon Floor Curves */}
+                <path d="M0,1740 Q180,1740 180,1920" stroke="${pink}" stroke-width="4" fill="none" opacity="0.8" />
+                <path d="M0,1760 Q160,1760 160,1920" stroke="${purple}" stroke-width="3" fill="none" opacity="0.7" />
+                <path d="M0,1780 Q140,1780 140,1920" stroke="${gold}" stroke-width="2" fill="none" opacity="0.6" />
+                <path d="M1080,1740 Q900,1740 900,1920" stroke="${pink}" stroke-width="4" fill="none" opacity="0.8" />
+                <path d="M1080,1760 Q920,1760 920,1920" stroke="${purple}" stroke-width="3" fill="none" opacity="0.7" />
+                <path d="M1080,1780 Q940,1780 940,1920" stroke="${gold}" stroke-width="2" fill="none" opacity="0.6" />
+
+                {/* Mid-Flank Disco Sparkles */}
+                <g transform="translate(60, 480)">
+                    <polygon points="0,-20 4,-5 20,0 4,5 0,20 -4,5 -20,0 -4,-5" fill="${gold}" />
+                    <circle cx="0" cy="0" r="2.5" fill="#ffffff" />
                 </g>
-                <g transform="translate(70, 1300)">
-                    <polygon points="0,-24 5,-6 24,0 5,6 0,24 -5,6 -24,0 -5,-6" fill="${gold}" />
-                    <circle cx="0" cy="0" r="3" fill="#ffffff" />
+                <g transform="translate(1020, 480)">
+                    <polygon points="0,-20 4,-5 20,0 4,5 0,20 -4,5 -20,0 -4,-5" fill="${gold}" />
+                    <circle cx="0" cy="0" r="2.5" fill="#ffffff" />
+                </g>
+                <g transform="translate(60, 1200)">
+                    <polygon points="0,-20 4,-5 20,0 4,5 0,20 -4,5 -20,0 -4,-5" fill="${gold}" />
+                    <circle cx="0" cy="0" r="2.5" fill="#ffffff" />
+                </g>
+                <g transform="translate(1020, 1200)">
+                    <polygon points="0,-20 4,-5 20,0 4,5 0,20 -4,5 -20,0 -4,-5" fill="${gold}" />
+                    <circle cx="0" cy="0" r="2.5" fill="#ffffff" />
                 </g>
             `;
         }
