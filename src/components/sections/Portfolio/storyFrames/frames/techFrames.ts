@@ -35,7 +35,7 @@ export const TECH_FRAMES: StoryFrameDefinition[] = [
     ),
     defineFrame(
         'through-the-lens',
-        'Through the Lens',
+        'Optics',
         'tech',
         'Nikon Z 8 EVF / rear screen telemetry HUD with live photo EXIF',
         ['#ffffff', '#e60000', '#22c55e'],
@@ -118,7 +118,7 @@ export const TECH_FRAMES: StoryFrameDefinition[] = [
     ),
     defineFrame(
         'broadcast-live',
-        'Live Broadcast',
+        'On Air',
         'tech',
         'Sports TV network championship live bug, CAM 01 & lower-third graphics',
         ['#ef4444', '#ffffff', '#3b82f6'],
@@ -148,7 +148,7 @@ export const TECH_FRAMES: StoryFrameDefinition[] = [
     ),
     defineFrame(
         'night-vision',
-        'Tactical NVG',
+        'NVG',
         'tech',
         'Military-spec FLIR thermal HUD with azimuth compass tape & mil-dot reticle',
         ['#10b981', '#059669', '#34d399'],

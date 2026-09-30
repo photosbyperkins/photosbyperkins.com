@@ -73,7 +73,7 @@ test.describe('Mobile Studio Screenshot Capture', () => {
             });
 
             // 5. Tab 3: Frames - Active Frame with Tint Bar
-            const grizzlyFrame = studioModal.locator('.story-export-modal__frames-grid button:has-text("Capital Grizzly")');
+            const grizzlyFrame = studioModal.locator('.story-export-modal__frames-grid button:has-text("Grizzly")');
             if (await grizzlyFrame.isVisible()) {
                 await grizzlyFrame.click();
                 await page.waitForTimeout(400);

@@ -50,74 +50,10 @@ export const StoryFramesTab: React.FC<StoryFramesTabProps> = ({
                             {STORY_FRAMES_MAP[activeFrameId]?.label || 'None'}
                         </span>
                     </div>
-                </div>
 
-                {/* Category Filter Pills Bar */}
-                <div className="story-export-modal__category-bar" role="tablist" aria-label="Frame categories">
-                    {STORY_FRAME_CATEGORIES.map((cat) => {
-                        const isCatActive = selectedFrameCategory === cat.id;
-                        const count = categoryCounts[cat.id] ?? 0;
-                        return (
-                            <button
-                                key={cat.id}
-                                type="button"
-                                role="tab"
-                                aria-selected={isCatActive}
-                                className={`story-export-modal__category-pill ${
-                                    isCatActive ? 'story-export-modal__category-pill--active' : ''
-                                }`}
-                                onClick={() => setSelectedFrameCategory(cat.id)}
-                                title={cat.vibe}
-                            >
-                                <span>{cat.label}</span>
-                                <span className="story-export-modal__category-count">{count}</span>
-                            </button>
-                        );
-                    })}
-                </div>
-
-                <div className="story-export-modal__frames-grid">
-                    {displayedFrames.map((frame) => {
-                        const isSelected = activeFrameId === frame.id;
-                        return (
-                            <button
-                                key={frame.id}
-                                type="button"
-                                className={`story-export-modal__frame-card ${
-                                    isSelected ? 'story-export-modal__frame-card--active' : ''
-                                }`}
-                                onClick={() => {
-                                    setActiveFrameId(frame.id);
-                                    setIsDownloaded(false);
-                                }}
-                                title={frame.vibe}
-                            >
-                                <div className="story-export-modal__frame-thumb">
-                                    {frame.id === 'none' ? (
-                                        <div className="story-export-modal__frame-none-icon">⊘</div>
-                                    ) : (
-                                        <svg
-                                            viewBox="0 0 1080 1920"
-                                            className="story-export-modal__frame-thumb-svg"
-                                            preserveAspectRatio="none"
-                                        >
-                                            {frame.renderSvg(effectiveFrameColor, frameContext)}
-                                        </svg>
-                                    )}
-                                </div>
-                                <span className="story-export-modal__frame-name">{frame.label}</span>
-                            </button>
-                        );
-                    })}
-                </div>
-
-                {/* Minimal Color / Tint Override Bar (Shown when a frame is active) */}
-                {activeFrameId !== 'none' && (
-                    <div className="story-export-modal__frame-tint-row">
-                        <div className="story-export-modal__tint-header">
-                            <span className="story-export-modal__sublabel">Frame Tint</span>
-                        </div>
-                        <div className="story-export-modal__custom-color-row">
+                    {/* Frame Tint Color Picker & Quick Swatches (Right-Aligned in Header) */}
+                    {activeFrameId !== 'none' && (
+                        <div className="story-export-modal__frames-header-tint">
                             <div className="story-export-modal__quick-swatches">
                                 {[
                                     { id: 'signature', label: 'Default', isDefault: true, color: undefined },
@@ -198,51 +134,103 @@ export const StoryFramesTab: React.FC<StoryFramesTabProps> = ({
                                             : frameColorChoice === 'custom' && frameCustomColor
                                               ? frameCustomColor
                                               : '#06b6d4';
-                                const hexDisplay =
-                                    frameColorChoice === 'signature'
-                                        ? 'DEFAULT'
-                                        : (effectiveFrameColor || frameCustomColor || '#FFFFFF').toUpperCase();
 
                                 return (
-                                    <>
-                                        <label
-                                            className={`story-export-modal__color-picker ${
-                                                isCustomPickerActive ? 'is-active' : ''
-                                            }`}
-                                            title="Choose custom frame tint color"
-                                        >
-                                            <span
-                                                className="story-export-modal__color-swatch"
-                                                style={{
-                                                    backgroundColor:
-                                                        frameColorChoice === 'signature'
-                                                            ? frameCustomColor || '#ffffff'
-                                                            : pickerValue,
-                                                }}
-                                            />
-                                            <input
-                                                type="color"
-                                                value={
+                                    <label
+                                        className={`story-export-modal__color-picker ${
+                                            isCustomPickerActive ? 'is-active' : ''
+                                        }`}
+                                        title="Choose custom frame tint color"
+                                    >
+                                        <span
+                                            className="story-export-modal__color-swatch"
+                                            style={{
+                                                backgroundColor:
                                                     frameColorChoice === 'signature'
                                                         ? frameCustomColor || '#ffffff'
-                                                        : pickerValue
-                                                }
-                                                onChange={(e) => {
-                                                    setFrameColorChoice('custom');
-                                                    setFrameCustomColor(e.target.value);
-                                                    setIsDownloaded(false);
-                                                }}
-                                                className="story-export-modal__color-input"
-                                                aria-label="Custom frame tint color"
-                                            />
-                                        </label>
-                                        <span className="story-export-modal__hex-code">{hexDisplay}</span>
-                                    </>
+                                                        : pickerValue,
+                                            }}
+                                        />
+                                        <input
+                                            type="color"
+                                            value={
+                                                frameColorChoice === 'signature'
+                                                    ? frameCustomColor || '#ffffff'
+                                                    : pickerValue
+                                            }
+                                            onChange={(e) => {
+                                                setFrameColorChoice('custom');
+                                                setFrameCustomColor(e.target.value);
+                                                setIsDownloaded(false);
+                                            }}
+                                            className="story-export-modal__color-input"
+                                            aria-label="Custom frame tint color"
+                                        />
+                                    </label>
                                 );
                             })()}
                         </div>
-                    </div>
-                )}
+                    )}
+                </div>
+
+                {/* Category Filter Pills Bar */}
+                <div className="story-export-modal__category-bar" role="tablist" aria-label="Frame categories">
+                    {STORY_FRAME_CATEGORIES.map((cat) => {
+                        const isCatActive = selectedFrameCategory === cat.id;
+                        const count = categoryCounts[cat.id] ?? 0;
+                        return (
+                            <button
+                                key={cat.id}
+                                type="button"
+                                role="tab"
+                                aria-selected={isCatActive}
+                                className={`story-export-modal__category-pill ${
+                                    isCatActive ? 'story-export-modal__category-pill--active' : ''
+                                }`}
+                                onClick={() => setSelectedFrameCategory(cat.id)}
+                                title={cat.vibe}
+                            >
+                                <span>{cat.label}</span>
+                                <span className="story-export-modal__category-count">{count}</span>
+                            </button>
+                        );
+                    })}
+                </div>
+
+                <div className="story-export-modal__frames-grid">
+                    {displayedFrames.map((frame) => {
+                        const isSelected = activeFrameId === frame.id;
+                        return (
+                            <button
+                                key={frame.id}
+                                type="button"
+                                className={`story-export-modal__frame-card ${
+                                    isSelected ? 'story-export-modal__frame-card--active' : ''
+                                }`}
+                                onClick={() => {
+                                    setActiveFrameId(frame.id);
+                                    setIsDownloaded(false);
+                                }}
+                                title={frame.vibe}
+                            >
+                                <div className="story-export-modal__frame-thumb">
+                                    {frame.id === 'none' ? (
+                                        <div className="story-export-modal__frame-none-icon">⊘</div>
+                                    ) : (
+                                        <svg
+                                            viewBox="0 0 1080 1920"
+                                            className="story-export-modal__frame-thumb-svg"
+                                            preserveAspectRatio="none"
+                                        >
+                                            {frame.renderSvg(effectiveFrameColor, frameContext)}
+                                        </svg>
+                                    )}
+                                </div>
+                                <span className="story-export-modal__frame-name">{frame.label}</span>
+                            </button>
+                        );
+                    })}
+                </div>
             </div>
         </div>
     );

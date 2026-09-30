@@ -4,7 +4,7 @@ import { defineFrame } from './helper';
 export const ACTION_FRAMES: StoryFrameDefinition[] = [
     defineFrame(
         'claw-marks',
-        'Beast Claws',
+        'Claws',
         'action',
         'High-impact razor claw slashes & glowing embers',
         ['#ef4444', '#ea580c', '#f59e0b'],
@@ -38,7 +38,7 @@ export const ACTION_FRAMES: StoryFrameDefinition[] = [
     ),
     defineFrame(
         'pop-art',
-        'Pop Art Comic',
+        'Pop Art',
         'action',
         'Halftone dot matrix, bold dynamic action bursts & speed stripes',
         ['#facc15', '#06b6d4', '#ef4444'],
@@ -108,7 +108,7 @@ export const ACTION_FRAMES: StoryFrameDefinition[] = [
     ),
     defineFrame(
         'street-flames',
-        'Hot Rod Flames',
+        'Flames',
         'action',
         'Hot rod fire flames rising from lower corners',
         ['#f59e0b', '#ef4444', '#ffffff'],
@@ -136,7 +136,7 @@ export const ACTION_FRAMES: StoryFrameDefinition[] = [
     ),
     defineFrame(
         'electric-lightning',
-        'High Voltage',
+        'Voltage',
         'action',
         'High-voltage lightning bolts, kinetic energy arcs & plasma sparks',
         ['#00f0ff', '#3b82f6', '#facc15'],
@@ -198,7 +198,7 @@ export const ACTION_FRAMES: StoryFrameDefinition[] = [
     ),
     defineFrame(
         'sonic-boom',
-        'Sonic Shockwave',
+        'Sonic',
         'action',
         'High-speed concentric acoustic rings, particle shockwaves & blast rays',
         ['#f43f5e', '#fb7185', '#ffffff'],
@@ -231,7 +231,7 @@ export const ACTION_FRAMES: StoryFrameDefinition[] = [
     ),
     defineFrame(
         'speed-demons',
-        'Velocity Trails',
+        'Velocity',
         'action',
         'Aerodynamic wind-tunnel slipstreams & trailing speed chevrons',
         ['#06b6d4', '#3b82f6', '#60a5fa'],

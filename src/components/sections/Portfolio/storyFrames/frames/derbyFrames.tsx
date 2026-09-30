@@ -7,7 +7,7 @@ import { loadSacBearPaths } from '../sacBearLoader';
 export const DERBY_FRAMES: StoryFrameDefinition[] = [
     {
         id: 'sac-bear',
-        label: 'Capital Grizzly',
+        label: 'Grizzly',
         category: 'derby',
         vibe: 'SRD California Republic heritage & golden pride',
         signaturePalette: ['#f59e0b', '#e60000', '#1e3a8a'],
@@ -127,7 +127,7 @@ export const DERBY_FRAMES: StoryFrameDefinition[] = [
     },
     defineFrame(
         'derby-quads',
-        'Derby Quads',
+        'Quads',
         'derby',
         'Quad roller skates, speed track lines & jammer star',
         ['#f97316', '#dc2626', '#ffffff'],
@@ -173,7 +173,7 @@ export const DERBY_FRAMES: StoryFrameDefinition[] = [
     ),
     defineFrame(
         'ref-zebra',
-        'The Zebra',
+        'Zebra',
         'derby',
         'Bold referee stripes, whistle silhouette & penalty box hashes',
         ['#ffffff', '#111116', '#e2e8f0'],
@@ -249,7 +249,7 @@ export const DERBY_FRAMES: StoryFrameDefinition[] = [
     ),
     defineFrame(
         'derby-punk',
-        'Derby Punk',
+        'Punk',
         'derby',
         'Safety pins, battle patch zig-zag overlock stitches & edge distress',
         ['#e11d48', '#fafafa', '#fbbf24'],

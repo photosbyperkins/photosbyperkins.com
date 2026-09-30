@@ -483,26 +483,25 @@ test.describe('Story Maker (9:16)', () => {
         const framesGrid = studioModal.locator('.story-export-modal__frames-grid');
         await expect(framesGrid).toBeVisible();
 
-        // Select "Capital Grizzly" frame
-        const bearCard = framesGrid.locator('button:has-text("Capital Grizzly")');
+        // Select "Grizzly" frame
+        const bearCard = framesGrid.locator('button:has-text("Grizzly")');
         await expect(bearCard).toBeVisible();
         await bearCard.click();
 
         // Verify badge updates and frame overlay appears in preview
-        await expect(studioModal.locator('.story-export-modal__frame-current-badge')).toHaveText('Capital Grizzly');
+        await expect(studioModal.locator('.story-export-modal__frame-current-badge')).toHaveText('Grizzly');
         const frameOverlay = studioModal.locator('.story-frame-overlay');
         await expect(frameOverlay).toBeVisible();
         await expect(frameOverlay.locator('.story-frame-sac-bear')).toBeVisible();
 
-        // Verify Frame Tint bar appeared
-        const tintRow = studioModal.locator('.story-export-modal__frame-tint-row');
+        // Verify Frame Tint swatches appeared in header
+        const tintRow = studioModal.locator('.story-export-modal__frames-header-tint');
         await expect(tintRow).toBeVisible();
 
-        // Verify no icons in 9:16 Crop / Padded buttons, zoom header, frame header, frame tint header, or badge list
+        // Verify no icons in 9:16 Crop / Padded buttons, zoom header, frame header, or badge list
         await expect(studioModal.locator('.story-export-modal__seg-btn svg')).toHaveCount(0);
         await expect(studioModal.locator('.story-export-modal__zoom-header svg')).toHaveCount(0);
         await expect(studioModal.locator('.story-export-modal__accordion-title svg')).toHaveCount(0);
-        await expect(studioModal.locator('.story-export-modal__tint-header svg')).toHaveCount(0);
         await expect(studioModal.locator('.story-export-modal__badge-icon')).toHaveCount(0);
 
         // Click Gold tint swatch
@@ -510,15 +509,14 @@ test.describe('Story Maker (9:16)', () => {
         await goldBtn.click();
         await expect(goldBtn).toHaveClass(/is-active/);
 
-        // Verify custom color row appears under Frame Tint with swatches and color picker input
-        await expect(tintRow.locator('.story-export-modal__custom-color-row')).toHaveCount(1);
+        // Verify color picker input is present
         const customColorInput = tintRow.locator('input[type="color"]');
         await expect(customColorInput).toHaveCount(1);
 
-        // Switch to Beast Claws
-        const clawCard = framesGrid.locator('button:has-text("Beast Claws")');
+        // Switch to Claws
+        const clawCard = framesGrid.locator('button:has-text("Claws")');
         await clawCard.click();
-        await expect(studioModal.locator('.story-export-modal__frame-current-badge')).toHaveText('Beast Claws');
+        await expect(studioModal.locator('.story-export-modal__frame-current-badge')).toHaveText('Claws');
         await expect(frameOverlay.locator('.story-frame-claw-marks')).toBeVisible();
 
         // Select "None"
@@ -526,7 +524,7 @@ test.describe('Story Maker (9:16)', () => {
         await noneCard.click();
         await expect(studioModal.locator('.story-export-modal__frame-current-badge')).toHaveText('None');
         await expect(studioModal.locator('.story-frame-overlay')).toHaveCount(0);
-        await expect(studioModal.locator('.story-export-modal__frame-tint-row')).not.toBeVisible();
+        await expect(studioModal.locator('.story-export-modal__frames-header-tint')).not.toBeVisible();
     });
 
     test('should dynamically relocate frame elements based on context when badges are toggled', async ({ page }) => {
@@ -541,9 +539,9 @@ test.describe('Story Maker (9:16)', () => {
         const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
         await expect(studioModal).toBeVisible({ timeout: 8000 });
 
-        // Switch to Frames tab and select Capital Grizzly
+        // Switch to Frames tab and select Grizzly
         await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Frames")').click();
-        const bearCard = studioModal.locator('.story-export-modal__frames-grid button:has-text("Capital Grizzly")');
+        const bearCard = studioModal.locator('.story-export-modal__frames-grid button:has-text("Grizzly")');
         await bearCard.click();
 
         const frameOverlay = studioModal.locator('.story-frame-overlay');
@@ -633,7 +631,7 @@ test.describe('Story Maker (9:16)', () => {
         // Switch to Frames tab
         await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Frames")').click();
 
-        const ttlCard = studioModal.locator('.story-export-modal__frames-grid button:has-text("Through the Lens")');
+        const ttlCard = studioModal.locator('.story-export-modal__frames-grid button:has-text("Optics")');
         if (await ttlCard.isVisible()) {
             await ttlCard.click();
 
@@ -688,9 +686,9 @@ test.describe('Story Maker (9:16)', () => {
         // Verify cropper image has grayscale filter applied
         await expect(cropperImg).toHaveCSS('filter', /grayscale\(1\)|grayscale\(100%\)/);
 
-        // Switch to Frames tab and select Capital Grizzly frame
+        // Switch to Frames tab and select Grizzly frame
         await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Frames")').click();
-        const bearCard = studioModal.locator('.story-export-modal__frames-grid button:has-text("Capital Grizzly")');
+        const bearCard = studioModal.locator('.story-export-modal__frames-grid button:has-text("Grizzly")');
         await bearCard.click();
 
         const frameOverlay = studioModal.locator('.story-frame-overlay');

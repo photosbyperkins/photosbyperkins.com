@@ -4,7 +4,7 @@ import { defineFrame } from './helper';
 export const RETRO_FRAMES: StoryFrameDefinition[] = [
     defineFrame(
         'synthwave',
-        '80s Synthwave',
+        'Synthwave',
         'retro',
         '80s retro cyber grid horizon & neon laser triangles',
         ['#f43f5e', '#06b6d4'],
@@ -43,7 +43,7 @@ export const RETRO_FRAMES: StoryFrameDefinition[] = [
     ),
     defineFrame(
         'film-strip',
-        '35mm Film',
+        'Film',
         'retro',
         'Classic analog negative perforated sprockets & frame markers',
         ['#f8fafc', '#0f172a'],
@@ -67,7 +67,7 @@ export const RETRO_FRAMES: StoryFrameDefinition[] = [
     ),
     defineFrame(
         'instant-film',
-        'Vintage Polaroid',
+        'Polaroid',
         'retro',
         'Classic analog instant film border with chin & mounting corner tabs',
         ['#ffffff', '#f1f5f9', '#94a3b8'],
@@ -88,7 +88,7 @@ export const RETRO_FRAMES: StoryFrameDefinition[] = [
     ),
     defineFrame(
         'vhs-glitch',
-        '90s Camcorder',
+        'VHS',
         'retro',
         'Phosphor VHS on-screen display with PLAY, REC, battery gauge & tracking lines',
         ['#22c55e', '#ef4444', '#ffffff'],
@@ -125,7 +125,7 @@ export const RETRO_FRAMES: StoryFrameDefinition[] = [
     ),
     defineFrame(
         'risograph',
-        'Riso Halftone',
+        'Riso',
         'retro',
         'Vintage zine offset CMYK calibration crosses & halftone grain edges',
         ['#ec4899', '#06b6d4', '#facc15'],

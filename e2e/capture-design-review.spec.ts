@@ -47,7 +47,7 @@ test.describe('Design Review Screenshot Capture', () => {
         // 4. Desktop Tab 3: Frames
         await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Frames")').click();
         await page.waitForTimeout(400);
-        const bearFrame = studioModal.locator('.story-export-modal__frames-grid button:has-text("Capital Grizzly")');
+        const bearFrame = studioModal.locator('.story-export-modal__frames-grid button:has-text("Grizzly")');
         if (await bearFrame.isVisible()) {
             await bearFrame.click();
             await page.waitForTimeout(400);

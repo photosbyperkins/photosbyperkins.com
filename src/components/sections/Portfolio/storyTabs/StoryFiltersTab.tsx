@@ -22,11 +22,31 @@ export const StoryFiltersTab: React.FC<StoryFiltersTabProps> = ({
     return (
         <div className="story-export-modal__tab-content story-export-modal__tab-content--filters">
             <div className="story-export-modal__section story-export-modal__section--filters">
-                <div className="story-export-modal__filters-header">
-                    <span className="story-export-modal__section-heading">FILTER</span>
-                    <span className="story-export-modal__filter-current-badge">
-                        {STORY_PHOTO_FILTERS_MAP[activeFilterId]?.label || 'None'}
-                    </span>
+                <div className="story-export-modal__accordion-header story-export-modal__filters-header">
+                    <div className="story-export-modal__accordion-title">
+                        <span className="story-export-modal__section-heading">FILTER</span>
+                        <span className="story-export-modal__filter-current-badge">
+                            {STORY_PHOTO_FILTERS_MAP[activeFilterId]?.label || 'None'}
+                        </span>
+                    </div>
+
+                    {activeFilterId !== 'none' && (
+                        <div className="story-export-modal__filters-header-slider">
+                            <input
+                                type="range"
+                                min="0.1"
+                                max="1"
+                                step="0.05"
+                                value={filterStrength}
+                                onChange={(e) => {
+                                    setFilterStrength(Math.max(0.1, Math.min(1.0, parseFloat(e.target.value))));
+                                    setIsDownloaded(false);
+                                }}
+                                className="story-export-modal__slider story-export-modal__slider--header"
+                                aria-label="Filter Strength"
+                            />
+                        </div>
+                    )}
                 </div>
                 <div className="story-export-modal__filters-grid">
                     {STORY_PHOTO_FILTERS.map((filter) => {
@@ -65,60 +85,6 @@ export const StoryFiltersTab: React.FC<StoryFiltersTabProps> = ({
                         );
                     })}
                 </div>
-
-                {activeFilterId !== 'none' && (
-                    <div className="story-export-modal__zoom-control story-export-modal__filter-strength-control">
-                        <div className="story-export-modal__zoom-header">
-                            <span className="story-export-modal__sublabel">Filter Strength</span>
-                            <span className="story-export-modal__zoom-value">{Math.round(filterStrength * 100)}%</span>
-                        </div>
-                        <input
-                            type="range"
-                            min="0.1"
-                            max="1"
-                            step="0.05"
-                            value={filterStrength}
-                            onChange={(e) => {
-                                setFilterStrength(Math.max(0.1, Math.min(1.0, parseFloat(e.target.value))));
-                                setIsDownloaded(false);
-                            }}
-                            className="story-export-modal__slider"
-                            aria-label="Filter Strength"
-                        />
-                        <div
-                            className="story-export-modal__zoom-ticks"
-                            role="group"
-                            aria-label="Filter strength snap points"
-                        >
-                            {[0.1, 0.25, 0.5, 0.75, 1.0].map((pt) => {
-                                const isActive = Math.abs(filterStrength - pt) < 0.04;
-                                const fraction = (pt - 0.1) / (1.0 - 0.1);
-                                return (
-                                    <button
-                                        key={pt}
-                                        type="button"
-                                        className={`story-export-modal__zoom-tick ${
-                                            isActive ? 'story-export-modal__zoom-tick--active' : ''
-                                        }`}
-                                        style={{
-                                            left: `calc(9px + ${fraction} * (100% - 18px))`,
-                                        }}
-                                        onClick={() => {
-                                            setFilterStrength(pt);
-                                            setIsDownloaded(false);
-                                        }}
-                                        aria-label={`Snap filter strength to ${Math.round(pt * 100)}%`}
-                                    >
-                                        <span className="story-export-modal__zoom-tick-mark" />
-                                        <span className="story-export-modal__zoom-tick-label">
-                                            {Math.round(pt * 100)}%
-                                        </span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );

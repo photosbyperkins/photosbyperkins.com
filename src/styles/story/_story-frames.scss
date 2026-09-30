@@ -26,6 +26,44 @@
         gap: 8px;
     }
 
+    &__frames-header-tint {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        margin-left: auto;
+
+        .story-export-modal__quick-swatches {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+
+            @media (max-width: 860px) {
+                gap: 4px;
+            }
+        }
+
+        .story-export-modal__quick-swatch {
+            width: 20px;
+            height: 20px;
+
+            @media (max-width: 860px) {
+                width: 18px;
+                height: 18px;
+            }
+        }
+
+        .story-export-modal__color-picker {
+            width: 24px;
+            height: 24px;
+            margin-left: 1px;
+
+            @media (max-width: 860px) {
+                width: 20px;
+                height: 20px;
+            }
+        }
+    }
+
     &__frame-icon {
         color: var(--color-accent);
         flex-shrink: 0;
@@ -139,6 +177,10 @@
         html[data-theme='light'] & {
             background: rgba(0, 0, 0, 0.08);
         }
+
+        @media (max-width: 860px) {
+            display: none;
+        }
     }
 
     &__frames-grid {
@@ -216,9 +258,9 @@
         min-width: 0;
 
         @media (max-width: 860px) {
-            width: 58px;
-            min-width: 58px;
-            max-width: 58px;
+            width: 60px;
+            min-width: 60px;
+            max-width: 60px;
             height: 70px;
             padding: 4px 2px;
             border-radius: 8px;
@@ -307,38 +349,14 @@
         overflow: hidden;
 
         @media (max-width: 860px) {
-            font-size: 0.6rem;
-            max-width: 54px;
+            font-size: 0.58rem;
+            max-width: 56px;
             white-space: nowrap;
             display: block;
             text-overflow: ellipsis;
             line-height: 1.1;
+            letter-spacing: 0.01em;
         }
-    }
-
-    &__frame-tint-row {
-        display: flex;
-        flex-direction: column;
-        gap: 6px;
-        padding: 8px 10px;
-        background: rgba(255, 255, 255, 0.025);
-        border: 1px solid var(--color-border);
-        border-radius: 8px;
-
-        html[data-theme='light'] & {
-            background: rgba(0, 0, 0, 0.02);
-        }
-
-        @media (max-width: 860px) {
-            padding: 6px 8px;
-            gap: 4px;
-        }
-    }
-
-    &__tint-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
     }
 }
 

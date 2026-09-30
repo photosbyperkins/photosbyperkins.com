@@ -4,7 +4,7 @@ import { defineFrame } from './helper';
 export const COSMIC_FRAMES: StoryFrameDefinition[] = [
     defineFrame(
         'unicorns',
-        'Rainbow Unicorn',
+        'Unicorn',
         'cosmic',
         'Pastel dream arches, cute starbursts & magic horn',
         ['#f472b6', '#c084fc', '#38bdf8', '#facc15'],
@@ -89,7 +89,7 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
     ),
     defineFrame(
         'intergalactic',
-        'Deep Space',
+        'Cosmos',
         'cosmic',
         'Ringed celestial planets, streaking comets & starfield constellations',
         ['#8b5cf6', '#06b6d4', '#fbbf24'],
@@ -171,7 +171,7 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
     ),
     defineFrame(
         'celestial-moon',
-        'Celestial Moon',
+        'Moon',
         'cosmic',
         'Minimalist art-deco crescent moons & gold starlight',
         ['#facc15', '#e2e8f0'],
@@ -208,7 +208,7 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
     ),
     defineFrame(
         'golden-sparkle',
-        'Golden Hour',
+        'Sparkle',
         'cosmic',
         'Glamour diamond sparkles, lens flares & champagne glow',
         ['#fef08a', '#fbbf24', '#ffffff'],
@@ -245,7 +245,7 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
     ),
     defineFrame(
         'roller-disco',
-        '70s Roller Disco',
+        'Disco',
         'cosmic',
         'Mirror ball starlight reflections, multi-color neon tube curves & disco sparkles',
         ['#ec4899', '#8b5cf6', '#facc15'],
@@ -289,7 +289,7 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
     ),
     defineFrame(
         'mystic-tarot',
-        'The Skater Arcana',
+        'Tarot',
         'cosmic',
         'Gothic tarot card filigree, celestial sunburst corners & crescent medallions',
         ['#eab308', '#fef08a', '#ca8a04'],
