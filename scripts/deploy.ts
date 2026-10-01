@@ -37,7 +37,8 @@ function copyFilesToStaging(src: string, dest: string, remoteMap: Map<string, nu
         const localSize = stats.size;
         const remoteSize = remoteMap.get(relPath);
 
-        const alwaysOverwrite = ['index.html', 'sitemap.xml', 'robots.txt', '.htaccess'];
+        const alwaysOverwrite = ['index.html', 'sitemap.xml', 'robots.txt', '.htaccess', 'sw.js', 'manifest.webmanifest'];
+        const isServiceWorkerAsset = relPath === 'sw.js' || relPath === 'manifest.webmanifest' || /^workbox-.*\.js$/.test(relPath);
 
         // ALWAYS skip heavy media folders since they are managed via FileZilla
         if (
@@ -52,7 +53,7 @@ function copyFilesToStaging(src: string, dest: string, remoteMap: Map<string, nu
             return;
         }
 
-        if (!alwaysOverwrite.includes(relPath) && !relPath.startsWith('data/')) {
+        if (!alwaysOverwrite.includes(relPath) && !isServiceWorkerAsset && !relPath.startsWith('data/')) {
             if (remoteSize !== undefined && remoteSize === localSize) {
                 return; // Skip identical assets
             }

@@ -26,7 +26,22 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-registerSW({ immediate: true });
+registerSW({
+    immediate: true,
+    onRegisteredSW(_swScriptUrl, registration) {
+        if (!registration) return;
+        // Check for service worker updates whenever the user returns to the tab or app on mobile
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'visible') {
+                registration.update().catch(() => {});
+            }
+        });
+        // Check periodically every 15 minutes while app is open
+        setInterval(() => {
+            registration.update().catch(() => {});
+        }, 15 * 60 * 1000);
+    },
+});
 
 createRoot(document.getElementById('root')!).render(
     <StrictMode>

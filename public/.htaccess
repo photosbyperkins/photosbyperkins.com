@@ -26,10 +26,14 @@
   Header set X-Frame-Options "SAMEORIGIN"
 
   # 1. Never cache HTML, Service Workers, or Web Manifest (always fetch fresh)
-  <FilesMatch "\.(html|webmanifest)$|sw\.js|^workbox-.*\.js$">
-    Header set Cache-Control "no-cache, no-store, must-revalidate"
-    Header set Pragma "no-cache"
-    Header set Expires "0"
+  # Uses 'always' so headers apply across internal rewrites and subrequests (SPA routing)
+  <FilesMatch "(?i)\.(html|webmanifest)$|^sw\.js$|^workbox-.*\.js$">
+    Header always set Cache-Control "no-cache, no-store, must-revalidate, max-age=0"
+    Header always set Pragma "no-cache"
+    Header always set Expires "Wed, 11 Jan 1984 05:00:00 GMT"
+    # Instruct Cloudflare & edge CDNs to bypass caching for dynamic shell and service workers
+    Header always set CDN-Cache-Control "no-store"
+    Header always set Cloudflare-CDN-Cache-Control "no-store"
   </FilesMatch>
 
   # 2. Aggressively cache Vite's hashed assets (JS, CSS) for 1 year
@@ -39,8 +43,8 @@
 
   # 3. Always revalidate JSON data with origin (supports 304 Not Modified, avoids stale reads)
   <FilesMatch "\.json$">
-    Header set Cache-Control "public, no-cache, must-revalidate"
-    Header set Pragma "no-cache"
+    Header always set Cache-Control "public, no-cache, must-revalidate"
+    Header always set Pragma "no-cache"
   </FilesMatch>
 
   # 4. Aggressively cache images and fonts for 1 year
