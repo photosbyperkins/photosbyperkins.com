@@ -366,7 +366,6 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                             />
                         )}
                     </div>
-
                 </div>
             </div>
         </ModalShell>

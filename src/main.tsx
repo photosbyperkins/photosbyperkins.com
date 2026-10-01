@@ -37,9 +37,12 @@ registerSW({
             }
         });
         // Check periodically every 15 minutes while app is open
-        setInterval(() => {
-            registration.update().catch(() => {});
-        }, 15 * 60 * 1000);
+        setInterval(
+            () => {
+                registration.update().catch(() => {});
+            },
+            15 * 60 * 1000
+        );
     },
 });
 
