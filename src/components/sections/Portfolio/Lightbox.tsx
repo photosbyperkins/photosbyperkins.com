@@ -136,13 +136,33 @@ export default function Lightbox({
         return () => window.removeEventListener('resize', handleResize);
     }, [handleResize]);
 
+    const [isDragging, setIsDragging] = useState(false);
+    const [isPopping, setIsPopping] = useState(false);
+    const popTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
     const handleToggleFavorite = useCallback(() => {
+        const photo = images[index];
+        if (!photo) return;
+        const currentlyFavorite = checkIfFavorite(photo);
+        if (!currentlyFavorite) {
+            setIsPopping(true);
+            if (popTimerRef.current) clearTimeout(popTimerRef.current);
+            popTimerRef.current = setTimeout(() => {
+                setIsPopping(false);
+            }, 350);
+        }
         toggleFavorite({
-            photo: images[index],
+            photo,
             eventName: eventName || '',
             year: year || '',
         });
-    }, [toggleFavorite, images, index, eventName, year]);
+    }, [checkIfFavorite, images, index, toggleFavorite, eventName, year]);
+
+    useEffect(() => {
+        return () => {
+            if (popTimerRef.current) clearTimeout(popTimerRef.current);
+        };
+    }, []);
 
     const handleToggleZoom = useCallback(() => {
         slideRef.current?.toggleZoom();
@@ -351,7 +371,11 @@ export default function Lightbox({
                     style={{ x }}
                     drag={isAnimating || isZoomed ? false : 'x'}
                     dragConstraints={{ left: 0, right: 0 }}
-                    onDragEnd={onDragEnd}
+                    onDragStart={() => setIsDragging(true)}
+                    onDragEnd={(e, info) => {
+                        setIsDragging(false);
+                        onDragEnd(e, info);
+                    }}
                 >
                     {/* Previous Image */}
                     <div className="portfolio__lightbox-slide portfolio__lightbox-slide--prev">
@@ -405,13 +429,9 @@ export default function Lightbox({
                 filledHeartScale={filledHeartScale}
                 onSetIndex={onSetIndex}
                 isFavorite={isFavorite}
-                toggleFavorite={() =>
-                    toggleFavorite({
-                        photo: images[index],
-                        eventName: eventName || '',
-                        year: year || '',
-                    })
-                }
+                isChangingSlide={isAnimating || isDragging}
+                isPopping={isPopping}
+                toggleFavorite={handleToggleFavorite}
             />
 
             <LightboxHelp isOpen={!canShare && isHelpOpen} onClose={() => setIsHelpOpen(false)} />

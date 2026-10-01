@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react';
 import { motion, type MotionValue, useMotionValue, animate } from 'framer-motion';
 import { flushSync } from 'react-dom';
 import { Heart } from 'lucide-react';
@@ -20,6 +21,8 @@ interface LightboxScrubberProps {
     onSetIndex: (index: number) => void;
     toggleFavorite: () => void;
     isFavorite: boolean;
+    isChangingSlide?: boolean;
+    isPopping?: boolean;
 }
 
 const SCRUBBER_COLUMNS = 200;
@@ -41,9 +44,29 @@ export default function LightboxScrubber({
     onSetIndex,
     toggleFavorite,
     isFavorite,
+    isChangingSlide = false,
+    isPopping = false,
 }: LightboxScrubberProps) {
     const total = images.length;
     const localDragX = useMotionValue(0);
+    const [isScrubbing, setIsScrubbing] = useState(false);
+    const [isIndexChanging, setIsIndexChanging] = useState(false);
+    const prevIndexRef = useRef(index);
+
+    useEffect(() => {
+        if (prevIndexRef.current !== index) {
+            prevIndexRef.current = index;
+            setIsIndexChanging(true);
+            const timer = setTimeout(() => {
+                setIsIndexChanging(false);
+            }, 150);
+            return () => clearTimeout(timer);
+        }
+    }, [index]);
+
+    const isChanging = Boolean(isChangingSlide || isScrubbing || isIndexChanging);
+    const isActive = isFavorite && !isChanging;
+    const showPopping = Boolean(isPopping && !isChanging);
 
     return (
         <div className="portfolio__lightbox-scrubber" onClick={(e) => e.stopPropagation()}>
@@ -55,7 +78,9 @@ export default function LightboxScrubber({
                     dragElastic={0}
                     dragMomentum={false}
                     style={{ x: localDragX, display: 'flex' }}
+                    onDragStart={() => setIsScrubbing(true)}
                     onDragEnd={(e, info) => {
+                        setIsScrubbing(false);
                         const shiftPhotos = Math.round(-info.offset.x / 72);
                         if (shiftPhotos !== 0) {
                             const newIndex = (((index + shiftPhotos) % images.length) + images.length) % images.length;
@@ -127,7 +152,7 @@ export default function LightboxScrubber({
                                 >
                                     {isImgFavorite && (
                                         <div
-                                            className="portfolio__lightbox-scrubber-heart is-active"
+                                            className="portfolio__lightbox-scrubber-heart is-active portfolio__lightbox-scrubber-heart--thumb"
                                             style={{ pointerEvents: 'none' }}
                                         >
                                             <Heart
@@ -148,7 +173,7 @@ export default function LightboxScrubber({
             {/* Fixed playhead — outline + heart, always centered */}
             <div className="portfolio__lightbox-scrubber-playhead">
                 <button
-                    className={`portfolio__lightbox-scrubber-heart${isFavorite ? ' is-active' : ''}`}
+                    className={`portfolio__lightbox-scrubber-heart${isActive ? ' is-active' : ''}${showPopping ? ' is-popping' : ''}`}
                     onClick={(e) => {
                         e.stopPropagation();
                         toggleFavorite();

@@ -104,7 +104,20 @@
 
                     svg {
                         filter: drop-shadow(0 0 8px var(--color-accent-glow));
+                    }
+                }
+
+                &.is-popping {
+                    svg {
                         animation: heart-pop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                    }
+                }
+
+                &--thumb {
+                    pointer-events: none;
+
+                    svg {
+                        animation: none !important;
                     }
                 }
 

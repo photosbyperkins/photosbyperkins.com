@@ -57,11 +57,7 @@ test.describe('Lightbox', () => {
 
         // Navigate right
         await page.keyboard.press('ArrowRight');
-        await page.waitForTimeout(500);
-        const afterRightText = await counter.textContent();
-
-        // Counter should have changed
-        expect(afterRightText).not.toBe(initialText);
+        await expect(counter).not.toHaveText(initialText!, { timeout: 5000 });
     });
 
     test('should have correct ARIA attributes', async ({ page }) => {
@@ -195,11 +191,7 @@ test.describe('Lightbox', () => {
 
         // Navigate left (wraps around)
         await page.keyboard.press('ArrowLeft');
-        await page.waitForTimeout(500);
-        const afterLeftText = await counter.textContent();
-
-        // Counter should change (wraps to last photo)
-        expect(afterLeftText).not.toBe(initialText);
+        await expect(counter).not.toHaveText(initialText!, { timeout: 5000 });
     });
 
     test('should display the favorite toggle button in scrubber', async ({ page }) => {
