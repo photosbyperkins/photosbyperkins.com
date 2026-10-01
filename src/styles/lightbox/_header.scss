@@ -43,7 +43,12 @@
             flex-shrink: 0;
             position: relative;
             justify-self: start;
+            min-width: 84px;
             transition: opacity var(--transition-fast);
+
+            @media (max-width: 480px) {
+                min-width: 72px;
+            }
         }
 
         &-top-right {
@@ -54,6 +59,11 @@
             position: relative;
             justify-self: end;
             justify-content: flex-end;
+            min-width: 84px;
+
+            @media (max-width: 480px) {
+                min-width: 72px;
+            }
 
             .portfolio__lightbox-help-btn {
                 @media (max-width: 500px) {
@@ -68,6 +78,7 @@
             justify-content: center;
             justify-self: center;
             min-width: 0;
+            width: 100%;
             overflow: hidden;
             pointer-events: none;
         }
@@ -81,6 +92,7 @@
             border: none;
             height: 38px;
             padding: 0 8px;
+            min-width: 0;
             max-width: 100%;
             justify-content: center;
             user-select: none;
@@ -107,6 +119,7 @@
             align-items: center;
             justify-content: center;
             text-align: center;
+            min-width: 0;
             max-width: 100%;
             overflow: hidden;
 
@@ -123,18 +136,22 @@
         &-data-row-top {
             font-weight: 600;
             color: var(--color-text);
+            min-width: 0;
             max-width: 100%;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            text-align: center;
         }
 
         &-data-row-bottom {
             color: var(--color-text-muted);
+            min-width: 0;
             max-width: 100%;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+            text-align: center;
         }
 
         &-menu {
