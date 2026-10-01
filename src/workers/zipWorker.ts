@@ -49,7 +49,9 @@ self.onmessage = async (e: MessageEvent<{ urls: string[]; filename: string }>) =
                 const originalFilename = pathParts.pop() || `photo_${index}.jpg`;
                 const parentDir = pathParts.pop();
                 const eventDir =
-                    parentDir === 'original' || parentDir === 'web' || parentDir === 'thumb' ? pathParts.pop() : parentDir;
+                    parentDir === 'original' || parentDir === 'web' || parentDir === 'thumb'
+                        ? pathParts.pop()
+                        : parentDir;
 
                 let name = eventDir ? `${eventDir}_${originalFilename}` : originalFilename;
 

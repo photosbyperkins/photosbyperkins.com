@@ -54,7 +54,9 @@ describe('LightboxScrubber', () => {
 
     it('suppresses is-active temporarily when index changes', () => {
         vi.useFakeTimers();
-        const { rerender } = render(<LightboxScrubber {...defaultProps} index={0} isFavorite={true} isChangingSlide={false} />);
+        const { rerender } = render(
+            <LightboxScrubber {...defaultProps} index={0} isFavorite={true} isChangingSlide={false} />
+        );
 
         const heartBtn = screen.getByRole('button', { name: 'Toggle Favorite' });
         expect(heartBtn.className).toContain('is-active');
@@ -108,5 +110,41 @@ describe('LightboxScrubber', () => {
         fireEvent.click(heartBtn);
 
         expect(toggleFavorite).toHaveBeenCalledTimes(1);
+    });
+
+    it('renders burst ribbon bars with start/end rounding when images contain burst metadata', () => {
+        const burstMeta = {
+            id: 'burst-event-1',
+            index: 0,
+            total: 3,
+            deltaSec: 0,
+            frameSources: ['/p1.jpg', '/p2.jpg', '/p3.jpg'],
+            frameThumbs: ['/t1.jpg', '/t2.jpg', '/t3.jpg'],
+            frameDeltas: [0, 0.42, 0.85],
+        };
+
+        const burstImages: PhotoInput[] = [
+            { original: '/photos/b1.jpg', thumb: '/photos/tb1.jpg', burst: { ...burstMeta, index: 0 } },
+            { original: '/photos/b2.jpg', thumb: '/photos/tb2.jpg', burst: { ...burstMeta, index: 1, deltaSec: 0.42 } },
+            { original: '/photos/b3.jpg', thumb: '/photos/tb3.jpg', burst: { ...burstMeta, index: 2, deltaSec: 0.85 } },
+        ];
+
+        render(<LightboxScrubber {...defaultProps} images={burstImages} index={0} />);
+
+        // Check counter displays clean photo count without tag
+        const counter = document.querySelector('.portfolio__lightbox-scrubber-counter');
+        expect(counter?.textContent?.trim()).toBe('1 / 3');
+
+        // Check burst bars on thumbnails
+        const burstBars = document.querySelectorAll('.portfolio__lightbox-scrubber-burst-bar');
+        expect(burstBars.length).toBeGreaterThan(0);
+
+        // First frame should have is-start
+        const startBar = document.querySelector('.portfolio__lightbox-scrubber-burst-bar.is-start');
+        expect(startBar).not.toBeNull();
+
+        // Last frame should have is-end
+        const endBar = document.querySelector('.portfolio__lightbox-scrubber-burst-bar.is-end');
+        expect(endBar).not.toBeNull();
     });
 });

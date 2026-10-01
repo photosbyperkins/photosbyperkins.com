@@ -15,7 +15,10 @@ import { formatTeamName } from '../formatters';
  * Renders the story image onto an HTML5 Canvas.
  */
 export async function renderStoryToCanvas(
-    img: HTMLImageElement | HTMLCanvasElement | (HTMLImageElement | HTMLCanvasElement)[],
+    img:
+        | HTMLImageElement
+        | HTMLCanvasElement
+        | (HTMLImageElement | HTMLCanvasElement | null | undefined)[],
     config: StoryRenderConfig,
     targetCanvas?: HTMLCanvasElement
 ): Promise<HTMLCanvasElement> {
@@ -52,12 +55,12 @@ export async function renderStoryToCanvas(
     ctx.imageSmoothingQuality = 'high';
 
     const resScale = targetW / STORY_WIDTH;
-    const imageList: (HTMLImageElement | HTMLCanvasElement)[] = Array.isArray(img) ? img : [img];
-    const primaryImg = imageList[0];
-    if (!primaryImg) return canvas;
+    const imageList: (HTMLImageElement | HTMLCanvasElement | null | undefined)[] = Array.isArray(img) ? img : [img];
+    const primaryImg = imageList.find((i): i is HTMLImageElement | HTMLCanvasElement => Boolean(i));
+    if (!primaryImg && config.mode !== 'burst') return canvas;
 
-    const naturalW = 'naturalWidth' in primaryImg ? primaryImg.naturalWidth : primaryImg.width;
-    const naturalH = 'naturalHeight' in primaryImg ? primaryImg.naturalHeight : primaryImg.height;
+    const naturalW = primaryImg ? ('naturalWidth' in primaryImg ? primaryImg.naturalWidth : primaryImg.width) : 1080;
+    const naturalH = primaryImg ? ('naturalHeight' in primaryImg ? primaryImg.naturalHeight : primaryImg.height) : 1920;
 
     if (!naturalW || !naturalH) {
         return canvas;
@@ -67,44 +70,41 @@ export async function renderStoryToCanvas(
     const filterCss = config.filterId ? getStoryFilterCss(config.filterId, config.filterStrength ?? 1.0) : '';
 
     // ==========================================
-    // 1. RENDER MODE: CROP (9:16)
+    // 1. RENDER MODE: BURST (3-PANEL STACK)
     // ==========================================
-    if (config.mode === 'crop') {
-        const { crop } = config;
-        const sx = crop.x * naturalW;
-        const sy = crop.y * naturalH;
-        const sw = crop.width * naturalW;
-        const sh = crop.height * naturalH;
-
-        drawImageWithStoryFilter(
-            ctx,
-            primaryImg,
-            sx,
-            sy,
-            sw,
-            sh,
-            0,
-            0,
-            targetW,
-            targetH,
-            config.filterId,
-            config.filterStrength ?? 1.0,
-            filterCss
-        );
-    }
-    // ==========================================
-    // 2. RENDER MODE: BURST (3-PANEL STACK)
-    // ==========================================
-    else if (config.mode === 'burst') {
+    if (config.mode === 'burst') {
         renderBurstPanels(ctx, imageList, config, targetW, targetH, resScale, filterCss);
     }
     // ==========================================
-    // 3. RENDER MODE: PADDED (GLASSMORPHIC)
+    // 2. RENDER MODE: CROP & PADDED (requires primaryImg)
     // ==========================================
-    else {
-        const { padded } = config;
-        const scale = padded.cardScale || 0.92;
-        const cornerRadius = (padded.cardCornerRadius || 24) * (targetW / STORY_WIDTH);
+    else if (primaryImg) {
+        if (config.mode === 'crop') {
+            const { crop } = config;
+            const sx = crop.x * naturalW;
+            const sy = crop.y * naturalH;
+            const sw = crop.width * naturalW;
+            const sh = crop.height * naturalH;
+
+            drawImageWithStoryFilter(
+                ctx,
+                primaryImg,
+                sx,
+                sy,
+                sw,
+                sh,
+                0,
+                0,
+                targetW,
+                targetH,
+                config.filterId,
+                config.filterStrength ?? 1.0,
+                filterCss
+            );
+        } else {
+            const { padded } = config;
+            const scale = padded.cardScale || 0.92;
+            const cornerRadius = (padded.cardCornerRadius || 24) * (targetW / STORY_WIDTH);
 
         // --- A. Background Rendering ---
         const isFrosted = padded.style === 'frosted' || padded.style === 'glass';
@@ -239,6 +239,7 @@ export async function renderStoryToCanvas(
         ctx.stroke();
         ctx.restore();
     }
+}
 
     // ==========================================
     // 2.5. RENDER OPTIONAL DECORATIVE FRAME
@@ -530,7 +531,10 @@ export async function renderStoryToCanvas(
  * Exports the canvas as a JPEG Blob ready for download or navigator.share.
  */
 export async function renderStoryToBlob(
-    img: HTMLImageElement | HTMLCanvasElement | (HTMLImageElement | HTMLCanvasElement)[],
+    img:
+        | HTMLImageElement
+        | HTMLCanvasElement
+        | (HTMLImageElement | HTMLCanvasElement | null | undefined)[],
     config: StoryRenderConfig
 ): Promise<Blob> {
     const canvas = await renderStoryToCanvas(img, config);
@@ -551,7 +555,7 @@ export async function renderStoryToBlob(
  */
 export function renderBurstPanels(
     ctx: CanvasRenderingContext2D,
-    images: (HTMLImageElement | HTMLCanvasElement)[],
+    images: (HTMLImageElement | HTMLCanvasElement | null | undefined)[],
     config: StoryRenderConfig,
     targetW: number,
     targetH: number,
@@ -569,11 +573,11 @@ export function renderBurstPanels(
     const timeStamps = burst.timeStamps || [0.0, 0.84, 1.42];
     const focusYList = burst.focusYList || [0.45, 0.45, 0.45];
 
-    // Ensure 3 panel images
-    const panelImages: (HTMLImageElement | HTMLCanvasElement)[] = [
-        images[0] || images[images.length - 1],
-        images[1] || images[0] || images[images.length - 1],
-        images[2] || images[1] || images[0] || images[images.length - 1],
+    // Ensure 3 panel slots with null for missing frames
+    const panelImages: (HTMLImageElement | HTMLCanvasElement | null | undefined)[] = [
+        images[0] ?? null,
+        images[1] ?? null,
+        images[2] ?? null,
     ];
 
     if (style === 'gutter') {
@@ -581,17 +585,19 @@ export function renderBurstPanels(
         ctx.fillStyle = '#08090e';
         ctx.fillRect(0, 0, targetW, targetH);
 
-        const midImg = panelImages[1];
-        const mw = 'naturalWidth' in midImg ? midImg.naturalWidth : midImg.width;
-        const mh = 'naturalHeight' in midImg ? midImg.naturalHeight : midImg.height;
-        if (mw && mh) {
-            ctx.save();
-            ctx.globalAlpha = 0.22;
-            const bgScale = Math.max(targetW / mw, targetH / mh);
-            const bw = mw * bgScale;
-            const bh = mh * bgScale;
-            ctx.drawImage(midImg, (targetW - bw) / 2, (targetH - bh) / 2, bw, bh);
-            ctx.restore();
+        const midImg = panelImages.find((img): img is HTMLImageElement | HTMLCanvasElement => Boolean(img));
+        if (midImg) {
+            const mw = 'naturalWidth' in midImg ? midImg.naturalWidth : midImg.width;
+            const mh = 'naturalHeight' in midImg ? midImg.naturalHeight : midImg.height;
+            if (mw && mh) {
+                ctx.save();
+                ctx.globalAlpha = 0.22;
+                const bgScale = Math.max(targetW / mw, targetH / mh);
+                const bw = mw * bgScale;
+                const bh = mh * bgScale;
+                ctx.drawImage(midImg, (targetW - bw) / 2, (targetH - bh) / 2, bw, bh);
+                ctx.restore();
+            }
         }
 
         const margin = Math.round(20 * resScale);
@@ -618,36 +624,48 @@ export function renderBurstPanels(
             ctx.fill();
             ctx.restore();
 
-            // Clip and draw image
-            ctx.save();
-            drawRoundRect(ctx, panelX, panelY, panelW, panelH, panelRadius);
-            ctx.clip();
+            if (pImg) {
+                // Clip and draw image
+                ctx.save();
+                drawRoundRect(ctx, panelX, panelY, panelW, panelH, panelRadius);
+                ctx.clip();
 
-            drawImageFocalCrop(
-                ctx,
-                pImg,
-                panelX,
-                panelY,
-                panelW,
-                panelH,
-                focusY,
-                filterCss,
-                config.filterId,
-                config.filterStrength
-            );
-            ctx.restore();
+                drawImageFocalCrop(
+                    ctx,
+                    pImg,
+                    panelX,
+                    panelY,
+                    panelW,
+                    panelH,
+                    focusY,
+                    filterCss,
+                    config.filterId,
+                    config.filterStrength
+                );
+                ctx.restore();
 
-            // Card stroke border
-            ctx.save();
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
-            ctx.lineWidth = Math.round(2 * resScale);
-            drawRoundRect(ctx, panelX, panelY, panelW, panelH, panelRadius);
-            ctx.stroke();
-            ctx.restore();
+                // Card stroke border
+                ctx.save();
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
+                ctx.lineWidth = Math.round(2 * resScale);
+                drawRoundRect(ctx, panelX, panelY, panelW, panelH, panelRadius);
+                ctx.stroke();
+                ctx.restore();
 
-            if (showTimeStamps) {
-                const dt = timeStamps[i] ?? (i === 0 ? 0 : i * 0.8);
-                drawTimestampPill(ctx, panelX, panelY, panelW, panelH, dt, resScale);
+                if (showTimeStamps) {
+                    const dt = timeStamps[i] ?? (i === 0 ? 0 : i * 0.8);
+                    drawTimestampPill(ctx, panelX, panelY, panelW, panelH, dt, resScale);
+                }
+            } else {
+                // Blank area for missing frame
+                ctx.save();
+                ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+                ctx.lineWidth = Math.round(1.5 * resScale);
+                drawRoundRect(ctx, panelX, panelY, panelW, panelH, panelRadius);
+                ctx.fillStyle = 'rgba(16, 16, 24, 0.6)';
+                ctx.fill();
+                ctx.stroke();
+                ctx.restore();
             }
         }
     } else if (style === 'filmstrip') {
@@ -686,24 +704,37 @@ export function renderBurstPanels(
             const panelY = topBottomMargin + i * (panelH + gutter);
             const focusY = focusYList[i] ?? 0.45;
 
-            ctx.save();
-            drawImageFocalCrop(
-                ctx,
-                pImg,
-                panelX,
-                panelY,
-                panelW,
-                panelH,
-                focusY,
-                filterCss,
-                config.filterId,
-                config.filterStrength
-            );
-            ctx.restore();
+            if (pImg) {
+                ctx.save();
+                drawImageFocalCrop(
+                    ctx,
+                    pImg,
+                    panelX,
+                    panelY,
+                    panelW,
+                    panelH,
+                    focusY,
+                    filterCss,
+                    config.filterId,
+                    config.filterStrength
+                );
+                ctx.restore();
+
+                if (showTimeStamps) {
+                    const dt = timeStamps[i] ?? (i === 0 ? 0 : i * 0.8);
+                    drawTimestampPill(ctx, panelX, panelY, panelW, panelH, dt, resScale);
+                }
+            } else {
+                // Blank area for missing frame
+                ctx.save();
+                ctx.fillStyle = '#0a0a10';
+                ctx.fillRect(panelX, panelY, panelW, panelH);
+                ctx.restore();
+            }
 
             // Film frame border
             ctx.save();
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+            ctx.strokeStyle = pImg ? 'rgba(255, 255, 255, 0.22)' : 'rgba(255, 255, 255, 0.08)';
             ctx.lineWidth = Math.max(1, Math.round(1.5 * resScale));
             ctx.strokeRect(panelX, panelY, panelW, panelH);
             ctx.restore();
@@ -711,16 +742,11 @@ export function renderBurstPanels(
             // Frame number label (e.g. 01A, 02A, 03A)
             ctx.save();
             ctx.font = `600 ${Math.round(14 * resScale)}px "Outfit", monospace, sans-serif`;
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.fillStyle = pImg ? 'rgba(255, 255, 255, 0.4)' : 'rgba(255, 255, 255, 0.15)';
             ctx.textAlign = 'right';
             ctx.textBaseline = 'top';
             ctx.fillText(`0${i + 1}A`, panelX - Math.round(10 * resScale), panelY + Math.round(6 * resScale));
             ctx.restore();
-
-            if (showTimeStamps) {
-                const dt = timeStamps[i] ?? (i === 0 ? 0 : i * 0.8);
-                drawTimestampPill(ctx, panelX, panelY, panelW, panelH, dt, resScale);
-            }
         }
     } else {
         // Clean Hairline (default)
@@ -738,20 +764,33 @@ export function renderBurstPanels(
             const currentH = i === 2 ? targetH - panelY : panelH;
             const focusY = focusYList[i] ?? 0.45;
 
-            ctx.save();
-            drawImageFocalCrop(
-                ctx,
-                pImg,
-                panelX,
-                panelY,
-                targetW,
-                currentH,
-                focusY,
-                filterCss,
-                config.filterId,
-                config.filterStrength
-            );
-            ctx.restore();
+            if (pImg) {
+                ctx.save();
+                drawImageFocalCrop(
+                    ctx,
+                    pImg,
+                    panelX,
+                    panelY,
+                    targetW,
+                    currentH,
+                    focusY,
+                    filterCss,
+                    config.filterId,
+                    config.filterStrength
+                );
+                ctx.restore();
+
+                if (showTimeStamps) {
+                    const dt = timeStamps[i] ?? (i === 0 ? 0 : i * 0.8);
+                    drawTimestampPill(ctx, panelX, panelY, targetW, currentH, dt, resScale);
+                }
+            } else {
+                // Blank area for missing frame
+                ctx.save();
+                ctx.fillStyle = '#0e0e14';
+                ctx.fillRect(panelX, panelY, targetW, currentH);
+                ctx.restore();
+            }
 
             // Hairline separator
             if (i < 2) {
@@ -759,11 +798,6 @@ export function renderBurstPanels(
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.16)';
                 ctx.fillRect(0, panelY + currentH, targetW, gap);
                 ctx.restore();
-            }
-
-            if (showTimeStamps) {
-                const dt = timeStamps[i] ?? (i === 0 ? 0 : i * 0.8);
-                drawTimestampPill(ctx, panelX, panelY, targetW, currentH, dt, resScale);
             }
         }
     }
@@ -809,21 +843,7 @@ function drawImageFocalCrop(
         sy = Math.max(0, Math.min(nh - sh, sy));
     }
 
-    drawImageWithStoryFilter(
-        ctx,
-        img,
-        sx,
-        sy,
-        sw,
-        sh,
-        dx,
-        dy,
-        dw,
-        dh,
-        filterId,
-        filterStrength,
-        filterCss
-    );
+    drawImageWithStoryFilter(ctx, img, sx, sy, sw, sh, dx, dy, dw, dh, filterId, filterStrength, filterCss);
 }
 
 function drawTimestampPill(

@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, within, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, within, fireEvent, cleanup } from '@testing-library/react';
 import { StoryExportModal } from './StoryExportModal';
 import { useAppStore } from '../../../store/useAppStore';
 import type { PhotoRecord } from '../../../types';
@@ -144,4 +144,61 @@ describe('StoryExportModal', () => {
         expect(paddedPreview).not.toBeNull();
         expect(viewportCard?.contains(paddedPreview!)).toBe(true);
     });
+
+    it('disables download button in burst mode when fewer than 3 frames are selected', () => {
+        const burstPhoto: PhotoRecord = {
+            ...samplePhoto,
+            burst: {
+                id: 'burst-test',
+                index: 0,
+                total: 6,
+                deltaSec: 0,
+                frameSources: [
+                    '/photos/b1.jpg',
+                    '/photos/b2.jpg',
+                    '/photos/b3.jpg',
+                    '/photos/b4.jpg',
+                    '/photos/b5.jpg',
+                    '/photos/b6.jpg',
+                ],
+                frameThumbs: [
+                    '/photos/tb1.jpg',
+                    '/photos/tb2.jpg',
+                    '/photos/tb3.jpg',
+                    '/photos/tb4.jpg',
+                    '/photos/tb5.jpg',
+                    '/photos/tb6.jpg',
+                ],
+                frameDeltas: [0, 0.2, 0.4, 0.6, 0.8, 1.0],
+            },
+        };
+
+        const { container } = render(
+            <StoryExportModal
+                isOpen={true}
+                onClose={mockOnClose}
+                photo={burstPhoto}
+                eventName="2024.10.22 - Championship Match"
+                year="2024"
+                index={0}
+            />
+        );
+
+        // Switch to Burst mode
+        const burstBtn = within(container).getByRole('button', { name: /^burst$/i });
+        fireEvent.click(burstBtn);
+
+        // Switch to BTM step and clear it by clicking again
+        const slotGroup = screen.getByRole('group', { name: /Burst Wizard Steps/i });
+        const slotButtons = slotGroup.querySelectorAll('button');
+        fireEvent.click(slotButtons[2]); // Switch to BTM
+        fireEvent.click(slotButtons[2]); // Clear BTM
+
+        // Download button should be disabled with dynamic prompt
+        const exportBtn = container.querySelector<HTMLButtonElement>('.story-export-modal__primary-action');
+        expect(exportBtn?.disabled).toBe(true);
+        expect(exportBtn?.getAttribute('aria-label')).toBe('Pick 1 more frame to download');
+        expect(exportBtn?.getAttribute('title')).toBe('Pick 1 more frame to download');
+    });
 });
+

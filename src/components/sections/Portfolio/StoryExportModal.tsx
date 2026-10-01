@@ -83,8 +83,6 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         paddedConfig,
         setPaddedConfig,
         burst,
-        burstDividerStyle,
-        setBurstDividerStyle,
         burstShowTimeStamps,
         setBurstShowTimeStamps,
         burstSelectedIndices,
@@ -162,6 +160,10 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isOpen, activeStudioTab, setActiveStudioTab]);
 
+    const validBurstCount = burstSelectedIndices.filter(
+        (idx) => idx !== null && idx !== undefined && idx >= 0
+    ).length;
+
     const footer = (
         <button
             className={`story-export-modal__primary-action ${
@@ -170,7 +172,9 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
             onClick={handleExportAction}
             disabled={
                 isExporting ||
-                (activeMode === 'burst' ? burstLoading || (loadedBurstImages?.length ?? 0) < 3 : !loadedImage) ||
+                (activeMode === 'burst'
+                    ? burstLoading || (loadedBurstImages?.length ?? 0) < 3 || validBurstCount < 3
+                    : !loadedImage) ||
                 isDownloaded
             }
             title={
@@ -178,18 +182,22 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                     ? canShare
                         ? 'Story Card Shared'
                         : 'Story Card Downloaded'
-                    : canShare
-                      ? 'Share Story Card'
-                      : 'Download Story Card'
+                    : activeMode === 'burst' && validBurstCount < 3
+                      ? `Pick ${3 - validBurstCount} more frame${3 - validBurstCount === 1 ? '' : 's'} to download`
+                      : canShare
+                        ? 'Share Story Card'
+                        : 'Download Story Card'
             }
             aria-label={
                 isDownloaded
                     ? canShare
                         ? 'Story Card Shared'
                         : 'Story Card Downloaded'
-                    : canShare
-                      ? 'Share Story Card'
-                      : 'Download Story Card'
+                    : activeMode === 'burst' && validBurstCount < 3
+                      ? `Pick ${3 - validBurstCount} more frame${3 - validBurstCount === 1 ? '' : 's'} to download`
+                      : canShare
+                        ? 'Share Story Card'
+                        : 'Download Story Card'
             }
         >
             {isDownloaded ? (
@@ -337,8 +345,6 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                 setPaddedConfig={setPaddedConfig}
                                 setIsDownloaded={setIsDownloaded}
                                 burst={burst}
-                                burstDividerStyle={burstDividerStyle}
-                                setBurstDividerStyle={setBurstDividerStyle}
                                 burstShowTimeStamps={burstShowTimeStamps}
                                 setBurstShowTimeStamps={setBurstShowTimeStamps}
                                 burstSelectedIndices={burstSelectedIndices}

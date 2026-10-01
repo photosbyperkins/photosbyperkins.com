@@ -1256,21 +1256,7 @@ describe('storyCanvas calculations', () => {
             } as unknown as CanvasRenderingContext2D;
 
             const mockImg = { width: 100, height: 100 } as HTMLImageElement;
-            drawImageWithStoryFilter(
-                mockCtx,
-                mockImg,
-                0,
-                0,
-                100,
-                100,
-                0,
-                0,
-                100,
-                100,
-                'none',
-                1.0,
-                'none'
-            );
+            drawImageWithStoryFilter(mockCtx, mockImg, 0, 0, 100, 100, 0, 0, 100, 100, 'none', 1.0, 'none');
 
             expect(mockCtx.save).not.toHaveBeenCalled();
             expect(mockCtx.drawImage).toHaveBeenCalledWith(mockImg, 0, 0, 100, 100, 0, 0, 100, 100);

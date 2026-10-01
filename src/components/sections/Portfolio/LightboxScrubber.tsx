@@ -105,6 +105,7 @@ export default function LightboxScrubber({
                             const img = images[wrappedIndex];
                             const isImgFavorite = checkIfFavorite(img);
                             const isActive = offset === 0;
+                            const burst = typeof img === 'object' ? img.burst : undefined;
 
                             // Determine drag-driven opacity for this thumb
                             const thumbOpacity =
@@ -137,7 +138,7 @@ export default function LightboxScrubber({
                             return (
                                 <motion.div
                                     key={`${offset}`}
-                                    className={`portfolio__lightbox-scrubber-thumb${isActive ? ' is-active' : ''}`}
+                                    className={`portfolio__lightbox-scrubber-thumb${isActive ? ' is-active' : ''}${burst ? ' portfolio__lightbox-scrubber-thumb--burst' : ''}`}
                                     onClick={() => onSetIndex(wrappedIndex)}
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter' || e.key === ' ') {
@@ -148,8 +149,16 @@ export default function LightboxScrubber({
                                     style={{ ...bgStyle, opacity: thumbOpacity ?? 0.5 }}
                                     role="button"
                                     tabIndex={0}
-                                    aria-label={`Go to photo ${wrappedIndex + 1}`}
+                                    aria-label={`Go to photo ${wrappedIndex + 1}${burst ? ` (Burst frame ${burst.index + 1} of ${burst.total})` : ''}`}
                                 >
+                                    {burst && (
+                                        <div
+                                            className={`portfolio__lightbox-scrubber-burst-bar${
+                                                burst.index === 0 ? ' is-start' : ''
+                                            }${burst.index === burst.total - 1 ? ' is-end' : ''}`}
+                                            aria-hidden="true"
+                                        />
+                                    )}
                                     {isImgFavorite && (
                                         <div
                                             className="portfolio__lightbox-scrubber-heart is-active portfolio__lightbox-scrubber-heart--thumb"

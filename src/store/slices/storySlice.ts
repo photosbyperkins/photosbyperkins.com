@@ -11,7 +11,7 @@ export type BurstDividerStyle = 'hairline' | 'gutter' | 'filmstrip';
 export interface BurstStoryConfig {
     dividerStyle: BurstDividerStyle;
     showTimeStamps: boolean;
-    selectedIndices: [number, number, number];
+    selectedIndices: (number | null)[];
 }
 
 export interface StorySettings {

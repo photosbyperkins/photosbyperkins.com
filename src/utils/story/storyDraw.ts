@@ -330,11 +330,7 @@ export function _setSupportsCanvasFilterForTesting(val: boolean | null): void {
  * Applies a story photo filter directly to an ImageData pixel buffer.
  * Provides a pixel-exact fallback for browsers lacking native CanvasRenderingContext2D.filter (Safari / iOS).
  */
-export function applyStoryFilterToImageData(
-    imageData: ImageData,
-    filterId: StoryPhotoFilterId,
-    strength = 1.0
-): void {
+export function applyStoryFilterToImageData(imageData: ImageData, filterId: StoryPhotoFilterId, strength = 1.0): void {
     if (!filterId || filterId === 'none' || strength <= 0) return;
     const clamped = Math.max(0, Math.min(1, strength));
 

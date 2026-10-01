@@ -3,7 +3,11 @@ import type { StoryRenderConfig } from '../utils/storyCanvas';
 import { renderStoryToBlob } from '../utils/storyCanvas';
 
 export interface UseStoryExportOptions {
-    loadedImage: HTMLImageElement | HTMLCanvasElement | (HTMLImageElement | HTMLCanvasElement)[] | null;
+    loadedImage:
+        | HTMLImageElement
+        | HTMLCanvasElement
+        | (HTMLImageElement | HTMLCanvasElement | null | undefined)[]
+        | null;
     currentConfig: StoryRenderConfig;
     eventTitle?: string;
     year?: string;

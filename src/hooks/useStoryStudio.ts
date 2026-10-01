@@ -92,7 +92,7 @@ export function useStoryStudio({
     const [burstShowTimeStamps, setBurstShowTimeStamps] = useState<boolean>(
         () => storySettings.burstConfig?.showTimeStamps ?? true
     );
-    const [burstSelectedIndices, setBurstSelectedIndices] = useState<[number, number, number]>(() => {
+    const [burstSelectedIndices, setBurstSelectedIndices] = useState<(number | null)[]>(() => {
         if (photoObj.burst && photoObj.burst.total >= 3) {
             const total = photoObj.burst.total;
             if (total === 3) return [0, 1, 2];
@@ -105,16 +105,21 @@ export function useStoryStudio({
     });
 
     const activePanelImages = useMemo(() => {
-        if (!loadedBurstImages || loadedBurstImages.length < 3) {
+        if (!loadedBurstImages || loadedBurstImages.length === 0) {
             return loadedImage ? [loadedImage, loadedImage, loadedImage] : [];
         }
-        const img0 = loadedBurstImages[burstSelectedIndices[0]] || loadedBurstImages[0];
-        const img1 = loadedBurstImages[burstSelectedIndices[1]] || loadedBurstImages[1] || loadedBurstImages[0];
+        const img0 =
+            burstSelectedIndices[0] !== undefined && burstSelectedIndices[0] !== null
+                ? loadedBurstImages[burstSelectedIndices[0]] || null
+                : null;
+        const img1 =
+            burstSelectedIndices[1] !== undefined && burstSelectedIndices[1] !== null
+                ? loadedBurstImages[burstSelectedIndices[1]] || null
+                : null;
         const img2 =
-            loadedBurstImages[burstSelectedIndices[2]] ||
-            loadedBurstImages[2] ||
-            loadedBurstImages[1] ||
-            loadedBurstImages[0];
+            burstSelectedIndices[2] !== undefined && burstSelectedIndices[2] !== null
+                ? loadedBurstImages[burstSelectedIndices[2]] || null
+                : null;
         return [img0, img1, img2];
     }, [loadedBurstImages, burstSelectedIndices, loadedImage]);
 
@@ -123,10 +128,18 @@ export function useStoryStudio({
             return [0.0, 0.84, 1.42];
         }
         const deltas = photoObj.burst.frameDeltas;
-        const d0 = deltas[burstSelectedIndices[0]] ?? 0;
-        const d1 = deltas[burstSelectedIndices[1]] ?? 0.84;
-        const d2 = deltas[burstSelectedIndices[2]] ?? 1.42;
-        const base = d0;
+        const base =
+            burstSelectedIndices[0] !== undefined && burstSelectedIndices[0] !== null
+                ? deltas[burstSelectedIndices[0]] ?? 0
+                : 0;
+        const d1 =
+            burstSelectedIndices[1] !== undefined && burstSelectedIndices[1] !== null
+                ? deltas[burstSelectedIndices[1]] ?? 0.84
+                : 0.84;
+        const d2 =
+            burstSelectedIndices[2] !== undefined && burstSelectedIndices[2] !== null
+                ? deltas[burstSelectedIndices[2]] ?? 1.42
+                : 1.42;
         return [0.0, Number(Math.max(0, d1 - base).toFixed(2)), Number(Math.max(0, d2 - base).toFixed(2))];
     }, [photoObj.burst, burstSelectedIndices]);
 
@@ -554,7 +567,7 @@ export function useStoryStudio({
 
     // Update live preview canvas when options change
     useEffect(() => {
-        const previewImg = activeMode === 'burst' && activePanelImages.length >= 3 ? activePanelImages : loadedImage;
+        const previewImg = activeMode === 'burst' ? activePanelImages : loadedImage;
 
         if (!previewImg || !previewCanvasRef.current) return;
 
