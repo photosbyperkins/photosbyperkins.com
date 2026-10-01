@@ -11,36 +11,51 @@ export const ACTION_FRAMES: StoryFrameDefinition[] = [
         (override, context) => {
             const primary = override || '#ef4444';
             const accent = override || '#ea580c';
-            const hasAttribution = context?.hasAttribution ?? true;
+            const highlight = '#fbbf24';
             const hasScoreboard = context?.hasScoreboard ?? true;
 
-            const topY = hasAttribution ? 150 : 80;
-            const bottomY = hasScoreboard ? 1730 : 1820;
+            const bottomTransform = hasScoreboard
+                ? 'translate(110, 1530) rotate(195) scale(1.05)'
+                : 'translate(140, 1680) rotate(195) scale(1.15)';
 
-            const clawPaths = (col1: string, col2: string) => `
-                <path d="M0,0 Q40,90 90,200 Q80,185 75,140 Q45,70 0,0 Z" fill="${col1}" opacity="0.95" />
-                <path d="-35,25 Q10,110 55,220 Q45,205 40,160 Q10,90 -35,25 Z" fill="${col2}" opacity="0.9" />
-                <path d="-70,50 Q-25,135 20,245 Q10,230 5,185 Q-25,115 -70,50 Z" fill="${col1}" opacity="0.85" />
-                <circle cx="30" cy="150" r="3.5" fill="#fbbf24" />
-                <circle cx="65" cy="210" r="2.5" fill="#f59e0b" />
-                <circle cx="-15" cy="195" r="4" fill="#fbbf24" />
+            const clawCluster = (scale = 1) => `
+                <g transform="scale(${scale})">
+                    {/* Claw 1 (Outer) */}
+                    <path d="M0,0 Q60,120 120,260 Q105,240 100,180 Q60,90 0,0 Z" fill="${primary}" opacity="0.95" />
+                    <path d="M20,30 Q65,120 105,225 Q95,210 90,170 Q60,100 20,30 Z" fill="${highlight}" opacity="0.4" />
+
+                    {/* Claw 2 (Middle) */}
+                    <path d="M-50,30 Q10,150 70,290 Q55,270 50,210 Q10,120 -50,30 Z" fill="${accent}" opacity="0.92" />
+                    <path d="M-30,60 Q15,150 60,255 Q48,240 44,200 Q15,130 -30,60 Z" fill="${highlight}" opacity="0.55" />
+
+                    {/* Claw 3 (Inner - Longest) */}
+                    <path d="M-100,60 Q-40,180 20,320 Q5,300 0,240 Q-40,150 -100,60 Z" fill="${primary}" opacity="0.88" />
+                    <path d="M-80,90 Q-32,180 12,285 Q0,270 -4,230 Q-32,160 -80,90 Z" fill="${highlight}" opacity="0.4" />
+
+                    {/* Micro Scratch Marks */}
+                    <path d="M40,50 Q80,130 115,200" stroke="${accent}" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.6" />
+                    <path d="M-130,110 Q-80,195 -40,260" stroke="${primary}" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.5" />
+
+                    {/* Glowing Impact Embers */}
+                    <circle cx="40" cy="200" r="4.5" fill="${highlight}" />
+                    <circle cx="80" cy="280" r="3.5" fill="${accent}" />
+                    <circle cx="-20" cy="260" r="5" fill="${highlight}" />
+                    <circle cx="115" cy="245" r="2.5" fill="${primary}" opacity="0.85" />
+                    <circle cx="10" cy="310" r="3" fill="${highlight}" opacity="0.9" />
+                    <circle cx="-55" cy="295" r="2.5" fill="${accent}" opacity="0.75" />
+                </g>
             `;
 
             return `
-                {/* Top Symmetrical Claws */}
-                <g transform="translate(100, ${topY}) scale(0.9) rotate(-25)">
-                    ${clawPaths(primary, accent)}
-                </g>
-                <g transform="translate(980, ${topY}) scale(-0.9, 0.9) rotate(-25)">
-                    ${clawPaths(primary, accent)}
+                {/* Dynamic Asymmetric Clustered Claw Strikes */}
+                {/* Top-Right Primary Rake */}
+                <g transform="translate(860, 45) rotate(16)">
+                    ${clawCluster(1.1)}
                 </g>
 
-                {/* Bottom Symmetrical Claws */}
-                <g transform="translate(100, ${bottomY}) scale(0.9, -0.9) rotate(-25)">
-                    ${clawPaths(primary, accent)}
-                </g>
-                <g transform="translate(980, ${bottomY}) scale(-0.9, -0.9) rotate(-25)">
-                    ${clawPaths(primary, accent)}
+                {/* Bottom-Left Counter Rake */}
+                <g transform="${bottomTransform}">
+                    ${clawCluster(1.05)}
                 </g>
             `;
         }

@@ -631,7 +631,7 @@ test.describe('Story Maker (9:16)', () => {
         // Switch to Frames tab
         await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Frames")').click();
 
-        const ttlCard = studioModal.locator('.story-export-modal__frames-grid button:has-text("Optics")');
+        const ttlCard = studioModal.locator('.story-export-modal__frames-grid button').filter({ hasText: /^Camera$/ });
         if (await ttlCard.isVisible()) {
             await ttlCard.click();
 

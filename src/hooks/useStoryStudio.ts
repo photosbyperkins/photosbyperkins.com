@@ -244,7 +244,7 @@ export function useStoryStudio({
         ]
     );
 
-    const { isExporting, isDownloaded, setIsDownloaded, statusToast, showToast, handleExportAction, resetExportState } =
+    const { isExporting, isDownloaded, setIsDownloaded, statusToast, handleExportAction, resetExportState } =
         useStoryExport({
             loadedImage,
             currentConfig,
@@ -298,7 +298,7 @@ export function useStoryStudio({
         resetStorySettings();
         resetExportState();
         setActiveStudioTab('layout');
-        setCardTheme(activeSiteTheme || 'dark');
+        setCardTheme('dark');
         setActiveFilterId('none');
         setFilterStrength(1.0);
         setActiveFrameId('none');
@@ -343,12 +343,9 @@ export function useStoryStudio({
             attributionLogoAccent: import.meta.env.VITE_NAV_LOGO_ACCENT || 'PERKINS',
             attributionDomain: '@photosbyperkins',
         });
-        showToast('Reset story format to defaults');
     }, [
         resetStorySettings,
         resetExportState,
-        showToast,
-        activeSiteTheme,
         presets,
         naturalDimensions.width,
         naturalDimensions.height,
@@ -356,6 +353,78 @@ export function useStoryStudio({
         photoObj.focusY,
         eventInfo,
         localScore,
+    ]);
+
+    const isDefaultConfig = useMemo(() => {
+        if (cardTheme !== 'dark') return false;
+        if (activeFilterId !== 'none') return false;
+        if (Math.abs(filterStrength - 1.0) > 0.001) return false;
+        if (activeFrameId !== 'none') return false;
+        if (frameColorChoice !== 'signature') return false;
+
+        const def = presets.find((p) => p.isDefault) || presets[0];
+        const defaultPresetId = def ? def.id : 'center';
+        const defaultMode = def ? def.mode : 'crop';
+
+        if (selectedPresetId !== defaultPresetId) return false;
+        if (activeMode !== defaultMode) return false;
+
+        if (activeMode === 'crop') {
+            const defaultCrop = def
+                ? def.crop
+                : calculateNormalizedCrop(
+                      naturalDimensions.width,
+                      naturalDimensions.height,
+                      photoObj.focusX ?? 0.5,
+                      photoObj.focusY ?? 0.5,
+                      1.0
+                  );
+            if (
+                Math.abs(activeCrop.zoom - defaultCrop.zoom) > 0.001 ||
+                Math.abs(activeCrop.x - defaultCrop.x) > 0.001 ||
+                Math.abs(activeCrop.y - defaultCrop.y) > 0.001
+            ) {
+                return false;
+            }
+        }
+
+        if (activeMode === 'padded') {
+            if (
+                paddedConfig.style !== 'frosted' ||
+                paddedConfig.customColor !== '#0a0a14' ||
+                paddedConfig.position !== 'center' ||
+                Math.abs(paddedConfig.cardScale - 0.92) > 0.001 ||
+                paddedConfig.cardCornerRadius !== 24
+            ) {
+                return false;
+            }
+        }
+
+        const defaultShowScoreboard = Boolean(eventInfo.teams.length >= 2 || eventInfo.title);
+        if (Boolean(badges.showScoreboard) !== defaultShowScoreboard) return false;
+        if (Boolean(badges.showScores ?? true) !== true) return false;
+        if (Boolean(badges.showAttribution) !== true) return false;
+
+        return true;
+    }, [
+        cardTheme,
+        activeFilterId,
+        filterStrength,
+        activeFrameId,
+        frameColorChoice,
+        presets,
+        selectedPresetId,
+        activeMode,
+        activeCrop,
+        naturalDimensions.width,
+        naturalDimensions.height,
+        photoObj.focusX,
+        photoObj.focusY,
+        paddedConfig,
+        eventInfo,
+        badges.showScoreboard,
+        badges.showScores,
+        badges.showAttribution,
     ]);
 
     const handleClose = useCallback(() => {
@@ -449,7 +518,7 @@ export function useStoryStudio({
         isDownloaded,
         setIsDownloaded,
         statusToast,
-        showToast,
+        isDefaultConfig,
         resetToDefaults,
         handleClose,
         handleExportAction,

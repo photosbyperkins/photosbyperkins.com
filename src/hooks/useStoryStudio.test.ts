@@ -118,6 +118,7 @@ describe('useStoryStudio', () => {
         expect(result.current.activeStudioTab).toBe('frames');
         expect(result.current.activeFilterId).toBe('vivid');
         expect(result.current.activeFrameId).toBe('derby-quads');
+        expect(result.current.isDefaultConfig).toBe(false);
 
         act(() => {
             result.current.resetToDefaults();
@@ -126,6 +127,6 @@ describe('useStoryStudio', () => {
         expect(result.current.activeStudioTab).toBe('layout');
         expect(result.current.activeFilterId).toBe('none');
         expect(result.current.activeFrameId).toBe('none');
-        expect(result.current.statusToast).toBe('Reset story format to defaults');
+        expect(result.current.isDefaultConfig).toBe(true);
     });
 });

@@ -1,5 +1,5 @@
 import { Check, Download, RotateCcw, Share2 } from 'lucide-react';
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useCanShare } from '../../../hooks/useCanShare';
 import { useStoryImageLoader } from '../../../hooks/useStoryImageLoader';
 import { useStoryStudio, type StoryStudioTab } from '../../../hooks/useStoryStudio';
@@ -104,7 +104,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         isExporting,
         isDownloaded,
         setIsDownloaded,
-        statusToast,
+        isDefaultConfig,
         resetToDefaults,
         handleClose,
         handleExportAction,
@@ -120,6 +120,35 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         canShare,
         onClose,
     });
+
+    // Keyboard shortcut navigation (Left Arrow / Right Arrow) to switch tabs
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Ignore keystrokes if focused inside an input, textarea, or select
+            if (
+                document.activeElement instanceof HTMLInputElement ||
+                document.activeElement instanceof HTMLTextAreaElement ||
+                document.activeElement instanceof HTMLSelectElement
+            ) {
+                return;
+            }
+
+            if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                e.preventDefault();
+                const tabIds: StoryStudioTab[] = ['layout', 'filters', 'frames', 'badges'];
+                const currentIndex = tabIds.indexOf(activeStudioTab);
+                if (currentIndex === -1) return;
+                const offset = e.key === 'ArrowLeft' ? -1 : 1;
+                const nextIndex = (currentIndex + offset + tabIds.length) % tabIds.length;
+                setActiveStudioTab(tabIds[nextIndex]);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isOpen, activeStudioTab, setActiveStudioTab]);
 
     const footer = (
         <button
@@ -161,7 +190,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         </button>
     );
 
-    const headerActions = (
+    const headerActions = !isDefaultConfig ? (
         <button
             type="button"
             className="modal-shell__action-btn"
@@ -171,7 +200,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         >
             <RotateCcw size={18} />
         </button>
-    );
+    ) : undefined;
 
     return (
         <ModalShell
@@ -338,18 +367,6 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                         )}
                     </div>
 
-                    {/* Temporary Feedback Notification / Action Status */}
-                    {statusToast && (
-                        <div
-                            className={`story-export-modal__toast ${
-                                statusToast.toLowerCase().includes('fail') ? 'story-export-modal__toast--error' : ''
-                            }`}
-                            role="status"
-                            aria-live="polite"
-                        >
-                            <span>{statusToast}</span>
-                        </div>
-                    )}
                 </div>
             </div>
         </ModalShell>

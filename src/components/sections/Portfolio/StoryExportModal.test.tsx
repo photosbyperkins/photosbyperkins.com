@@ -54,7 +54,7 @@ describe('StoryExportModal', () => {
         expect(viewportCard?.contains(storyCropper!)).toBe(true);
     });
 
-    it('triggers resetToDefaults and displays confirmation toast when clicking the reset button', () => {
+    it('hides reset button when at defaults, shows it when altered, and restores defaults on click without toasts', () => {
         const { container } = render(
             <StoryExportModal
                 isOpen={true}
@@ -66,16 +66,61 @@ describe('StoryExportModal', () => {
             />
         );
 
-        const resetBtn = within(container).getByRole('button', { name: /Reset story format to defaults/i });
-        expect(resetBtn).toBeDefined();
+        // At default configuration, Reset to Defaults button is hidden
+        expect(within(container).queryByRole('button', { name: /Reset story format to defaults/i })).toBeNull();
 
+        // Switch to Padded mode to alter story format
+        const paddedBtn = within(container).getByRole('button', { name: /^padded$/i });
+        fireEvent.click(paddedBtn);
+
+        // Now the Reset button appears in header actions
+        const resetBtn = within(container).getByRole('button', { name: /Reset story format to defaults/i });
+        expect(resetBtn).not.toBeNull();
+
+        // Clicking reset button restores default format
         fireEvent.click(resetBtn);
 
-        // Toast message appears in controls pane
-        const toast = container.querySelector('.story-export-modal__toast');
-        expect(toast).not.toBeNull();
-        expect(toast?.textContent).toContain('Reset story format to defaults');
-        expect(toast?.classList.contains('story-export-modal__toast--error')).toBe(false);
+        // Reset button is hidden again once back at defaults
+        expect(within(container).queryByRole('button', { name: /Reset story format to defaults/i })).toBeNull();
+
+        // No toast message rendered
+        expect(container.querySelector('.story-export-modal__toast')).toBeNull();
+    });
+
+    it('switches studio tabs using left and right arrow keys', () => {
+        const { container } = render(
+            <StoryExportModal
+                isOpen={true}
+                onClose={mockOnClose}
+                photo={samplePhoto}
+                eventName="2024.10.22 - Championship Match - Team A vs Team B"
+                year="2024"
+                index={0}
+            />
+        );
+
+        // Initial tab is Layout
+        expect(within(container).getByRole('tab', { name: /layout/i, selected: true })).toBeDefined();
+
+        // Press ArrowRight -> moves to Filters tab
+        fireEvent.keyDown(window, { key: 'ArrowRight' });
+        expect(within(container).getByRole('tab', { name: /filters/i, selected: true })).toBeDefined();
+
+        // Press ArrowRight -> moves to Frames tab
+        fireEvent.keyDown(window, { key: 'ArrowRight' });
+        expect(within(container).getByRole('tab', { name: /frames/i, selected: true })).toBeDefined();
+
+        // Press ArrowRight -> moves to Badges tab
+        fireEvent.keyDown(window, { key: 'ArrowRight' });
+        expect(within(container).getByRole('tab', { name: /badges/i, selected: true })).toBeDefined();
+
+        // Press ArrowRight -> wraps back to Layout tab
+        fireEvent.keyDown(window, { key: 'ArrowRight' });
+        expect(within(container).getByRole('tab', { name: /layout/i, selected: true })).toBeDefined();
+
+        // Press ArrowLeft -> wraps to Badges tab
+        fireEvent.keyDown(window, { key: 'ArrowLeft' });
+        expect(within(container).getByRole('tab', { name: /badges/i, selected: true })).toBeDefined();
     });
 
     it('switches to padded mode and renders padded-preview container', () => {

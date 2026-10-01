@@ -49,7 +49,7 @@ export const TECH_FRAMES: StoryFrameDefinition[] = [
     ),
     defineFrame(
         'through-the-lens',
-        'Optics',
+        'Camera',
         'tech',
         'Nikon Z 8 EVF / rear screen telemetry HUD with live photo EXIF',
         ['#ffffff', '#e60000', '#22c55e'],
