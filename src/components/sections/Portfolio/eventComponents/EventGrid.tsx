@@ -43,12 +43,14 @@ export const EventGrid = React.memo(function EventGrid({
                 const focusY = photo.focusY;
 
                 return (
-                    <div
+                    <button
+                        type="button"
                         key={origUrl}
                         className="portfolio__grid-item"
-                        role="button"
-                        tabIndex={0}
                         aria-label={`View ${eventName} photo ${i + 1}`}
+                        onClick={() =>
+                            openLightbox(albumImages, i, eventName, selectedYear, maxExifChars, eventScore)
+                        }
                         onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
                                 e.preventDefault();
@@ -60,14 +62,11 @@ export const EventGrid = React.memo(function EventGrid({
                             src={thumbUrl}
                             placeholder={null}
                             alt={`${eventName} photo ${i + 1}`}
-                            onClick={() =>
-                                openLightbox(albumImages, i, eventName, selectedYear, maxExifChars, eventScore)
-                            }
                             objectPosition={
                                 focusX != null && focusY != null ? `${focusX * 100}% ${focusY * 100}%` : 'center'
                             }
                         />
-                    </div>
+                    </button>
                 );
             })}
             {loading && <div className="portfolio__loading">Loading photos...</div>}

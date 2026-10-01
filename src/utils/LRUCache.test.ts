@@ -51,4 +51,21 @@ describe('LRUCache', () => {
         expect(cache.get('a')).toBeUndefined();
         expect(cache.get('b')).toBe(2);
     });
+
+    it('supports clear, has, and size', () => {
+        const cache = new LRUCache<string, number>(3);
+        expect(cache.size).toBe(0);
+        expect(cache.has('a')).toBe(false);
+
+        cache.set('a', 1);
+        cache.set('b', 2);
+        expect(cache.size).toBe(2);
+        expect(cache.has('a')).toBe(true);
+        expect(cache.has('c')).toBe(false);
+
+        cache.clear();
+        expect(cache.size).toBe(0);
+        expect(cache.has('a')).toBe(false);
+        expect(cache.get('a')).toBeUndefined();
+    });
 });

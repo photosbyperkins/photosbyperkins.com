@@ -31,7 +31,7 @@ interface StoryExportModalProps {
     photo: PhotoInput;
     eventName?: string;
     year?: string;
-    index: number;
+    index?: number;
     localScore?: EventScore;
 }
 
@@ -41,7 +41,6 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
     photo,
     eventName = '',
     year = '',
-    index: _index,
     localScore,
 }) => {
     const canShare = useCanShare();

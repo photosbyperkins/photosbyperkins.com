@@ -1,9 +1,10 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { parseEventTitle } from '../utils/formatters';
+import { LRUCache } from '../utils/LRUCache';
 import type { YearData, PhotoInput, FavoriteStoreItem, SeasonStats } from '../types';
 
-// Module-level cache — persists for the lifetime of the page session.
+// Module-level cache — persists for the lifetime of the page session with LRU eviction (max 6 seasons).
 // Pre-fetched and actively-fetched year data is stored here so that
 // switching back to an already-seen year is instant (no network round-trip).
 interface CachedYearPayload {
@@ -13,13 +14,11 @@ interface CachedYearPayload {
     nextPart: string | null;
     stats?: SeasonStats;
 }
-const yearDataCache: Record<string, CachedYearPayload> = {};
+const yearDataCache = new LRUCache<string, CachedYearPayload>(6);
 
 /** Internal helper for testing to reset the module-level year cache */
 export function _clearYearDataCache(): void {
-    for (const key in yearDataCache) {
-        delete yearDataCache[key];
-    }
+    yearDataCache.clear();
 }
 
 interface FetchPayload {
@@ -120,7 +119,7 @@ export function usePortfolioData({
                 setPendingNextPart(null);
 
                 // Serve from cache instantly if available — no network needed.
-                const cached = yearDataCache[tabSlug];
+                const cached = yearDataCache.get(tabSlug);
                 if (cached) {
                     setYearData(cached.events);
                     setRecapCount(cached.recapCount);
@@ -135,7 +134,7 @@ export function usePortfolioData({
                 setIsRecapLoaded(false); // Lock background fetching
             }
 
-            const fetchPart = (slug: string, accumulate: boolean) => {
+            const fetchPart = (slug: string, accumulate: boolean, retryCount = 0) => {
                 fetch(`${basePath}/${slug}.json?build=${__BUILD_NUMBER__}`)
                     .then((res) => {
                         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -154,13 +153,13 @@ export function usePortfolioData({
                                 setStats(data.stats);
 
                                 // Store first-part result so future switches are instant.
-                                yearDataCache[tabSlug] = {
+                                yearDataCache.set(tabSlug, {
                                     events: data.events,
                                     recapCount: data.recapCount || 0,
                                     recapEvents: data.recapEvents || [],
                                     nextPart: data.nextPart ?? null,
                                     stats: data.stats,
-                                };
+                                });
 
                                 // If there is no recap, unlock background fetching immediately
                                 if ((data.recapCount || 0) === 0 || isTeamMode || isGearMode) {
@@ -179,18 +178,29 @@ export function usePortfolioData({
                             }
                         } else if (!accumulate) {
                             // Pre-fetch path: populate cache so the next foreground switch is instant.
-                            if (!yearDataCache[tabSlug]) {
-                                yearDataCache[tabSlug] = {
+                            if (!yearDataCache.has(tabSlug)) {
+                                yearDataCache.set(tabSlug, {
                                     events: data.events,
                                     recapCount: data.recapCount || 0,
                                     recapEvents: data.recapEvents || [],
                                     nextPart: data.nextPart ?? null,
                                     stats: data.stats,
-                                };
+                                });
                             }
                         }
                     })
-                    .catch((err) => console.error(`Failed to load data for ${slug}:`, err));
+                    .catch((err) => {
+                        console.error(`Failed to load data for ${slug}:`, err);
+                        if (setData && retryCount < 1 && activeRequestRef.current === requestToken) {
+                            setTimeout(() => {
+                                if (activeRequestRef.current === requestToken) {
+                                    fetchPart(slug, accumulate, retryCount + 1);
+                                }
+                            }, 1000);
+                        } else if (setData) {
+                            setIsRecapLoaded(true);
+                        }
+                    });
             };
 
             fetchPart(tabSlug, false);
@@ -219,9 +229,11 @@ export function usePortfolioData({
 
                     setYearData((prev) => {
                         const merged = { ...prev, ...data.events };
-                        if (yearDataCache[selectedTab]) {
-                            yearDataCache[selectedTab].events = merged;
-                            yearDataCache[selectedTab].nextPart = data.nextPart ?? null;
+                        const existing = yearDataCache.get(selectedTab);
+                        if (existing) {
+                            existing.events = merged;
+                            existing.nextPart = data.nextPart ?? null;
+                            yearDataCache.set(selectedTab, existing);
                         }
                         return merged;
                     });
@@ -248,7 +260,7 @@ export function usePortfolioData({
 
     const prefetchTab = useCallback(
         (tabSlug: string) => {
-            if (!tabSlug || tabSlug === 'favorites' || yearDataCache[tabSlug]) return;
+            if (!tabSlug || tabSlug === 'favorites' || yearDataCache.has(tabSlug)) return;
             const isTeamMode = !years.includes(tabSlug) && !isGearMode;
             getForTab(tabSlug, false, isTeamMode);
         },

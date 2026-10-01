@@ -1,4 +1,4 @@
-import { useState, useEffect, Suspense, lazy } from 'react';
+import { useState, useEffect, useCallback, Suspense, lazy } from 'react';
 import { useLocation } from 'react-router-dom';
 import Nav from './components/sections/Nav';
 import Footer from './components/sections/Footer';
@@ -40,15 +40,39 @@ function ScrollToMountTarget() {
 
 export default function App() {
     const [indexData, setIndexData] = useState<IndexData | null>(null);
+    const [fetchError, setFetchError] = useState(false);
 
-    useEffect(() => {
+    const loadIndex = useCallback(() => {
+        setFetchError(false);
         fetch(`/data/index.json?build=${__BUILD_NUMBER__}`)
             .then((res) => {
                 if (!res.ok) throw new Error('Network response was not ok');
                 return res.json();
             })
             .then((data) => setIndexData(data))
-            .catch((err) => console.error('Failed to load photo index:', err));
+            .catch((err) => {
+                console.error('Failed to load photo index:', err);
+                setFetchError(true);
+            });
+    }, []);
+
+    useEffect(() => {
+        let isMounted = true;
+        fetch(`/data/index.json?build=${__BUILD_NUMBER__}`)
+            .then((res) => {
+                if (!res.ok) throw new Error('Network response was not ok');
+                return res.json();
+            })
+            .then((data) => {
+                if (isMounted) setIndexData(data);
+            })
+            .catch((err) => {
+                console.error('Failed to load photo index:', err);
+                if (isMounted) setFetchError(true);
+            });
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     return (
@@ -60,6 +84,26 @@ export default function App() {
                     <Suspense fallback={null}>
                         <Portfolio years={indexData.years} />
                     </Suspense>
+                )}
+                {fetchError && !indexData && (
+                    <div className="portfolio__error" style={{ textAlign: 'center', padding: '4rem 1rem' }}>
+                        <p style={{ marginBottom: '1rem' }}>Unable to load photo portfolio.</p>
+                        <button
+                            type="button"
+                            onClick={loadIndex}
+                            style={{
+                                padding: '0.5rem 1.25rem',
+                                cursor: 'pointer',
+                                background: 'var(--color-accent, #0070f3)',
+                                color: '#ffffff',
+                                border: 'none',
+                                borderRadius: '4px',
+                                fontSize: '0.9rem',
+                            }}
+                        >
+                            Retry
+                        </button>
+                    </div>
                 )}
             </main>
             <Footer />

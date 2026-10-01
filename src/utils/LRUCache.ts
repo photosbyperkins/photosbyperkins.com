@@ -23,4 +23,16 @@ export class LRUCache<K, V> {
         }
         this.cache.set(key, val);
     }
+
+    clear() {
+        this.cache.clear();
+    }
+
+    has(key: K): boolean {
+        return this.cache.has(key);
+    }
+
+    get size(): number {
+        return this.cache.size;
+    }
 }

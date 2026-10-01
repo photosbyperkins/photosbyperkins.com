@@ -81,8 +81,7 @@ function runAsync(name: string, command: string): Promise<void> {
     return new Promise((resolve, reject) => {
         logger.step(`Starting Background Task: ${name}`);
         startStep(name);
-        const [cmd, ...args] = command.split(' ');
-        const proc = spawn(cmd, args, { stdio: 'inherit', env: process.env, shell: true });
+        const proc = spawn(command, { stdio: 'inherit', env: process.env, shell: true });
         proc.on('close', (code) => {
             endStep(name);
             if (code === 0) {

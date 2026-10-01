@@ -92,8 +92,13 @@ export function drawRoundRect(
  */
 function svgToDataUri(svg: string): string {
     try {
-        if (typeof btoa !== 'undefined') {
-            return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
+        if (typeof btoa !== 'undefined' && typeof TextEncoder !== 'undefined') {
+            const bytes = new TextEncoder().encode(svg);
+            let binary = '';
+            for (let i = 0; i < bytes.length; i++) {
+                binary += String.fromCharCode(bytes[i]);
+            }
+            return `data:image/svg+xml;base64,${btoa(binary)}`;
         }
     } catch {
         // Fallback to URL-encoded UTF-8 if base64 conversion fails

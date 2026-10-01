@@ -121,7 +121,7 @@ export async function encodeFavorites(favorites: FavoriteStoreItem[]): Promise<s
         const stem = filename
             .replace(/\.jpe?g$/i, '')
             .replace(/^photo_0*(\d+)$/, (_, num: string) => num)
-            .replace(/_(0*)(\d+)$/, (_, _zeros: string, num: string) => '_' + parseInt(_zeros + num));
+            .replace(/_0*(\d+)$/, (_, num: string) => '_' + parseInt(num, 10));
         byAlbum.get(key)!.push(stem);
     }
 

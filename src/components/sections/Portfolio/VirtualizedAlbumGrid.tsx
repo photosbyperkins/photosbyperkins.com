@@ -186,15 +186,6 @@ export default function VirtualizedAlbumGrid({
                                             localScore
                                         )
                                     }
-                                    style={{
-                                        border: 'none',
-                                        background: 'none',
-                                        padding: 0,
-                                        margin: 0,
-                                        cursor: 'pointer',
-                                        textAlign: 'left',
-                                        outline: 'none',
-                                    }}
                                 >
                                     <ProgressiveImage
                                         src={thumbUrl}

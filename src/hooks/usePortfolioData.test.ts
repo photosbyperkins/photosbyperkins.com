@@ -326,4 +326,50 @@ describe('usePortfolioData', () => {
         expect(result.current.yearData['05.10 Match B']).toBeDefined();
         expect(result.current.yearData['03.15 Match A']).toBeUndefined();
     });
+
+    it('evicts least recently used season from cache when exceeding capacity', async () => {
+        const manyYears = ['2026', '2025', '2024', '2023', '2022', '2021', '2020'];
+        (globalThis.fetch as ReturnType<typeof vi.fn>).mockImplementation((url: string) => {
+            const match = url.match(/\/data\/years\/(\d{4})\.json/);
+            const y = match ? match[1] : 'unknown';
+            return Promise.resolve({
+                ok: true,
+                json: () =>
+                    Promise.resolve({
+                        events: { [`Match in ${y}`]: { album: [], photoCount: 0 } },
+                        recapCount: 0,
+                    }),
+            });
+        });
+
+        const { result, rerender } = renderHook(({ tab }) => usePortfolioData({ selectedTab: tab, years: manyYears }), {
+            initialProps: { tab: '2026' },
+        });
+
+        await waitFor(() => {
+            expect(result.current.yearData['Match in 2026']).toBeDefined();
+        });
+
+        // Load 6 more seasons (total 7 distinct seasons, capacity is 6)
+        for (const yr of ['2025', '2024', '2023', '2022', '2021', '2020']) {
+            rerender({ tab: yr });
+            await waitFor(() => {
+                expect(result.current.yearData[`Match in ${yr}`]).toBeDefined();
+            });
+        }
+
+        const fetchCallsCount = (globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls.length;
+
+        // Switch back to 2026: since it was evicted, it should trigger a new fetch
+        rerender({ tab: '2026' });
+        await waitFor(() => {
+            expect(result.current.yearData['Match in 2026']).toBeDefined();
+        });
+        expect((globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(fetchCallsCount + 1);
+
+        // Switch to 2020: it's recent so it should be served from cache without an extra fetch
+        rerender({ tab: '2020' });
+        expect(result.current.yearData['Match in 2020']).toBeDefined();
+        expect((globalThis.fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(fetchCallsCount + 1);
+    });
 });

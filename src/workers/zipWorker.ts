@@ -21,43 +21,58 @@ self.onmessage = async (e: MessageEvent<{ urls: string[]; filename: string }>) =
         });
 
         const usedNames = new Set<string>();
+        const BATCH_SIZE = 4;
+        let completed = 0;
 
-        for (let i = 0; i < urls.length; i++) {
+        for (let i = 0; i < urls.length; i += BATCH_SIZE) {
             if (errorOccurred) throw errorOccurred;
 
-            const url = urls[i];
-            const response = await fetch(url);
-            if (!response.ok) throw new Error(`Failed to fetch ${url}`);
-            const arrayBuffer = await response.arrayBuffer();
-            const uint8Array = new Uint8Array(arrayBuffer);
+            const chunk = urls.slice(i, i + BATCH_SIZE);
+            const batchResults = await Promise.all(
+                chunk.map(async (url, idx) => {
+                    const response = await fetch(url);
+                    if (!response.ok) throw new Error(`Failed to fetch ${url}`);
+                    const arrayBuffer = await response.arrayBuffer();
+                    return {
+                        url,
+                        index: i + idx,
+                        uint8Array: new Uint8Array(arrayBuffer),
+                    };
+                })
+            );
 
-            const cleanUrl = url.split('?')[0].split('#')[0];
-            const pathParts = cleanUrl.split('/');
-            const originalFilename = pathParts.pop() || `photo_${i}.jpg`;
-            const parentDir = pathParts.pop();
-            const eventDir =
-                parentDir === 'original' || parentDir === 'web' || parentDir === 'thumb' ? pathParts.pop() : parentDir;
+            for (const { url, index, uint8Array } of batchResults) {
+                if (errorOccurred) throw errorOccurred;
 
-            let name = eventDir ? `${eventDir}_${originalFilename}` : originalFilename;
+                const cleanUrl = url.split('?')[0].split('#')[0];
+                const pathParts = cleanUrl.split('/');
+                const originalFilename = pathParts.pop() || `photo_${index}.jpg`;
+                const parentDir = pathParts.pop();
+                const eventDir =
+                    parentDir === 'original' || parentDir === 'web' || parentDir === 'thumb' ? pathParts.pop() : parentDir;
 
-            if (usedNames.has(name)) {
-                const parts = name.split('.');
-                const ext = parts.length > 1 ? `.${parts.pop()}` : '';
-                const base = parts.join('.');
-                let counter = 1;
-                while (usedNames.has(`${base} (${counter})${ext}`)) {
-                    counter++;
+                let name = eventDir ? `${eventDir}_${originalFilename}` : originalFilename;
+
+                if (usedNames.has(name)) {
+                    const parts = name.split('.');
+                    const ext = parts.length > 1 ? `.${parts.pop()}` : '';
+                    const base = parts.join('.');
+                    let counter = 1;
+                    while (usedNames.has(`${base} (${counter})${ext}`)) {
+                        counter++;
+                    }
+                    name = `${base} (${counter})${ext}`;
                 }
-                name = `${base} (${counter})${ext}`;
+                usedNames.add(name);
+
+                // Stream file to zip without retaining memory
+                const fileStream = new fflate.ZipPassThrough(name);
+                zip.add(fileStream);
+                fileStream.push(uint8Array, true);
+
+                completed++;
+                self.postMessage({ type: 'progress', progress: Math.round((completed / urls.length) * 95) });
             }
-            usedNames.add(name);
-
-            // Stream file to zip without retaining memory
-            const fileStream = new fflate.ZipPassThrough(name);
-            zip.add(fileStream);
-            fileStream.push(uint8Array, true);
-
-            self.postMessage({ type: 'progress', progress: Math.round(((i + 1) / urls.length) * 95) });
         }
 
         zip.end();
