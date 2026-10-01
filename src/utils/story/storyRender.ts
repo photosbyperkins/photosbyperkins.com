@@ -1,6 +1,13 @@
 import { STORY_WIDTH, STORY_HEIGHT, hexToRgba, isColorLight, getStoryFilterCss } from './storyConstants';
-import type { StoryRenderConfig, BurstStoryOptions } from './storyConstants';
-import { drawRoundRect, drawCameraLogoIcon, drawStoryFrameToCanvas, applyFastBlurAndAdjust } from './storyDraw';
+import type { StoryRenderConfig, BurstStoryOptions, StoryPhotoFilterId } from './storyConstants';
+import {
+    drawRoundRect,
+    drawCameraLogoIcon,
+    drawStoryFrameToCanvas,
+    applyFastBlurAndAdjust,
+    applyStoryFilterToImageData,
+    drawImageWithStoryFilter,
+} from './storyDraw';
 import type { StoryFrameContext } from '../../components/sections/Portfolio/storyFrames/types';
 import { formatTeamName } from '../formatters';
 
@@ -69,12 +76,21 @@ export async function renderStoryToCanvas(
         const sw = crop.width * naturalW;
         const sh = crop.height * naturalH;
 
-        ctx.save();
-        if (filterCss && 'filter' in ctx) {
-            ctx.filter = filterCss;
-        }
-        ctx.drawImage(primaryImg, sx, sy, sw, sh, 0, 0, targetW, targetH);
-        ctx.restore();
+        drawImageWithStoryFilter(
+            ctx,
+            primaryImg,
+            sx,
+            sy,
+            sw,
+            sh,
+            0,
+            0,
+            targetW,
+            targetH,
+            config.filterId,
+            config.filterStrength ?? 1.0,
+            filterCss
+        );
     }
     // ==========================================
     // 2. RENDER MODE: BURST (3-PANEL STACK)
@@ -110,13 +126,6 @@ export async function renderStoryToCanvas(
                     smallCanvas.height = sh;
                     const sCtx = smallCanvas.getContext('2d', { willReadFrequently: true });
                     if (sCtx && typeof sCtx.getImageData === 'function') {
-                        if (filterCss && 'filter' in sCtx) {
-                            try {
-                                sCtx.filter = filterCss;
-                            } catch {
-                                /* ignore */
-                            }
-                        }
                         const sScale = Math.max(sw / naturalW, sh / naturalH);
                         const sW = naturalW * sScale;
                         const sH = naturalH * sScale;
@@ -125,6 +134,9 @@ export async function renderStoryToCanvas(
                         sCtx.drawImage(primaryImg, sX, sY, sW, sH);
 
                         const imgData = sCtx.getImageData(0, 0, sw, sh);
+                        if (config.filterId && config.filterId !== 'none') {
+                            applyStoryFilterToImageData(imgData, config.filterId, config.filterStrength ?? 1.0);
+                        }
                         applyFastBlurAndAdjust(imgData, 4, 1.8, 0.65);
                         sCtx.putImageData(imgData, 0, 0);
 
@@ -205,11 +217,21 @@ export async function renderStoryToCanvas(
         ctx.save();
         drawRoundRect(ctx, cardX, cardY, cardW, cardH, effectiveRadius);
         ctx.clip();
-        if (filterCss && 'filter' in ctx) {
-            ctx.filter = filterCss;
-        }
-        ctx.drawImage(primaryImg, cardX, cardY, cardW, cardH);
-        ctx.filter = 'none';
+        drawImageWithStoryFilter(
+            ctx,
+            primaryImg,
+            0,
+            0,
+            naturalW,
+            naturalH,
+            cardX,
+            cardY,
+            cardW,
+            cardH,
+            config.filterId,
+            config.filterStrength ?? 1.0,
+            filterCss
+        );
 
         // Subtle 1px Glass Border
         ctx.strokeStyle = isCustomBgLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.2)';
@@ -601,7 +623,18 @@ export function renderBurstPanels(
             drawRoundRect(ctx, panelX, panelY, panelW, panelH, panelRadius);
             ctx.clip();
 
-            drawImageFocalCrop(ctx, pImg, panelX, panelY, panelW, panelH, focusY, filterCss);
+            drawImageFocalCrop(
+                ctx,
+                pImg,
+                panelX,
+                panelY,
+                panelW,
+                panelH,
+                focusY,
+                filterCss,
+                config.filterId,
+                config.filterStrength
+            );
             ctx.restore();
 
             // Card stroke border
@@ -654,7 +687,18 @@ export function renderBurstPanels(
             const focusY = focusYList[i] ?? 0.45;
 
             ctx.save();
-            drawImageFocalCrop(ctx, pImg, panelX, panelY, panelW, panelH, focusY, filterCss);
+            drawImageFocalCrop(
+                ctx,
+                pImg,
+                panelX,
+                panelY,
+                panelW,
+                panelH,
+                focusY,
+                filterCss,
+                config.filterId,
+                config.filterStrength
+            );
             ctx.restore();
 
             // Film frame border
@@ -695,7 +739,18 @@ export function renderBurstPanels(
             const focusY = focusYList[i] ?? 0.45;
 
             ctx.save();
-            drawImageFocalCrop(ctx, pImg, panelX, panelY, targetW, currentH, focusY, filterCss);
+            drawImageFocalCrop(
+                ctx,
+                pImg,
+                panelX,
+                panelY,
+                targetW,
+                currentH,
+                focusY,
+                filterCss,
+                config.filterId,
+                config.filterStrength
+            );
             ctx.restore();
 
             // Hairline separator
@@ -722,7 +777,9 @@ function drawImageFocalCrop(
     dw: number,
     dh: number,
     focusY: number,
-    filterCss: string
+    filterCss: string,
+    filterId?: StoryPhotoFilterId,
+    filterStrength = 1.0
 ) {
     const nw = 'naturalWidth' in img ? img.naturalWidth : img.width;
     const nh = 'naturalHeight' in img ? img.naturalHeight : img.height;
@@ -752,12 +809,21 @@ function drawImageFocalCrop(
         sy = Math.max(0, Math.min(nh - sh, sy));
     }
 
-    ctx.save();
-    if (filterCss && 'filter' in ctx) {
-        ctx.filter = filterCss;
-    }
-    ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
-    ctx.restore();
+    drawImageWithStoryFilter(
+        ctx,
+        img,
+        sx,
+        sy,
+        sw,
+        sh,
+        dx,
+        dy,
+        dw,
+        dh,
+        filterId,
+        filterStrength,
+        filterCss
+    );
 }
 
 function drawTimestampPill(

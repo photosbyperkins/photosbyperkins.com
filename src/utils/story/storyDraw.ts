@@ -1,4 +1,5 @@
 import { P_ADJUSTMENT } from './storyConstants';
+import type { StoryPhotoFilterId } from './storyConstants';
 import type { StoryFrameId, StoryFrameContext } from '../../components/sections/Portfolio/storyFrames/types';
 import { STORY_FRAMES_MAP } from '../../components/sections/Portfolio/storyFrames/frameDefinitions';
 
@@ -85,6 +86,22 @@ export function drawRoundRect(
 }
 
 /**
+ * Converts an SVG string to a robust base64 Data URI across all environments.
+ * Base64 encoding avoids WebKit/Safari parsing failures on URL-encoded characters and whitespace,
+ * while preventing tainted canvas errors that occur when drawing blob: URLs to canvas in Safari.
+ */
+function svgToDataUri(svg: string): string {
+    try {
+        if (typeof btoa !== 'undefined') {
+            return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
+        }
+    } catch {
+        // Fallback to URL-encoded UTF-8 if base64 conversion fails
+    }
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
+}
+
+/**
  * Renders an SVG decorative frame onto a canvas context.
  */
 export async function drawStoryFrameToCanvas(
@@ -102,33 +119,68 @@ export async function drawStoryFrameToCanvas(
     if (typeof Image === 'undefined') return;
 
     const svgString = await def.getSvgString(colorOverride, context);
-    const dataUri = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgString);
+    if (!svgString) return;
+
+    const dataUri = svgToDataUri(svgString);
 
     await new Promise<void>((resolve) => {
         const img = new Image();
         let settled = false;
+        let timer: ReturnType<typeof setTimeout> | null = null;
+
         const cleanup = () => {
+            if (timer) {
+                clearTimeout(timer);
+                timer = null;
+            }
             if (!settled) {
                 settled = true;
                 resolve();
             }
         };
 
-        img.onload = () => {
+        img.onload = async () => {
             try {
-                ctx.drawImage(img, 0, 0, targetW, targetH);
-            } catch {
-                // Ignore draw error
+                // WebKit / iOS Safari timing workaround:
+                // In WebKit, an SVG image's onload event fires when the XML document is loaded,
+                // but the internal vector rasterizer has not yet committed pixels to the backing surface.
+                // Calling decode() and waiting a microtask/animation frame ensures WebKit rasterization is complete.
+                if ('decode' in img) {
+                    try {
+                        await img.decode();
+                    } catch {
+                        // decode() might reject on some SVG data in older WebKit, safely continue
+                    }
+                }
+                await new Promise<void>((r) => {
+                    if (typeof requestAnimationFrame !== 'undefined') {
+                        requestAnimationFrame(() => r());
+                    } else {
+                        setTimeout(r, 40);
+                    }
+                });
+
+                if (typeof ctx.drawImage === 'function') {
+                    ctx.drawImage(img, 0, 0, targetW, targetH);
+                }
+            } catch (err) {
+                console.warn('Failed to draw story frame to canvas:', err);
             }
             cleanup();
         };
-        img.onerror = () => {
+
+        img.onerror = (e) => {
+            console.warn('Failed to load story frame SVG image:', e);
             cleanup();
         };
+
         img.src = dataUri;
 
-        // Safety timeout so export is never hung
-        setTimeout(cleanup, 350);
+        // Generous safety timeout (3.5s) so mobile devices under CPU throttling don't prematurely abort frame rendering
+        timer = setTimeout(() => {
+            console.warn(`Story frame "${frameId}" render timed out`);
+            cleanup();
+        }, 3500);
     });
 }
 
@@ -236,4 +288,300 @@ export function applyFastBlurAndAdjust(
         boxBlur1D(data, target, w, h, radius, true);
         boxBlur1D(target, data, w, h, radius, false);
     }
+}
+
+/**
+ * Detects whether the current browser natively supports CanvasRenderingContext2D.filter.
+ * WebKit / Safari on iOS & macOS does not support ctx.filter on 2D canvas context.
+ */
+let _supportsFilter: boolean | null = null;
+
+export function supportsCanvasFilter(): boolean {
+    if (_supportsFilter !== null) return _supportsFilter;
+    if (typeof document === 'undefined') {
+        _supportsFilter = false;
+        return false;
+    }
+    try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx || typeof ctx.filter === 'undefined') {
+            _supportsFilter = false;
+            return false;
+        }
+        ctx.filter = 'contrast(150%)';
+        _supportsFilter = ctx.filter === 'contrast(150%)';
+    } catch {
+        _supportsFilter = false;
+    }
+    return _supportsFilter;
+}
+
+export function _setSupportsCanvasFilterForTesting(val: boolean | null): void {
+    _supportsFilter = val;
+}
+
+/**
+ * Applies a story photo filter directly to an ImageData pixel buffer.
+ * Provides a pixel-exact fallback for browsers lacking native CanvasRenderingContext2D.filter (Safari / iOS).
+ */
+export function applyStoryFilterToImageData(
+    imageData: ImageData,
+    filterId: StoryPhotoFilterId,
+    strength = 1.0
+): void {
+    if (!filterId || filterId === 'none' || strength <= 0) return;
+    const clamped = Math.max(0, Math.min(1, strength));
+
+    const { data } = imageData;
+    const len = data.length;
+
+    switch (filterId) {
+        case 'bw': {
+            // CSS: grayscale(100% * clamped) contrast(100% + 8% * clamped)
+            const gAmount = clamped;
+            const c = 1 + 0.08 * clamped;
+            for (let i = 0; i < len; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+
+                // Grayscale (Rec. 709 weights)
+                const gray = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+                const gr = r + (gray - r) * gAmount;
+                const gg = g + (gray - g) * gAmount;
+                const gb = b + (gray - b) * gAmount;
+
+                // Contrast
+                data[i] = (gr - 128) * c + 128;
+                data[i + 1] = (gg - 128) * c + 128;
+                data[i + 2] = (gb - 128) * c + 128;
+            }
+            break;
+        }
+
+        case 'bw-contrast': {
+            // CSS: grayscale(100% * clamped) contrast(100% + 60% * clamped) brightness(100% - 5% * clamped)
+            const gAmount = clamped;
+            const c = 1 + 0.6 * clamped;
+            const br = 1 - 0.05 * clamped;
+            for (let i = 0; i < len; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+
+                // Grayscale
+                const gray = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+                const gr = r + (gray - r) * gAmount;
+                const gg = g + (gray - g) * gAmount;
+                const gb = b + (gray - b) * gAmount;
+
+                // Contrast + Brightness
+                data[i] = ((gr - 128) * c + 128) * br;
+                data[i + 1] = ((gg - 128) * c + 128) * br;
+                data[i + 2] = ((gb - 128) * c + 128) * br;
+            }
+            break;
+        }
+
+        case 'warm': {
+            // CSS: sepia(28% * clamped) saturate(100% + 20% * clamped) contrast(100% + 5% * clamped) brightness(100% + 2% * clamped)
+            const sAmount = 0.28 * clamped;
+            const sat = 1 + 0.2 * clamped;
+            const c = 1 + 0.05 * clamped;
+            const br = 1 + 0.02 * clamped;
+            for (let i = 0; i < len; i += 4) {
+                let r = data[i];
+                let g = data[i + 1];
+                let b = data[i + 2];
+
+                // Sepia (W3C standard matrix)
+                const sr = 0.393 * r + 0.769 * g + 0.189 * b;
+                const sg = 0.349 * r + 0.686 * g + 0.168 * b;
+                const sb = 0.272 * r + 0.534 * g + 0.131 * b;
+                r = r + (sr - r) * sAmount;
+                g = g + (sg - g) * sAmount;
+                b = b + (sb - b) * sAmount;
+
+                // Saturate
+                const gray = 0.213 * r + 0.715 * g + 0.072 * b;
+                r = gray + (r - gray) * sat;
+                g = gray + (g - gray) * sat;
+                b = gray + (b - gray) * sat;
+
+                // Contrast + Brightness
+                data[i] = ((r - 128) * c + 128) * br;
+                data[i + 1] = ((g - 128) * c + 128) * br;
+                data[i + 2] = ((b - 128) * c + 128) * br;
+            }
+            break;
+        }
+
+        case 'vivid': {
+            // CSS: contrast(100% + 15% * clamped) saturate(100% + 40% * clamped) brightness(100% + 2% * clamped)
+            const c = 1 + 0.15 * clamped;
+            const sat = 1 + 0.4 * clamped;
+            const br = 1 + 0.02 * clamped;
+            for (let i = 0; i < len; i += 4) {
+                let r = data[i];
+                let g = data[i + 1];
+                let b = data[i + 2];
+
+                // Contrast
+                r = (r - 128) * c + 128;
+                g = (g - 128) * c + 128;
+                b = (b - 128) * c + 128;
+
+                // Saturate
+                const gray = 0.213 * r + 0.715 * g + 0.072 * b;
+                r = gray + (r - gray) * sat;
+                g = gray + (g - gray) * sat;
+                b = gray + (b - gray) * sat;
+
+                // Brightness
+                data[i] = r * br;
+                data[i + 1] = g * br;
+                data[i + 2] = b * br;
+            }
+            break;
+        }
+
+        case 'matte': {
+            // CSS: contrast(100% - 12% * clamped) brightness(100% + 8% * clamped) saturate(100% - 10% * clamped)
+            const c = 1 - 0.12 * clamped;
+            const br = 1 + 0.08 * clamped;
+            const sat = 1 - 0.1 * clamped;
+            for (let i = 0; i < len; i += 4) {
+                // Contrast + Brightness
+                const r = ((data[i] - 128) * c + 128) * br;
+                const g = ((data[i + 1] - 128) * c + 128) * br;
+                const b = ((data[i + 2] - 128) * c + 128) * br;
+
+                // Saturate
+                const gray = 0.213 * r + 0.715 * g + 0.072 * b;
+                data[i] = gray + (r - gray) * sat;
+                data[i + 1] = gray + (g - gray) * sat;
+                data[i + 2] = gray + (b - gray) * sat;
+            }
+            break;
+        }
+
+        case 'noir': {
+            // CSS: contrast(100% + 30% * clamped) brightness(100% - 10% * clamped) saturate(100% - 15% * clamped)
+            const c = 1 + 0.3 * clamped;
+            const br = 1 - 0.1 * clamped;
+            const sat = 1 - 0.15 * clamped;
+            for (let i = 0; i < len; i += 4) {
+                // Contrast + Brightness
+                const r = ((data[i] - 128) * c + 128) * br;
+                const g = ((data[i + 1] - 128) * c + 128) * br;
+                const b = ((data[i + 2] - 128) * c + 128) * br;
+
+                // Saturate
+                const gray = 0.213 * r + 0.715 * g + 0.072 * b;
+                data[i] = gray + (r - gray) * sat;
+                data[i + 1] = gray + (g - gray) * sat;
+                data[i + 2] = gray + (b - gray) * sat;
+            }
+            break;
+        }
+
+        case 'sepia': {
+            // CSS: sepia(75% * clamped) contrast(100% + 5% * clamped) brightness(100% - 2% * clamped)
+            const sAmount = 0.75 * clamped;
+            const c = 1 + 0.05 * clamped;
+            const br = 1 - 0.02 * clamped;
+            for (let i = 0; i < len; i += 4) {
+                let r = data[i];
+                let g = data[i + 1];
+                let b = data[i + 2];
+
+                // Sepia
+                const sr = 0.393 * r + 0.769 * g + 0.189 * b;
+                const sg = 0.349 * r + 0.686 * g + 0.168 * b;
+                const sb = 0.272 * r + 0.534 * g + 0.131 * b;
+                r = r + (sr - r) * sAmount;
+                g = g + (sg - g) * sAmount;
+                b = b + (sb - b) * sAmount;
+
+                // Contrast + Brightness
+                data[i] = ((r - 128) * c + 128) * br;
+                data[i + 1] = ((g - 128) * c + 128) * br;
+                data[i + 2] = ((b - 128) * c + 128) * br;
+            }
+            break;
+        }
+
+        default:
+            break;
+    }
+}
+
+/**
+ * Draws an image (or cropped image region) to a canvas context, applying the selected photo filter.
+ * Uses hardware-accelerated ctx.filter when supported by the browser (Chrome, Firefox, Edge).
+ * Seamlessly falls back to an offscreen buffer with pixel-exact color grading on browsers
+ * that lack CanvasRenderingContext2D.filter (Safari / WebKit on iOS and macOS).
+ */
+export function drawImageWithStoryFilter(
+    ctx: CanvasRenderingContext2D,
+    img: HTMLImageElement | HTMLCanvasElement,
+    sx: number,
+    sy: number,
+    sw: number,
+    sh: number,
+    dx: number,
+    dy: number,
+    dw: number,
+    dh: number,
+    filterId?: StoryPhotoFilterId,
+    filterStrength = 1.0,
+    filterCss = ''
+): void {
+    const hasFilter = Boolean(filterId && filterId !== 'none' && filterStrength > 0);
+
+    // Fast path: no filter active
+    if (!hasFilter) {
+        ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+        return;
+    }
+
+    // Path 1: Native hardware-accelerated canvas filter (Chrome, Firefox, Edge)
+    if (supportsCanvasFilter()) {
+        ctx.save();
+        if (filterCss) {
+            ctx.filter = filterCss;
+        }
+        ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+        ctx.restore();
+        return;
+    }
+
+    // Path 2: WebKit / Safari iOS fallback:
+    // Render to an offscreen buffer canvas, apply pixel-exact color grading, and blit to destination ctx.
+    // Blitting through ctx.drawImage preserves any active clipping paths (such as card rounded corners).
+    if (typeof document !== 'undefined') {
+        try {
+            const bufW = Math.max(1, Math.round(dw));
+            const bufH = Math.max(1, Math.round(dh));
+            const buffer = document.createElement('canvas');
+            buffer.width = bufW;
+            buffer.height = bufH;
+            const bCtx = buffer.getContext('2d', { willReadFrequently: true });
+
+            if (bCtx && typeof bCtx.getImageData === 'function' && typeof bCtx.putImageData === 'function') {
+                bCtx.drawImage(img, sx, sy, sw, sh, 0, 0, bufW, bufH);
+                const imgData = bCtx.getImageData(0, 0, bufW, bufH);
+                applyStoryFilterToImageData(imgData, filterId!, filterStrength);
+                bCtx.putImageData(imgData, 0, 0);
+                ctx.drawImage(buffer, dx, dy, dw, dh);
+                return;
+            }
+        } catch (err) {
+            console.warn('Fallback story filter processing failed, drawing standard image:', err);
+        }
+    }
+
+    // Path 3: Graceful fallback if DOM or offscreen context is not available
+    ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
 }

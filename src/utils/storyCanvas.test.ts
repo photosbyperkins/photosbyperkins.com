@@ -8,6 +8,10 @@ import {
     hexToRgba,
     isColorLight,
     getStoryFilterCss,
+    applyStoryFilterToImageData,
+    drawImageWithStoryFilter,
+    supportsCanvasFilter,
+    _setSupportsCanvasFilterForTesting,
     STORY_ASPECT_RATIO,
     STORY_PHOTO_FILTERS,
     STORY_PHOTO_FILTERS_MAP,
@@ -1128,6 +1132,150 @@ describe('storyCanvas calculations', () => {
             expect(mockCanvas.width).toBe(1080);
             expect(mockCanvas.height).toBe(1920);
             expect(drawCalls.length).toBeGreaterThanOrEqual(3);
+        });
+    });
+
+    describe('applyStoryFilterToImageData & drawImageWithStoryFilter', () => {
+        const createSampleImageData = (r = 200, g = 100, b = 50, a = 255) => {
+            const data = new Uint8ClampedArray([r, g, b, a, 10, 20, 30, 255]);
+            return {
+                data,
+                width: 2,
+                height: 1,
+            } as ImageData;
+        };
+
+        it('leaves pixels unchanged when filterId is none or strength is 0', () => {
+            const imgDataNone = createSampleImageData();
+            applyStoryFilterToImageData(imgDataNone, 'none', 1.0);
+            expect(imgDataNone.data[0]).toBe(200);
+            expect(imgDataNone.data[1]).toBe(100);
+            expect(imgDataNone.data[2]).toBe(50);
+            expect(imgDataNone.data[3]).toBe(255);
+
+            const imgDataZero = createSampleImageData();
+            applyStoryFilterToImageData(imgDataZero, 'bw', 0);
+            expect(imgDataZero.data[0]).toBe(200);
+            expect(imgDataZero.data[1]).toBe(100);
+            expect(imgDataZero.data[2]).toBe(50);
+        });
+
+        it('transforms pixel to grayscale for bw filter', () => {
+            const imgData = createSampleImageData(200, 100, 50);
+            applyStoryFilterToImageData(imgData, 'bw', 1.0);
+
+            // r, g, b must be identical (monochrome)
+            expect(imgData.data[0]).toBe(imgData.data[1]);
+            expect(imgData.data[1]).toBe(imgData.data[2]);
+            expect(imgData.data[3]).toBe(255); // alpha preserved
+        });
+
+        it('handles bw-contrast filter with deep contrast and slight darkening', () => {
+            const imgData = createSampleImageData(200, 100, 50);
+            applyStoryFilterToImageData(imgData, 'bw-contrast', 1.0);
+
+            expect(imgData.data[0]).toBe(imgData.data[1]);
+            expect(imgData.data[1]).toBe(imgData.data[2]);
+        });
+
+        it('applies vintage warm filter with sepia and saturation', () => {
+            const imgData = createSampleImageData(120, 120, 120);
+            applyStoryFilterToImageData(imgData, 'warm', 1.0);
+
+            // Sepia shifts neutral gray towards warm amber: red > green > blue
+            expect(imgData.data[0]).toBeGreaterThan(imgData.data[1]);
+            expect(imgData.data[1]).toBeGreaterThan(imgData.data[2]);
+        });
+
+        it('applies sepia filter properly', () => {
+            const imgData = createSampleImageData(150, 150, 150);
+            applyStoryFilterToImageData(imgData, 'sepia', 1.0);
+
+            expect(imgData.data[0]).toBeGreaterThan(imgData.data[1]);
+            expect(imgData.data[1]).toBeGreaterThan(imgData.data[2]);
+        });
+
+        it('applies vivid, matte, and noir filters without errors', () => {
+            for (const filterId of ['vivid', 'matte', 'noir'] as const) {
+                const imgData = createSampleImageData(150, 120, 90);
+                applyStoryFilterToImageData(imgData, filterId, 1.0);
+                expect(imgData.data[0]).toBeGreaterThanOrEqual(0);
+                expect(imgData.data[0]).toBeLessThanOrEqual(255);
+                expect(imgData.data[3]).toBe(255);
+            }
+        });
+
+        it('supportsCanvasFilter detects presence of CanvasRenderingContext2D filter', () => {
+            _setSupportsCanvasFilterForTesting(null);
+            const supported = supportsCanvasFilter();
+            expect(typeof supported).toBe('boolean');
+        });
+
+        it('drawImageWithStoryFilter uses native ctx.filter when supported', () => {
+            _setSupportsCanvasFilterForTesting(true);
+
+            const mockCtx = {
+                save: vi.fn(),
+                restore: vi.fn(),
+                drawImage: vi.fn(),
+                filter: 'none',
+            } as unknown as CanvasRenderingContext2D;
+
+            const mockImg = { width: 100, height: 100 } as HTMLImageElement;
+            drawImageWithStoryFilter(
+                mockCtx,
+                mockImg,
+                0,
+                0,
+                100,
+                100,
+                0,
+                0,
+                100,
+                100,
+                'bw',
+                1.0,
+                'grayscale(100%) contrast(108%)'
+            );
+
+            expect(mockCtx.save).toHaveBeenCalled();
+            expect(mockCtx.filter).toBe('grayscale(100%) contrast(108%)');
+            expect(mockCtx.drawImage).toHaveBeenCalledWith(mockImg, 0, 0, 100, 100, 0, 0, 100, 100);
+            expect(mockCtx.restore).toHaveBeenCalled();
+
+            _setSupportsCanvasFilterForTesting(null);
+        });
+
+        it('drawImageWithStoryFilter draws directly when filter is none', () => {
+            _setSupportsCanvasFilterForTesting(false);
+
+            const mockCtx = {
+                save: vi.fn(),
+                restore: vi.fn(),
+                drawImage: vi.fn(),
+            } as unknown as CanvasRenderingContext2D;
+
+            const mockImg = { width: 100, height: 100 } as HTMLImageElement;
+            drawImageWithStoryFilter(
+                mockCtx,
+                mockImg,
+                0,
+                0,
+                100,
+                100,
+                0,
+                0,
+                100,
+                100,
+                'none',
+                1.0,
+                'none'
+            );
+
+            expect(mockCtx.save).not.toHaveBeenCalled();
+            expect(mockCtx.drawImage).toHaveBeenCalledWith(mockImg, 0, 0, 100, 100, 0, 0, 100, 100);
+
+            _setSupportsCanvasFilterForTesting(null);
         });
     });
 });
