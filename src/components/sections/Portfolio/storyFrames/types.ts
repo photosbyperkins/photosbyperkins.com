@@ -52,7 +52,7 @@ export type StoryFrameColorChoice = 'signature' | 'white' | 'gold' | 'red' | 'cu
 export interface StoryFrameContext {
     hasAttribution?: boolean;
     hasScoreboard?: boolean;
-    layoutMode?: 'crop' | 'padded';
+    layoutMode?: 'crop' | 'padded' | 'burst';
     exif?: ExifData;
 }
 

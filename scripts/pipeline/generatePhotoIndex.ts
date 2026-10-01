@@ -24,6 +24,83 @@ import type { IndexState } from './types.js';
 import { logger } from './logger';
 import { runWithConcurrency } from './utils.js';
 import { loadBuildCache, saveBuildCache, computeDirHash, setAlbumCache } from './cache.js';
+import type { BurstMetadata } from '../../src/types';
+
+export interface BurstCandidate {
+    original: string;
+    thumb?: string;
+    width?: number;
+    height?: number;
+    timestampMs?: number;
+    cameraSerial?: string;
+    burst?: BurstMetadata;
+}
+
+export function detectBursts<T extends BurstCandidate>(
+    items: T[],
+    groupPrefix: string,
+    maxDeltaSec = 2.0
+): void {
+    let currentBurst: T[] = [];
+    let burstIndex = 1;
+
+    const flushBurst = () => {
+        if (currentBurst.length >= 3) {
+            const burstId = `${groupPrefix}-burst-${burstIndex++}`;
+            const total = currentBurst.length;
+            const frameSources = currentBurst.map((p) => p.original);
+            const frameThumbs = currentBurst.map((p) => p.thumb || p.original);
+            const baseTime = currentBurst[0].timestampMs ?? 0;
+            const frameDeltas = currentBurst.map((p) =>
+                p.timestampMs != null && baseTime > 0
+                    ? Number(Math.max(0, (p.timestampMs - baseTime) / 1000).toFixed(2))
+                    : 0
+            );
+
+            currentBurst.forEach((p, idx) => {
+                const deltaSec = frameDeltas[idx] ?? 0;
+
+                p.burst = {
+                    id: burstId,
+                    index: idx,
+                    total,
+                    deltaSec,
+                    frameSources,
+                    frameThumbs,
+                    frameDeltas,
+                };
+            });
+        }
+        currentBurst = [];
+    };
+
+    for (const item of items) {
+        const isLandscape = (item.width || 0) >= (item.height || 0) && (item.width || 0) > 0 && (item.height || 0) > 0;
+        const hasTime = item.timestampMs != null;
+        const hasSerial = Boolean(item.cameraSerial);
+
+        if (isLandscape && hasTime && hasSerial) {
+            if (currentBurst.length === 0) {
+                currentBurst.push(item);
+            } else {
+                const prev = currentBurst[currentBurst.length - 1];
+                const delta = (item.timestampMs! - prev.timestampMs!) / 1000;
+                const sameCamera = item.cameraSerial === prev.cameraSerial;
+
+                if (sameCamera && delta >= 0 && delta <= maxDeltaSec) {
+                    currentBurst.push(item);
+                } else {
+                    flushBurst();
+                    currentBurst.push(item);
+                }
+            }
+        } else {
+            flushBurst();
+        }
+    }
+
+    flushBurst();
+}
 
 const PHOTOS_DIR = path.join(process.cwd(), 'photos');
 const MAX_ALBUM_PER_EVENT = Infinity;
@@ -129,13 +206,28 @@ async function extractExif(absPath: string) {
         const cache = loadBuildCache();
         const cachedEntry = cache.exif[absPath];
 
-        if (cachedEntry && cachedEntry.mtime === stat.mtimeMs && cachedEntry.size === stat.size) {
-            return cachedEntry.exif as { DateTimeOriginal?: string; exif?: Record<string, unknown> };
+        if (
+            cachedEntry &&
+            cachedEntry.mtime === stat.mtimeMs &&
+            cachedEntry.size === stat.size &&
+            cachedEntry.exif &&
+            ('timestampMs' in cachedEntry.exif || 'cameraSerial' in cachedEntry.exif)
+        ) {
+            return cachedEntry.exif as {
+                DateTimeOriginal?: string;
+                timestampMs?: number;
+                cameraSerial?: string;
+                exif?: Record<string, unknown>;
+            };
         }
 
         const exifData = await exifr.parse(absPath, {
             pick: [
                 'DateTimeOriginal',
+                'SubSecTimeOriginal',
+                'SubSecTime',
+                'SerialNumber',
+                'BodySerialNumber',
                 'Make',
                 'Model',
                 'LensModel',
@@ -224,8 +316,25 @@ async function extractExif(absPath: string) {
 
         const hasVisibleData = Object.keys(exifPayload).some((key) => key !== 'isPrime');
 
+        let timestampMs: number | null = null;
+        if (exifData.DateTimeOriginal) {
+            const baseTime = new Date(exifData.DateTimeOriginal).getTime();
+            let subsec = 0;
+            const subsecStr = exifData.SubSecTimeOriginal || exifData.SubSecTime;
+            if (subsecStr) {
+                subsec = parseFloat(`0.${subsecStr}`) * 1000;
+            }
+            timestampMs = baseTime + subsec;
+        }
+
+        const cameraSerial = (exifData.SerialNumber || exifData.BodySerialNumber || exifData.Model || '')
+            .toString()
+            .trim() || undefined;
+
         const result = {
             DateTimeOriginal: exifData.DateTimeOriginal,
+            timestampMs: timestampMs ?? undefined,
+            cameraSerial,
             exif: hasVisibleData ? exifPayload : undefined,
         };
 
@@ -384,6 +493,8 @@ async function processEventDir(eventDir: string, year: string, eventSlug: string
         let width = 0;
         let height = 0;
         let exif = undefined;
+        let timestampMs: number | undefined = undefined;
+        let cameraSerial: string | undefined = undefined;
 
         try {
             const absPath = item.absPath;
@@ -402,6 +513,12 @@ async function processEventDir(eventDir: string, year: string, eventSlug: string
                     if (extracted.exif) {
                         exif = extracted.exif;
                     }
+                    if (extracted.timestampMs !== undefined) {
+                        timestampMs = extracted.timestampMs;
+                    }
+                    if (extracted.cameraSerial !== undefined) {
+                        cameraSerial = extracted.cameraSerial;
+                    }
                 }
             } catch { /* ignore */ }
         } catch { /* ignore */ }
@@ -409,8 +526,11 @@ async function processEventDir(eventDir: string, year: string, eventSlug: string
         // Overrides (both manual and face-detected) apply universally now
         // because the 31-column Fibonacci grid utilizes 1:1 squares which unconditionally crops 3:2 photos.
 
-        albumWithDims.push({ ...item, aspectRatio, width, height, ...(exif ? { exif } : {}) });
+        albumWithDims.push({ ...item, aspectRatio, width, height, timestampMs, cameraSerial, ...(exif ? { exif } : {}) });
     }
+
+    // Detect sequential burst action sets before masonry aspect-ratio reordering
+    detectBursts(albumWithDims, eventSlug, 2.0);
 
     // To make the masonry grid perfectly even at the bottom, we extract the last few photos (max 15)
     // and sort just that final slice by aspect ratio (ascending, so wide photos come last).
@@ -427,7 +547,7 @@ async function processEventDir(eventDir: string, year: string, eventSlug: string
     }
 
     // Clean up albumArr (remove temporary basenames & aspect ratio)
-    const finalAlbum = albumWithDims.map(({ source, original, thumb, width, height, exif }, i) => ({
+    const finalAlbum = albumWithDims.map(({ source, original, thumb, width, height, exif, burst }, i) => ({
         source,
         original,
         thumb,
@@ -435,6 +555,7 @@ async function processEventDir(eventDir: string, year: string, eventSlug: string
         height,
         spriteIndex: i,
         ...(exif && { exif }),
+        ...(burst && { burst }),
     }));
 
     const mappedHighlights = finalHighlights.map(({ source, original, thumb }) => {
@@ -447,6 +568,7 @@ async function processEventDir(eventDir: string, year: string, eventSlug: string
                   width: match.width,
                   height: match.height,
                   ...(match.exif && { exif: match.exif }),
+                  ...(match.burst && { burst: match.burst }),
               }
             : { source, original, thumb };
     });

@@ -216,10 +216,20 @@ export function getStoryFilterCss(filterId: StoryPhotoFilterId, strength = 1.0):
     }
 }
 
+export type BurstDividerStyle = 'hairline' | 'gutter' | 'filmstrip';
+
+export interface BurstStoryOptions {
+    dividerStyle: BurstDividerStyle;
+    showTimeStamps: boolean;
+    timeStamps?: number[]; // [0.0, 0.84, 1.42] seconds elapsed
+    focusYList?: number[]; // vertical focal centers per panel (defaults to 0.5)
+}
+
 export interface StoryRenderConfig {
-    mode: 'crop' | 'padded';
+    mode: 'crop' | 'padded' | 'burst';
     crop: NormalizedCrop;
     padded: PaddedStyleOptions;
+    burst?: BurstStoryOptions;
     badges: BadgeOptions;
     resolution?: '1080x1920' | '1440x2560' | '2160x3840';
     cardTheme?: 'dark' | 'light';

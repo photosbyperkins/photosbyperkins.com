@@ -129,4 +129,104 @@ describe('useStoryStudio', () => {
         expect(result.current.activeFrameId).toBe('none');
         expect(result.current.isDefaultConfig).toBe(true);
     });
+
+    describe('burst mode', () => {
+        const sampleBurstPhoto: PhotoRecord = {
+            original: '/photos/match_burst_2.jpg',
+            thumb: '/photos/match_burst_2_thumb.jpg',
+            focusX: 0.5,
+            focusY: 0.45,
+            burst: {
+                id: 'burst_event_1',
+                index: 1,
+                total: 4,
+                deltaSec: 0.84,
+                frameSources: [
+                    '/photos/match_burst_1.jpg',
+                    '/photos/match_burst_2.jpg',
+                    '/photos/match_burst_3.jpg',
+                    '/photos/match_burst_4.jpg',
+                ],
+                frameThumbs: [
+                    '/photos/match_burst_1_thumb.jpg',
+                    '/photos/match_burst_2_thumb.jpg',
+                    '/photos/match_burst_3_thumb.jpg',
+                    '/photos/match_burst_4_thumb.jpg',
+                ],
+                frameDeltas: [0.0, 0.42, 0.84, 1.26],
+            },
+        };
+
+        const burstProps = {
+            ...defaultProps,
+            photoObj: sampleBurstPhoto,
+            originalSrc: sampleBurstPhoto.original,
+        };
+
+        it('automatically defaults activeMode to burst for photos with burst metadata', () => {
+            const { result } = renderHook(() => useStoryStudio(burstProps));
+
+            expect(result.current.activeMode).toBe('burst');
+            expect(result.current.burstDividerStyle).toBe('hairline');
+            expect(result.current.burstShowTimeStamps).toBe(true);
+            // Index 1 with total 4 should center around frame 1 -> [0, 1, 2]
+            expect(result.current.burstSelectedIndices).toEqual([0, 1, 2]);
+            expect(result.current.currentConfig.burst?.dividerStyle).toBe('hairline');
+            expect(result.current.currentConfig.burst?.showTimeStamps).toBe(true);
+            expect(result.current.isDefaultConfig).toBe(true);
+        });
+
+        it('toggles burstDividerStyle and burstShowTimeStamps and updates currentConfig', () => {
+            const { result } = renderHook(() => useStoryStudio(burstProps));
+
+            act(() => {
+                result.current.setBurstDividerStyle('filmstrip');
+                result.current.setBurstShowTimeStamps(false);
+            });
+
+            expect(result.current.burstDividerStyle).toBe('filmstrip');
+            expect(result.current.burstShowTimeStamps).toBe(false);
+            expect(result.current.currentConfig.burst?.dividerStyle).toBe('filmstrip');
+            expect(result.current.currentConfig.burst?.showTimeStamps).toBe(false);
+            expect(result.current.isDefaultConfig).toBe(false);
+        });
+
+        it('shifts selected indices and recomputes relative timestamps', () => {
+            const { result } = renderHook(() => useStoryStudio(burstProps));
+
+            // Select frames [1, 2, 3] (deltas: [0.42, 0.84, 1.26])
+            act(() => {
+                result.current.setBurstSelectedIndices([1, 2, 3]);
+            });
+
+            expect(result.current.burstSelectedIndices).toEqual([1, 2, 3]);
+            // Relative to base frame 1 (0.42s): [0.0, 0.42, 0.84]
+            expect(result.current.currentConfig.burst?.timeStamps).toEqual([0.0, 0.42, 0.84]);
+        });
+
+        it('restores burst defaults when resetting to defaults on a burst photo', () => {
+            const { result } = renderHook(() => useStoryStudio(burstProps));
+
+            act(() => {
+                result.current.setBurstDividerStyle('gutter');
+                result.current.setBurstShowTimeStamps(false);
+                result.current.setBurstSelectedIndices([1, 2, 3]);
+                result.current.setActiveFilterId('vivid');
+            });
+
+            expect(result.current.burstDividerStyle).toBe('gutter');
+            expect(result.current.isDefaultConfig).toBe(false);
+
+            act(() => {
+                result.current.resetToDefaults();
+            });
+
+            expect(result.current.activeMode).toBe('burst');
+            expect(result.current.burstDividerStyle).toBe('hairline');
+            expect(result.current.burstShowTimeStamps).toBe(true);
+            expect(result.current.burstSelectedIndices).toEqual([0, 1, 2]);
+            expect(result.current.activeFilterId).toBe('none');
+            expect(result.current.isDefaultConfig).toBe(true);
+        });
+    });
 });

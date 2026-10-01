@@ -1,10 +1,12 @@
 import React from 'react';
 import type { NormalizedCrop, PaddedStyleOptions, StoryPreset } from '../../../../utils/storyCanvas';
 import { calculateNormalizedCrop } from '../../../../utils/storyCanvas';
+import type { BurstMetadata } from '../../../../types';
+import type { BurstDividerStyle } from '../../../../store/slices/storySlice';
 
 interface StoryLayoutTabProps {
-    activeMode: 'crop' | 'padded';
-    setActiveMode: (mode: 'crop' | 'padded') => void;
+    activeMode: 'crop' | 'padded' | 'burst';
+    setActiveMode: (mode: 'crop' | 'padded' | 'burst') => void;
     selectedPresetId: string;
     setSelectedPresetId: (id: string) => void;
     presets: StoryPreset[];
@@ -15,6 +17,13 @@ interface StoryLayoutTabProps {
     paddedConfig: PaddedStyleOptions;
     setPaddedConfig: React.Dispatch<React.SetStateAction<PaddedStyleOptions>>;
     setIsDownloaded: (val: boolean) => void;
+    burst?: BurstMetadata;
+    burstDividerStyle?: BurstDividerStyle;
+    setBurstDividerStyle?: (style: BurstDividerStyle) => void;
+    burstShowTimeStamps?: boolean;
+    setBurstShowTimeStamps?: (show: boolean) => void;
+    burstSelectedIndices?: [number, number, number];
+    setBurstSelectedIndices?: (indices: [number, number, number]) => void;
 }
 
 export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
@@ -30,10 +39,17 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
     paddedConfig,
     setPaddedConfig,
     setIsDownloaded,
+    burst,
+    burstDividerStyle = 'hairline',
+    setBurstDividerStyle,
+    burstShowTimeStamps = true,
+    setBurstShowTimeStamps,
+    burstSelectedIndices = [0, 1, 2],
+    setBurstSelectedIndices,
 }) => {
     return (
         <div className="story-export-modal__tab-content story-export-modal__tab-content--layout">
-            {/* Mode Toggle: Smart Crop vs Padded Glass */}
+            {/* Mode Toggle: Smart Crop vs Padded Glass vs 3-Panel Burst */}
             <div className="story-export-modal__section">
                 <div className="story-export-modal__top-row">
                     <div className="portfolio__segmented-toggle story-export-modal__segmented-control">
@@ -60,8 +76,192 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                         >
                             <span>Padded</span>
                         </button>
+                        {burst && (
+                            <button
+                                className={`story-export-modal__seg-btn story-export-modal__seg-btn--burst ${
+                                    activeMode === 'burst' ? 'active story-export-modal__seg-btn--active' : ''
+                                }`}
+                                onClick={() => {
+                                    setActiveMode('burst');
+                                    setIsDownloaded(false);
+                                }}
+                            >
+                                <span>BURST</span>
+                            </button>
+                        )}
                     </div>
                 </div>
+
+                {/* 3-Panel Burst Settings */}
+                {activeMode === 'burst' && burst && (
+                    <div className="story-export-modal__section">
+                        <div className="story-export-modal__padded-settings">
+                            <div className="story-export-modal__toggle-row">
+                                <span>DIVIDER</span>
+                                <div className="portfolio__segmented-toggle story-export-modal__pill-group">
+                                    <button
+                                        type="button"
+                                        className={`story-export-modal__pill ${
+                                            burstDividerStyle === 'hairline'
+                                                ? 'active story-export-modal__pill--active'
+                                                : ''
+                                        }`}
+                                        onClick={() => {
+                                            setBurstDividerStyle?.('hairline');
+                                            setIsDownloaded(false);
+                                        }}
+                                    >
+                                        Hairline
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`story-export-modal__pill ${
+                                            burstDividerStyle === 'gutter'
+                                                ? 'active story-export-modal__pill--active'
+                                                : ''
+                                        }`}
+                                        onClick={() => {
+                                            setBurstDividerStyle?.('gutter');
+                                            setIsDownloaded(false);
+                                        }}
+                                    >
+                                        Gutter
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`story-export-modal__pill ${
+                                            burstDividerStyle === 'filmstrip'
+                                                ? 'active story-export-modal__pill--active'
+                                                : ''
+                                        }`}
+                                        onClick={() => {
+                                            setBurstDividerStyle?.('filmstrip');
+                                            setIsDownloaded(false);
+                                        }}
+                                    >
+                                        Filmstrip
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="story-export-modal__toggle-row" style={{ marginTop: '0.75rem' }}>
+                                <span>+Δt</span>
+                                <div className="portfolio__segmented-toggle story-export-modal__pill-group">
+                                    <button
+                                        type="button"
+                                        className={`story-export-modal__pill ${
+                                            burstShowTimeStamps ? 'active story-export-modal__pill--active' : ''
+                                        }`}
+                                        onClick={() => {
+                                            setBurstShowTimeStamps?.(true);
+                                            setIsDownloaded(false);
+                                        }}
+                                    >
+                                        Show
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`story-export-modal__pill ${
+                                            !burstShowTimeStamps ? 'active story-export-modal__pill--active' : ''
+                                        }`}
+                                        onClick={() => {
+                                            setBurstShowTimeStamps?.(false);
+                                            setIsDownloaded(false);
+                                        }}
+                                    >
+                                        Hide
+                                    </button>
+                                </div>
+                            </div>
+
+                            {burst.total > 3 && (
+                                <div className="story-export-modal__burst-selector" style={{ marginTop: '1rem' }}>
+                                    <div className="story-export-modal__sublabel" style={{ marginBottom: '0.5rem' }}>
+                                        Choose 3 Burst Frames ({burst.total} Captured):
+                                    </div>
+                                    <div
+                                        className="story-export-modal__burst-strip"
+                                        style={{
+                                            display: 'flex',
+                                            gap: '0.5rem',
+                                            overflowX: 'auto',
+                                            paddingBottom: '0.5rem',
+                                        }}
+                                    >
+                                        {burst.frameSources.map((src, fIdx) => {
+                                            const isSelected = burstSelectedIndices.includes(fIdx);
+                                            const thumbUrl = burst.frameThumbs?.[fIdx] || src;
+                                            const delta = burst.frameDeltas?.[fIdx] ?? fIdx * 0.8;
+                                            return (
+                                                <button
+                                                    key={src}
+                                                    type="button"
+                                                    style={{
+                                                        position: 'relative',
+                                                        flexShrink: 0,
+                                                        width: '76px',
+                                                        height: '52px',
+                                                        borderRadius: '6px',
+                                                        overflow: 'hidden',
+                                                        border: isSelected
+                                                            ? '2px solid #f59e0b'
+                                                            : '1px solid rgba(255, 255, 255, 0.15)',
+                                                        boxShadow: isSelected
+                                                            ? '0 0 8px rgba(245, 158, 11, 0.5)'
+                                                            : 'none',
+                                                        opacity: isSelected ? 1 : 0.6,
+                                                        cursor: 'pointer',
+                                                        padding: 0,
+                                                        background: '#0a0a14',
+                                                    }}
+                                                    onClick={() => {
+                                                        if (isSelected) return;
+                                                        const newIndices = [...burstSelectedIndices];
+                                                        newIndices.shift();
+                                                        newIndices.push(fIdx);
+                                                        newIndices.sort((a, b) => a - b);
+                                                        setBurstSelectedIndices?.(
+                                                            newIndices as [number, number, number]
+                                                        );
+                                                        setIsDownloaded(false);
+                                                    }}
+                                                    title={`Frame ${fIdx + 1}: +${delta.toFixed(2)}s`}
+                                                    aria-label={`Frame ${fIdx + 1}, elapsed time +${delta.toFixed(2)} seconds`}
+                                                >
+                                                    <img
+                                                        src={thumbUrl}
+                                                        alt={`Frame ${fIdx + 1}`}
+                                                        style={{
+                                                            width: '100%',
+                                                            height: '100%',
+                                                            objectFit: 'cover',
+                                                        }}
+                                                        loading="lazy"
+                                                    />
+                                                    <span
+                                                        style={{
+                                                            position: 'absolute',
+                                                            bottom: '2px',
+                                                            right: '2px',
+                                                            fontSize: '9px',
+                                                            fontWeight: 600,
+                                                            background: 'rgba(0, 0, 0, 0.75)',
+                                                            color: '#fff',
+                                                            padding: '1px 3px',
+                                                            borderRadius: '3px',
+                                                        }}
+                                                    >
+                                                        +{delta.toFixed(2)}s
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
 
                 {/* Prepared Crop Presets (N-Way Segmented Toggle) */}
                 {activeMode === 'crop' && (

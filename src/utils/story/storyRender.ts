@@ -1,5 +1,5 @@
 import { STORY_WIDTH, STORY_HEIGHT, hexToRgba, isColorLight, getStoryFilterCss } from './storyConstants';
-import type { StoryRenderConfig } from './storyConstants';
+import type { StoryRenderConfig, BurstStoryOptions } from './storyConstants';
 import { drawRoundRect, drawCameraLogoIcon, drawStoryFrameToCanvas, applyFastBlurAndAdjust } from './storyDraw';
 import type { StoryFrameContext } from '../../components/sections/Portfolio/storyFrames/types';
 import { formatTeamName } from '../formatters';
@@ -8,7 +8,7 @@ import { formatTeamName } from '../formatters';
  * Renders the story image onto an HTML5 Canvas.
  */
 export async function renderStoryToCanvas(
-    img: HTMLImageElement | HTMLCanvasElement,
+    img: HTMLImageElement | HTMLCanvasElement | (HTMLImageElement | HTMLCanvasElement)[],
     config: StoryRenderConfig,
     targetCanvas?: HTMLCanvasElement
 ): Promise<HTMLCanvasElement> {
@@ -44,8 +44,13 @@ export async function renderStoryToCanvas(
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
 
-    const naturalW = 'naturalWidth' in img ? img.naturalWidth : img.width;
-    const naturalH = 'naturalHeight' in img ? img.naturalHeight : img.height;
+    const resScale = targetW / STORY_WIDTH;
+    const imageList: (HTMLImageElement | HTMLCanvasElement)[] = Array.isArray(img) ? img : [img];
+    const primaryImg = imageList[0];
+    if (!primaryImg) return canvas;
+
+    const naturalW = 'naturalWidth' in primaryImg ? primaryImg.naturalWidth : primaryImg.width;
+    const naturalH = 'naturalHeight' in primaryImg ? primaryImg.naturalHeight : primaryImg.height;
 
     if (!naturalW || !naturalH) {
         return canvas;
@@ -68,11 +73,17 @@ export async function renderStoryToCanvas(
         if (filterCss && 'filter' in ctx) {
             ctx.filter = filterCss;
         }
-        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetW, targetH);
+        ctx.drawImage(primaryImg, sx, sy, sw, sh, 0, 0, targetW, targetH);
         ctx.restore();
     }
     // ==========================================
-    // 2. RENDER MODE: PADDED (GLASSMORPHIC)
+    // 2. RENDER MODE: BURST (3-PANEL STACK)
+    // ==========================================
+    else if (config.mode === 'burst') {
+        renderBurstPanels(ctx, imageList, config, targetW, targetH, resScale, filterCss);
+    }
+    // ==========================================
+    // 3. RENDER MODE: PADDED (GLASSMORPHIC)
     // ==========================================
     else {
         const { padded } = config;
@@ -111,7 +122,7 @@ export async function renderStoryToCanvas(
                         const sH = naturalH * sScale;
                         const sX = (sw - sW) / 2;
                         const sY = (sh - sH) / 2;
-                        sCtx.drawImage(img, sX, sY, sW, sH);
+                        sCtx.drawImage(primaryImg, sX, sY, sW, sH);
 
                         const imgData = sCtx.getImageData(0, 0, sw, sh);
                         applyFastBlurAndAdjust(imgData, 4, 1.8, 0.65);
@@ -135,7 +146,7 @@ export async function renderStoryToCanvas(
                     const blurEffect = `blur(${Math.round(48 * (targetW / STORY_WIDTH))}px) saturate(180%) brightness(0.65)`;
                     ctx.filter = filterCss ? `${blurEffect} ${filterCss}` : blurEffect;
                 }
-                ctx.drawImage(img, bgX, bgY, bgW, bgH);
+                ctx.drawImage(primaryImg, bgX, bgY, bgW, bgH);
                 ctx.restore();
             }
 
@@ -197,7 +208,7 @@ export async function renderStoryToCanvas(
         if (filterCss && 'filter' in ctx) {
             ctx.filter = filterCss;
         }
-        ctx.drawImage(img, cardX, cardY, cardW, cardH);
+        ctx.drawImage(primaryImg, cardX, cardY, cardW, cardH);
         ctx.filter = 'none';
 
         // Subtle 1px Glass Border
@@ -226,7 +237,6 @@ export async function renderStoryToCanvas(
     // 3. RENDER OPTIONAL STORY BADGES
     // ==========================================
     const { badges } = config;
-    const resScale = targetW / STORY_WIDTH;
 
     // --- Scoreboard Badge (portfolio__event-header style) ---
     if (badges.showScoreboard && (badges.scoreboardTitle || badges.teams?.length)) {
@@ -498,7 +508,7 @@ export async function renderStoryToCanvas(
  * Exports the canvas as a JPEG Blob ready for download or navigator.share.
  */
 export async function renderStoryToBlob(
-    img: HTMLImageElement | HTMLCanvasElement,
+    img: HTMLImageElement | HTMLCanvasElement | (HTMLImageElement | HTMLCanvasElement)[],
     config: StoryRenderConfig
 ): Promise<Blob> {
     const canvas = await renderStoryToCanvas(img, config);
@@ -512,4 +522,283 @@ export async function renderStoryToBlob(
             0.95
         );
     });
+}
+
+/**
+ * Renders 3 stacked landscape photos for sequential burst action stories.
+ */
+export function renderBurstPanels(
+    ctx: CanvasRenderingContext2D,
+    images: (HTMLImageElement | HTMLCanvasElement)[],
+    config: StoryRenderConfig,
+    targetW: number,
+    targetH: number,
+    resScale: number,
+    filterCss: string
+) {
+    const burst: BurstStoryOptions = config.burst || {
+        dividerStyle: 'hairline',
+        showTimeStamps: true,
+        timeStamps: [0.0, 0.84, 1.42],
+        focusYList: [0.45, 0.45, 0.45],
+    };
+    const style = burst.dividerStyle || 'hairline';
+    const showTimeStamps = burst.showTimeStamps ?? true;
+    const timeStamps = burst.timeStamps || [0.0, 0.84, 1.42];
+    const focusYList = burst.focusYList || [0.45, 0.45, 0.45];
+
+    // Ensure 3 panel images
+    const panelImages: (HTMLImageElement | HTMLCanvasElement)[] = [
+        images[0] || images[images.length - 1],
+        images[1] || images[0] || images[images.length - 1],
+        images[2] || images[1] || images[0] || images[images.length - 1],
+    ];
+
+    if (style === 'gutter') {
+        // Dark background with blurred middle image glow
+        ctx.fillStyle = '#08090e';
+        ctx.fillRect(0, 0, targetW, targetH);
+
+        const midImg = panelImages[1];
+        const mw = 'naturalWidth' in midImg ? midImg.naturalWidth : midImg.width;
+        const mh = 'naturalHeight' in midImg ? midImg.naturalHeight : midImg.height;
+        if (mw && mh) {
+            ctx.save();
+            ctx.globalAlpha = 0.22;
+            const bgScale = Math.max(targetW / mw, targetH / mh);
+            const bw = mw * bgScale;
+            const bh = mh * bgScale;
+            ctx.drawImage(midImg, (targetW - bw) / 2, (targetH - bh) / 2, bw, bh);
+            ctx.restore();
+        }
+
+        const margin = Math.round(20 * resScale);
+        const gutter = Math.round(14 * resScale);
+        const topBottomMargin = Math.round(40 * resScale);
+        const panelW = targetW - margin * 2;
+        const panelX = margin;
+        const availableH = targetH - topBottomMargin * 2 - gutter * 2;
+        const panelH = Math.floor(availableH / 3);
+        const panelRadius = Math.round(18 * resScale);
+
+        for (let i = 0; i < 3; i++) {
+            const pImg = panelImages[i];
+            const panelY = topBottomMargin + i * (panelH + gutter);
+            const focusY = focusYList[i] ?? 0.45;
+
+            ctx.save();
+            // Drop shadow for card
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+            ctx.shadowBlur = Math.round(20 * resScale);
+            ctx.shadowOffsetY = Math.round(8 * resScale);
+            drawRoundRect(ctx, panelX, panelY, panelW, panelH, panelRadius);
+            ctx.fillStyle = '#101018';
+            ctx.fill();
+            ctx.restore();
+
+            // Clip and draw image
+            ctx.save();
+            drawRoundRect(ctx, panelX, panelY, panelW, panelH, panelRadius);
+            ctx.clip();
+
+            drawImageFocalCrop(ctx, pImg, panelX, panelY, panelW, panelH, focusY, filterCss);
+            ctx.restore();
+
+            // Card stroke border
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.16)';
+            ctx.lineWidth = Math.round(2 * resScale);
+            drawRoundRect(ctx, panelX, panelY, panelW, panelH, panelRadius);
+            ctx.stroke();
+            ctx.restore();
+
+            if (showTimeStamps) {
+                const dt = timeStamps[i] ?? (i === 0 ? 0 : i * 0.8);
+                drawTimestampPill(ctx, panelX, panelY, panelW, panelH, dt, resScale);
+            }
+        }
+    } else if (style === 'filmstrip') {
+        // Cinematic Contact Sheet
+        ctx.fillStyle = '#050508';
+        ctx.fillRect(0, 0, targetW, targetH);
+
+        const sideMargin = Math.round(46 * resScale);
+        const gutter = Math.round(18 * resScale);
+        const topBottomMargin = Math.round(42 * resScale);
+        const panelW = targetW - sideMargin * 2;
+        const panelX = sideMargin;
+        const availableH = targetH - topBottomMargin * 2 - gutter * 2;
+        const panelH = Math.floor(availableH / 3);
+
+        // Draw decorative film perforations / sprocket holes
+        const holeW = Math.round(14 * resScale);
+        const holeH = Math.round(22 * resScale);
+        const holeR = Math.round(4 * resScale);
+        const totalHoles = 24;
+        const holeSpacing = targetH / totalHoles;
+
+        ctx.save();
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+        for (let h = 0; h < totalHoles; h++) {
+            const hy = h * holeSpacing + (holeSpacing - holeH) / 2;
+            drawRoundRect(ctx, Math.round(14 * resScale), hy, holeW, holeH, holeR);
+            ctx.fill();
+            drawRoundRect(ctx, targetW - Math.round(14 * resScale) - holeW, hy, holeW, holeH, holeR);
+            ctx.fill();
+        }
+        ctx.restore();
+
+        for (let i = 0; i < 3; i++) {
+            const pImg = panelImages[i];
+            const panelY = topBottomMargin + i * (panelH + gutter);
+            const focusY = focusYList[i] ?? 0.45;
+
+            ctx.save();
+            drawImageFocalCrop(ctx, pImg, panelX, panelY, panelW, panelH, focusY, filterCss);
+            ctx.restore();
+
+            // Film frame border
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+            ctx.lineWidth = Math.max(1, Math.round(1.5 * resScale));
+            ctx.strokeRect(panelX, panelY, panelW, panelH);
+            ctx.restore();
+
+            // Frame number label (e.g. 01A, 02A, 03A)
+            ctx.save();
+            ctx.font = `600 ${Math.round(14 * resScale)}px "Outfit", monospace, sans-serif`;
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
+            ctx.textAlign = 'right';
+            ctx.textBaseline = 'top';
+            ctx.fillText(`0${i + 1}A`, panelX - Math.round(10 * resScale), panelY + Math.round(6 * resScale));
+            ctx.restore();
+
+            if (showTimeStamps) {
+                const dt = timeStamps[i] ?? (i === 0 ? 0 : i * 0.8);
+                drawTimestampPill(ctx, panelX, panelY, panelW, panelH, dt, resScale);
+            }
+        }
+    } else {
+        // Clean Hairline (default)
+        ctx.fillStyle = '#0a0a10';
+        ctx.fillRect(0, 0, targetW, targetH);
+
+        const gap = Math.round(4 * resScale);
+        const availableH = targetH - gap * 2;
+        const panelH = Math.floor(availableH / 3);
+
+        for (let i = 0; i < 3; i++) {
+            const pImg = panelImages[i];
+            const panelX = 0;
+            const panelY = i * (panelH + gap);
+            const currentH = i === 2 ? targetH - panelY : panelH;
+            const focusY = focusYList[i] ?? 0.45;
+
+            ctx.save();
+            drawImageFocalCrop(ctx, pImg, panelX, panelY, targetW, currentH, focusY, filterCss);
+            ctx.restore();
+
+            // Hairline separator
+            if (i < 2) {
+                ctx.save();
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.16)';
+                ctx.fillRect(0, panelY + currentH, targetW, gap);
+                ctx.restore();
+            }
+
+            if (showTimeStamps) {
+                const dt = timeStamps[i] ?? (i === 0 ? 0 : i * 0.8);
+                drawTimestampPill(ctx, panelX, panelY, targetW, currentH, dt, resScale);
+            }
+        }
+    }
+}
+
+function drawImageFocalCrop(
+    ctx: CanvasRenderingContext2D,
+    img: HTMLImageElement | HTMLCanvasElement,
+    dx: number,
+    dy: number,
+    dw: number,
+    dh: number,
+    focusY: number,
+    filterCss: string
+) {
+    const nw = 'naturalWidth' in img ? img.naturalWidth : img.width;
+    const nh = 'naturalHeight' in img ? img.naturalHeight : img.height;
+    if (!nw || !nh) return;
+
+    const targetRatio = dw / dh;
+    const imgRatio = nw / nh;
+
+    let sx: number;
+    let sy: number;
+    let sw: number;
+    let sh: number;
+
+    if (imgRatio >= targetRatio) {
+        // Image wider than target
+        sh = nh;
+        sw = nh * targetRatio;
+        sx = (nw - sw) / 2;
+        sy = 0;
+    } else {
+        // Image taller than target (common for landscape photos in 2:1 frame)
+        sw = nw;
+        sh = nw / targetRatio;
+        sx = 0;
+        const centerY = focusY * nh;
+        sy = centerY - sh / 2;
+        sy = Math.max(0, Math.min(nh - sh, sy));
+    }
+
+    ctx.save();
+    if (filterCss && 'filter' in ctx) {
+        ctx.filter = filterCss;
+    }
+    ctx.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+    ctx.restore();
+}
+
+function drawTimestampPill(
+    ctx: CanvasRenderingContext2D,
+    px: number,
+    py: number,
+    pw: number,
+    ph: number,
+    dt: number,
+    resScale: number
+) {
+    const timeText = dt === 0 ? '+0.00s' : `+${dt.toFixed(2)}s`;
+    const pillH = Math.round(36 * resScale);
+    const pillR = pillH / 2;
+
+    ctx.save();
+    ctx.font = `600 ${Math.round(20 * resScale)}px "Outfit", system-ui, sans-serif`;
+    const textW = ctx.measureText(timeText).width;
+    const padX = Math.round(14 * resScale);
+    const pillW = textW + padX * 2;
+
+    const pillX = px + pw - pillW - Math.round(18 * resScale);
+    const pillY = py + ph - pillH - Math.round(16 * resScale);
+
+    // Pill background
+    ctx.fillStyle = 'rgba(8, 8, 12, 0.72)';
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+    ctx.shadowBlur = Math.round(10 * resScale);
+    ctx.shadowOffsetY = Math.round(3 * resScale);
+    drawRoundRect(ctx, pillX, pillY, pillW, pillH, pillR);
+    ctx.fill();
+
+    // Subtle pill stroke
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.22)';
+    ctx.lineWidth = Math.max(1, Math.round(1.2 * resScale));
+    ctx.stroke();
+
+    // Text
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(timeText, pillX + pillW / 2, pillY + pillH / 2 + 1);
+    ctx.restore();
 }

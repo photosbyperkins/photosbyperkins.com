@@ -17,6 +17,16 @@ export interface FaceBox {
     confidence?: number;
 }
 
+export interface BurstMetadata {
+    id: string;
+    index: number;
+    total: number;
+    deltaSec: number;
+    frameSources: string[];
+    frameThumbs?: string[];
+    frameDeltas?: number[];
+}
+
 export interface PhotoRecord {
     original: string;
     thumb: string;
@@ -29,6 +39,7 @@ export interface PhotoRecord {
     height?: number;
     spriteIndex?: number;
     exif?: ExifData;
+    burst?: BurstMetadata;
 }
 
 export type PhotoInput = string | PhotoRecord;

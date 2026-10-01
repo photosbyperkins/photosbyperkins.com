@@ -214,7 +214,7 @@ test.describe('Lightbox', () => {
         await expect(heartBtn).toBeVisible();
     });
 
-    test('should center EXIF metadata display in top bar on desktop and tablet, and maintain fluid clearance on mobile', async ({ page }) => {
+    test('should center EXIF metadata display in top bar on desktop, tablet, and mobile', async ({ page }) => {
         const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
         await photo.waitFor({ timeout: 10000 });
         await photo.click();
@@ -248,7 +248,7 @@ test.describe('Lightbox', () => {
             expect(Math.abs(centerX - 384)).toBeLessThan(1.0);
         }
 
-        // 3. Mobile fluid bounds (375px)
+        // 3. Mobile centering and clearance (375px)
         await page.setViewportSize({ width: 375, height: 812 });
         await page.waitForTimeout(200);
         const mobileBox = await exifCenter.boundingBox();
@@ -259,6 +259,8 @@ test.describe('Lightbox', () => {
         expect(leftBox).not.toBeNull();
         expect(rightBox).not.toBeNull();
         if (mobileBox && leftBox && rightBox) {
+            const centerX = mobileBox.x + mobileBox.width / 2;
+            expect(Math.abs(centerX - 187.5)).toBeLessThan(1.0);
             expect(mobileBox.x).toBeGreaterThanOrEqual(leftBox.x + leftBox.width - 1);
             expect(mobileBox.x + mobileBox.width).toBeLessThanOrEqual(rightBox.x + 1);
         }

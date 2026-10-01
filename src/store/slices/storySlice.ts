@@ -6,11 +6,20 @@ import type {
     StoryFrameId,
 } from '../../components/sections/Portfolio/storyFrames/types';
 
+export type BurstDividerStyle = 'hairline' | 'gutter' | 'filmstrip';
+
+export interface BurstStoryConfig {
+    dividerStyle: BurstDividerStyle;
+    showTimeStamps: boolean;
+    selectedIndices: [number, number, number];
+}
+
 export interface StorySettings {
-    mode: 'crop' | 'padded';
+    mode: 'crop' | 'padded' | 'burst';
     presetId?: string;
     cropZoom?: number;
     paddedConfig: PaddedStyleOptions;
+    burstConfig: BurstStoryConfig;
     filterId: StoryPhotoFilterId;
     filterStrength?: number;
     frameId: StoryFrameId;
@@ -33,6 +42,11 @@ export const DEFAULT_STORY_SETTINGS: StorySettings = {
         cardScale: 0.92,
         cardCornerRadius: 24,
         customColor: '#0a0a14',
+    },
+    burstConfig: {
+        dividerStyle: 'hairline',
+        showTimeStamps: true,
+        selectedIndices: [0, 1, 2],
     },
     filterId: 'none',
     filterStrength: 1.0,
@@ -64,6 +78,14 @@ export const createStorySlice: StateCreator<StorySlice, [], [], StorySlice> = (s
                           paddedConfig: {
                               ...state.storySettings.paddedConfig,
                               ...settings.paddedConfig,
+                          },
+                      }
+                    : {}),
+                ...(settings.burstConfig
+                    ? {
+                          burstConfig: {
+                              ...state.storySettings.burstConfig,
+                              ...settings.burstConfig,
                           },
                       }
                     : {}),

@@ -25,11 +25,6 @@
                 opacity var(--transition-fast),
                 background-color var(--transition-fast);
 
-            @media (max-width: 600px) {
-                display: flex;
-                justify-content: space-between;
-            }
-
             @media (max-width: 480px) {
                 min-height: 48px;
                 padding: max(6px, env(safe-area-inset-top, 6px)) 0.75rem 6px;
@@ -75,10 +70,6 @@
             min-width: 0;
             overflow: hidden;
             pointer-events: none;
-
-            @media (max-width: 600px) {
-                flex: 1;
-            }
         }
 
         &-data-display {

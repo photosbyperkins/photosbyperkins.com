@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAppStore } from '../store/useAppStore';
+import type { BurstDividerStyle } from '../store/slices/storySlice';
 import { useStoryExport } from './useStoryExport';
 import { calculateNormalizedCrop, generateStoryPresets, renderStoryToCanvas } from '../utils/storyCanvas';
 import { STORY_FRAME_DEFINITIONS } from '../components/sections/Portfolio/storyFrames/frameDefinitions';
@@ -29,6 +30,8 @@ export interface UseStoryStudioOptions {
     originalSrc: string;
     localScore?: EventScore;
     loadedImage: HTMLImageElement | null;
+    loadedBurstImages?: HTMLImageElement[];
+    burstLoading?: boolean;
     year: string;
     canShare: boolean;
     onClose: () => void;
@@ -41,6 +44,8 @@ export function useStoryStudio({
     originalSrc,
     localScore,
     loadedImage,
+    loadedBurstImages = [],
+    burstLoading = false,
     year,
     canShare,
     onClose,
@@ -74,7 +79,56 @@ export function useStoryStudio({
         return presets.find((p) => p.isDefault)?.id || 'center';
     });
 
-    const [activeMode, setActiveMode] = useState<'crop' | 'padded'>(() => storySettings.mode || 'crop');
+    const [activeMode, setActiveMode] = useState<'crop' | 'padded' | 'burst'>(() => {
+        if (photoObj.burst) {
+            return storySettings.mode === 'padded' ? 'padded' : 'burst';
+        }
+        return storySettings.mode || 'crop';
+    });
+
+    const [burstDividerStyle, setBurstDividerStyle] = useState<BurstDividerStyle>(
+        () => storySettings.burstConfig?.dividerStyle || 'hairline'
+    );
+    const [burstShowTimeStamps, setBurstShowTimeStamps] = useState<boolean>(
+        () => storySettings.burstConfig?.showTimeStamps ?? true
+    );
+    const [burstSelectedIndices, setBurstSelectedIndices] = useState<[number, number, number]>(() => {
+        if (photoObj.burst && photoObj.burst.total >= 3) {
+            const total = photoObj.burst.total;
+            if (total === 3) return [0, 1, 2];
+            const currentIdx = photoObj.burst.index;
+            if (currentIdx === 0) return [0, 1, 2];
+            if (currentIdx >= total - 1) return [total - 3, total - 2, total - 1];
+            return [currentIdx - 1, currentIdx, currentIdx + 1];
+        }
+        return storySettings.burstConfig?.selectedIndices || [0, 1, 2];
+    });
+
+    const activePanelImages = useMemo(() => {
+        if (!loadedBurstImages || loadedBurstImages.length < 3) {
+            return loadedImage ? [loadedImage, loadedImage, loadedImage] : [];
+        }
+        const img0 = loadedBurstImages[burstSelectedIndices[0]] || loadedBurstImages[0];
+        const img1 = loadedBurstImages[burstSelectedIndices[1]] || loadedBurstImages[1] || loadedBurstImages[0];
+        const img2 =
+            loadedBurstImages[burstSelectedIndices[2]] ||
+            loadedBurstImages[2] ||
+            loadedBurstImages[1] ||
+            loadedBurstImages[0];
+        return [img0, img1, img2];
+    }, [loadedBurstImages, burstSelectedIndices, loadedImage]);
+
+    const activeBurstTimeStamps = useMemo(() => {
+        if (!photoObj.burst?.frameDeltas) {
+            return [0.0, 0.84, 1.42];
+        }
+        const deltas = photoObj.burst.frameDeltas;
+        const d0 = deltas[burstSelectedIndices[0]] ?? 0;
+        const d1 = deltas[burstSelectedIndices[1]] ?? 0.84;
+        const d2 = deltas[burstSelectedIndices[2]] ?? 1.42;
+        const base = d0;
+        return [0.0, Number(Math.max(0, d1 - base).toFixed(2)), Number(Math.max(0, d2 - base).toFixed(2))];
+    }, [photoObj.burst, burstSelectedIndices]);
 
     const [activeCrop, setActiveCrop] = useState<NormalizedCrop>(() => {
         if (storySettings.mode === 'padded') {
@@ -220,6 +274,12 @@ export function useStoryStudio({
             mode: activeMode,
             crop: activeCrop,
             padded: paddedConfig,
+            burst: {
+                dividerStyle: burstDividerStyle,
+                showTimeStamps: burstShowTimeStamps,
+                timeStamps: activeBurstTimeStamps,
+                focusYList: [photoObj.focusY ?? 0.45, photoObj.focusY ?? 0.45, photoObj.focusY ?? 0.45],
+            },
             badges,
             resolution: '1080x1920',
             cardTheme,
@@ -234,19 +294,25 @@ export function useStoryStudio({
             activeMode,
             activeCrop,
             paddedConfig,
+            burstDividerStyle,
+            burstShowTimeStamps,
+            activeBurstTimeStamps,
             badges,
             cardTheme,
             activeFrameId,
             effectiveFrameColor,
             photoObj.exif,
+            photoObj.focusY,
             activeFilterId,
             filterStrength,
         ]
     );
 
+    const exportImage = activeMode === 'burst' && activePanelImages.length >= 3 ? activePanelImages : loadedImage;
+
     const { isExporting, isDownloaded, setIsDownloaded, statusToast, handleExportAction, resetExportState } =
         useStoryExport({
-            loadedImage,
+            loadedImage: exportImage,
             currentConfig,
             eventTitle: eventInfo.title,
             year,
@@ -265,6 +331,11 @@ export function useStoryStudio({
             presetId: selectedPresetId,
             cropZoom: activeCrop.zoom,
             paddedConfig,
+            burstConfig: {
+                dividerStyle: burstDividerStyle,
+                showTimeStamps: burstShowTimeStamps,
+                selectedIndices: burstSelectedIndices,
+            },
             filterId: activeFilterId,
             filterStrength,
             frameId: activeFrameId,
@@ -291,6 +362,9 @@ export function useStoryStudio({
         badges.showAttribution,
         badges.showScoreboard,
         badges.showScores,
+        burstDividerStyle,
+        burstShowTimeStamps,
+        burstSelectedIndices,
         setStorySettings,
     ]);
 
@@ -305,23 +379,30 @@ export function useStoryStudio({
         setSelectedFrameCategory('all');
         setFrameColorChoice('signature');
         setFrameCustomColor('#ffffff');
-        const def = presets.find((p) => p.isDefault) || presets[0];
-        if (def) {
-            setSelectedPresetId(def.id);
-            setActiveMode(def.mode);
-            setActiveCrop(def.crop);
+        if (photoObj.burst) {
+            setActiveMode('burst');
+            setBurstDividerStyle('hairline');
+            setBurstShowTimeStamps(true);
+            setBurstSelectedIndices([0, 1, 2]);
         } else {
-            setSelectedPresetId('center');
-            setActiveMode('crop');
-            setActiveCrop(
-                calculateNormalizedCrop(
-                    naturalDimensions.width,
-                    naturalDimensions.height,
-                    photoObj.focusX ?? 0.5,
-                    photoObj.focusY ?? 0.5,
-                    1.0
-                )
-            );
+            const def = presets.find((p) => p.isDefault) || presets[0];
+            if (def) {
+                setSelectedPresetId(def.id);
+                setActiveMode(def.mode);
+                setActiveCrop(def.crop);
+            } else {
+                setSelectedPresetId('center');
+                setActiveMode('crop');
+                setActiveCrop(
+                    calculateNormalizedCrop(
+                        naturalDimensions.width,
+                        naturalDimensions.height,
+                        photoObj.focusX ?? 0.5,
+                        photoObj.focusY ?? 0.5,
+                        1.0
+                    )
+                );
+            }
         }
         setPaddedConfig({
             style: 'frosted',
@@ -346,6 +427,7 @@ export function useStoryStudio({
     }, [
         resetStorySettings,
         resetExportState,
+        photoObj.burst,
         presets,
         naturalDimensions.width,
         naturalDimensions.height,
@@ -362,29 +444,41 @@ export function useStoryStudio({
         if (activeFrameId !== 'none') return false;
         if (frameColorChoice !== 'signature') return false;
 
-        const def = presets.find((p) => p.isDefault) || presets[0];
-        const defaultPresetId = def ? def.id : 'center';
-        const defaultMode = def ? def.mode : 'crop';
-
-        if (selectedPresetId !== defaultPresetId) return false;
-        if (activeMode !== defaultMode) return false;
-
-        if (activeMode === 'crop') {
-            const defaultCrop = def
-                ? def.crop
-                : calculateNormalizedCrop(
-                      naturalDimensions.width,
-                      naturalDimensions.height,
-                      photoObj.focusX ?? 0.5,
-                      photoObj.focusY ?? 0.5,
-                      1.0
-                  );
+        if (activeMode === 'burst') {
             if (
-                Math.abs(activeCrop.zoom - defaultCrop.zoom) > 0.001 ||
-                Math.abs(activeCrop.x - defaultCrop.x) > 0.001 ||
-                Math.abs(activeCrop.y - defaultCrop.y) > 0.001
+                burstDividerStyle !== 'hairline' ||
+                burstShowTimeStamps !== true ||
+                burstSelectedIndices[0] !== 0 ||
+                burstSelectedIndices[1] !== 1 ||
+                burstSelectedIndices[2] !== 2
             ) {
                 return false;
+            }
+        } else {
+            const def = presets.find((p) => p.isDefault) || presets[0];
+            const defaultPresetId = def ? def.id : 'center';
+            const defaultMode = def ? def.mode : 'crop';
+
+            if (selectedPresetId !== defaultPresetId) return false;
+            if (activeMode !== defaultMode) return false;
+
+            if (activeMode === 'crop') {
+                const defaultCrop = def
+                    ? def.crop
+                    : calculateNormalizedCrop(
+                          naturalDimensions.width,
+                          naturalDimensions.height,
+                          photoObj.focusX ?? 0.5,
+                          photoObj.focusY ?? 0.5,
+                          1.0
+                      );
+                if (
+                    Math.abs(activeCrop.zoom - defaultCrop.zoom) > 0.001 ||
+                    Math.abs(activeCrop.x - defaultCrop.x) > 0.001 ||
+                    Math.abs(activeCrop.y - defaultCrop.y) > 0.001
+                ) {
+                    return false;
+                }
             }
         }
 
@@ -425,6 +519,9 @@ export function useStoryStudio({
         badges.showScoreboard,
         badges.showScores,
         badges.showAttribution,
+        burstDividerStyle,
+        burstShowTimeStamps,
+        burstSelectedIndices,
     ]);
 
     const handleClose = useCallback(() => {
@@ -457,12 +554,20 @@ export function useStoryStudio({
 
     // Update live preview canvas when options change
     useEffect(() => {
-        if (!loadedImage || !previewCanvasRef.current) return;
+        const previewImg = activeMode === 'burst' && activePanelImages.length >= 3 ? activePanelImages : loadedImage;
+
+        if (!previewImg || !previewCanvasRef.current) return;
 
         const config: StoryRenderConfig = {
             mode: activeMode,
             crop: activeCrop,
             padded: paddedConfig,
+            burst: {
+                dividerStyle: burstDividerStyle,
+                showTimeStamps: burstShowTimeStamps,
+                timeStamps: activeBurstTimeStamps,
+                focusYList: [photoObj.focusY ?? 0.45, photoObj.focusY ?? 0.45, photoObj.focusY ?? 0.45],
+            },
             badges: {
                 ...badges,
                 showScoreboard: false,
@@ -475,10 +580,24 @@ export function useStoryStudio({
             filterStrength,
         };
 
-        renderStoryToCanvas(loadedImage, config, previewCanvasRef.current).catch((err: unknown) => {
+        renderStoryToCanvas(previewImg, config, previewCanvasRef.current).catch((err: unknown) => {
             console.error('Preview render error:', err);
         });
-    }, [loadedImage, activeMode, activeCrop, paddedConfig, badges, cardTheme, activeFilterId, filterStrength]);
+    }, [
+        loadedImage,
+        activePanelImages,
+        activeMode,
+        activeCrop,
+        paddedConfig,
+        burstDividerStyle,
+        burstShowTimeStamps,
+        activeBurstTimeStamps,
+        photoObj.focusY,
+        badges,
+        cardTheme,
+        activeFilterId,
+        filterStrength,
+    ]);
 
     return {
         presets,
@@ -491,6 +610,14 @@ export function useStoryStudio({
         handleCropChange,
         paddedConfig,
         setPaddedConfig,
+        burst: photoObj.burst,
+        burstDividerStyle,
+        setBurstDividerStyle,
+        burstShowTimeStamps,
+        setBurstShowTimeStamps,
+        burstSelectedIndices,
+        setBurstSelectedIndices,
+        burstLoading,
         badges,
         setBadges,
         cardTheme,

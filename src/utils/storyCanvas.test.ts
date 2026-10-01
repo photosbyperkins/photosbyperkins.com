@@ -983,4 +983,151 @@ describe('storyCanvas calculations', () => {
             expect(getStoryFilterCss('warm', 0.5)).toBe('sepia(14%) saturate(110%) contrast(103%) brightness(101%)');
         });
     });
+
+    describe('renderBurstPanels & 3-Panel Burst Mode', () => {
+        const createMockContext = () => {
+            const drawCalls: unknown[][] = [];
+            const mockCtx = {
+                save: vi.fn(),
+                restore: vi.fn(),
+                beginPath: vi.fn(),
+                moveTo: vi.fn(),
+                lineTo: vi.fn(),
+                quadraticCurveTo: vi.fn(),
+                arcTo: vi.fn(),
+                closePath: vi.fn(),
+                stroke: vi.fn(),
+                fill: vi.fn(),
+                clip: vi.fn(),
+                drawImage: vi.fn((...args: unknown[]) => drawCalls.push(args)),
+                fillRect: vi.fn(),
+                strokeRect: vi.fn(),
+                fillText: vi.fn(),
+                measureText: vi.fn().mockReturnValue({ width: 50 }),
+                translate: vi.fn(),
+                scale: vi.fn(),
+                strokeStyle: '',
+                fillStyle: '',
+                lineWidth: 0,
+                lineJoin: '',
+                lineCap: '',
+                font: '',
+                textAlign: '',
+                textBaseline: '',
+                shadowColor: '',
+                shadowBlur: 0,
+                shadowOffsetX: 0,
+                shadowOffsetY: 0,
+                imageSmoothingEnabled: false,
+                imageSmoothingQuality: 'low',
+            } as unknown as CanvasRenderingContext2D;
+
+            const mockCanvas = {
+                width: 0,
+                height: 0,
+                getContext: vi.fn().mockReturnValue(mockCtx),
+            } as unknown as HTMLCanvasElement;
+
+            return { mockCtx, mockCanvas, drawCalls };
+        };
+
+        const createMockImage = (w = 3000, h = 2000) => {
+            return {
+                width: w,
+                height: h,
+                naturalWidth: w,
+                naturalHeight: h,
+            } as unknown as HTMLImageElement;
+        };
+
+        it('renders burst story in hairline divider style', async () => {
+            const img1 = createMockImage(3000, 2000);
+            const img2 = createMockImage(3000, 2000);
+            const img3 = createMockImage(3000, 2000);
+            const { mockCanvas, drawCalls } = createMockContext();
+
+            await renderStoryToCanvas(
+                [img1, img2, img3],
+                {
+                    mode: 'burst',
+                    crop: { x: 0, y: 0, width: 1, height: 1, zoom: 1, centerX: 0.5, centerY: 0.5 },
+                    padded: { style: 'frosted', position: 'center', cardScale: 0.92, cardCornerRadius: 24 },
+                    burst: {
+                        dividerStyle: 'hairline',
+                        showTimeStamps: true,
+                        timeStamps: [0.0, 0.84, 1.42],
+                    },
+                    badges: {
+                        showScoreboard: true,
+                        showAttribution: true,
+                        teams: ['Team A', 'Team B'],
+                    },
+                },
+                mockCanvas
+            );
+
+            expect(mockCanvas.width).toBe(1080);
+            expect(mockCanvas.height).toBe(1920);
+            expect(drawCalls.length).toBeGreaterThanOrEqual(3);
+        });
+
+        it('renders burst story in gutter divider style', async () => {
+            const img1 = createMockImage(3000, 2000);
+            const img2 = createMockImage(3000, 2000);
+            const img3 = createMockImage(3000, 2000);
+            const { mockCanvas, drawCalls } = createMockContext();
+
+            await renderStoryToCanvas(
+                [img1, img2, img3],
+                {
+                    mode: 'burst',
+                    crop: { x: 0, y: 0, width: 1, height: 1, zoom: 1, centerX: 0.5, centerY: 0.5 },
+                    padded: { style: 'frosted', position: 'center', cardScale: 0.92, cardCornerRadius: 24 },
+                    burst: {
+                        dividerStyle: 'gutter',
+                        showTimeStamps: true,
+                        timeStamps: [0.0, 0.75, 1.5],
+                    },
+                    badges: {
+                        showScoreboard: false,
+                        showAttribution: true,
+                    },
+                },
+                mockCanvas
+            );
+
+            expect(mockCanvas.width).toBe(1080);
+            expect(mockCanvas.height).toBe(1920);
+            expect(drawCalls.length).toBeGreaterThanOrEqual(3);
+        });
+
+        it('renders burst story in filmstrip divider style', async () => {
+            const img1 = createMockImage(3000, 2000);
+            const img2 = createMockImage(3000, 2000);
+            const img3 = createMockImage(3000, 2000);
+            const { mockCanvas, drawCalls } = createMockContext();
+
+            await renderStoryToCanvas(
+                [img1, img2, img3],
+                {
+                    mode: 'burst',
+                    crop: { x: 0, y: 0, width: 1, height: 1, zoom: 1, centerX: 0.5, centerY: 0.5 },
+                    padded: { style: 'frosted', position: 'center', cardScale: 0.92, cardCornerRadius: 24 },
+                    burst: {
+                        dividerStyle: 'filmstrip',
+                        showTimeStamps: false,
+                    },
+                    badges: {
+                        showScoreboard: false,
+                        showAttribution: false,
+                    },
+                },
+                mockCanvas
+            );
+
+            expect(mockCanvas.width).toBe(1080);
+            expect(mockCanvas.height).toBe(1920);
+            expect(drawCalls.length).toBeGreaterThanOrEqual(3);
+        });
+    });
 });

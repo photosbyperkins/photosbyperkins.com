@@ -46,6 +46,8 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
 }) => {
     const canShare = useCanShare();
 
+    const photoRecord = useMemo(() => (typeof photo === 'string' ? { original: photo, thumb: photo } : photo), [photo]);
+
     const {
         photoObj,
         originalSrc,
@@ -53,10 +55,12 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         thumbSrc,
         withBuild,
         loadedImage,
+        loadedBurstImages,
+        burstLoading,
         imageError,
         naturalDimensions,
         setNaturalDimensions,
-    } = useStoryImageLoader({ photo, isOpen });
+    } = useStoryImageLoader({ photo, isOpen, burstSources: photoRecord.burst?.frameSources });
 
     // Parse match title and teams for scoreboard badge
     const eventInfo = useMemo(() => {
@@ -79,6 +83,13 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         handleCropChange,
         paddedConfig,
         setPaddedConfig,
+        burst,
+        burstDividerStyle,
+        setBurstDividerStyle,
+        burstShowTimeStamps,
+        setBurstShowTimeStamps,
+        burstSelectedIndices,
+        setBurstSelectedIndices,
         badges,
         setBadges,
         cardTheme,
@@ -116,6 +127,8 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         originalSrc,
         localScore,
         loadedImage,
+        loadedBurstImages,
+        burstLoading,
         year,
         canShare,
         onClose,
@@ -156,7 +169,11 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                 isDownloaded ? 'is-done story-export-modal__primary-action--done' : ''
             }`}
             onClick={handleExportAction}
-            disabled={isExporting || !loadedImage || isDownloaded}
+            disabled={
+                isExporting ||
+                (activeMode === 'burst' ? burstLoading || (loadedBurstImages?.length ?? 0) < 3 : !loadedImage) ||
+                isDownloaded
+            }
             title={
                 isDownloaded
                     ? canShare
@@ -320,6 +337,13 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                 paddedConfig={paddedConfig}
                                 setPaddedConfig={setPaddedConfig}
                                 setIsDownloaded={setIsDownloaded}
+                                burst={burst}
+                                burstDividerStyle={burstDividerStyle}
+                                setBurstDividerStyle={setBurstDividerStyle}
+                                burstShowTimeStamps={burstShowTimeStamps}
+                                setBurstShowTimeStamps={setBurstShowTimeStamps}
+                                burstSelectedIndices={burstSelectedIndices}
+                                setBurstSelectedIndices={setBurstSelectedIndices}
                             />
                         )}
 
