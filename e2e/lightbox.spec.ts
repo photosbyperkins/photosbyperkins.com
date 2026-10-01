@@ -213,4 +213,54 @@ test.describe('Lightbox', () => {
         const heartBtn = lightbox.locator('button[aria-label="Toggle Favorite"]');
         await expect(heartBtn).toBeVisible();
     });
+
+    test('should center EXIF metadata display in top bar on desktop and tablet, and maintain fluid clearance on mobile', async ({ page }) => {
+        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
+        await photo.waitFor({ timeout: 10000 });
+        await photo.click();
+
+        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
+        await expect(lightbox).toBeVisible({ timeout: 5000 });
+
+        const topBar = page.locator('.portfolio__lightbox-top-bar');
+        await expect(topBar).toBeVisible();
+
+        const exifCenter = page.locator('.portfolio__lightbox-top-center');
+        await expect(exifCenter).toBeVisible();
+
+        // 1. Desktop centering (1280px)
+        await page.setViewportSize({ width: 1280, height: 800 });
+        await page.waitForTimeout(200);
+        const desktopBox = await exifCenter.boundingBox();
+        expect(desktopBox).not.toBeNull();
+        if (desktopBox) {
+            const centerX = desktopBox.x + desktopBox.width / 2;
+            expect(Math.abs(centerX - 640)).toBeLessThan(1.0);
+        }
+
+        // 2. Tablet centering (768px)
+        await page.setViewportSize({ width: 768, height: 1024 });
+        await page.waitForTimeout(200);
+        const tabletBox = await exifCenter.boundingBox();
+        expect(tabletBox).not.toBeNull();
+        if (tabletBox) {
+            const centerX = tabletBox.x + tabletBox.width / 2;
+            expect(Math.abs(centerX - 384)).toBeLessThan(1.0);
+        }
+
+        // 3. Mobile fluid bounds (375px)
+        await page.setViewportSize({ width: 375, height: 812 });
+        await page.waitForTimeout(200);
+        const mobileBox = await exifCenter.boundingBox();
+        const leftBox = await page.locator('.portfolio__lightbox-top-left').boundingBox();
+        const rightBox = await page.locator('.portfolio__lightbox-top-right').boundingBox();
+
+        expect(mobileBox).not.toBeNull();
+        expect(leftBox).not.toBeNull();
+        expect(rightBox).not.toBeNull();
+        if (mobileBox && leftBox && rightBox) {
+            expect(mobileBox.x).toBeGreaterThanOrEqual(leftBox.x + leftBox.width - 1);
+            expect(mobileBox.x + mobileBox.width).toBeLessThanOrEqual(rightBox.x + 1);
+        }
+    });
 });
