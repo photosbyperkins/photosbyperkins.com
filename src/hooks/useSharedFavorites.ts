@@ -21,7 +21,7 @@ export function useSharedFavorites() {
 
                 for (const group of groups) {
                     const [year, slug] = group.albumKey.split('/');
-                    if (!year || !slug) continue;
+                    if (!year || !slug || !/^\d{4}$/.test(year) || !/^[a-zA-Z0-9_-]+$/.test(slug)) continue;
 
                     const albumRes = await fetch(`/data/albums/${year}/${slug}.json?build=${__BUILD_NUMBER__}`);
                     if (!albumRes.ok) continue;

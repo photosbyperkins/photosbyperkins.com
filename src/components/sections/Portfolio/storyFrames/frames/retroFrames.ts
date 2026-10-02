@@ -40,7 +40,7 @@ export const RETRO_FRAMES: StoryFrameDefinition[] = [
                 <line x1="540" y1="${gridY}" x2="840" y2="1920" stroke="${cyan}" stroke-width="2.5" />
                 <line x1="540" y1="${gridY}" x2="1020" y2="1920" stroke="${cyan}" stroke-width="2.5" />
 
-                {/* Symmetrical Top Neon Wireframe Triangles */}
+                <!-- Symmetrical Top Neon Wireframe Triangles -->
                 <g transform="translate(100, ${topY})">
                     <polygon points="0,-28 32,28 -32,28" stroke="${cyan}" stroke-width="3.5" fill="none" />
                     <polygon points="0,-16 20,18 -20,18" stroke="${magenta}" stroke-width="2" fill="none" />
@@ -120,14 +120,14 @@ export const RETRO_FRAMES: StoryFrameDefinition[] = [
             const bottomY = hasScoreboard ? 1730 : 1820;
 
             return `
-                {/* Top-Left OSD: PLAY & Tape Speed */}
+                <!-- Top-Left OSD: PLAY and Tape Speed -->
                 <g transform="translate(60, ${topY - 15})">
                     <text x="0" y="22" fill="${phosphor}" font-family="'Courier New', Courier, monospace" font-size="28" font-weight="bold" letter-spacing="0.1em">PLAY</text>
                     <polygon points="90,7 110,18 90,29" fill="${phosphor}" />
                     <text x="0" y="52" fill="${phosphor}" font-family="'Courier New', Courier, monospace" font-size="18" font-weight="bold" opacity="0.8">SP</text>
                 </g>
 
-                {/* Top-Right OSD: REC & Battery Meter */}
+                <!-- Top-Right OSD: REC and Battery Meter -->
                 <g transform="translate(860, ${topY - 15})">
                     <circle cx="16" cy="15" r="9" fill="${recRed}" />
                     <text x="34" y="22" fill="#ffffff" font-family="'Courier New', Courier, monospace" font-size="24" font-weight="bold">REC</text>
@@ -139,19 +139,19 @@ export const RETRO_FRAMES: StoryFrameDefinition[] = [
                     </g>
                 </g>
 
-                {/* Bottom-Left OSD: Timecode & Tracking */}
+                <!-- Bottom-Left OSD: Timecode and Tracking -->
                 <g transform="translate(60, ${bottomY})">
                     <text x="0" y="0" fill="${phosphor}" font-family="'Courier New', Courier, monospace" font-size="24" font-weight="bold" letter-spacing="0.1em">-0:14:26</text>
                     <text x="0" y="24" fill="${phosphor}" font-family="'Courier New', Courier, monospace" font-size="14" font-weight="bold" opacity="0.75">CH 03 • AUTO</text>
                 </g>
 
-                {/* Bottom-Right OSD: Date & Hi-Fi Audio (Symmetrical Balance) */}
+                <!-- Bottom-Right OSD: Date and Hi-Fi Audio (Symmetrical Balance) -->
                 <g transform="translate(860, ${bottomY})">
                     <text x="160" y="0" fill="${phosphor}" font-family="'Courier New', Courier, monospace" font-size="22" font-weight="bold" letter-spacing="0.08em" text-anchor="end">OCT 24 1994</text>
                     <text x="160" y="24" fill="${phosphor}" font-family="'Courier New', Courier, monospace" font-size="14" font-weight="bold" opacity="0.75" text-anchor="end">HI-FI STEREO</text>
                 </g>
 
-                {/* Tracking Static Pulses on Left & Right Margins */}
+                <!-- Tracking Static Pulses on Left and Right Margins -->
                 <line x1="24" y1="720" x2="80" y2="720" stroke="${phosphor}" stroke-width="2.5" opacity="0.5" />
                 <line x1="1000" y1="720" x2="1056" y2="720" stroke="${phosphor}" stroke-width="2.5" opacity="0.5" />
             `;

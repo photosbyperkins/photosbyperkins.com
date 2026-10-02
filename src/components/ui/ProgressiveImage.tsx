@@ -22,9 +22,16 @@ export default function ProgressiveImage({
     ...props
 }: ProgressiveImageProps) {
     const [isLoaded, setIsLoaded] = useState(false);
+    const [prevSrc, setPrevSrc] = useState(src);
     const [shouldLoad, setShouldLoad] = useState(priority);
     const containerRef = useRef<HTMLDivElement>(null);
     const imgRef = useRef<HTMLImageElement>(null);
+
+    // Reset loaded state when src changes (e.g. recycled row in virtualized grid)
+    if (src !== prevSrc) {
+        setPrevSrc(src);
+        setIsLoaded(false);
+    }
 
     useEffect(() => {
         if (priority || shouldLoad || !containerRef.current) return;

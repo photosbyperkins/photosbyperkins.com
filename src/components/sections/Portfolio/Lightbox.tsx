@@ -248,7 +248,7 @@ export default function Lightbox({
     });
 
     useBodyScrollLock(true);
-    useFocusTrap(lightboxRef, true);
+    useFocusTrap(lightboxRef, !isStoryExportOpen && !isHelpOpen);
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect

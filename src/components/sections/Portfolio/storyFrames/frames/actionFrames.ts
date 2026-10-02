@@ -20,23 +20,23 @@ export const ACTION_FRAMES: StoryFrameDefinition[] = [
 
             const clawCluster = (scale = 1) => `
                 <g transform="scale(${scale})">
-                    {/* Claw 1 (Outer) */}
+                    <!-- Claw 1 (Outer) -->
                     <path d="M0,0 Q60,120 120,260 Q105,240 100,180 Q60,90 0,0 Z" fill="${primary}" opacity="0.95" />
                     <path d="M20,30 Q65,120 105,225 Q95,210 90,170 Q60,100 20,30 Z" fill="${highlight}" opacity="0.4" />
 
-                    {/* Claw 2 (Middle) */}
+                    <!-- Claw 2 (Middle) -->
                     <path d="M-50,30 Q10,150 70,290 Q55,270 50,210 Q10,120 -50,30 Z" fill="${accent}" opacity="0.92" />
                     <path d="M-30,60 Q15,150 60,255 Q48,240 44,200 Q15,130 -30,60 Z" fill="${highlight}" opacity="0.55" />
 
-                    {/* Claw 3 (Inner - Longest) */}
+                    <!-- Claw 3 (Inner - Longest) -->
                     <path d="M-100,60 Q-40,180 20,320 Q5,300 0,240 Q-40,150 -100,60 Z" fill="${primary}" opacity="0.88" />
                     <path d="M-80,90 Q-32,180 12,285 Q0,270 -4,230 Q-32,160 -80,90 Z" fill="${highlight}" opacity="0.4" />
 
-                    {/* Micro Scratch Marks */}
+                    <!-- Micro Scratch Marks -->
                     <path d="M40,50 Q80,130 115,200" stroke="${accent}" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.6" />
                     <path d="M-130,110 Q-80,195 -40,260" stroke="${primary}" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.5" />
 
-                    {/* Glowing Impact Embers */}
+                    <!-- Glowing Impact Embers -->
                     <circle cx="40" cy="200" r="4.5" fill="${highlight}" />
                     <circle cx="80" cy="280" r="3.5" fill="${accent}" />
                     <circle cx="-20" cy="260" r="5" fill="${highlight}" />
@@ -47,13 +47,13 @@ export const ACTION_FRAMES: StoryFrameDefinition[] = [
             `;
 
             return `
-                {/* Dynamic Asymmetric Clustered Claw Strikes */}
-                {/* Top-Right Primary Rake */}
+                <!-- Dynamic Asymmetric Clustered Claw Strikes -->
+                <!-- Top-Right Primary Rake -->
                 <g transform="translate(860, 45) rotate(16)">
                     ${clawCluster(1.1)}
                 </g>
 
-                {/* Bottom-Left Counter Rake */}
+                <!-- Bottom-Left Counter Rake -->
                 <g transform="${bottomTransform}">
                     ${clawCluster(1.05)}
                 </g>
@@ -75,7 +75,7 @@ export const ACTION_FRAMES: StoryFrameDefinition[] = [
             const bottomOffset = hasScoreboard ? 1750 : 1800;
 
             return `
-                {/* Top-Right Ben-Day Dot Matrix */}
+                <!-- Top-Right Ben-Day Dot Matrix -->
                 <g transform="translate(970, 0)">
                     <circle cx="90" cy="18" r="18" fill="${red}" />
                     <circle cx="90" cy="54" r="14" fill="${yellow}" />
@@ -96,13 +96,13 @@ export const ACTION_FRAMES: StoryFrameDefinition[] = [
                     <circle cx="-8" cy="54" r="4.5" fill="${yellow}" />
                 </g>
 
-                {/* Top-Left Action Speed Stripes */}
+                <!-- Top-Left Action Speed Stripes -->
                 <line x1="0" y1="0" x2="160" y2="100" stroke="${red}" stroke-width="6" stroke-linecap="round" />
                 <line x1="0" y1="40" x2="120" y2="120" stroke="${yellow}" stroke-width="5" stroke-linecap="round" />
                 <line x1="0" y1="80" x2="80" y2="130" stroke="${cyan}" stroke-width="4" stroke-linecap="round" />
                 <polygon points="175,108 178,118 188,121 178,124 175,134 172,124 162,121 172,118" fill="${yellow}" />
 
-                {/* Bottom-Left Ben-Day Dot Matrix */}
+                <!-- Bottom-Left Ben-Day Dot Matrix -->
                 <g transform="translate(0, ${bottomOffset})">
                     <circle cx="18" cy="95" r="18" fill="${red}" />
                     <circle cx="18" cy="60" r="14" fill="${yellow}" />
@@ -123,7 +123,7 @@ export const ACTION_FRAMES: StoryFrameDefinition[] = [
                     <circle cx="114" cy="60" r="4.5" fill="${yellow}" />
                 </g>
 
-                {/* Bottom-Right Action Speed Stripes */}
+                <!-- Bottom-Right Action Speed Stripes -->
                 <g transform="translate(0, ${bottomOffset - 1750})">
                     <line x1="1080" y1="1890" x2="920" y2="1790" stroke="${red}" stroke-width="6" stroke-linecap="round" />
                     <line x1="1080" y1="1850" x2="960" y2="1770" stroke="${yellow}" stroke-width="5" stroke-linecap="round" />
@@ -154,7 +154,7 @@ export const ACTION_FRAMES: StoryFrameDefinition[] = [
             `;
 
             return `
-                {/* Bottom Symmetrical Flames */}
+                <!-- Bottom Symmetrical Flames -->
                 <g transform="translate(0, ${bottomY})">
                     ${flameTongues}
                 </g>
@@ -162,7 +162,7 @@ export const ACTION_FRAMES: StoryFrameDefinition[] = [
                     ${flameTongues}
                 </g>
 
-                {/* Top Corner Flame Pinstripes */}
+                <!-- Top Corner Flame Pinstripes -->
                 <g transform="translate(0, ${topY}) scale(0.65, -0.65)">
                     ${flameTongues}
                 </g>
@@ -197,31 +197,31 @@ export const ACTION_FRAMES: StoryFrameDefinition[] = [
             const groundSparksRight = hasScoreboard ? 'translate(1000, 1730)' : 'translate(950, 1830)';
 
             return `
-                {/* Left Vertical High-Voltage Lightning */}
+                <!-- Left Vertical High-Voltage Lightning -->
                 <path d="M40,-20 L95,110 L60,150 L130,280 L85,330 L150,490 L105,550 L160,680" stroke="${primary}" stroke-width="7" stroke-linejoin="bevel" stroke-linecap="round" fill="none" opacity="0.4" />
                 <path d="M40,-20 L95,110 L60,150 L130,280 L85,330 L150,490 L105,550 L160,680" stroke="${plasma}" stroke-width="4" stroke-linejoin="bevel" stroke-linecap="round" fill="none" />
                 <path d="M40,-20 L95,110 L60,150 L130,280 L85,330 L150,490 L105,550 L160,680" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="bevel" stroke-linecap="round" fill="none" />
 
-                {/* Right Vertical High-Voltage Lightning */}
+                <!-- Right Vertical High-Voltage Lightning -->
                 <path d="M1040,-20 L985,110 L1020,150 L950,280 L995,330 L930,490 L975,550 L920,680" stroke="${primary}" stroke-width="7" stroke-linejoin="bevel" stroke-linecap="round" fill="none" opacity="0.4" />
                 <path d="M1040,-20 L985,110 L1020,150 L950,280 L995,330 L930,490 L975,550 L920,680" stroke="${plasma}" stroke-width="4" stroke-linejoin="bevel" stroke-linecap="round" fill="none" />
                 <path d="M1040,-20 L985,110 L1020,150 L950,280 L995,330 L930,490 L975,550 L920,680" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="bevel" stroke-linecap="round" fill="none" />
 
-                {/* Symmetrical Top Flanking Sparks */}
+                <!-- Symmetrical Top Flanking Sparks -->
                 <polygon points="120,${topSparkY - 15} 125,${topSparkY} 140,${topSparkY + 5} 125,${topSparkY + 10} 120,${topSparkY + 25} 115,${topSparkY + 10} 100,${topSparkY + 5} 115,${topSparkY}" fill="${spark}" />
                 <polygon points="960,${topSparkY - 15} 965,${topSparkY} 980,${topSparkY + 5} 965,${topSparkY + 10} 960,${topSparkY + 25} 955,${topSparkY + 10} 940,${topSparkY + 5} 955,${topSparkY}" fill="${spark}" />
 
-                {/* Symmetrical Mid Sparks */}
+                <!-- Symmetrical Mid Sparks -->
                 <polygon points="175,380 179,392 191,396 179,400 175,412 171,400 159,396 171,392" fill="#ffffff" />
                 <polygon points="905,380 909,392 921,396 909,400 905,412 901,400 889,396 901,392" fill="#ffffff" />
 
-                {/* Mid-Flank Lightning Pulses */}
+                <!-- Mid-Flank Lightning Pulses -->
                 <path d="M35,820 L65,880 L45,920 L75,990" stroke="${primary}" stroke-width="2.5" fill="none" opacity="0.75" />
                 <circle cx="75" cy="990" r="3" fill="${spark}" />
                 <path d="M1045,820 L1015,880 L1035,920 L1005,990" stroke="${primary}" stroke-width="2.5" fill="none" opacity="0.75" />
                 <circle cx="1005" cy="990" r="3" fill="${spark}" />
 
-                {/* Bottom Lightning Bolts */}
+                <!-- Bottom Lightning Bolts -->
                 <path d="${bottomBoltLeft}" stroke="${primary}" stroke-width="5" stroke-linejoin="bevel" stroke-linecap="round" fill="none" opacity="0.4" />
                 <path d="${bottomBoltLeft}" stroke="${plasma}" stroke-width="3" stroke-linejoin="bevel" stroke-linecap="round" fill="none" />
                 <path d="${bottomBoltLeft}" stroke="#ffffff" stroke-width="1.2" stroke-linejoin="bevel" stroke-linecap="round" fill="none" />
@@ -268,7 +268,7 @@ export const ACTION_FRAMES: StoryFrameDefinition[] = [
             `;
 
             return `
-                {/* 4 Symmetrical Sonic Blast Corners */}
+                <!-- 4 Symmetrical Sonic Blast Corners -->
                 <g transform="translate(0, ${topOriginY})">
                     ${shockwaveQuarter(false, false)}
                 </g>
@@ -322,13 +322,13 @@ export const ACTION_FRAMES: StoryFrameDefinition[] = [
                 ${topStreams}
                 ${bottomStreams}
 
-                {/* Symmetrical Left & Right Flank Wind-Tunnel Chevrons */}
+                <!-- Symmetrical Left and Right Flank Wind-Tunnel Chevrons -->
                 ${chevronFlank(40, 500, 1)}
                 ${chevronFlank(1040, 500, -1)}
                 ${chevronFlank(40, 1100, 1)}
                 ${chevronFlank(1040, 1100, -1)}
 
-                {/* Edge Dashed Speed Boundaries */}
+                <!-- Edge Dashed Speed Boundaries -->
                 <line x1="24" y1="260" x2="24" y2="1660" stroke="${c2}" stroke-width="2" stroke-dasharray="24 16" opacity="0.5" />
                 <line x1="1056" y1="260" x2="1056" y2="1660" stroke="${c2}" stroke-width="2" stroke-dasharray="24 16" opacity="0.5" />
             `;

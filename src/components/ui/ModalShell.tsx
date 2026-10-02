@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ExternalLink } from 'lucide-react';
-import React, { useEffect, useRef } from 'react';
+import { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 import '../../styles/_modal-shell.scss';
@@ -62,7 +63,7 @@ export default function ModalShell({
 
     const containerMaxWidthClass = `modal-shell__container--${maxWidth}`;
 
-    return (
+    const content = (
         <AnimatePresence>
             {isOpen && (
                 <motion.div
@@ -134,4 +135,7 @@ export default function ModalShell({
             )}
         </AnimatePresence>
     );
+
+    if (typeof document === 'undefined') return content;
+    return createPortal(content, document.body);
 }

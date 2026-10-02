@@ -30,7 +30,7 @@ describe('StoryExportModal', () => {
     });
 
     it('renders the modal structure with viewport-card and controls-pane', () => {
-        const { container } = render(
+        const { baseElement } = render(
             <StoryExportModal
                 isOpen={true}
                 onClose={mockOnClose}
@@ -42,20 +42,20 @@ describe('StoryExportModal', () => {
         );
 
         // Verify body and preview pane
-        expect(container.querySelector('.story-export-modal__body')).not.toBeNull();
-        expect(container.querySelector('.story-export-modal__preview-pane')).not.toBeNull();
-        expect(container.querySelector('.story-export-modal__viewport-card')).not.toBeNull();
-        expect(container.querySelector('.story-export-modal__controls-pane')).not.toBeNull();
+        expect(baseElement.querySelector('.story-export-modal__body')).not.toBeNull();
+        expect(baseElement.querySelector('.story-export-modal__preview-pane')).not.toBeNull();
+        expect(baseElement.querySelector('.story-export-modal__viewport-card')).not.toBeNull();
+        expect(baseElement.querySelector('.story-export-modal__controls-pane')).not.toBeNull();
 
         // In default crop mode, StoryCropper is rendered inside viewport-card
-        const viewportCard = container.querySelector('.story-export-modal__viewport-card');
-        const storyCropper = container.querySelector('.story-cropper');
+        const viewportCard = baseElement.querySelector('.story-export-modal__viewport-card');
+        const storyCropper = baseElement.querySelector('.story-cropper');
         expect(storyCropper).not.toBeNull();
         expect(viewportCard?.contains(storyCropper!)).toBe(true);
     });
 
     it('hides reset button when at defaults, shows it when altered, and restores defaults on click without toasts', () => {
-        const { container } = render(
+        const { baseElement } = render(
             <StoryExportModal
                 isOpen={true}
                 onClose={mockOnClose}
@@ -67,28 +67,28 @@ describe('StoryExportModal', () => {
         );
 
         // At default configuration, Reset to Defaults button is hidden
-        expect(within(container).queryByRole('button', { name: /Reset story format to defaults/i })).toBeNull();
+        expect(within(baseElement).queryByRole('button', { name: /Reset story format to defaults/i })).toBeNull();
 
         // Switch to Padded mode to alter story format
-        const paddedBtn = within(container).getByRole('button', { name: /^padded$/i });
+        const paddedBtn = within(baseElement).getByRole('button', { name: /^padded$/i });
         fireEvent.click(paddedBtn);
 
         // Now the Reset button appears in header actions
-        const resetBtn = within(container).getByRole('button', { name: /Reset story format to defaults/i });
+        const resetBtn = within(baseElement).getByRole('button', { name: /Reset story format to defaults/i });
         expect(resetBtn).not.toBeNull();
 
         // Clicking reset button restores default format
         fireEvent.click(resetBtn);
 
         // Reset button is hidden again once back at defaults
-        expect(within(container).queryByRole('button', { name: /Reset story format to defaults/i })).toBeNull();
+        expect(within(baseElement).queryByRole('button', { name: /Reset story format to defaults/i })).toBeNull();
 
         // No toast message rendered
-        expect(container.querySelector('.story-export-modal__toast')).toBeNull();
+        expect(baseElement.querySelector('.story-export-modal__toast')).toBeNull();
     });
 
     it('switches studio tabs using left and right arrow keys', () => {
-        const { container } = render(
+        const { baseElement } = render(
             <StoryExportModal
                 isOpen={true}
                 onClose={mockOnClose}
@@ -100,31 +100,31 @@ describe('StoryExportModal', () => {
         );
 
         // Initial tab is Layout
-        expect(within(container).getByRole('tab', { name: /layout/i, selected: true })).toBeDefined();
+        expect(within(baseElement).getByRole('tab', { name: /layout/i, selected: true })).toBeDefined();
 
         // Press ArrowRight -> moves to Filters tab
         fireEvent.keyDown(window, { key: 'ArrowRight' });
-        expect(within(container).getByRole('tab', { name: /filters/i, selected: true })).toBeDefined();
+        expect(within(baseElement).getByRole('tab', { name: /filters/i, selected: true })).toBeDefined();
 
         // Press ArrowRight -> moves to Frames tab
         fireEvent.keyDown(window, { key: 'ArrowRight' });
-        expect(within(container).getByRole('tab', { name: /frames/i, selected: true })).toBeDefined();
+        expect(within(baseElement).getByRole('tab', { name: /frames/i, selected: true })).toBeDefined();
 
         // Press ArrowRight -> moves to Badges tab
         fireEvent.keyDown(window, { key: 'ArrowRight' });
-        expect(within(container).getByRole('tab', { name: /badges/i, selected: true })).toBeDefined();
+        expect(within(baseElement).getByRole('tab', { name: /badges/i, selected: true })).toBeDefined();
 
         // Press ArrowRight -> wraps back to Layout tab
         fireEvent.keyDown(window, { key: 'ArrowRight' });
-        expect(within(container).getByRole('tab', { name: /layout/i, selected: true })).toBeDefined();
+        expect(within(baseElement).getByRole('tab', { name: /layout/i, selected: true })).toBeDefined();
 
         // Press ArrowLeft -> wraps to Badges tab
         fireEvent.keyDown(window, { key: 'ArrowLeft' });
-        expect(within(container).getByRole('tab', { name: /badges/i, selected: true })).toBeDefined();
+        expect(within(baseElement).getByRole('tab', { name: /badges/i, selected: true })).toBeDefined();
     });
 
     it('switches to padded mode and renders padded-preview container', () => {
-        const { container } = render(
+        const { baseElement } = render(
             <StoryExportModal
                 isOpen={true}
                 onClose={mockOnClose}
@@ -136,11 +136,11 @@ describe('StoryExportModal', () => {
         );
 
         // Click 'Padded' segmented toggle
-        const paddedBtn = within(container).getByRole('button', { name: /^padded$/i });
+        const paddedBtn = within(baseElement).getByRole('button', { name: /^padded$/i });
         fireEvent.click(paddedBtn);
 
-        const viewportCard = container.querySelector('.story-export-modal__viewport-card');
-        const paddedPreview = container.querySelector('.story-export-modal__padded-preview');
+        const viewportCard = baseElement.querySelector('.story-export-modal__viewport-card');
+        const paddedPreview = baseElement.querySelector('.story-export-modal__padded-preview');
         expect(paddedPreview).not.toBeNull();
         expect(viewportCard?.contains(paddedPreview!)).toBe(true);
     });
@@ -173,7 +173,7 @@ describe('StoryExportModal', () => {
             },
         };
 
-        const { container } = render(
+        const { baseElement } = render(
             <StoryExportModal
                 isOpen={true}
                 onClose={mockOnClose}
@@ -185,10 +185,10 @@ describe('StoryExportModal', () => {
         );
 
         // Switch to Burst mode
-        const burstBtn = within(container).getByRole('button', { name: /^burst$/i });
+        const burstBtn = within(baseElement).getByRole('button', { name: /^burst$/i });
         fireEvent.click(burstBtn);
 
-        expect(container.querySelector('.story-burst-cropper')).not.toBeNull();
+        expect(baseElement.querySelector('.story-burst-cropper')).not.toBeNull();
 
         // Switch to BTM step and clear it by clicking again
         const slotGroup = screen.getByRole('group', { name: /Burst Wizard Steps/i });
@@ -197,7 +197,7 @@ describe('StoryExportModal', () => {
         fireEvent.click(slotButtons[2]); // Clear BTM
 
         // Download button should be disabled with dynamic prompt
-        const exportBtn = container.querySelector<HTMLButtonElement>('.story-export-modal__primary-action');
+        const exportBtn = baseElement.querySelector<HTMLButtonElement>('.story-export-modal__primary-action');
         expect(exportBtn?.disabled).toBe(true);
         expect(exportBtn?.getAttribute('aria-label')).toBe('Pick 1 more frame to download');
         expect(exportBtn?.getAttribute('title')).toBe('Pick 1 more frame to download');

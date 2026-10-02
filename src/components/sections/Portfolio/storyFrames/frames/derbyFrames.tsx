@@ -66,7 +66,7 @@ export const DERBY_FRAMES: StoryFrameDefinition[] = [
                         />
                     )}
 
-                    {/* Bottom Red Stripe & Gold Underline */}
+                    {/* Bottom Red Stripe and Gold Underline */}
                     {hasScoreboard ? (
                         <>
                             <line x1="40" y1="1870" x2="200" y2="1870" stroke={accent} strokeWidth="6" />
@@ -165,7 +165,7 @@ export const DERBY_FRAMES: StoryFrameDefinition[] = [
                 : `<line x1="150" y1="120" x2="930" y2="120" stroke="${primary}" stroke-width="3" stroke-dasharray="12 8" opacity="0.6" />`;
 
             return `
-                {/* Twin Jammer Stars */}
+                <!-- Twin Jammer Stars -->
                 <polygon points="100,80 110,110 142,110 116,128 126,158 100,140 74,158 84,128 58,110 90,110" fill="${primary}" />
                 <polygon points="980,80 990,110 1022,110 996,128 1006,158 980,140 954,158 964,128 938,110 970,110" fill="${primary}" />
                 ${topConnector}
@@ -209,7 +209,7 @@ export const DERBY_FRAMES: StoryFrameDefinition[] = [
             const whistleY = hasAttribution ? 120 : 90;
 
             return `
-                {/* Balanced Top Left & Right Zebra Chevrons */}
+                <!-- Balanced Top Left and Right Zebra Chevrons -->
                 <g transform="translate(0, ${topOffset})">
                     <polygon points="0,0 160,0 130,26 0,26" fill="${stripeColor}" opacity="0.9" />
                     <polygon points="0,38 160,38 130,64 0,64" fill="${stripeColor}" opacity="0.9" />
@@ -221,7 +221,7 @@ export const DERBY_FRAMES: StoryFrameDefinition[] = [
                     <polygon points="160,76 0,76 30,102 160,102" fill="${stripeColor}" opacity="0.9" />
                 </g>
 
-                {/* Balanced Bottom Left & Right Zebra Chevrons */}
+                <!-- Balanced Bottom Left and Right Zebra Chevrons -->
                 <g transform="translate(0, ${bottomOffset})">
                     <polygon points="0,0 160,0 130,26 0,26" fill="${stripeColor}" opacity="0.9" />
                     <polygon points="0,38 160,38 130,64 0,64" fill="${stripeColor}" opacity="0.9" />
@@ -233,7 +233,7 @@ export const DERBY_FRAMES: StoryFrameDefinition[] = [
                     <polygon points="160,76 0,76 30,102 160,102" fill="${stripeColor}" opacity="0.9" />
                 </g>
 
-                {/* Whistle Icon on Top Left Flank */}
+                <!-- Whistle Icon on Top Left Flank -->
                 <g transform="translate(50, ${whistleY})">
                     <circle cx="20" cy="20" r="14" stroke="${accent}" stroke-width="3" fill="none" />
                     <rect x="28" y="14" width="38" height="12" rx="3" fill="${stripeColor}" />
@@ -244,13 +244,13 @@ export const DERBY_FRAMES: StoryFrameDefinition[] = [
                     <path d="M110,6 Q124,20 110,34" stroke="${accent}" stroke-width="2.5" fill="none" opacity="0.7" />
                 </g>
 
-                {/* Technical Officials Penalty Marker on Top Right Flank */}
+                <!-- Technical Officials Penalty Marker on Top Right Flank -->
                 <g transform="translate(920, ${whistleY + 20})">
                     <text x="100" y="0" fill="${accent}" font-family="monospace" font-size="15" font-weight="bold" letter-spacing="0.12em" text-anchor="end">BOX // 0:30</text>
                     <text x="100" y="18" fill="${stripeColor}" font-family="monospace" font-size="11" font-weight="bold" letter-spacing="0.1em" opacity="0.8" text-anchor="end">OFFICIAL // WFTDA</text>
                 </g>
 
-                {/* 4 Corner Athletic Brackets */}
+                <!-- 4 Corner Athletic Brackets -->
                 <path d="M40,240 L40,160 L120,160" stroke="${stripeColor}" stroke-width="4" fill="none" />
                 <path d="M1040,240 L1040,160 L960,160" stroke="${stripeColor}" stroke-width="4" fill="none" />
                 <path d="M40,1680 L40,1760 L120,1760" stroke="${stripeColor}" stroke-width="4" fill="none" />
@@ -299,13 +299,13 @@ export const DERBY_FRAMES: StoryFrameDefinition[] = [
                 <line x1="976" y1="96" x2="1024" y2="96" stroke="${gold}" stroke-width="2" />
                 <line x1="1024" y1="96" x2="1024" y2="144" stroke="${gold}" stroke-width="2" />
 
-                {/* Left: Jammer Star Helmet Crest */}
+                <!-- Left: Jammer Star Helmet Crest -->
                 <g transform="translate(110, ${topY})">
                     <circle cx="0" cy="0" r="30" stroke="${gold}" stroke-width="3" fill="rgba(245,158,11,0.15)" />
                     <polygon points="0,-20 6,-6 20,-6 9,3 13,17 0,9 -13,17 -9,3 -20,-6 -6,-6" fill="${starColor}" />
                 </g>
 
-                {/* Right: Pivot Stripe Helmet Crest */}
+                <!-- Right: Pivot Stripe Helmet Crest -->
                 <g transform="translate(970, ${topY})">
                     <circle cx="0" cy="0" r="30" stroke="${gold}" stroke-width="3" fill="rgba(245,158,11,0.15)" />
                     <rect x="-6" y="-20" width="12" height="40" rx="3" fill="${starColor}" />
@@ -314,7 +314,7 @@ export const DERBY_FRAMES: StoryFrameDefinition[] = [
                 ${centerBadge}
                 ${bottomLeadJammer}
 
-                {/* Symmetrical Dashed Track Lines */}
+                <!-- Symmetrical Dashed Track Lines -->
                 <line x1="30" y1="280" x2="30" y2="1640" stroke="${gold}" stroke-width="3" stroke-dasharray="24 16" opacity="0.6" />
                 <line x1="1050" y1="280" x2="1050" y2="1640" stroke="${gold}" stroke-width="3" stroke-dasharray="24 16" opacity="0.6" />
             `;
@@ -343,11 +343,11 @@ export const DERBY_FRAMES: StoryFrameDefinition[] = [
             }
 
             return `
-                {/* Symmetrical Zigzag Overlock Stitching */}
+                <!-- Symmetrical Zigzag Overlock Stitching -->
                 <path d="${leftStitches.join(' ')}" stroke="${stitch}" stroke-width="3" fill="none" opacity="0.8" />
                 <path d="${rightStitches.join(' ')}" stroke="${stitch}" stroke-width="3" fill="none" opacity="0.8" />
 
-                {/* Top Symmetrical Safety Pins (Flanking Badges) */}
+                <!-- Top Symmetrical Safety Pins (Flanking Badges) -->
                 <g transform="translate(90, ${topPinY}) rotate(-35)">
                     <path d="M-10,-35 C-10,-48 26,-48 26,-35 L26,-12 C26,-4 10,-4 10,-12 Z" fill="${pinColor}" />
                     <circle cx="8" cy="-38" r="4.5" fill="#111116" />
@@ -359,7 +359,7 @@ export const DERBY_FRAMES: StoryFrameDefinition[] = [
                     <path d="M0,-12 L0,55 A13,13 0 1 0 16,55 L16,-30" stroke="${pinColor}" stroke-width="4.5" fill="none" stroke-linecap="round" />
                 </g>
 
-                {/* Bottom Symmetrical Safety Pins */}
+                <!-- Bottom Symmetrical Safety Pins -->
                 <g transform="translate(90, ${bottomPinY}) rotate(-145)">
                     <path d="M-10,-35 C-10,-48 26,-48 26,-35 L26,-12 C26,-4 10,-4 10,-12 Z" fill="${pinColor}" />
                     <circle cx="8" cy="-38" r="4.5" fill="#111116" />
@@ -371,7 +371,7 @@ export const DERBY_FRAMES: StoryFrameDefinition[] = [
                     <path d="M0,-12 L0,55 A13,13 0 1 0 16,55 L16,-30" stroke="${pinColor}" stroke-width="4.5" fill="none" stroke-linecap="round" />
                 </g>
 
-                {/* Corner Cross Stitches */}
+                <!-- Corner Cross Stitches -->
                 <g stroke="${stitch}" stroke-width="3.5" opacity="0.85">
                     <line x1="45" y1="45" x2="65" y2="65" />
                     <line x1="65" y1="45" x2="45" y2="65" />

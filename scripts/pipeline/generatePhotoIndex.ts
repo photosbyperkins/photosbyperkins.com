@@ -503,12 +503,14 @@ async function processEventDir(
     albumArr.sort((a, b) => a.basename.localeCompare(b.basename, undefined, { numeric: true, sensitivity: 'base' }));
 
     // 3. Map highlight files to album entries by filename
-    const highlightsPaths = highlightFiles.map((abs) => {
-        const filename = path.basename(abs);
-        const norm = normalizeBasename(filename);
-        const match = albumArr.find((a) => a.normalized === norm || a.basename === filename.toLowerCase());
-        return { source: match!.source, original: match!.original, thumb: match!.thumb };
-    });
+    const highlightsPaths = highlightFiles
+        .map((abs) => {
+            const filename = path.basename(abs);
+            const norm = normalizeBasename(filename);
+            const match = albumArr.find((a) => a.normalized === norm || a.basename === filename.toLowerCase());
+            return match ? { source: match.source, original: match.original, thumb: match.thumb } : null;
+        })
+        .filter((h): h is { source: string; original: string; thumb: string } => h !== null);
 
     // Take random 10 from highlights; fill from album randomly if needed
     const uniqueHighlights = Array.from(new Map(highlightsPaths.map((h) => [h.original, h])).values());

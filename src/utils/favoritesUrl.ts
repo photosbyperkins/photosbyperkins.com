@@ -60,14 +60,20 @@ async function inflate(data: Uint8Array): Promise<Uint8Array> {
 
     const reader = ds.readable.getReader();
     const chunks: Uint8Array[] = [];
+    const MAX_DECOMPRESSED_BYTES = 500_000;
+    let accumulatedBytes = 0;
+
     for (;;) {
         const { done, value } = await reader.read();
         if (done) break;
+        accumulatedBytes += value.length;
+        if (accumulatedBytes > MAX_DECOMPRESSED_BYTES) {
+            throw new Error(`Decompressed payload exceeds maximum size of ${MAX_DECOMPRESSED_BYTES} bytes`);
+        }
         chunks.push(value);
     }
 
-    const totalLength = chunks.reduce((sum, c) => sum + c.length, 0);
-    const result = new Uint8Array(totalLength);
+    const result = new Uint8Array(accumulatedBytes);
     let offset = 0;
     for (const chunk of chunks) {
         result.set(chunk, offset);

@@ -17,6 +17,8 @@ export function useEventAlbum({ ev, isVisible, selectedYear, eventName, setEv }:
     const [retryCount, setRetryCount] = useState(0);
 
     useEffect(() => {
+        let isMounted = true;
+
         if (
             isVisible &&
             (!ev.album || ev.album.length === 0) &&
@@ -35,10 +37,12 @@ export function useEventAlbum({ ev, isVisible, selectedYear, eventName, setEv }:
                         return res.json();
                     })
                     .then((albumData) => {
+                        if (!isMounted) return;
                         setEv((prev) => ({ ...prev, album: albumData }));
                         setLoading(false);
                     })
                     .catch((err) => {
+                        if (!isMounted) return;
                         console.error(`Failed to load album for ${eventName}:`, err);
                         setLoading(false);
                         setRetryCount((prev) => {
@@ -47,8 +51,15 @@ export function useEventAlbum({ ev, isVisible, selectedYear, eventName, setEv }:
                         });
                     });
             }, 0);
-            return () => clearTimeout(timer);
+            return () => {
+                isMounted = false;
+                clearTimeout(timer);
+            };
         }
+
+        return () => {
+            isMounted = false;
+        };
     }, [
         isVisible,
         selectedYear,

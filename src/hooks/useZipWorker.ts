@@ -36,7 +36,9 @@ export function useZipWorker() {
                     const a = document.createElement('a');
                     a.href = url;
                     a.download = outFilename;
+                    document.body.appendChild(a);
                     a.click();
+                    document.body.removeChild(a);
                     setTimeout(() => {
                         URL.revokeObjectURL(url);
                         activeUrlsRef.current.delete(url);

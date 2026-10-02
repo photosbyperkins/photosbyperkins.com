@@ -22,7 +22,7 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
                 : 'translate(860, 1660) scale(1.05)';
 
             return `
-                {/* Top-Left Rainbow Arch & Clouds */}
+                <!-- Top-Left Rainbow Arch and Clouds -->
                 <path d="M-30,220 C100,220 220,100 220,-30" stroke="${c1}" stroke-width="16" fill="none" />
                 <path d="M-30,200 C85,200 200,85 200,-30" stroke="${c2}" stroke-width="16" fill="none" />
                 <path d="M-30,180 C70,180 180,70 180,-30" stroke="${c3}" stroke-width="16" fill="none" />
@@ -31,7 +31,7 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
                 <circle cx="220" cy="65" r="20" fill="#ffffff" opacity="0.85" />
                 <circle cx="65" cy="190" r="24" fill="#ffffff" opacity="0.85" />
 
-                {/* Top-Right Dream Cloud & Magic Starbursts */}
+                <!-- Top-Right Dream Cloud and Magic Starbursts -->
                 <g transform="translate(980, ${topY})">
                     <circle cx="10" cy="-10" r="24" fill="#ffffff" opacity="0.85" />
                     <circle cx="-16" cy="6" r="20" fill="#ffffff" opacity="0.85" />
@@ -40,7 +40,7 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
                     <circle cx="0" cy="0" r="3" fill="#ffffff" />
                 </g>
 
-                {/* Bottom Unicorn Mascot on Cloud Flank */}
+                <!-- Bottom Unicorn Mascot on Cloud Flank -->
                 <g transform="${unicornTransform}">
                     <path d="M96,62 C125,40 170,44 198,68 C212,80 214,96 198,104 C184,110 172,100 178,88 C182,78 165,62 118,74 Z" fill="${c2}" />
                     <path d="M112,82 C145,68 190,78 214,105 C226,118 225,134 208,142 C194,148 184,136 190,125 C195,114 175,98 124,106 Z" fill="${c3}" />
@@ -113,7 +113,7 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
             const rightAnchorTransform = hasScoreboard ? 'translate(980, 1730)' : 'translate(980, 1800)';
 
             return `
-                {/* Top-Right Ringed Celestial Planet */}
+                <!-- Top-Right Ringed Celestial Planet -->
                 <g transform="translate(950, ${topY}) rotate(-22)">
                     <path d="M-85,0 A85,18 0 0,1 85,0" stroke="${p2}" stroke-width="6" fill="none" opacity="0.8" />
                     <path d="M-66,0 A66,13 0 0,1 66,0" stroke="${p1}" stroke-width="3.5" fill="none" opacity="0.9" />
@@ -126,7 +126,7 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
                     <path d="M78,0 A78,16 0 0,1 -78,0" stroke="#ffffff" stroke-width="1.2" fill="none" opacity="0.75" />
                 </g>
 
-                {/* Top-Left Streaking Comet & Orbit Rays */}
+                <!-- Top-Left Streaking Comet and Orbit Rays -->
                 <g opacity="0.95">
                     <line x1="-30" y1="80" x2="200" y2="190" stroke="${p2}" stroke-width="3" opacity="0.85" />
                     <line x1="10" y1="75" x2="195" y2="182" stroke="#ffffff" stroke-width="1.5" opacity="0.9" />
@@ -135,7 +135,7 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
                 </g>
                 <path d="M-20,130 A260,260 0 0,1 260,-20" stroke="${p2}" stroke-width="2" stroke-dasharray="10 8" fill="none" opacity="0.6" />
 
-                {/* Flank Constellation Points */}
+                <!-- Flank Constellation Points -->
                 <polygon points="80,290 84,302 96,306 84,310 80,322 76,310 64,306 76,302" fill="#ffffff" opacity="0.9" />
                 <polygon points="1010,480 1013,490 1023,493 1013,496 1010,506 1007,496 997,493 1007,490" fill="${gold}" opacity="0.85" />
                 <polyline points="50,420 75,490 35,570 85,660 50,740" stroke="${p2}" stroke-width="1.8" stroke-dasharray="5 5" fill="none" opacity="0.65" />
@@ -145,14 +145,14 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
                 <circle cx="85" cy="660" r="5" fill="${p1}" />
                 <circle cx="50" cy="740" r="4.5" fill="${gold}" />
 
-                {/* Bottom-Left Moon & Orbit */}
+                <!-- Bottom-Left Moon and Orbit -->
                 <g transform="${moonTransform}">
                     <path d="M-18,-28 A30,30 0 0,0 20,28 A24,24 0 0,1 -18,-28 Z" fill="${gold}" />
                     <ellipse cx="32" cy="6" rx="36" ry="12" stroke="${p2}" stroke-width="1.8" stroke-dasharray="6 4" fill="none" transform="rotate(-15 32 6)" opacity="0.8" />
                     <circle cx="32" cy="6" r="3.5" fill="#ffffff" />
                 </g>
 
-                {/* Bottom-Right Golden Starburst Flank */}
+                <!-- Bottom-Right Golden Starburst Flank -->
                 <g transform="${rightAnchorTransform}">
                     <polygon points="0,-18 5,-5 18,0 5,5 0,18 -5,5 -18,0 -5,-5" fill="${gold}" />
                     <circle cx="0" cy="0" r="3" fill="#ffffff" />
@@ -183,21 +183,21 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
             `;
 
             return `
-                {/* Top-Left Crescent Moon */}
+                <!-- Top-Left Crescent Moon -->
                 <g transform="translate(80, ${topY})">
                     <path d="M-18,-30 A34,34 0 0,0 22,30 A26,26 0 0,1 -18,-30 Z" fill="${gold}" />
                     <line x1="36" y1="-18" x2="36" y2="34" stroke="${silver}" stroke-width="1.5" />
                     <polygon points="36,34 33,40 36,46 39,40" fill="${gold}" />
                 </g>
 
-                {/* Top-Right Mirrored Crescent Moon */}
+                <!-- Top-Right Mirrored Crescent Moon -->
                 <g transform="translate(1000, ${topY}) scale(-1, 1)">
                     <path d="M-18,-30 A34,34 0 0,0 22,30 A26,26 0 0,1 -18,-30 Z" fill="${gold}" />
                     <line x1="36" y1="-18" x2="36" y2="34" stroke="${silver}" stroke-width="1.5" />
                     <polygon points="36,34 33,40 36,46 39,40" fill="${gold}" />
                 </g>
 
-                {/* Left & Right Border Starlight Beads */}
+                <!-- Left and Right Border Starlight Beads -->
                 <circle cx="35" cy="450" r="4" fill="${gold}" />
                 <circle cx="35" cy="750" r="3" fill="${silver}" />
                 <circle cx="35" cy="1050" r="4" fill="${gold}" />
@@ -207,7 +207,7 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
                 <circle cx="1045" cy="1050" r="3" fill="${silver}" />
                 <circle cx="1045" cy="1350" r="4" fill="${gold}" />
 
-                {/* Bottom Symmetrical Celestial Starbursts */}
+                <!-- Bottom Symmetrical Celestial Starbursts -->
                 <g transform="translate(90, ${bottomY})">
                     ${starburst(gold)}
                 </g>
@@ -215,7 +215,7 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
                     ${starburst(gold)}
                 </g>
 
-                {/* 4 Art-Deco Corner Brackets */}
+                <!-- 4 Art-Deco Corner Brackets -->
                 <path d="M30,140 L30,50 L120,50" stroke="${gold}" stroke-width="2" fill="none" />
                 <path d="M1050,140 L1050,50 L960,50" stroke="${gold}" stroke-width="2" fill="none" />
                 <path d="M30,1780 L30,1870 L120,1870" stroke="${gold}" stroke-width="2" fill="none" />
@@ -248,7 +248,7 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
             `;
 
             return `
-                {/* 4 Symmetrical Glamour Sparkles */}
+                <!-- 4 Symmetrical Glamour Sparkles -->
                 <g transform="translate(90, ${topY})">
                     ${sparkle(0.85)}
                 </g>
@@ -288,7 +288,7 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
             `;
 
             return `
-                {/* Symmetrical Top Mirror Balls */}
+                <!-- Symmetrical Top Mirror Balls -->
                 <g transform="translate(100, ${topY})">
                     ${mirrorBall}
                 </g>
@@ -296,7 +296,7 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
                     ${mirrorBall}
                 </g>
 
-                {/* Symmetrical Bottom Disco Neon Floor Curves */}
+                <!-- Symmetrical Bottom Disco Neon Floor Curves -->
                 <path d="M0,1740 Q180,1740 180,1920" stroke="${pink}" stroke-width="4" fill="none" opacity="0.8" />
                 <path d="M0,1760 Q160,1760 160,1920" stroke="${purple}" stroke-width="3" fill="none" opacity="0.7" />
                 <path d="M0,1780 Q140,1780 140,1920" stroke="${gold}" stroke-width="2" fill="none" opacity="0.6" />
@@ -304,7 +304,7 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
                 <path d="M1080,1760 Q920,1760 920,1920" stroke="${purple}" stroke-width="3" fill="none" opacity="0.7" />
                 <path d="M1080,1780 Q940,1780 940,1920" stroke="${gold}" stroke-width="2" fill="none" opacity="0.6" />
 
-                {/* Mid-Flank Disco Sparkles */}
+                <!-- Mid-Flank Disco Sparkles -->
                 <g transform="translate(60, 480)">
                     <polygon points="0,-20 4,-5 20,0 4,5 0,20 -4,5 -20,0 -4,-5" fill="${gold}" />
                     <circle cx="0" cy="0" r="2.5" fill="#ffffff" />

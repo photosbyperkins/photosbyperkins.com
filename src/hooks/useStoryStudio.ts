@@ -641,6 +641,7 @@ export function useStoryStudio({
 
     // Live preview canvas ref
     const previewCanvasRef = useRef<HTMLCanvasElement>(null);
+    const renderSeqRef = useRef(0);
 
     // Update live preview canvas when options change
     useEffect(() => {
@@ -648,6 +649,9 @@ export function useStoryStudio({
         const previewImg = activeMode === 'burst' ? activePanelImages : activeSingleImage;
 
         if (!previewImg || !previewCanvasRef.current) return;
+
+        const currentSeq = ++renderSeqRef.current;
+        const targetCanvas = previewCanvasRef.current;
 
         const config: StoryRenderConfig = {
             mode: activeMode,
@@ -672,9 +676,22 @@ export function useStoryStudio({
             filterStrength,
         };
 
-        renderStoryToCanvas(previewImg, config, previewCanvasRef.current).catch((err: unknown) => {
-            console.error('Preview render error:', err);
-        });
+        const offscreen = document.createElement('canvas');
+        renderStoryToCanvas(previewImg, config, offscreen)
+            .then((renderedCanvas) => {
+                if (currentSeq !== renderSeqRef.current) return;
+                const ctx = targetCanvas.getContext('2d');
+                if (ctx) {
+                    targetCanvas.width = renderedCanvas.width;
+                    targetCanvas.height = renderedCanvas.height;
+                    ctx.drawImage(renderedCanvas, 0, 0);
+                }
+            })
+            .catch((err: unknown) => {
+                if (currentSeq === renderSeqRef.current) {
+                    console.error('Preview render error:', err);
+                }
+            });
     }, [
         loadedImage,
         loadedBurstImages,

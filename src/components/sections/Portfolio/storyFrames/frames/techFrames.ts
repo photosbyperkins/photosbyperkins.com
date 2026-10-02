@@ -20,28 +20,28 @@ export const TECH_FRAMES: StoryFrameDefinition[] = [
             const bottomY = hasScoreboard ? 1730 : 1820;
 
             return `
-                {/* 4 Corner Viewfinder Brackets */}
+                <!-- 4 Corner Viewfinder Brackets -->
                 <path d="M40,120 L40,40 L120,40" stroke="${primary}" stroke-width="5" fill="none" />
                 <path d="M1040,120 L1040,40 L960,40" stroke="${primary}" stroke-width="5" fill="none" />
                 <path d="M40,1800 L40,1880 L120,1880" stroke="${primary}" stroke-width="5" fill="none" />
                 <path d="M1040,1800 L1040,1880 L960,1880" stroke="${primary}" stroke-width="5" fill="none" />
 
-                {/* Top-Left REC Indicator */}
+                <!-- Top-Left REC Indicator -->
                 <g transform="translate(60, ${topY - 10})">
                     <circle cx="10" cy="10" r="7" fill="${recRed}" />
                     <text x="26" y="16" fill="${textCol}" font-family="monospace" font-size="20" font-weight="bold">REC 4K</text>
                 </g>
 
-                {/* Top-Right Telemetry */}
+                <!-- Top-Right Telemetry -->
                 <text x="1020" y="${topY + 6}" fill="${primary}" font-family="monospace" font-size="18" text-anchor="end" opacity="0.9">60 FPS • RAW</text>
 
-                {/* Left & Right Mid-Crosshairs */}
+                <!-- Left and Right Mid-Crosshairs -->
                 <line x1="20" y1="960" x2="50" y2="960" stroke="${primary}" stroke-width="3" />
                 <line x1="35" y1="945" x2="35" y2="975" stroke="${primary}" stroke-width="2" />
                 <line x1="1060" y1="960" x2="1030" y2="960" stroke="${primary}" stroke-width="3" />
                 <line x1="1045" y1="945" x2="1045" y2="975" stroke="${primary}" stroke-width="2" />
 
-                {/* Bottom Balanced Status Readouts */}
+                <!-- Bottom Balanced Status Readouts -->
                 <text x="60" y="${bottomY}" fill="${primary}" font-family="monospace" font-size="15" opacity="0.8">BATT // 94%</text>
                 <text x="1020" y="${bottomY}" fill="${primary}" font-family="monospace" font-size="15" text-anchor="end" opacity="0.8">ISO // AUTO</text>
             `;
@@ -146,7 +146,7 @@ export const TECH_FRAMES: StoryFrameDefinition[] = [
             const bottomY = hasScoreboard ? 1730 : 1820;
 
             return `
-                {/* Top-Right LIVE HD Pill */}
+                <!-- Top-Right LIVE HD Pill -->
                 <g transform="translate(860, ${topY - 20})">
                     <rect x="0" y="0" width="160" height="38" rx="8" fill="rgba(17, 17, 22, 0.88)" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" />
                     <circle cx="24" cy="19" r="6" fill="${red}" />
@@ -155,19 +155,19 @@ export const TECH_FRAMES: StoryFrameDefinition[] = [
                     <text x="105" y="24" fill="${red}" font-family="monospace" font-size="13" font-weight="bold">HD</text>
                 </g>
 
-                {/* Top-Left Camera Source */}
+                <!-- Top-Left Camera Source -->
                 <g transform="translate(60, ${topY - 20})">
                     <rect x="0" y="0" width="170" height="38" rx="8" fill="rgba(17, 17, 22, 0.88)" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" />
                     <text x="85" y="24" fill="#ffffff" font-family="monospace" font-size="14" font-weight="bold" letter-spacing="0.08em" text-anchor="middle">CAM 01 // 60 FPS</text>
                 </g>
 
-                {/* Corner Broadcast Framing */}
+                <!-- Corner Broadcast Framing -->
                 <path d="M40,240 L40,160 L120,160" stroke="${borderCol}" stroke-width="3.5" fill="none" opacity="0.8" />
                 <path d="M1040,240 L1040,160 L960,160" stroke="${borderCol}" stroke-width="3.5" fill="none" opacity="0.8" />
                 <path d="M40,1680 L40,1760 L120,1760" stroke="${borderCol}" stroke-width="3.5" fill="none" opacity="0.8" />
                 <path d="M1040,1680 L1040,1760 L960,1760" stroke="${borderCol}" stroke-width="3.5" fill="none" opacity="0.8" />
 
-                {/* Bottom Symmetrical Studio Lower-Third Info */}
+                <!-- Bottom Symmetrical Studio Lower-Third Info -->
                 <text x="60" y="${bottomY}" fill="#ffffff" font-family="monospace" font-size="14" font-weight="bold" opacity="0.75">CH 01 // WFTDA</text>
                 <text x="1020" y="${bottomY}" fill="#ffffff" font-family="monospace" font-size="14" font-weight="bold" text-anchor="end" opacity="0.75">CHAMPIONSHIP TOUR</text>
             `;
@@ -188,7 +188,7 @@ export const TECH_FRAMES: StoryFrameDefinition[] = [
             const bottomY = hasScoreboard ? 1730 : 1820;
 
             return `
-                {/* Azimuth Compass Tape (Clear of attribution badge) */}
+                <!-- Azimuth Compass Tape (Clear of attribution badge) -->
                 <g transform="translate(540, ${compassY})">
                     <line x1="-180" y1="0" x2="180" y2="0" stroke="${green}" stroke-width="2" opacity="0.8" />
                     <line x1="-150" y1="0" x2="-150" y2="8" stroke="${green}" stroke-width="1.5" />
@@ -202,7 +202,7 @@ export const TECH_FRAMES: StoryFrameDefinition[] = [
                     <text x="0" y="-8" fill="${green}" font-family="monospace" font-size="15" font-weight="bold" text-anchor="middle">045° NE</text>
                 </g>
 
-                {/* Center Crosshair (Subtle, unobstructed) */}
+                <!-- Center Crosshair (Subtle, unobstructed) -->
                 <g transform="translate(540, 960)" opacity="0.4">
                     <circle cx="0" cy="0" r="10" stroke="${green}" stroke-width="1.5" fill="none" />
                     <circle cx="0" cy="0" r="2.5" fill="${green}" />
@@ -212,7 +212,7 @@ export const TECH_FRAMES: StoryFrameDefinition[] = [
                     <line x1="0" y1="18" x2="0" y2="45" stroke="${green}" stroke-width="1.5" />
                 </g>
 
-                {/* Left & Right Flank Mil-Reticule Elevation Ladders */}
+                <!-- Left and Right Flank Mil-Reticule Elevation Ladders -->
                 <g transform="translate(80, 960)">
                     <line x1="0" y1="-80" x2="20" y2="-80" stroke="${green}" stroke-width="2" />
                     <line x1="0" y1="-40" x2="14" y2="-40" stroke="${green}" stroke-width="1.5" />
@@ -228,7 +228,7 @@ export const TECH_FRAMES: StoryFrameDefinition[] = [
                     <line x1="0" y1="80" x2="20" y2="80" stroke="${green}" stroke-width="2" />
                 </g>
 
-                {/* Bottom Symmetrical Telemetry Flanks */}
+                <!-- Bottom Symmetrical Telemetry Flanks -->
                 <g transform="translate(60, ${bottomY})">
                     <text x="0" y="0" fill="${green}" font-family="monospace" font-size="14" font-weight="bold" opacity="0.85">${hasScoreboard ? 'GAIN: +12dB' : 'NVG // GAIN: +12dB • FOV: 40°'}</text>
                 </g>
