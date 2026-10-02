@@ -6,10 +6,13 @@ An incredibly fast, highly automated photography portfolio built for action phot
 
 - **100% Client-Side**: Once built, it's a completely static site (JSON + Media).
 - **Fully Automated Data Pipeline**: Drop images in folders, and the system automatically extracts metadata, resizes, compresses, and maps faces.
+- **Story Maker Studio (9:16 Social Export)**: Full-featured client-side canvas studio creating high-resolution 1080×1920 social cards for Instagram Stories and TikTok. Features 9:16 Crop Mode, Padded Canvas, 3-panel Sequential Burst / Triptych mode (with arbitrary aspect ratio support and dynamic zoom), 8 non-destructive photo filters, 27 handcrafted frames with dynamic badge avoidance, live EXIF telemetry viewfinder, and native Web Share.
+- **Multi-Photo Selection & Batch Actions**: Select multiple photos across an album grid with tap, click, or Shift+click range selection. Batch favorite, batch download customized ZIP archives via Web Worker, generate shareable DEFLATE URLs, or launch directly into Story Maker (in single-photo or 3-panel triptych mode with interactive slot assignment).
 - **AVIF Next-Gen Format & SSIMULACRA 2 Optimization**: Gallery thumbnails and full-display lightbox photos are encoded in AVIF calibrated via SSIMULACRA 2 ($\ge 78$ visual score), saving ~35% storage and bandwidth over legacy WebP while preserving pristine image fidelity. Original full-resolution downloads and album ZIP archives are preserved as standard `.jpg` and `.zip` for universal client compatibility.
+- **Persistent Face Tracking & Focal Centering**: Build pipeline automatically hydrates focal coordinates (`focusX`, `focusY`, `faces`) across indexing runs from `data/.faces_cache.json`, ensuring responsive CSS `object-position` thumbnail framing and multi-person story presets are preserved.
 - **Zero-Downtime Migration & Transparent Fallback**: Apache rewrite rules transparently map any cached or external `.webp` requests to `.avif`, ensuring zero 404s.
 - **Service Worker PWA**: Works offline, fully cache-enabled using Vite PWA.
-- **Glassmorphic UI**: A stunning, modern, hardware-accelerated interface.
+- **Glassmorphic UI**: A stunning, modern, hardware-accelerated interface with rigid, touch-friendly ergonomics.
 - **Favorites & Web Worker Zipping**: Star your favorite photos and batch download them entirely client-side using `fflate` in a background Web Worker!
 - **Shareable Favorites URLs**: Share curated photo selections via lightweight, DEFLATE-compressed, database-free URLs.
 - **Lightbox Scrubber**: Drag-to-navigate sprite-sheet scrubber for fast album browsing within the lightbox.
@@ -74,13 +77,13 @@ Running `npm run build` triggers an intense, multi-phase pipeline orchestrated b
 - **Clean** → **Format** → **TypeScript Check**
 
 ### Phase 2 — In-Memory Pipeline (Indexing & Master Encoding)
-- **Index Photos**: `exifr` EXIF extraction into a global JSON state.
-- **Master Encoder (`encodePhotos`)**: Generates AVIF thumbnails (using a shared SSIMULACRA 2 worker pool), full-display AVIF conversions, and processed JPEGs.
+- **Index Photos (`generatePhotoIndex`)**: `exifr` EXIF extraction into a global JSON state. Automatically hydrates existing focal coordinates (`focusX`, `focusY`, `faces`) and quality scores directly from `data/.faces_cache.json`, preventing standalone indexing runs from wiping out face centering data.
+- **Master Encoder (`encodePhotos`)**: Generates AVIF thumbnails (using a shared SSIMULACRA 2 worker pool), full-display AVIF conversions, and processed JPEGs with IPTC/XMP copyright tags.
 - **Parallel Tasks**: Favicon Generation & WFTDA Scraping run simultaneously.
 
 ### Phase 3 — Python Interop
 - Serializes the state to `data/photos.json`.
-- Runs **Face Detection** (`detectFaces.py`).
+- Runs **Face Detection** (`detectFaces.py`): Identifies facial focal centers and multi-person bounding boxes via OpenCV Caffe SSD DNN with Pillow AVIF decoding fallback. Caches results to `data/.faces_cache.json`.
 - Deserializes the updated state.
 
 ### Phase 4 — Data Modifiers & Chunking
