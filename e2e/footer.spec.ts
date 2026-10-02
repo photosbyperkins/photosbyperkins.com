@@ -6,7 +6,7 @@ test.describe('Footer Redesign (One-Line Bar)', () => {
         await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
     });
 
-    test('should display copyright on left of footer on desktop', async ({ page }) => {
+    test('should display copyright on right of footer on desktop', async ({ page }) => {
         await page.setViewportSize({ width: 1440, height: 900 });
         await page.locator('.footer').scrollIntoViewIfNeeded();
 
@@ -19,7 +19,7 @@ test.describe('Footer Redesign (One-Line Bar)', () => {
         expect(copyBox).not.toBeNull();
         expect(actionsBox).not.toBeNull();
         if (copyBox && actionsBox) {
-            expect(copyBox.x).toBeLessThan(actionsBox.x);
+            expect(actionsBox.x).toBeLessThan(copyBox.x);
         }
     });
 
@@ -63,7 +63,7 @@ test.describe('Footer Redesign (One-Line Bar)', () => {
         }
     });
 
-    test('should align all elements on one visual line on desktop with left attribution and right actions', async ({
+    test('should align all elements on one visual line on desktop with left actions and right attribution', async ({
         page,
     }) => {
         await page.setViewportSize({ width: 1440, height: 900 });
@@ -87,9 +87,9 @@ test.describe('Footer Redesign (One-Line Bar)', () => {
             expect(Math.abs(copyMid - linksMid)).toBeLessThan(6);
             expect(Math.abs(linksMid - socialsMid)).toBeLessThan(6);
 
-            // Left attribution < Right actions (Links < Socials)
-            expect(copyBox.x).toBeLessThan(linksBox.x);
-            expect(linksBox.x).toBeLessThan(socialsBox.x);
+            // Left actions < Right attribution (Socials < Links < Copy)
+            expect(socialsBox.x).toBeLessThan(linksBox.x);
+            expect(linksBox.x).toBeLessThan(copyBox.x);
         }
     });
 

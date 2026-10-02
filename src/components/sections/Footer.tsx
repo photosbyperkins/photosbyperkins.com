@@ -17,58 +17,8 @@ export default function Footer() {
     return (
         <footer className="footer">
             <div className="container footer__container">
-                {/* Left Side: Copyright */}
-                <div className="footer__group footer__group--copy">
-                    <span className="footer__copy">
-                        © {new Date().getFullYear()} {copyrightName}
-                    </span>
-                </div>
-
-                {/* Mobile Divider (Row 2 between copy and socials) */}
-                <span className="footer__divider footer__divider--mobile" aria-hidden="true">
-                    •
-                </span>
-
-                {/* Right Side: Legal Links + Social Channels */}
+                {/* Left Side: Social Channels + Legal Links */}
                 <div className="footer__actions">
-                    <div className="footer__group footer__group--links">
-                        <div className="footer__links">
-                            <button type="button" onClick={openAbout} className="footer__link footer__about-btn">
-                                Behind the Lens
-                            </button>
-                            <span className="footer__link-divider" aria-hidden="true">
-                                •
-                            </span>
-                            <button type="button" onClick={openAiPolicy} className="footer__link footer__ai-policy-btn">
-                                AI Policy
-                            </button>
-                            <span className="footer__link-divider" aria-hidden="true">
-                                •
-                            </span>
-                            <button
-                                type="button"
-                                onClick={openCodeLicense}
-                                className="footer__link footer__code-license-btn"
-                            >
-                                {codeLicenseLabel}
-                            </button>
-                            <span className="footer__link-divider" aria-hidden="true">
-                                •
-                            </span>
-                            <button
-                                type="button"
-                                onClick={openPhotoLicense}
-                                className="footer__link footer__license footer__license-btn"
-                            >
-                                {photosLicenseLabel}
-                            </button>
-                        </div>
-                    </div>
-
-                    <span className="footer__pipe" aria-hidden="true">
-                        |
-                    </span>
-
                     <div className="footer__group footer__group--socials">
                         <div className="footer__social-row">
                             {import.meta.env.VITE_SOCIAL_GITHUB && (
@@ -106,6 +56,56 @@ export default function Footer() {
                             )}
                         </div>
                     </div>
+
+                    <span className="footer__pipe" aria-hidden="true">
+                        |
+                    </span>
+
+                    <div className="footer__group footer__group--links">
+                        <div className="footer__links">
+                            <button type="button" onClick={openAbout} className="footer__link footer__about-btn">
+                                Behind the Lens
+                            </button>
+                            <span className="footer__link-divider" aria-hidden="true">
+                                •
+                            </span>
+                            <button type="button" onClick={openAiPolicy} className="footer__link footer__ai-policy-btn">
+                                AI Policy
+                            </button>
+                            <span className="footer__link-divider" aria-hidden="true">
+                                •
+                            </span>
+                            <button
+                                type="button"
+                                onClick={openCodeLicense}
+                                className="footer__link footer__code-license-btn"
+                            >
+                                {codeLicenseLabel}
+                            </button>
+                            <span className="footer__link-divider" aria-hidden="true">
+                                •
+                            </span>
+                            <button
+                                type="button"
+                                onClick={openPhotoLicense}
+                                className="footer__link footer__license footer__license-btn"
+                            >
+                                {photosLicenseLabel}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Mobile Divider (Row 2 between copy and socials) */}
+                <span className="footer__divider footer__divider--mobile" aria-hidden="true">
+                    •
+                </span>
+
+                {/* Right Side: Copyright */}
+                <div className="footer__group footer__group--copy">
+                    <span className="footer__copy">
+                        © {new Date().getFullYear()} {copyrightName}
+                    </span>
                 </div>
             </div>
         </footer>
