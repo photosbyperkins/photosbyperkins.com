@@ -93,6 +93,44 @@
                         text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
                     }
                 }
+
+                &:focus-visible {
+                    outline: 2px solid var(--color-accent);
+                    outline-offset: 2px;
+                    z-index: 2;
+                }
+
+                &--select-mode {
+                    user-select: none;
+                    -webkit-user-select: none;
+                }
+
+                &--selected {
+                    outline: 3px solid var(--color-accent);
+                    outline-offset: -3px;
+
+                    &::after {
+                        content: '';
+                        position: absolute;
+                        inset: 0;
+                        border: 3px solid var(--color-accent);
+                        z-index: 4;
+                        pointer-events: none;
+                        border-radius: inherit;
+                    }
+
+                    img {
+                        transform: scale(0.96);
+                    }
+                }
+
+                @media (hover: hover) {
+                    &:hover .portfolio__grid-select-badge:not(.portfolio__grid-select-badge--active) {
+                        border-color: #ffffff;
+                        background: rgba(0, 0, 0, 0.72);
+                        transform: scale(1.12);
+                    }
+                }
             }
         }
     }

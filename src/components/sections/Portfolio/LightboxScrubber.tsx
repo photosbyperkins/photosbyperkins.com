@@ -133,7 +133,13 @@ export default function LightboxScrubber({
                                           backgroundPosition: `${-(col * 72)}px ${-(row * 48)}px`,
                                           backgroundSize: 'auto',
                                       }
-                                    : { backgroundImage: `url("${getThumbSrc(img)}")` };
+                                    : {
+                                          backgroundImage: `url("${getThumbSrc(img)}")`,
+                                          backgroundPosition:
+                                              typeof img === 'object' && img.focusX != null && img.focusY != null
+                                                  ? `${(img.focusX * 100).toFixed(1)}% ${(img.focusY * 100).toFixed(1)}%`
+                                                  : 'center',
+                                      };
 
                             return (
                                 <motion.div

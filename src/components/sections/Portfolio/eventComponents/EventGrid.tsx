@@ -1,4 +1,5 @@
 import React from 'react';
+import { Check } from 'lucide-react';
 import ProgressiveImage from '../../../ui/ProgressiveImage';
 import type { PhotoRecord, EventScore } from '../../../../types';
 
@@ -20,6 +21,10 @@ export interface EventGridProps {
         maxExifChars?: number,
         scorePayload?: EventScore
     ) => void;
+    isSelectMode?: boolean;
+    selectedUrls?: Set<string>;
+    selectionIndexMap?: Map<string, number>;
+    onToggleSelect?: (photo: PhotoRecord, index: number, isShift?: boolean) => void;
 }
 
 export const EventGrid = React.memo(function EventGrid({
@@ -31,6 +36,10 @@ export const EventGrid = React.memo(function EventGrid({
     loading,
     fetchError,
     openLightbox,
+    isSelectMode,
+    selectedUrls,
+    selectionIndexMap,
+    onToggleSelect,
 }: EventGridProps) {
     return (
         <div className="portfolio__event-grid">
@@ -41,18 +50,41 @@ export const EventGrid = React.memo(function EventGrid({
 
                 const focusX = photo.focusX;
                 const focusY = photo.focusY;
+                const isSelected = selectedUrls?.has(origUrl) ?? false;
+                const selectionNum = origUrl ? selectionIndexMap?.get(origUrl) : undefined;
+                const showNumber = (selectedUrls?.size ?? 0) <= 3 && selectionNum != null;
 
                 return (
                     <button
                         type="button"
                         key={origUrl}
-                        className="portfolio__grid-item"
-                        aria-label={`View ${eventName} photo ${i + 1}`}
-                        onClick={() => openLightbox(albumImages, i, eventName, selectedYear, maxExifChars, eventScore)}
+                        className={`portfolio__grid-item${
+                            isSelected ? ' portfolio__grid-item--selected' : ''
+                        }${isSelectMode ? ' portfolio__grid-item--select-mode' : ''}`}
+                        role={isSelectMode ? 'checkbox' : undefined}
+                        aria-checked={isSelectMode ? isSelected : undefined}
+                        aria-label={
+                            isSelectMode
+                                ? `${eventName} photo ${i + 1}, ${isSelected ? 'selected' : 'not selected'}`
+                                : `View ${eventName} photo ${i + 1}`
+                        }
+                        onClick={(e) => {
+                            if (isSelectMode) {
+                                onToggleSelect?.(photo, i, e.shiftKey);
+                            } else if (e.shiftKey && onToggleSelect) {
+                                onToggleSelect(photo, i, true);
+                            } else {
+                                openLightbox(albumImages, i, eventName, selectedYear, maxExifChars, eventScore);
+                            }
+                        }}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
                                 e.preventDefault();
-                                openLightbox(albumImages, i, eventName, selectedYear, maxExifChars, eventScore);
+                                if (isSelectMode) {
+                                    onToggleSelect?.(photo, i, e.shiftKey);
+                                } else {
+                                    openLightbox(albumImages, i, eventName, selectedYear, maxExifChars, eventScore);
+                                }
                             }
                         }}
                     >
@@ -64,6 +96,21 @@ export const EventGrid = React.memo(function EventGrid({
                                 focusX != null && focusY != null ? `${focusX * 100}% ${focusY * 100}%` : 'center'
                             }
                         />
+                        {isSelectMode && (
+                            <div
+                                className={`portfolio__grid-select-badge${
+                                    isSelected ? ' portfolio__grid-select-badge--active' : ''
+                                }`}
+                                aria-hidden="true"
+                            >
+                                {isSelected &&
+                                    (showNumber ? (
+                                        <span className="portfolio__grid-select-number">{selectionNum}</span>
+                                    ) : (
+                                        <Check size={14} strokeWidth={3} />
+                                    ))}
+                            </div>
+                        )}
                     </button>
                 );
             })}

@@ -144,7 +144,6 @@
             color: var(--color-text);
             background: rgba(255, 255, 255, 0.08);
             border-color: var(--color-border-hover);
-            transform: translateY(-2px);
 
             html[data-theme='light'] & {
                 background: #ffffff;

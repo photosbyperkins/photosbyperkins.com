@@ -1,81 +1,22 @@
 @use './globals' as *;
 
 .portfolio {
-    // --- Global Search ---
+    // --- Global Floating Dock (Cohesive with BatchActionBar) ---
     &__global-floating-container {
-        position: sticky;
-        bottom: 32px;
-        left: 0;
-        right: 0;
+        position: fixed;
+        bottom: max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 0.75rem));
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1000;
+        pointer-events: none;
         display: flex;
         justify-content: center;
         align-items: center;
-        z-index: var(--z-floating);
-        pointer-events: none;
     }
 
-    &__global-floating-search {
+    &__global-floating-search,
+    &__global-floating-select {
         pointer-events: auto;
-        position: relative;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 0 16px;
-        min-height: 44px;
-        border-radius: 22px;
-        background: rgba(var(--color-bg-rgb), 0.65);
-        border: none;
-        -webkit-backdrop-filter: blur(4px);
-        backdrop-filter: blur(4px);
-
-        &::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            border-radius: 22px;
-            padding: 1px;
-            background: linear-gradient(
-                135deg,
-                rgba(255, 255, 255, 0.3) 0%,
-                rgba(255, 255, 255, 0) 40%,
-                rgba(255, 255, 255, 0.1) 100%
-            );
-
-            html[data-theme='light'] & {
-                background: linear-gradient(
-                    135deg,
-                    rgba(0, 0, 0, 0.15) 0%,
-                    rgba(0, 0, 0, 0) 40%,
-                    rgba(0, 0, 0, 0.05) 100%
-                );
-            }
-            -webkit-mask:
-                linear-gradient(#fff 0 0) content-box,
-                linear-gradient(#fff 0 0);
-            -webkit-mask-composite: xor;
-            mask-composite: exclude;
-            pointer-events: none;
-            z-index: 1;
-        }
-        color: var(--color-text);
-        font-family: var(--font-body);
-        font-size: 0.9rem;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all var(--transition-fast);
-
-        svg {
-            width: 14px;
-            height: 14px;
-            opacity: 0.8;
-        }
-
-        @media (hover: hover) {
-            &:hover {
-                background: rgba(var(--color-bg-rgb), 0.85);
-                color: var(--color-accent);
-            }
-        }
     }
 
     &__global-search-overlay {

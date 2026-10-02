@@ -130,4 +130,45 @@ describe('VirtualizedAlbumGrid', () => {
 
         expect(removeSpy).toHaveBeenCalledWith('scroll', expect.any(Function));
     });
+
+    it('renders checkbox roles and handles selection toggling in select mode', () => {
+        const onToggleSelect = vi.fn();
+        const selectedUrls = new Set<string>(['/photos/match1.webp']);
+
+        render(
+            <VirtualizedAlbumGrid
+                photos={mockPhotos}
+                eventName="Championship Match"
+                selectedYear="2024"
+                openLightbox={vi.fn()}
+                isSelectMode={true}
+                selectedUrls={selectedUrls}
+                onToggleSelect={onToggleSelect}
+            />
+        );
+
+        const checkboxes = screen.getAllByRole('checkbox');
+        expect(checkboxes.length).toBe(3);
+
+        // Photo 1 should be selected
+        expect(checkboxes[0].getAttribute('aria-checked')).toBe('true');
+        expect(checkboxes[0].getAttribute('aria-label')).toBe('Championship Match photo 1, selected');
+
+        // Photo 2 should not be selected
+        expect(checkboxes[1].getAttribute('aria-checked')).toBe('false');
+        expect(checkboxes[1].getAttribute('aria-label')).toBe('Championship Match photo 2, not selected');
+
+        // Clicking photo 2 calls onToggleSelect with index 1
+        fireEvent.click(checkboxes[1]);
+        expect(onToggleSelect).toHaveBeenCalledTimes(1);
+        expect(onToggleSelect).toHaveBeenCalledWith(mockPhotos[1], 1, false);
+
+        // Shift+Click calls onToggleSelect with isShift = true
+        fireEvent.click(checkboxes[2], { shiftKey: true });
+        expect(onToggleSelect).toHaveBeenCalledWith(mockPhotos[2], 2, true);
+
+        // Space key triggers onToggleSelect
+        fireEvent.keyDown(checkboxes[1], { key: ' ' });
+        expect(onToggleSelect).toHaveBeenCalledWith(mockPhotos[1], 1, false);
+    });
 });

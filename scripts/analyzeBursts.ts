@@ -162,7 +162,7 @@ async function runBurstAnalysis() {
             for (let i = 0; i < photos.length; i++) {
                 const current = photos[i];
 
-                if (!current.isLandscape || current.timestampMs === null) {
+                if (current.timestampMs === null) {
                     flushBurst();
                     continue;
                 }

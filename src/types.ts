@@ -21,10 +21,11 @@ export interface BurstMetadata {
     id: string;
     index: number;
     total: number;
-    deltaSec: number;
+    deltaSec?: number;
     frameSources: string[];
     frameThumbs?: string[];
     frameDeltas?: number[];
+    isTriptych?: boolean;
 }
 
 export interface PhotoRecord {
@@ -40,6 +41,8 @@ export interface PhotoRecord {
     spriteIndex?: number;
     exif?: ExifData;
     burst?: BurstMetadata;
+    eventName?: string;
+    year?: string;
 }
 
 export type PhotoInput = string | PhotoRecord;

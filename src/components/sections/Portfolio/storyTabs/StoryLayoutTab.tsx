@@ -211,14 +211,14 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                     setIsDownloaded(false);
                                 }}
                             >
-                                <span>BURST</span>
+                                <span>{burst.isTriptych ? 'Triptych' : 'BURST'}</span>
                             </button>
                         )}
                     </div>
                 </div>
 
-                {/* 3-Panel Burst Settings */}
-                {activeMode === 'burst' && burst && (
+                {/* 3-Panel Burst / Triptych Settings */}
+                {activeMode === 'burst' && burst && !burst.isTriptych && (
                     <div className="story-export-modal__section">
                         <div className="story-export-modal__padded-settings">
                             <div className="story-export-modal__toggle-row">

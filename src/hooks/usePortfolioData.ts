@@ -78,7 +78,7 @@ export function usePortfolioData({
         if (!isFavoritesTab) return {};
         const sorted = [...displayFavorites].sort((a: FavoriteStoreItem, b: FavoriteStoreItem) => {
             const getTimestamp = (item: FavoriteStoreItem) => {
-                if (!item || typeof item !== 'object' || !('eventName' in item)) return 0;
+                if (!item || typeof item !== 'object' || !('eventName' in item) || !item.eventName) return 0;
                 const { baseDatePrefix, parsedYear } = parseEventTitle(item.eventName, item.year);
                 const year = parsedYear || item.year || '2000';
                 if (baseDatePrefix) {

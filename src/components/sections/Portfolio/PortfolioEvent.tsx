@@ -104,6 +104,29 @@ const PortfolioEvent = memo(function PortfolioEvent({
         return filterAlbumByGear(rawAlbumImages, activeGearId, effectiveYear);
     }, [rawAlbumImages, activeGearId, ev.originalYear, selectedYear]);
 
+    const isBatchSelectMode = useAppStore((state) => state.isBatchSelectMode);
+    const batchSelectedPhotos = useAppStore((state) => state.batchSelectedPhotos);
+    const toggleBatchPhoto = useAppStore((state) => state.toggleBatchPhoto);
+    const selectBatchPhotos = useAppStore((state) => state.selectBatchPhotos);
+
+    const selectedUrls = useMemo(() => {
+        const urls = new Set<string>();
+        for (const p of batchSelectedPhotos) {
+            const u = getPhotoOriginalUrl(p);
+            if (u) urls.add(u);
+        }
+        return urls;
+    }, [batchSelectedPhotos]);
+
+    const selectionIndexMap = useMemo(() => {
+        const map = new Map<string, number>();
+        batchSelectedPhotos.forEach((p, idx) => {
+            const u = getPhotoOriginalUrl(p);
+            if (u) map.set(u, idx + 1);
+        });
+        return map;
+    }, [batchSelectedPhotos]);
+
     // Warm the scrubber sprite into browser cache as soon as album data arrives.
     // The sprite is used for both the lightbox scrubber and ambient blur background.
     useEffect(() => {
@@ -195,6 +218,53 @@ const PortfolioEvent = memo(function PortfolioEvent({
         return computeFeaturedPhotos(albumImages, highlightImages);
     }, [albumImages, highlightImages]);
 
+    const lastSelectedIdxRef = useRef<number | null>(null);
+
+    const handleToggleSelect = useCallback(
+        (photo: PhotoRecord, index: number, isShift?: boolean) => {
+            const effectiveYear = ev.originalYear || selectedYear;
+            const storeItem: FavoriteStoreItem = {
+                ...photo,
+                eventName,
+                year: effectiveYear,
+            };
+
+            if (isShift && lastSelectedIdxRef.current !== null && lastSelectedIdxRef.current !== index) {
+                const targetList = isGridView ? albumImages : featuredPhotos;
+                const start = Math.min(lastSelectedIdxRef.current, index);
+                const end = Math.max(lastSelectedIdxRef.current, index);
+                const rangeItems: FavoriteStoreItem[] = [];
+                for (let i = start; i <= end; i++) {
+                    const p = targetList[i];
+                    if (p && p.original) {
+                        rangeItems.push({
+                            ...p,
+                            eventName,
+                            year: effectiveYear,
+                        });
+                    }
+                }
+                const currentUrls = new Set(batchSelectedPhotos.map((p) => getPhotoOriginalUrl(p)));
+                const newItems = rangeItems.filter((item) => !currentUrls.has(getPhotoOriginalUrl(item)));
+                selectBatchPhotos([...batchSelectedPhotos, ...newItems]);
+            } else {
+                toggleBatchPhoto(storeItem);
+            }
+            lastSelectedIdxRef.current = index;
+        },
+        [
+            batchSelectedPhotos,
+            ev.originalYear,
+            selectedYear,
+            eventName,
+            isGridView,
+            albumImages,
+            featuredPhotos,
+            selectBatchPhotos,
+            toggleBatchPhoto,
+        ]
+    );
+
     // Parsing title logic
     const { mainTitle, datePrefix, teams: baseTeams } = parseEventTitle(eventName, ev.originalYear, selectedYear);
 
@@ -262,6 +332,10 @@ const PortfolioEvent = memo(function PortfolioEvent({
                                     maxExifChars={ev.maxExifChars}
                                     localScore={eventScore}
                                     openLightbox={openLightbox}
+                                    isSelectMode={isBatchSelectMode}
+                                    selectedUrls={selectedUrls}
+                                    selectionIndexMap={selectionIndexMap}
+                                    onToggleSelect={handleToggleSelect}
                                 />
                                 {loading && <div className="portfolio__loading">Loading photos...</div>}
                                 {fetchError && (
@@ -278,6 +352,10 @@ const PortfolioEvent = memo(function PortfolioEvent({
                                 loading={loading}
                                 fetchError={fetchError}
                                 openLightbox={openLightbox}
+                                isSelectMode={isBatchSelectMode}
+                                selectedUrls={selectedUrls}
+                                selectionIndexMap={selectionIndexMap}
+                                onToggleSelect={handleToggleSelect}
                             />
                         )
                     ) : (
@@ -294,6 +372,10 @@ const PortfolioEvent = memo(function PortfolioEvent({
                             loading={loading}
                             fetchError={fetchError}
                             openLightbox={openLightbox}
+                            isSelectMode={isBatchSelectMode}
+                            selectedUrls={selectedUrls}
+                            selectionIndexMap={selectionIndexMap}
+                            onToggleSelect={handleToggleSelect}
                         />
                     )}
                 </>

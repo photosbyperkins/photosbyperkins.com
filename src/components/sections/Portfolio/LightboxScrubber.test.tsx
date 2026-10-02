@@ -147,4 +147,51 @@ describe('LightboxScrubber', () => {
         const endBar = document.querySelector('.portfolio__lightbox-scrubber-burst-bar.is-end');
         expect(endBar).not.toBeNull();
     });
+
+    it('renders arbitrary aspect ratio photos in scrubber with focal positioning when no sprite is present', () => {
+        const arbitraryBurstMeta = {
+            id: 'portrait-burst-1',
+            total: 3,
+            frameSources: ['/p1.jpg', '/p2.jpg', '/p3.jpg'],
+        };
+
+        const portraitAndSquareBurst: PhotoInput[] = [
+            {
+                original: '/p1.jpg',
+                thumb: '/tp1.jpg',
+                width: 2000,
+                height: 3000, // Portrait 2:3
+                focusX: 0.6,
+                focusY: 0.35,
+                burst: { ...arbitraryBurstMeta, index: 0 },
+            },
+            {
+                original: '/p2.jpg',
+                thumb: '/tp2.jpg',
+                width: 2000,
+                height: 2000, // Square 1:1
+                focusX: 0.5,
+                focusY: 0.5,
+                burst: { ...arbitraryBurstMeta, index: 1, deltaSec: 0.5 },
+            },
+            {
+                original: '/p3.jpg',
+                thumb: '/tp3.jpg',
+                width: 3000,
+                height: 2000, // Landscape 3:2
+                burst: { ...arbitraryBurstMeta, index: 2, deltaSec: 1.0 },
+            },
+        ];
+
+        const { container } = render(
+            <LightboxScrubber {...defaultProps} images={portraitAndSquareBurst} index={0} spriteUrl={null} />
+        );
+
+        const activeThumb = container.querySelector('.portfolio__lightbox-scrubber-thumb.is-active') as HTMLElement;
+        expect(activeThumb).not.toBeNull();
+        expect(activeThumb.style.backgroundPosition).toBe('60.0% 35.0%');
+
+        const burstBars = container.querySelectorAll('.portfolio__lightbox-scrubber-burst-bar');
+        expect(burstBars.length).toBeGreaterThan(0);
+    });
 });

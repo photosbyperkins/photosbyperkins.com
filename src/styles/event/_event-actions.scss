@@ -37,6 +37,68 @@
                     margin-top: -1px;
                 }
             }
+
+            .portfolio__select-btn {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.35rem;
+                height: 36px;
+                padding: 0 0.75rem;
+                background: var(--color-bg-2);
+                border: 1px solid var(--color-border);
+                color: var(--color-text-muted);
+                border-radius: 6px;
+                cursor: pointer;
+                font-family: var(--font-condensed);
+                font-size: 0.85rem;
+                font-weight: 600;
+                letter-spacing: 0.05em;
+                text-transform: uppercase;
+                transition: all var(--transition-fast);
+
+                @media (hover: hover) {
+                    &:hover {
+                        color: var(--color-text);
+                        border-color: var(--color-text-muted);
+                        background: var(--color-bg-3);
+                    }
+                }
+
+                &.active {
+                    background: var(--color-accent);
+                    border-color: var(--color-accent);
+                    color: #ffffff;
+
+                    .portfolio__select-pill {
+                        background: rgba(255, 255, 255, 0.28);
+                        color: #ffffff;
+                    }
+                }
+
+                .portfolio__select-btn-label {
+                    line-height: 1;
+
+                    @media (max-width: 420px) {
+                        display: none;
+                    }
+                }
+
+                .portfolio__select-pill {
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    min-width: 18px;
+                    height: 18px;
+                    padding: 0 5px;
+                    border-radius: 9px;
+                    background: var(--color-accent);
+                    color: #ffffff;
+                    font-size: 0.7rem;
+                    font-weight: 700;
+                    line-height: 1;
+                }
+            }
         }
 
         .portfolio__stat-tag {

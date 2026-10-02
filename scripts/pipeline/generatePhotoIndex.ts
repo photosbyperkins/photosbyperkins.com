@@ -75,11 +75,12 @@ export function detectBursts<T extends BurstCandidate>(
     };
 
     for (const item of items) {
-        const isLandscape = (item.width || 0) >= (item.height || 0) && (item.width || 0) > 0 && (item.height || 0) > 0;
+        const hasValidDims =
+            (item.width === undefined || item.width > 0) && (item.height === undefined || item.height > 0);
         const hasTime = item.timestampMs != null;
         const hasSerial = Boolean(item.cameraSerial);
 
-        if (isLandscape && hasTime && hasSerial) {
+        if (hasValidDims && hasTime && hasSerial) {
             if (currentBurst.length === 0) {
                 currentBurst.push(item);
             } else {

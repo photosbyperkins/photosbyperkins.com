@@ -91,12 +91,15 @@ export function useStoryStudio({
         return storySettings.mode || 'crop';
     });
 
+    const isTriptych = Boolean(photoObj.burst?.isTriptych || !photoObj.burst?.frameDeltas);
+
     const [burstDividerStyle, setBurstDividerStyle] = useState<BurstDividerStyle>(
         () => storySettings.burstConfig?.dividerStyle || 'hairline'
     );
-    const [burstShowTimeStamps, setBurstShowTimeStamps] = useState<boolean>(
-        () => storySettings.burstConfig?.showTimeStamps ?? true
-    );
+    const [burstShowTimeStamps, setBurstShowTimeStamps] = useState<boolean>(() => {
+        if (isTriptych) return false;
+        return storySettings.burstConfig?.showTimeStamps ?? true;
+    });
     const [burstSelectedIndices, setBurstSelectedIndices] = useState<(number | null)[]>(() => {
         if (photoObj.burst && photoObj.burst.total >= 3) {
             const total = photoObj.burst.total;
@@ -140,8 +143,8 @@ export function useStoryStudio({
     }, [loadedBurstImages, burstSelectedIndices, loadedImage]);
 
     const activeBurstTimeStamps = useMemo(() => {
-        if (!photoObj.burst?.frameDeltas) {
-            return [0.0, 0.84, 1.42];
+        if (isTriptych || !photoObj.burst?.frameDeltas) {
+            return [0.0, 0.0, 0.0];
         }
         const deltas = photoObj.burst.frameDeltas;
         const base =
@@ -150,14 +153,14 @@ export function useStoryStudio({
                 : 0;
         const d1 =
             burstSelectedIndices[1] !== undefined && burstSelectedIndices[1] !== null
-                ? (deltas[burstSelectedIndices[1]] ?? 0.84)
-                : 0.84;
+                ? (deltas[burstSelectedIndices[1]] ?? 0.0)
+                : 0.0;
         const d2 =
             burstSelectedIndices[2] !== undefined && burstSelectedIndices[2] !== null
-                ? (deltas[burstSelectedIndices[2]] ?? 1.42)
-                : 1.42;
+                ? (deltas[burstSelectedIndices[2]] ?? 0.0)
+                : 0.0;
         return [0.0, Number(Math.max(0, d1 - base).toFixed(2)), Number(Math.max(0, d2 - base).toFixed(2))];
-    }, [photoObj.burst, burstSelectedIndices]);
+    }, [photoObj.burst, burstSelectedIndices, isTriptych]);
 
     const [activeCrop, setActiveCrop] = useState<NormalizedCrop>(() => {
         if (storySettings.mode === 'padded') {

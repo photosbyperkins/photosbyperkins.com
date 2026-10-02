@@ -121,18 +121,35 @@ describe('generatePhotoIndex helpers', () => {
             expect(items[2].burst).toBeUndefined();
         });
 
-        it('rejects portrait photos from burst sequences', () => {
+        it('detects bursts with portrait and mixed arbitrary aspect ratio photos', () => {
             const items: BurstCandidate[] = [
                 { original: '/p1.jpg', width: 3000, height: 2000, timestampMs: 10000, cameraSerial: 'CAM-123' },
                 { original: '/p2.jpg', width: 2000, height: 3000, timestampMs: 10500, cameraSerial: 'CAM-123' }, // Portrait!
-                { original: '/p3.jpg', width: 3000, height: 2000, timestampMs: 11000, cameraSerial: 'CAM-123' },
+                { original: '/p3.jpg', width: 2000, height: 2000, timestampMs: 11000, cameraSerial: 'CAM-123' }, // Square!
             ];
 
             detectBursts(items, 'test-event', 2.0);
 
-            expect(items[0].burst).toBeUndefined();
-            expect(items[1].burst).toBeUndefined();
-            expect(items[2].burst).toBeUndefined();
+            expect(items[0].burst).toBeDefined();
+            expect(items[0].burst?.id).toBe('test-event-burst-1');
+            expect(items[0].burst?.total).toBe(3);
+            expect(items[1].burst?.id).toBe('test-event-burst-1');
+            expect(items[2].burst?.id).toBe('test-event-burst-1');
+        });
+
+        it('detects purely portrait burst sequences', () => {
+            const items: BurstCandidate[] = [
+                { original: '/p1.jpg', width: 2000, height: 3000, timestampMs: 10000, cameraSerial: 'CAM-123' },
+                { original: '/p2.jpg', width: 2000, height: 3000, timestampMs: 10500, cameraSerial: 'CAM-123' },
+                { original: '/p3.jpg', width: 2000, height: 3000, timestampMs: 11000, cameraSerial: 'CAM-123' },
+            ];
+
+            detectBursts(items, 'portrait-burst', 2.0);
+
+            expect(items[0].burst).toBeDefined();
+            expect(items[0].burst?.total).toBe(3);
+            expect(items[1].burst?.total).toBe(3);
+            expect(items[2].burst?.total).toBe(3);
         });
 
         it('splits bursts when delta time exceeds threshold', () => {

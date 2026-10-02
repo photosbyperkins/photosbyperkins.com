@@ -14,6 +14,8 @@ export interface PortfolioSlice {
     };
     sharedPhoto: SharedPhotoState | null;
     favorites: FavoriteStoreItem[];
+    isBatchSelectMode: boolean;
+    batchSelectedPhotos: FavoriteStoreItem[];
 
     openLightbox: (
         images: PhotoInput[],
@@ -26,7 +28,13 @@ export interface PortfolioSlice {
     closeLightbox: () => void;
     setLightboxIndex: (index: number) => void;
     setSharedPhoto: (sharedPhoto: SharedPhotoState | null) => void;
+    setIsBatchSelectMode: (active: boolean) => void;
+    toggleBatchPhoto: (item: FavoriteStoreItem) => void;
+    selectBatchPhotos: (items: FavoriteStoreItem[]) => void;
+    clearBatchSelection: () => void;
     toggleFavorite: (item: FavoriteStoreItem) => void;
+    addFavorites: (items: FavoriteStoreItem[]) => void;
+    removeFavorites: (items: FavoriteStoreItem[]) => void;
     clearFavorites: () => void;
 }
 
@@ -57,6 +65,8 @@ export const createPortfolioSlice: StateCreator<PortfolioSlice, [], [], Portfoli
     },
     sharedPhoto: null,
     favorites: extractLegacyFavorites(),
+    isBatchSelectMode: false,
+    batchSelectedPhotos: [],
 
     openLightbox: (images, index, eventName, year, maxExifChars, localScore) =>
         set({ lightbox: { images, index, eventName, year, isOpen: true, maxExifChars, localScore } }),
@@ -66,6 +76,37 @@ export const createPortfolioSlice: StateCreator<PortfolioSlice, [], [], Portfoli
     setLightboxIndex: (index) => set((state) => ({ lightbox: { ...state.lightbox, index } })),
 
     setSharedPhoto: (sharedPhoto) => set({ sharedPhoto }),
+
+    setIsBatchSelectMode: (isBatchSelectMode) =>
+        set((state) => ({
+            isBatchSelectMode,
+            batchSelectedPhotos: isBatchSelectMode ? state.batchSelectedPhotos : [],
+        })),
+
+    toggleBatchPhoto: (item) =>
+        set((state) => {
+            const url = getPhotoOriginalUrl(item);
+            if (!url) return state;
+            const exists = state.batchSelectedPhotos.some((p) => getPhotoOriginalUrl(p) === url);
+            let next: FavoriteStoreItem[];
+            if (exists) {
+                next = state.batchSelectedPhotos.filter((p) => getPhotoOriginalUrl(p) !== url);
+            } else {
+                next = [...state.batchSelectedPhotos, item];
+            }
+            return {
+                batchSelectedPhotos: next,
+                isBatchSelectMode: true,
+            };
+        }),
+
+    selectBatchPhotos: (items) =>
+        set(() => ({
+            batchSelectedPhotos: items,
+            isBatchSelectMode: true,
+        })),
+
+    clearBatchSelection: () => set({ batchSelectedPhotos: [] }),
 
     toggleFavorite: (item) =>
         set((state) => {
@@ -79,6 +120,22 @@ export const createPortfolioSlice: StateCreator<PortfolioSlice, [], [], Portfoli
             } else {
                 return { favorites: [...state.favorites, item] };
             }
+        }),
+
+    addFavorites: (items) =>
+        set((state) => {
+            const existingUrls = new Set(state.favorites.map((f) => getPhotoOriginalUrl(f)));
+            const newItems = items.filter((item) => !existingUrls.has(getPhotoOriginalUrl(item)));
+            if (newItems.length === 0) return state;
+            return { favorites: [...state.favorites, ...newItems] };
+        }),
+
+    removeFavorites: (items) =>
+        set((state) => {
+            const removeUrls = new Set(items.map((item) => getPhotoOriginalUrl(item)));
+            return {
+                favorites: state.favorites.filter((f) => !removeUrls.has(getPhotoOriginalUrl(f))),
+            };
         }),
 
     clearFavorites: () => set({ favorites: [] }),

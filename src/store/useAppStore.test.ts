@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useAppStore, DEFAULT_STORY_SETTINGS } from './useAppStore';
+import { getPhotoOriginalUrl } from '../utils/formatters';
 
 describe('useAppStore - storySettings', () => {
     beforeEach(() => {
@@ -85,5 +86,38 @@ describe('useAppStore - storySettings', () => {
         useAppStore.getState().resetStorySettings();
 
         expect(useAppStore.getState().storySettings).toEqual(DEFAULT_STORY_SETTINGS);
+    });
+});
+
+describe('useAppStore - favorites batch actions', () => {
+    beforeEach(() => {
+        useAppStore.getState().clearFavorites();
+    });
+
+    const photoA = { original: '/photos/2026/game/photo_001.jpg', thumb: '/photos/2026/game/photo_001_thumb.jpg' };
+    const photoB = { original: '/photos/2026/game/photo_002.jpg', thumb: '/photos/2026/game/photo_002_thumb.jpg' };
+    const photoC = { original: '/photos/2026/game/photo_003.jpg', thumb: '/photos/2026/game/photo_003_thumb.jpg' };
+
+    it('adds multiple favorites atomically without duplicates', () => {
+        useAppStore.getState().addFavorites([photoA, photoB]);
+        expect(useAppStore.getState().favorites).toHaveLength(2);
+
+        // Attempting to add photoA again along with photoC
+        useAppStore.getState().addFavorites([photoA, photoC]);
+        expect(useAppStore.getState().favorites).toHaveLength(3);
+        expect(useAppStore.getState().favorites.map((f) => getPhotoOriginalUrl(f))).toEqual([
+            '/photos/2026/game/photo_001.jpg',
+            '/photos/2026/game/photo_002.jpg',
+            '/photos/2026/game/photo_003.jpg',
+        ]);
+    });
+
+    it('removes multiple favorites atomically', () => {
+        useAppStore.getState().addFavorites([photoA, photoB, photoC]);
+        expect(useAppStore.getState().favorites).toHaveLength(3);
+
+        useAppStore.getState().removeFavorites([photoA, photoC]);
+        expect(useAppStore.getState().favorites).toHaveLength(1);
+        expect(getPhotoOriginalUrl(useAppStore.getState().favorites[0])).toBe('/photos/2026/game/photo_002.jpg');
     });
 });
