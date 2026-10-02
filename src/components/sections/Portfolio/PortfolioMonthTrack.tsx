@@ -75,6 +75,7 @@ export const PortfolioMonthTrack: React.FC<PortfolioMonthTrackProps> = ({ events
             if (!m.hasPhotos || !m.firstEventId) return;
             if (m.num === activeMonth && window.scrollY <= 10) return;
 
+            setActiveMonth(m.num);
             scrollToElement(m.firstEventId);
         },
         [activeMonth]
@@ -87,11 +88,14 @@ export const PortfolioMonthTrack: React.FC<PortfolioMonthTrackProps> = ({ events
 
     return (
         <aside className="portfolio__month-track" aria-label={`${selectedYear} season calendar scroll tracker`}>
-            <div className="portfolio__month-track-pill">
+            <div
+                className="portfolio__month-track-pill"
+                style={{ '--active-month-index': activeMonthIndex } as React.CSSProperties}
+            >
                 {activeMonthIndex !== -1 && (
                     <div
                         className="portfolio__month-elevator-pill"
-                        style={{ transform: `translateY(${activeMonthIndex * 25}px)` }}
+                        style={{ '--active-month-index': activeMonthIndex } as React.CSSProperties}
                         aria-hidden="true"
                     />
                 )}
