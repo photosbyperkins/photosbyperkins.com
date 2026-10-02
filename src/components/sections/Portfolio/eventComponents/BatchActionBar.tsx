@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Star, Save, Share2, X, CheckSquare, Check } from 'lucide-react';
+import { Heart, Save, Share2, X, CheckSquare, Check } from 'lucide-react';
 import { StoryCropIcon } from '../../../ui/icons';
+import { useCanShare } from '../../../../hooks/useCanShare';
 
 export interface BatchActionBarProps {
     isVisible: boolean;
@@ -18,6 +19,7 @@ export interface BatchActionBarProps {
     onShare: () => void;
     onDone: () => void;
     onStory?: () => void;
+    canShare?: boolean;
 }
 
 export const BatchActionBar: React.FC<BatchActionBarProps> = ({
@@ -35,7 +37,10 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
     onShare,
     onDone,
     onStory,
+    canShare: canShareProp,
 }) => {
+    const isDeviceCanShare = useCanShare();
+    const canShare = canShareProp ?? isDeviceCanShare;
     const [isCopied, setIsCopied] = useState(false);
     return (
         <AnimatePresence>
@@ -92,7 +97,7 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
                                     isAllFavorited ? 'Remove selected from favorites' : 'Add selected to favorites'
                                 }
                             >
-                                <Star
+                                <Heart
                                     size={16}
                                     fill={isAllFavorited ? 'currentColor' : 'none'}
                                     className="portfolio__batch-btn-icon"
@@ -132,49 +137,53 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
                                     );
                                 })()}
 
-                            <button
-                                type="button"
-                                className="portfolio__batch-btn portfolio__batch-btn--zip"
-                                onClick={onDownloadZip}
-                                disabled={selectedCount === 0 || isZipping}
-                                title="Download selected photos as ZIP"
-                                aria-label={
-                                    isZipping ? `Compressing ZIP: ${zipProgress}%` : 'Download selected photos as ZIP'
-                                }
-                                style={{
-                                    cursor: isZipping ? 'wait' : selectedCount === 0 ? 'not-allowed' : 'pointer',
-                                    backgroundImage: isZipping
-                                        ? 'linear-gradient(to right, var(--color-accent) 100%, transparent 100%)'
-                                        : 'none',
-                                    backgroundSize: `${isZipping ? zipProgress : 0}% 100%`,
-                                    backgroundRepeat: 'no-repeat',
-                                }}
-                            >
-                                <Save size={16} className="portfolio__batch-btn-icon" />
-                                <span className="portfolio__batch-btn-text">
-                                    {isZipping ? `${zipProgress}%` : 'Download'}
-                                </span>
-                            </button>
+                            {!canShare && (
+                                <button
+                                    type="button"
+                                    className="portfolio__batch-btn portfolio__batch-btn--zip"
+                                    onClick={onDownloadZip}
+                                    disabled={selectedCount === 0 || isZipping}
+                                    title="Download selected photos as ZIP"
+                                    aria-label={
+                                        isZipping ? `Compressing ZIP: ${zipProgress}%` : 'Download selected photos as ZIP'
+                                    }
+                                    style={{
+                                        cursor: isZipping ? 'wait' : selectedCount === 0 ? 'not-allowed' : 'pointer',
+                                        backgroundImage: isZipping
+                                            ? 'linear-gradient(to right, var(--color-accent) 100%, transparent 100%)'
+                                            : 'none',
+                                        backgroundSize: `${isZipping ? zipProgress : 0}% 100%`,
+                                        backgroundRepeat: 'no-repeat',
+                                    }}
+                                >
+                                    <Save size={16} className="portfolio__batch-btn-icon" />
+                                    <span className="portfolio__batch-btn-text">
+                                        {isZipping ? `${zipProgress}%` : 'Download'}
+                                    </span>
+                                </button>
+                            )}
 
-                            <button
-                                type="button"
-                                className={`portfolio__batch-btn ${isCopied ? 'portfolio__batch-btn--copied' : ''}`}
-                                onClick={async () => {
-                                    await onShare?.();
-                                    setIsCopied(true);
-                                    setTimeout(() => setIsCopied(false), 2200);
-                                }}
-                                disabled={selectedCount === 0}
-                                title={isCopied ? 'Link copied to clipboard!' : 'Share selected photos link'}
-                                aria-label={isCopied ? 'Link copied to clipboard!' : 'Share selected photos link'}
-                            >
-                                {isCopied ? (
-                                    <Check size={16} className="portfolio__batch-btn-icon" />
-                                ) : (
-                                    <Share2 size={16} className="portfolio__batch-btn-icon" />
-                                )}
-                                <span className="portfolio__batch-btn-text">{isCopied ? 'Copied!' : 'Share'}</span>
-                            </button>
+                            {canShare && (
+                                <button
+                                    type="button"
+                                    className={`portfolio__batch-btn ${isCopied ? 'portfolio__batch-btn--copied' : ''}`}
+                                    onClick={async () => {
+                                        await onShare?.();
+                                        setIsCopied(true);
+                                        setTimeout(() => setIsCopied(false), 2200);
+                                    }}
+                                    disabled={selectedCount === 0}
+                                    title={isCopied ? 'Link copied to clipboard!' : 'Share selected photos link'}
+                                    aria-label={isCopied ? 'Link copied to clipboard!' : 'Share selected photos link'}
+                                >
+                                    {isCopied ? (
+                                        <Check size={16} className="portfolio__batch-btn-icon" />
+                                    ) : (
+                                        <Share2 size={16} className="portfolio__batch-btn-icon" />
+                                    )}
+                                    <span className="portfolio__batch-btn-text">{isCopied ? 'Copied!' : 'Share'}</span>
+                                </button>
+                            )}
                         </div>
 
                         <span className="portfolio__batch-divider" aria-hidden="true" />
