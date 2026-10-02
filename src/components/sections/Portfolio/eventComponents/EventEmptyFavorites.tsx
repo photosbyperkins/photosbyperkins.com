@@ -1,5 +1,5 @@
 import React from 'react';
-import { Heart } from 'lucide-react';
+import { Heart } from '../../../ui/icons';
 
 export function EventEmptyFavorites() {
     return (

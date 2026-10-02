@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, type MotionValue, useMotionValue, animate } from 'framer-motion';
 import { flushSync } from 'react-dom';
-import { Heart } from 'lucide-react';
+import { Heart } from '../../ui/icons';
 import type { PhotoInput } from '../../../types';
 
 interface LightboxScrubberProps {

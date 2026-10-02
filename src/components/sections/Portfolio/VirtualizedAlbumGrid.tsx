@@ -1,5 +1,5 @@
 import { useRef, useMemo, useCallback, useState, useEffect } from 'react';
-import { Check } from 'lucide-react';
+import { Check } from '../../ui/icons';
 import ProgressiveImage from '../../ui/ProgressiveImage';
 import type { PhotoRecord, EventScore } from '../../../types';
 

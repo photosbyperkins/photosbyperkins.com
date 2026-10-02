@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Copy, Check, Scale, ShieldCheck, Share2, RefreshCw, UserCheck, ShieldAlert } from 'lucide-react';
+import { Copy, Check, Scale, ShieldCheck, Share2, RefreshCw, UserCheck, ShieldAlert } from './icons';
 import { useState } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import ModalShell from './ModalShell';

@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X } from 'lucide-react';
+import { X } from '../../ui/icons';
 import React from 'react';
 
 export interface LightboxHelpProps {

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Save, Heart } from 'lucide-react';
+import { Save, Heart } from '../../ui/icons';
 import { useCanShare } from '../../../hooks/useCanShare';
 import { useAppStore } from '../../../store/useAppStore';
 import { useZipWorker } from '../../../hooks/useZipWorker';

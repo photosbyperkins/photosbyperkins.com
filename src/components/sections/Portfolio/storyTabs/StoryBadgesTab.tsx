@@ -1,5 +1,5 @@
 import React from 'react';
-import { Moon, Sun } from 'lucide-react';
+import { Moon, Sun } from '../../../ui/icons';
 import type { BadgeOptions } from '../../../../utils/storyCanvas';
 import { formatTeamName } from '../../../../utils/formatters';
 

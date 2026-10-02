@@ -1,5 +1,5 @@
 import React from 'react';
-import { ExternalLink } from 'lucide-react';
+import { ExternalLink } from '../../ui/icons';
 import type { GearItem } from '../../../data/gearData';
 
 interface GearInfoHeaderProps {

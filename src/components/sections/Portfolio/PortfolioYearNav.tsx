@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { X, Heart } from 'lucide-react';
+import { X, Heart } from '../../ui/icons';
 import { formatTeamName } from '../../../utils/formatters';
 import type { GearItem } from '../../../data/gearData';
 

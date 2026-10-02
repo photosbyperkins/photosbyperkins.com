@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { WifiOff, Wifi } from 'lucide-react';
+import { WifiOff, Wifi } from './icons';
 import { useState, useEffect } from 'react';
 
 export default function PwaStatusToast() {

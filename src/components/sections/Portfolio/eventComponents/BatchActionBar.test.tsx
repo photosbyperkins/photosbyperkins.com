@@ -54,13 +54,14 @@ describe('BatchActionBar', () => {
         const favBtn = screen.getByRole('button', { name: /Add selected to favorites/i });
         const heartSvg = favBtn.querySelector('svg');
         expect(heartSvg).toBeDefined();
-        expect(heartSvg?.classList.contains('lucide-heart')).toBe(true);
+        expect(heartSvg?.classList.contains('portfolio__batch-btn-icon')).toBe(true);
         expect(heartSvg?.getAttribute('fill')).toBe('none');
 
         rerender(<BatchActionBar {...getProps()} isAllFavorited={true} />);
         const favoritedBtn = screen.getByRole('button', { name: /Remove selected from favorites/i });
         const favoritedHeartSvg = favoritedBtn.querySelector('svg');
-        expect(favoritedHeartSvg?.classList.contains('lucide-heart')).toBe(true);
+        expect(favoritedHeartSvg).toBeDefined();
+        expect(favoritedHeartSvg?.classList.contains('portfolio__batch-btn-icon')).toBe(true);
         expect(favoritedHeartSvg?.getAttribute('fill')).toBe('currentColor');
     });
 

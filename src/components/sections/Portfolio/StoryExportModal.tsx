@@ -1,4 +1,3 @@
-import { Check, Download, RotateCcw, Share2 } from 'lucide-react';
 import React, { useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useCanShare } from '../../../hooks/useCanShare';
@@ -12,8 +11,17 @@ import { StoryBadges } from './StoryBadges';
 import { StoryCropper } from './StoryCropper';
 import { StoryBurstCropper } from './StoryBurstCropper';
 import { StoryFrameOverlay } from './storyFrames/StoryFrameOverlay';
-import { StoryLayoutTabIcon, StoryFiltersTabIcon, StoryFramesTabIcon, StoryBadgesTabIcon } from '../../ui/icons';
-import type { IconProps } from '../../ui/icons';
+import {
+    Check,
+    Download,
+    RotateCcw,
+    Share2,
+    StoryLayoutTabIcon,
+    StoryFiltersTabIcon,
+    StoryFramesTabIcon,
+    StoryBadgesTabIcon,
+    type IconProps,
+} from '../../ui/icons';
 import { StoryLayoutTab } from './storyTabs/StoryLayoutTab';
 import { StoryFiltersTab } from './storyTabs/StoryFiltersTab';
 import { StoryFramesTab } from './storyTabs/StoryFramesTab';

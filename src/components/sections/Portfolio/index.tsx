@@ -1,5 +1,5 @@
 import { useInView, motion, AnimatePresence } from 'framer-motion';
-import { Search, CheckSquare } from 'lucide-react';
+import { Search, CheckSquare } from '../../ui/icons';
 import React, { useState, useRef, useEffect, useMemo, useCallback, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';

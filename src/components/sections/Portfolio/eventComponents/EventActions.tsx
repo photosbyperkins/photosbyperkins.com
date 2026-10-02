@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Save, Star, Share2 } from 'lucide-react';
-import { FullAlbumIcon } from '../../../ui/icons';
+import { Save, Star, Share2, FullAlbumIcon } from '../../../ui/icons';
 import { useAppStore } from '../../../../store/useAppStore';
 import { buildFavoritesShareUrl } from '../../../../utils/favoritesUrl';
 

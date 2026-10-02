@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Search, X } from 'lucide-react';
+import { Search, X } from '../../ui/icons';
 import { useFocusTrap } from '../../../hooks/useFocusTrap';
 import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock';
 import TeamFilter from './TeamFilter';

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Camera, Sparkles, Code } from 'lucide-react';
+import { Camera, Sparkles, Code } from './icons';
 import { useAppStore } from '../../store/useAppStore';
 import ModalShell from './ModalShell';
 import { modalFadeUp } from './modalAnimation';
