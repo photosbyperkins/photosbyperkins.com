@@ -481,13 +481,10 @@ export default function Portfolio({ years }: PortfolioProps) {
                                     setIsGlobalSearchOpen(true);
                                 }}
                                 aria-label="Open Search"
-                                title="Search photos (/)"
+                                title="Search photos"
                             >
                                 <Search size={16} strokeWidth={2} className="portfolio__dock-btn-icon" />
                                 <span className="portfolio__dock-btn-text">Search</span>
-                                <kbd className="portfolio__dock-btn-kbd" aria-hidden="true">
-                                    /
-                                </kbd>
                             </button>
 
                             <span className="portfolio__dock-divider" aria-hidden="true" />
@@ -501,21 +498,17 @@ export default function Portfolio({ years }: PortfolioProps) {
                                     setIsBatchSelectMode(true);
                                 }}
                                 aria-label="Select Photos"
-                                title="Select photos (S)"
+                                title="Select photos"
                             >
                                 <CheckSquare size={16} strokeWidth={2} className="portfolio__dock-btn-icon" />
                                 <span className="portfolio__dock-btn-text">Select</span>
-                                {batchSelectedPhotos.length > 0 ? (
+                                {batchSelectedPhotos.length > 0 && (
                                     <span
                                         className="portfolio__dock-badge"
                                         aria-label={`${batchSelectedPhotos.length} selected`}
                                     >
                                         {batchSelectedPhotos.length}
                                     </span>
-                                ) : (
-                                    <kbd className="portfolio__dock-btn-kbd" aria-hidden="true">
-                                        S
-                                    </kbd>
                                 )}
                             </button>
                         </div>

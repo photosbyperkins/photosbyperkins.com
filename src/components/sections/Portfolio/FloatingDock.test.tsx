@@ -53,7 +53,7 @@ describe('Portfolio Cohesive Action Dock', () => {
         vi.restoreAllMocks();
     });
 
-    it('renders the cohesive floating dock with search and select buttons and kbd shortcuts', () => {
+    it('renders the cohesive floating dock with search and select buttons without kbd shortcuts', () => {
         render(
             <MemoryRouter initialEntries={['/portfolio/2026']}>
                 <Portfolio years={['2026']} />
@@ -66,11 +66,13 @@ describe('Portfolio Cohesive Action Dock', () => {
 
         const searchBtn = screen.getByRole('button', { name: /Open Search/i });
         expect(searchBtn).toBeDefined();
-        expect(searchBtn.querySelector('.portfolio__dock-btn-kbd')?.textContent).toBe('/');
+        expect(searchBtn.querySelector('.portfolio__dock-btn-kbd')).toBeNull();
+        expect(searchBtn.getAttribute('title')).toBe('Search photos');
 
         const selectBtn = screen.getByRole('button', { name: /Select Photos/i });
         expect(selectBtn).toBeDefined();
-        expect(selectBtn.querySelector('.portfolio__dock-btn-kbd')?.textContent).toBe('S');
+        expect(selectBtn.querySelector('.portfolio__dock-btn-kbd')).toBeNull();
+        expect(selectBtn.getAttribute('title')).toBe('Select photos');
 
         const divider = document.querySelector('.portfolio__dock-divider');
         expect(divider).not.toBeNull();
