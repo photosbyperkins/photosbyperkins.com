@@ -40,6 +40,16 @@
                     transform var(--transition-fast),
                     box-shadow var(--transition-fast);
 
+                &:active {
+                    transform: scale(0.98);
+                    transition-duration: 70ms;
+
+                    img {
+                        transform: scale(0.95);
+                        transition-duration: 70ms;
+                    }
+                }
+
                 &:focus-visible {
                     outline: 2px solid var(--color-accent);
                     outline-offset: 2px;

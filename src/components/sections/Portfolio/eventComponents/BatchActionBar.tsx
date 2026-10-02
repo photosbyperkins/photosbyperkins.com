@@ -54,7 +54,9 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
                         <div className="portfolio__batch-meta">
                             <span className="portfolio__batch-count" aria-live="polite">
                                 <CheckSquare size={15} className="portfolio__batch-count-icon" />
-                                <strong>{selectedCount}</strong>{' '}
+                                <strong key={selectedCount} className="portfolio__batch-count-num">
+                                    {selectedCount}
+                                </strong>{' '}
                                 <span className="portfolio__batch-count-label">Selected</span>
                             </span>
 

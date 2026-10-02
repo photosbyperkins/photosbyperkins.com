@@ -182,6 +182,42 @@ export default function Portfolio({ years }: PortfolioProps) {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isBatchSelectMode, setIsBatchSelectMode, isGlobalSearchOpen, isLightboxOpen, selectedTab, ensureIndexesLoaded]);
 
+    const [isNearFooter, setIsNearFooter] = useState(false);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+
+        let ticking = false;
+        const checkFooterOverlap = () => {
+            const footer = document.querySelector('footer');
+            if (!footer) {
+                setIsNearFooter(false);
+                return;
+            }
+
+            const footerRect = footer.getBoundingClientRect();
+            const isOverlap = footerRect.top < window.innerHeight - 16;
+            setIsNearFooter(isOverlap);
+            ticking = false;
+        };
+
+        const onScroll = () => {
+            if (!ticking) {
+                window.requestAnimationFrame(checkFooterOverlap);
+                ticking = true;
+            }
+        };
+
+        window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('resize', onScroll, { passive: true });
+        checkFooterOverlap();
+
+        return () => {
+            window.removeEventListener('scroll', onScroll);
+            window.removeEventListener('resize', onScroll);
+        };
+    }, []);
+
     const allSelectablePhotos = useMemo(() => {
         const list: FavoriteStoreItem[] = [];
         const seen = new Set<string>();
@@ -299,6 +335,8 @@ export default function Portfolio({ years }: PortfolioProps) {
                     isTriptych: true,
                     frameSources: records.map((r) => r.original),
                     frameThumbs: records.map((r) => r.thumb || r.original),
+                    frameFocusX: records.map((r) => r.focusX),
+                    frameFocusY: records.map((r) => r.focusY),
                 },
             };
             setDirectStoryPhoto(burstPhoto);
@@ -422,7 +460,7 @@ export default function Portfolio({ years }: PortfolioProps) {
             </Suspense>
 
             <AnimatePresence mode="wait">
-                {!isGlobalSearchOpen && !isBatchSelectMode && selectedTab !== 'favorites' && (
+                {!isGlobalSearchOpen && !isBatchSelectMode && selectedTab !== 'favorites' && !isNearFooter && (
                     <motion.div
                         key="portfolio-floating-dock"
                         className="portfolio__floating-dock"

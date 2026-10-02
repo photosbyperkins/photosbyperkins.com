@@ -191,6 +191,9 @@
 
     &__studio-tab-btn,
     &__tab-btn {
+        position: relative;
+        overflow: hidden;
+        z-index: 1;
         display: flex;
         flex-direction: column;
         align-items: center;
@@ -209,6 +212,19 @@
         cursor: pointer;
         transition: all var(--transition-fast);
         min-height: 48px;
+
+        &:active {
+            transform: scale(0.96);
+        }
+
+        .story-export-modal__studio-tab-pill {
+            position: absolute;
+            inset: 0;
+            background: var(--color-accent);
+            border-radius: 6px;
+            z-index: -1;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+        }
 
         svg,
         .story-export-modal__studio-tab-icon {
@@ -231,9 +247,9 @@
 
         &--active,
         &.active {
-            background: var(--color-accent);
+            background: transparent;
             color: #ffffff;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+            box-shadow: none;
 
             svg,
             .story-export-modal__studio-tab-icon {
@@ -273,6 +289,7 @@
         min-width: 0;
         scrollbar-width: thin;
         scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+        animation: tabPaneFadeIn 0.2s cubic-bezier(0.2, 0, 0.2, 1);
 
         &::-webkit-scrollbar {
             width: 4px;

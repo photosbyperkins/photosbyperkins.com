@@ -23,6 +23,8 @@ interface StoryLayoutTabProps {
     setBurstSelectedIndices?: (indices: (number | null)[]) => void;
     activePhotoIndex?: number;
     onSelectPhotoIndex?: (idx: number) => void;
+    defaultFocusX?: number;
+    defaultFocusY?: number;
 }
 
 export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
@@ -45,6 +47,8 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
     setBurstSelectedIndices,
     activePhotoIndex = 0,
     onSelectPhotoIndex,
+    defaultFocusX,
+    defaultFocusY,
 }) => {
     // Normalize slots to a 3-element tuple [slot0, slot1, slot2]
     const slots: (number | null)[] = [
@@ -286,6 +290,17 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                         ? `${fullTitle}${isSelected ? ' (Selected)' : ''}`
                                         : `${fullTitle}: +${delta.toFixed(2)}s${isSelected ? ' (Selected)' : ''}`;
 
+                                    const fx =
+                                        burst?.frameFocusX?.[fIdx] ??
+                                        (fIdx === activePhotoIndex ? defaultFocusX : undefined) ??
+                                        defaultFocusX;
+                                    const fy =
+                                        burst?.frameFocusY?.[fIdx] ??
+                                        (fIdx === activePhotoIndex ? defaultFocusY : undefined) ??
+                                        defaultFocusY;
+                                    const objectPosition =
+                                        fx != null && fy != null ? `${fx * 100}% ${fy * 100}%` : undefined;
+
                                     return (
                                         <button
                                             key={src}
@@ -295,12 +310,22 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                                     ? ' story-export-modal__burst-thumb--selected story-export-modal__burst-thumb--targeted'
                                                     : ''
                                             }`}
+                                            style={
+                                                objectPosition
+                                                    ? ({ '--thumb-focus': objectPosition } as React.CSSProperties)
+                                                    : undefined
+                                            }
                                             onClick={() => onSelectPhotoIndex?.(fIdx)}
                                             title={titleText}
                                             aria-label={ariaLabel}
                                             aria-pressed={isSelected}
                                         >
-                                            <img src={thumbUrl} alt={fullTitle} loading="lazy" />
+                                            <img
+                                                src={thumbUrl}
+                                                alt={fullTitle}
+                                                loading="lazy"
+                                                style={objectPosition ? { objectPosition } : undefined}
+                                            />
                                             {isSelected ? (
                                                 <span className="story-export-modal__burst-thumb-slot">
                                                     {photoLabel}
@@ -470,6 +495,11 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                                             : ''
                                                   }`;
 
+                                            const fx = burst?.frameFocusX?.[fIdx] ?? defaultFocusX;
+                                            const fy = burst?.frameFocusY?.[fIdx] ?? defaultFocusY;
+                                            const objectPosition =
+                                                fx != null && fy != null ? `${fx * 100}% ${fy * 100}%` : undefined;
+
                                             return (
                                                 <button
                                                     key={src}
@@ -479,6 +509,13 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                                     }${isTargeted ? ' story-export-modal__burst-thumb--targeted' : ''}${
                                                         isDisabled ? ' story-export-modal__burst-thumb--disabled' : ''
                                                     }`}
+                                                    style={
+                                                        objectPosition
+                                                            ? ({
+                                                                  '--thumb-focus': objectPosition,
+                                                              } as React.CSSProperties)
+                                                            : undefined
+                                                    }
                                                     onClick={() => handleBurstFrameClick(fIdx)}
                                                     disabled={isDisabled}
                                                     title={titleText}
@@ -490,6 +527,7 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                                             burst.isTriptych ? `Photo ${fIdx + 1}` : `Frame ${fIdx + 1}`
                                                         }
                                                         loading="lazy"
+                                                        style={objectPosition ? { objectPosition } : undefined}
                                                     />
                                                     {isSelected ? (
                                                         <span className="story-export-modal__burst-thumb-slot">

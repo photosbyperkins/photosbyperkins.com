@@ -98,6 +98,7 @@
             user-select: none;
             cursor: default;
             position: relative;
+            animation: exifCrossFade 0.2s ease-out;
 
             @media (max-width: 480px) {
                 height: 34px;
@@ -262,5 +263,16 @@
                 }
             }
         }
+    }
+}
+
+@keyframes exifCrossFade {
+    0% {
+        opacity: 0.35;
+        transform: scale(0.985);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
     }
 }

@@ -1,5 +1,6 @@
 import { Check, Download, RotateCcw, Share2 } from 'lucide-react';
 import React, { useEffect, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { useCanShare } from '../../../hooks/useCanShare';
 import { useStoryImageLoader } from '../../../hooks/useStoryImageLoader';
 import { useStoryStudio, type StoryStudioTab } from '../../../hooks/useStoryStudio';
@@ -396,6 +397,13 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                     }`}
                                     onClick={() => setActiveStudioTab(tab.id)}
                                 >
+                                    {isActive && (
+                                        <motion.span
+                                            className="story-export-modal__studio-tab-pill"
+                                            layoutId="studioActiveTabPill"
+                                            transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                        />
+                                    )}
                                     <IconComponent size={18} className="story-export-modal__studio-tab-icon" />
                                     <span className="story-export-modal__tab-label story-export-modal__studio-tab-label">
                                         {tab.label}
@@ -405,7 +413,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                         })}
                     </div>
 
-                    <div className="story-export-modal__tab-panel" role="tabpanel">
+                    <div className="story-export-modal__tab-panel" role="tabpanel" key={`panel-${activeStudioTab}`}>
                         {/* Layout & Composition Tab Content */}
                         {activeStudioTab === 'layout' && (
                             <StoryLayoutTab
@@ -428,6 +436,8 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                 setBurstSelectedIndices={setBurstSelectedIndices}
                                 activePhotoIndex={activePhotoIndex}
                                 onSelectPhotoIndex={handleSelectPhotoIndex}
+                                defaultFocusX={photoObj.focusX}
+                                defaultFocusY={photoObj.focusY}
                             />
                         )}
 

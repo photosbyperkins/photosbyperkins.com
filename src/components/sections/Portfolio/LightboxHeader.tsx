@@ -115,7 +115,7 @@ export default function LightboxHeader({
 
             <div className="portfolio__lightbox-top-center" onClick={(e) => e.stopPropagation()}>
                 {exif ? (
-                    <div className="portfolio__lightbox-data-display">
+                    <div className="portfolio__lightbox-data-display" key={`exif-${index}`}>
                         <div
                             className="portfolio__lightbox-data-info"
                             style={exif && maxExifChars > 0 ? { minWidth: `${maxExifChars * 5.0}px` } : undefined}
@@ -131,7 +131,10 @@ export default function LightboxHeader({
                         </div>
                     </div>
                 ) : albumHasExif ? (
-                    <div className="portfolio__lightbox-data-display portfolio__lightbox-data-display--empty">
+                    <div
+                        className="portfolio__lightbox-data-display portfolio__lightbox-data-display--empty"
+                        key={`empty-${index}`}
+                    >
                         <div className="portfolio__lightbox-data-info">
                             <span className="portfolio__lightbox-data-row-bottom">No camera data</span>
                         </div>

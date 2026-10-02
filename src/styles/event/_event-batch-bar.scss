@@ -2,6 +2,64 @@
 
 .portfolio__batch-bar,
 .portfolio__floating-dock {
+    --dock-bg: rgba(14, 14, 18, 0.94);
+    --dock-border: rgba(255, 255, 255, 0.16);
+    --dock-shadow: 0 16px 40px rgba(0, 0, 0, 0.65), 0 2px 8px rgba(0, 0, 0, 0.4);
+    --dock-text: #ffffff;
+    --dock-text-muted: rgba(255, 255, 255, 0.7);
+    --dock-divider: rgba(255, 255, 255, 0.16);
+    --dock-btn-bg: rgba(255, 255, 255, 0.08);
+    --dock-btn-hover-bg: rgba(255, 255, 255, 0.18);
+    --dock-btn-text: rgba(255, 255, 255, 0.9);
+    --dock-btn-hover-text: #ffffff;
+    --dock-kbd-bg: rgba(255, 255, 255, 0.12);
+    --dock-kbd-border: rgba(255, 255, 255, 0.14);
+    --dock-kbd-text: rgba(255, 255, 255, 0.6);
+    --dock-subtle-text: rgba(255, 255, 255, 0.75);
+    --dock-subtle-hover-bg: rgba(255, 255, 255, 0.12);
+    --dock-selection-color: #ffffff;
+    --dock-selection-bg: rgba(230, 0, 0, 0.2);
+    --dock-selection-border: rgba(230, 0, 0, 0.4);
+    --dock-selection-hover-bg: rgba(230, 0, 0, 0.32);
+    --dock-fav-color: #ffd700;
+    --dock-fav-bg: rgba(255, 215, 0, 0.18);
+    --dock-fav-border: rgba(255, 215, 0, 0.35);
+    --dock-fav-hover-bg: rgba(255, 215, 0, 0.28);
+    --dock-copy-color: #4ade80;
+    --dock-copy-bg: rgba(74, 222, 128, 0.18);
+    --dock-copy-border: rgba(74, 222, 128, 0.4);
+    --dock-copy-hover-bg: rgba(74, 222, 128, 0.28);
+
+    html[data-theme='light'] & {
+        --dock-bg: rgba(255, 255, 255, 0.94);
+        --dock-border: rgba(0, 0, 0, 0.12);
+        --dock-shadow: 0 12px 32px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06);
+        --dock-text: #1a1a24;
+        --dock-text-muted: rgba(26, 26, 36, 0.65);
+        --dock-divider: rgba(0, 0, 0, 0.12);
+        --dock-btn-bg: rgba(0, 0, 0, 0.05);
+        --dock-btn-hover-bg: rgba(0, 0, 0, 0.1);
+        --dock-btn-text: rgba(26, 26, 36, 0.88);
+        --dock-btn-hover-text: #1a1a24;
+        --dock-kbd-bg: rgba(0, 0, 0, 0.06);
+        --dock-kbd-border: rgba(0, 0, 0, 0.1);
+        --dock-kbd-text: rgba(26, 26, 36, 0.6);
+        --dock-subtle-text: rgba(26, 26, 36, 0.7);
+        --dock-subtle-hover-bg: rgba(0, 0, 0, 0.08);
+        --dock-selection-color: var(--color-accent);
+        --dock-selection-bg: rgba(214, 0, 0, 0.08);
+        --dock-selection-border: rgba(214, 0, 0, 0.25);
+        --dock-selection-hover-bg: rgba(214, 0, 0, 0.14);
+        --dock-fav-color: #b45309;
+        --dock-fav-bg: rgba(245, 158, 11, 0.12);
+        --dock-fav-border: rgba(245, 158, 11, 0.3);
+        --dock-fav-hover-bg: rgba(245, 158, 11, 0.2);
+        --dock-copy-color: #15803d;
+        --dock-copy-bg: rgba(34, 197, 94, 0.12);
+        --dock-copy-border: rgba(34, 197, 94, 0.3);
+        --dock-copy-hover-bg: rgba(34, 197, 94, 0.2);
+    }
+
     position: fixed;
     bottom: max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 0.75rem));
     left: 50%;
@@ -16,21 +74,25 @@
         align-items: center;
         gap: 0.35rem;
         padding: 0.35rem 0.5rem;
-        background: rgba(14, 14, 18, 0.94);
+        background: var(--dock-bg);
         backdrop-filter: blur(24px) saturate(180%);
         -webkit-backdrop-filter: blur(24px) saturate(180%);
-        border: 1px solid rgba(255, 255, 255, 0.16);
+        border: 1px solid var(--dock-border);
         border-radius: 9999px;
-        box-shadow:
-            0 16px 40px rgba(0, 0, 0, 0.65),
-            0 2px 8px rgba(0, 0, 0, 0.4);
-        color: #ffffff;
+        box-shadow: var(--dock-shadow);
+        color: var(--dock-text);
         flex-wrap: nowrap;
         white-space: nowrap;
         max-width: 100%;
         box-sizing: border-box;
         overflow-x: auto;
         scrollbar-width: none;
+        transition:
+            background var(--transition-fast),
+            border-color var(--transition-fast),
+            box-shadow var(--transition-fast),
+            color var(--transition-fast);
+
         &::-webkit-scrollbar {
             display: none;
         }
@@ -57,16 +119,21 @@
         letter-spacing: 0.05em;
         flex-shrink: 0;
 
-        strong {
-            color: #ffffff;
+        strong,
+        &-num {
+            color: var(--dock-text);
             font-size: 1.05rem;
+            display: inline-block;
+            animation: countBump 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transition: color var(--transition-fast);
         }
 
         &-label {
             font-size: 0.75rem;
             text-transform: uppercase;
-            color: rgba(255, 255, 255, 0.7);
+            color: var(--dock-text-muted);
             font-weight: 600;
+            transition: color var(--transition-fast);
 
             @media (max-width: 600px) {
                 display: none;
@@ -77,9 +144,10 @@
     &-divider {
         width: 1px;
         height: 18px;
-        background: rgba(255, 255, 255, 0.16);
+        background: var(--dock-divider);
         margin: 0 0.15rem;
         flex-shrink: 0;
+        transition: background var(--transition-fast);
     }
 
     &-actions {
@@ -107,9 +175,10 @@
 .portfolio__dock-divider {
     width: 1px;
     height: 18px;
-    background: rgba(255, 255, 255, 0.16);
+    background: var(--dock-divider);
     margin: 0 0.15rem;
     flex-shrink: 0;
+    transition: background var(--transition-fast);
 }
 
 // Button styles (matching .portfolio__batch-btn in BatchActionBar.tsx and .portfolio__dock-btn in floating dock)
@@ -123,8 +192,8 @@
     padding: 0 0.75rem;
     border-radius: 9999px;
     border: 1px solid transparent;
-    background: rgba(255, 255, 255, 0.08);
-    color: rgba(255, 255, 255, 0.9);
+    background: var(--dock-btn-bg);
+    color: var(--dock-btn-text);
     font-family: var(--font-condensed);
     font-size: 0.82rem;
     font-weight: 600;
@@ -137,8 +206,8 @@
 
     @media (hover: hover) {
         &:hover:not(:disabled) {
-            background: rgba(255, 255, 255, 0.18);
-            color: #ffffff;
+            background: var(--dock-btn-hover-bg);
+            color: var(--dock-btn-hover-text);
         }
     }
 
@@ -187,14 +256,14 @@
 
     &--subtle {
         background: transparent;
-        color: rgba(255, 255, 255, 0.75);
+        color: var(--dock-subtle-text);
         font-size: 0.78rem;
         padding: 0 0.5rem;
 
         @media (hover: hover) {
             &:hover {
-                color: #ffffff;
-                background: rgba(255, 255, 255, 0.12);
+                color: var(--dock-btn-hover-text);
+                background: var(--dock-subtle-hover-bg);
             }
         }
 
@@ -224,25 +293,25 @@
     }
 
     &--favorited {
-        color: #ffd700;
-        background: rgba(255, 215, 0, 0.18);
-        border-color: rgba(255, 215, 0, 0.35);
+        color: var(--dock-fav-color);
+        background: var(--dock-fav-bg);
+        border-color: var(--dock-fav-border);
 
         @media (hover: hover) {
             &:hover:not(:disabled) {
-                background: rgba(255, 215, 0, 0.28);
+                background: var(--dock-fav-hover-bg);
             }
         }
     }
 
     &--copied {
-        color: #4ade80;
-        background: rgba(74, 222, 128, 0.18);
-        border-color: rgba(74, 222, 128, 0.4);
+        color: var(--dock-copy-color);
+        background: var(--dock-copy-bg);
+        border-color: var(--dock-copy-border);
 
         @media (hover: hover) {
             &:hover:not(:disabled) {
-                background: rgba(74, 222, 128, 0.28);
+                background: var(--dock-copy-hover-bg);
             }
         }
     }
@@ -316,14 +385,15 @@
     height: 16px;
     padding: 0 4px;
     border-radius: 4px;
-    background: rgba(255, 255, 255, 0.12);
-    color: rgba(255, 255, 255, 0.6);
+    background: var(--dock-kbd-bg);
+    color: var(--dock-kbd-text);
     font-family: var(--font-condensed);
     font-size: 0.7rem;
     font-weight: 700;
     line-height: 1;
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    border: 1px solid var(--dock-kbd-border);
     margin-left: 2px;
+    transition: all var(--transition-fast);
 
     @media (max-width: 600px) {
         display: none;
@@ -347,13 +417,27 @@
 }
 
 .portfolio__dock-btn--has-selection {
-    color: #ffffff;
-    background: rgba(230, 0, 0, 0.2);
-    border-color: rgba(230, 0, 0, 0.4);
+    color: var(--dock-selection-color);
+    background: var(--dock-selection-bg);
+    border-color: var(--dock-selection-border);
 
     @media (hover: hover) {
         &:hover:not(:disabled) {
-            background: rgba(230, 0, 0, 0.32);
+            background: var(--dock-selection-hover-bg);
         }
+    }
+}
+
+@keyframes countBump {
+    0% {
+        transform: scale(0.65);
+        opacity: 0.6;
+    }
+    60% {
+        transform: scale(1.24);
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
     }
 }

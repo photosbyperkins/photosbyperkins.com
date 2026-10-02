@@ -26,6 +26,8 @@ export interface BurstMetadata {
     frameThumbs?: string[];
     frameDeltas?: number[];
     isTriptych?: boolean;
+    frameFocusX?: (number | undefined)[];
+    frameFocusY?: (number | undefined)[];
 }
 
 export interface PhotoRecord {

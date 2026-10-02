@@ -33,6 +33,8 @@ export interface BurstCandidate {
     height?: number;
     timestampMs?: number;
     cameraSerial?: string;
+    focusX?: number;
+    focusY?: number;
     burst?: BurstMetadata;
 }
 
@@ -50,6 +52,8 @@ export function detectBursts<T extends BurstCandidate>(
             const total = currentBurst.length;
             const frameSources = currentBurst.map((p) => p.original);
             const frameThumbs = currentBurst.map((p) => p.thumb || p.original);
+            const frameFocusX = currentBurst.map((p) => p.focusX);
+            const frameFocusY = currentBurst.map((p) => p.focusY);
             const baseTime = currentBurst[0].timestampMs ?? 0;
             const frameDeltas = currentBurst.map((p) =>
                 p.timestampMs != null && baseTime > 0
@@ -68,6 +72,8 @@ export function detectBursts<T extends BurstCandidate>(
                     frameSources,
                     frameThumbs,
                     frameDeltas,
+                    frameFocusX,
+                    frameFocusY,
                 };
             });
         }

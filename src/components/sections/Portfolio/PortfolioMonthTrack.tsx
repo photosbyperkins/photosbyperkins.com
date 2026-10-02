@@ -83,9 +83,18 @@ export const PortfolioMonthTrack: React.FC<PortfolioMonthTrackProps> = ({ events
     // Only render if there are events in this year
     if (events.length === 0) return null;
 
+    const activeMonthIndex = monthData.findIndex((m) => m.num === activeMonth);
+
     return (
         <aside className="portfolio__month-track" aria-label={`${selectedYear} season calendar scroll tracker`}>
             <div className="portfolio__month-track-pill">
+                {activeMonthIndex !== -1 && (
+                    <div
+                        className="portfolio__month-elevator-pill"
+                        style={{ transform: `translateY(${activeMonthIndex * 25}px)` }}
+                        aria-hidden="true"
+                    />
+                )}
                 {monthData.map((m) => {
                     const isCurrent = m.num === activeMonth;
                     const hasPhotos = m.hasPhotos;
