@@ -4,10 +4,7 @@ import { renderStoryToBlob } from '../utils/storyCanvas';
 
 export interface UseStoryExportOptions {
     loadedImage:
-        | HTMLImageElement
-        | HTMLCanvasElement
-        | (HTMLImageElement | HTMLCanvasElement | null | undefined)[]
-        | null;
+        HTMLImageElement | HTMLCanvasElement | (HTMLImageElement | HTMLCanvasElement | null | undefined)[] | null;
     currentConfig: StoryRenderConfig;
     eventTitle?: string;
     year?: string;

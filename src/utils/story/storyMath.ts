@@ -2,6 +2,114 @@ import type { FaceBox } from '../../types';
 import type { NormalizedCrop, StoryPreset } from './storyConstants';
 import { STORY_ASPECT_RATIO } from './storyConstants';
 
+export const BURST_PANEL_ASPECT_RATIO = 27 / 16; // 1.6875 (matches 1080 / (1920 / 3))
+
+/**
+ * Calculates the active default zoom level for a burst panel derived dynamically from the photo's aspect ratio.
+ *
+ * For standard DSLR/mirrorless 3:2 landscape photos (1.50) in a 27:16 panel (1.6875):
+ * - Aspect ratio mismatch = 1.6875 / 1.50 = 1.125
+ * - With a 10/9 headroom factor (1.111), this yields 1.25x zoom, giving balanced 20% horizontal
+ *   and ~29% vertical panning headroom.
+ *
+ * For wider images (e.g. 16:9), it yields ~1.17x so height has active vertical pan travel without
+ * over-cropping. For narrower images (e.g. 4:3), it yields ~1.41x so width has active horizontal pan travel.
+ * Clamped between 1.15 and 2.0 to ensure a clean, comfortable active default across any camera format.
+ *
+ * @param imgW Source image natural width
+ * @param imgH Source image natural height
+ * @param panelAspectRatio Target aspect ratio of the panel (defaults to 27 / 16 = 1.6875)
+ */
+export function calculateDefaultBurstZoom(
+    imgW: number,
+    imgH: number,
+    panelAspectRatio = BURST_PANEL_ASPECT_RATIO
+): number {
+    if (!imgW || !imgH) return 1.25;
+    const imgRatio = imgW / imgH;
+    const targetAspect = panelAspectRatio > 0 ? panelAspectRatio : BURST_PANEL_ASPECT_RATIO;
+
+    // Aspect ratio divergence factor relative to panel
+    const mismatch = Math.max(targetAspect / imgRatio, imgRatio / targetAspect);
+
+    // Baseline headroom multiplier (1.125 mismatch * 10/9 = 1.25 for 3:2 photos)
+    const headroomFactor = 1.25 / 1.125; // 10/9 ≈ 1.1111
+    const derived = mismatch * headroomFactor;
+
+    return parseFloat(Math.max(1.15, Math.min(2.0, derived)).toFixed(2));
+}
+
+/**
+ * Calculates a normalized crop rectangle for a burst story panel centered at (centerX, centerY) with a given zoom.
+ * Ensures the crop always completely fills the panel (aspect ratio panelAspectRatio) with zero black bars / letterboxing.
+ * Minimum zoom 1.0 corresponds to exact cover fit.
+ * Default zoom is derived dynamically from the photo's aspect ratio (1.25x for 3:2 DSLR/mirrorless photos).
+ *
+ * @param imgW Source image natural width
+ * @param imgH Source image natural height
+ * @param centerX Normalized horizontal center (0..1)
+ * @param centerY Normalized vertical center (0..1)
+ * @param zoom Zoom multiplier (1.0..3.5). If omitted, derived from photo aspect ratio.
+ * @param panelAspectRatio Target aspect ratio of the panel (defaults to 27 / 16 = 1.6875)
+ */
+export function calculateBurstPanelCrop(
+    imgW: number,
+    imgH: number,
+    centerX: number,
+    centerY: number,
+    zoom?: number,
+    panelAspectRatio = BURST_PANEL_ASPECT_RATIO
+): NormalizedCrop {
+    const effectiveZoom =
+        typeof zoom === 'number' && !isNaN(zoom) ? zoom : calculateDefaultBurstZoom(imgW, imgH, panelAspectRatio);
+    const safeZoom = Math.max(1.0, Math.min(3.5, effectiveZoom));
+    const targetAspect = panelAspectRatio > 0 ? panelAspectRatio : BURST_PANEL_ASPECT_RATIO;
+    const safeW = imgW || 1920;
+    const safeH = imgH || 1080;
+    const imgRatio = safeW / safeH;
+
+    let cropW: number;
+    let cropH: number;
+
+    if (imgRatio >= targetAspect) {
+        // Image is wider than panel (e.g. 16:9 photo in 1.6875 panel, or panoramic)
+        cropH = safeH / safeZoom;
+        cropW = cropH * targetAspect;
+    } else {
+        // Image is narrower than panel (e.g. 3:2 landscape photo or 4:3 photo in 1.6875 panel)
+        cropW = safeW / safeZoom;
+        cropH = cropW / targetAspect;
+    }
+
+    // Clamp center coordinates so the crop never samples outside the source image
+    const halfW = cropW / 2;
+    const halfH = cropH / 2;
+
+    const minX = halfW;
+    const maxX = Math.max(minX, safeW - halfW);
+    const minY = halfH;
+    const maxY = Math.max(minY, safeH - halfH);
+
+    const safeCenterX = Math.max(0, Math.min(1, typeof centerX === 'number' && !isNaN(centerX) ? centerX : 0.5));
+    const safeCenterY = Math.max(0, Math.min(1, typeof centerY === 'number' && !isNaN(centerY) ? centerY : 0.5));
+
+    const clampedCenterX = Math.max(minX, Math.min(maxX, safeCenterX * safeW));
+    const clampedCenterY = Math.max(minY, Math.min(maxY, safeCenterY * safeH));
+
+    const left = clampedCenterX - halfW;
+    const top = clampedCenterY - halfH;
+
+    return {
+        x: Math.max(0, Math.min(1, left / safeW)),
+        y: Math.max(0, Math.min(1, top / safeH)),
+        width: Math.max(0, Math.min(1, cropW / safeW)),
+        height: Math.max(0, Math.min(1, cropH / safeH)),
+        zoom: safeZoom,
+        centerX: clampedCenterX / safeW,
+        centerY: clampedCenterY / safeH,
+    };
+}
+
 /**
  * Calculates a normalized 9:16 crop rectangle centered at (centerX, centerY) with a given zoom.
  */

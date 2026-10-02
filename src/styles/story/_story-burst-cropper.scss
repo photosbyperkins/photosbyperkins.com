@@ -1,0 +1,237 @@
+@use '../globals' as *;
+
+// --- Interactive 3-Panel Burst Cropper Styles ---
+.story-burst-cropper {
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+    border-radius: 12px;
+    background: #0a0a10;
+    user-select: none;
+    touch-action: none;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+
+    &__panels {
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: 100%;
+        position: absolute;
+        inset: 0;
+    }
+
+    &__panel {
+        flex: 1 1 0;
+        min-height: 0;
+        position: relative;
+        overflow: hidden;
+        background: #000000;
+        outline: none;
+        touch-action: none;
+        transition: box-shadow var(--transition-fast);
+
+        &:not(:last-child) {
+            border-bottom: 2px solid rgba(255, 255, 255, 0.16);
+        }
+
+        &--has-image {
+            cursor: grab;
+
+            &:hover {
+                .story-burst-cropper__pan-hint {
+                    opacity: 1;
+                    max-width: 60px;
+                    margin-left: 4px;
+                }
+            }
+        }
+
+        &--dragging {
+            cursor: grabbing !important;
+            box-shadow: inset 0 0 0 1.5px var(--color-accent);
+            z-index: 2;
+
+            .story-burst-cropper__slot-pill {
+                background: var(--color-accent);
+                color: #ffffff;
+            }
+
+            .story-burst-cropper__pan-hint {
+                opacity: 1;
+                max-width: 60px;
+                margin-left: 4px;
+            }
+        }
+
+        &--empty {
+            cursor: default;
+            background: rgba(14, 14, 20, 0.85);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--color-accent);
+            outline-offset: -2px;
+            z-index: 4;
+        }
+    }
+
+    &__image-wrapper {
+        position: absolute;
+        top: 0;
+        left: 0;
+        pointer-events: none;
+        user-select: none;
+        will-change: transform;
+    }
+
+    &__image {
+        width: 100%;
+        height: 100%;
+        object-fit: fill;
+        display: block;
+        pointer-events: none;
+        user-select: none;
+    }
+
+    // Rule-of-Thirds Grid Lines
+    &__grid {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity var(--transition-fast);
+
+        &--visible {
+            opacity: 1;
+        }
+
+        &-col {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 1px;
+            background: rgba(255, 255, 255, 0.35);
+
+            &--1 {
+                left: 33.333%;
+            }
+
+            &--2 {
+                left: 66.666%;
+            }
+        }
+
+        &-row {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.35);
+
+            &--1 {
+                top: 33.333%;
+            }
+
+            &--2 {
+                top: 66.666%;
+            }
+        }
+    }
+
+    // Slot badge (TOP, MID, BTM)
+    &__slot-pill {
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        display: flex;
+        align-items: center;
+        padding: 2px 7px;
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.65);
+        color: rgba(255, 255, 255, 0.9);
+        font-family: var(--font-mono, monospace);
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.05em;
+        line-height: 1.2;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
+        backdrop-filter: blur(4px);
+        pointer-events: none;
+        z-index: 3;
+        transition: all var(--transition-fast);
+    }
+
+    &__pan-hint {
+        font-size: 9px;
+        font-weight: 600;
+        opacity: 0;
+        max-width: 0;
+        overflow: hidden;
+        white-space: nowrap;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        transition: all var(--transition-fast);
+        color: rgba(255, 255, 255, 0.8);
+    }
+
+    &__zoom-pill {
+        margin-left: 5px;
+        padding: 1px 4px;
+        border-radius: 3px;
+        background: var(--color-accent, #ff4757);
+        color: #ffffff;
+        font-size: 9px;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        line-height: 1.1;
+    }
+
+    // Timestamp Pill
+    &__timestamp-pill {
+        position: absolute;
+        bottom: 8px;
+        right: 8px;
+        padding: 2px 8px;
+        border-radius: 4px;
+        background: rgba(0, 0, 0, 0.75);
+        color: #ffffff;
+        font-family: var(--font-mono, monospace);
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        line-height: 1.2;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        pointer-events: none;
+        z-index: 3;
+    }
+
+    // Empty panel state
+    &__empty-content {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        color: var(--color-text-dim);
+        font-family: var(--font-mono, monospace);
+        pointer-events: none;
+    }
+
+    &__empty-slot {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        color: var(--color-accent);
+    }
+
+    &__empty-sub {
+        font-size: 10px;
+        font-weight: 500;
+        opacity: 0.6;
+        letter-spacing: 0.02em;
+    }
+}

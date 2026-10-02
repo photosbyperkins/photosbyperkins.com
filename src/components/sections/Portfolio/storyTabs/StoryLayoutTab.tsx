@@ -170,9 +170,7 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
     const validCount = slots.filter((idx) => idx !== null && idx >= 0).length;
     const neededFrames = Math.max(0, 3 - validCount);
     const feedbackText =
-        neededFrames > 0
-            ? `Pick ${neededFrames} frame${neededFrames === 1 ? '' : 's'}`
-            : '3 frames selected';
+        neededFrames > 0 ? `Pick ${neededFrames} frame${neededFrames === 1 ? '' : 's'}` : '3 frames selected';
 
     return (
         <div className="story-export-modal__tab-content story-export-modal__tab-content--layout">
@@ -293,9 +291,7 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                                     }`}
                                                     onClick={() => handleSlotClick(sIdx)}
                                                     aria-label={`Step ${sIdx + 1} (${slotNames[sIdx]}): ${
-                                                        assignedFrame !== null
-                                                            ? `Frame ${assignedFrame + 1}`
-                                                            : 'Empty'
+                                                        assignedFrame !== null ? `Frame ${assignedFrame + 1}` : 'Empty'
                                                     }${isStepActive ? ' (Active)' : ''}`}
                                                     aria-pressed={isStepActive}
                                                 >
@@ -351,8 +347,8 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                                         isSelected
                                                             ? ` (${slotNames[assignedSlot]})`
                                                             : isDisabled
-                                                            ? ' (Disabled)'
-                                                            : ''
+                                                              ? ' (Disabled)'
+                                                              : ''
                                                     }`}
                                                     aria-label={ariaLabel}
                                                 >

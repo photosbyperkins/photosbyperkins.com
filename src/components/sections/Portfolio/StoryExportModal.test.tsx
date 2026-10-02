@@ -188,6 +188,8 @@ describe('StoryExportModal', () => {
         const burstBtn = within(container).getByRole('button', { name: /^burst$/i });
         fireEvent.click(burstBtn);
 
+        expect(container.querySelector('.story-burst-cropper')).not.toBeNull();
+
         // Switch to BTM step and clear it by clicking again
         const slotGroup = screen.getByRole('group', { name: /Burst Wizard Steps/i });
         const slotButtons = slotGroup.querySelectorAll('button');
@@ -201,4 +203,3 @@ describe('StoryExportModal', () => {
         expect(exportBtn?.getAttribute('title')).toBe('Pick 1 more frame to download');
     });
 });
-

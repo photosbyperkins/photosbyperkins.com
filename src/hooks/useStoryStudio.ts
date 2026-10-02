@@ -2,7 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import type { BurstDividerStyle } from '../store/slices/storySlice';
 import { useStoryExport } from './useStoryExport';
-import { calculateNormalizedCrop, generateStoryPresets, renderStoryToCanvas } from '../utils/storyCanvas';
+import {
+    calculateNormalizedCrop,
+    calculateDefaultBurstZoom,
+    generateStoryPresets,
+    renderStoryToCanvas,
+} from '../utils/storyCanvas';
 import { STORY_FRAME_DEFINITIONS } from '../components/sections/Portfolio/storyFrames/frameDefinitions';
 import { STORY_FRAME_CATEGORIES } from '../components/sections/Portfolio/storyFrames/types';
 import type {
@@ -104,6 +109,17 @@ export function useStoryStudio({
         return storySettings.burstConfig?.selectedIndices || [0, 1, 2];
     });
 
+    const [burstPanOffsets, setBurstPanOffsets] = useState<{ x: number; y: number; zoom?: number }[]>(() => {
+        const defY = photoObj.focusY ?? 0.45;
+        const saved = storySettings.burstConfig?.panOffsets;
+        const defZoom = calculateDefaultBurstZoom(naturalDimensions.width, naturalDimensions.height);
+        return [
+            saved?.[0] || { x: 0.5, y: defY, zoom: defZoom },
+            saved?.[1] || { x: 0.5, y: defY, zoom: defZoom },
+            saved?.[2] || { x: 0.5, y: defY, zoom: defZoom },
+        ];
+    });
+
     const activePanelImages = useMemo(() => {
         if (!loadedBurstImages || loadedBurstImages.length === 0) {
             return loadedImage ? [loadedImage, loadedImage, loadedImage] : [];
@@ -130,15 +146,15 @@ export function useStoryStudio({
         const deltas = photoObj.burst.frameDeltas;
         const base =
             burstSelectedIndices[0] !== undefined && burstSelectedIndices[0] !== null
-                ? deltas[burstSelectedIndices[0]] ?? 0
+                ? (deltas[burstSelectedIndices[0]] ?? 0)
                 : 0;
         const d1 =
             burstSelectedIndices[1] !== undefined && burstSelectedIndices[1] !== null
-                ? deltas[burstSelectedIndices[1]] ?? 0.84
+                ? (deltas[burstSelectedIndices[1]] ?? 0.84)
                 : 0.84;
         const d2 =
             burstSelectedIndices[2] !== undefined && burstSelectedIndices[2] !== null
-                ? deltas[burstSelectedIndices[2]] ?? 1.42
+                ? (deltas[burstSelectedIndices[2]] ?? 1.42)
                 : 1.42;
         return [0.0, Number(Math.max(0, d1 - base).toFixed(2)), Number(Math.max(0, d2 - base).toFixed(2))];
     }, [photoObj.burst, burstSelectedIndices]);
@@ -291,7 +307,8 @@ export function useStoryStudio({
                 dividerStyle: burstDividerStyle,
                 showTimeStamps: burstShowTimeStamps,
                 timeStamps: activeBurstTimeStamps,
-                focusYList: [photoObj.focusY ?? 0.45, photoObj.focusY ?? 0.45, photoObj.focusY ?? 0.45],
+                panOffsets: burstPanOffsets,
+                focusYList: burstPanOffsets.map((p) => p.y),
             },
             badges,
             resolution: '1080x1920',
@@ -310,12 +327,12 @@ export function useStoryStudio({
             burstDividerStyle,
             burstShowTimeStamps,
             activeBurstTimeStamps,
+            burstPanOffsets,
             badges,
             cardTheme,
             activeFrameId,
             effectiveFrameColor,
             photoObj.exif,
-            photoObj.focusY,
             activeFilterId,
             filterStrength,
         ]
@@ -348,6 +365,7 @@ export function useStoryStudio({
                 dividerStyle: burstDividerStyle,
                 showTimeStamps: burstShowTimeStamps,
                 selectedIndices: burstSelectedIndices,
+                panOffsets: burstPanOffsets,
             },
             filterId: activeFilterId,
             filterStrength,
@@ -378,6 +396,7 @@ export function useStoryStudio({
         burstDividerStyle,
         burstShowTimeStamps,
         burstSelectedIndices,
+        burstPanOffsets,
         setStorySettings,
     ]);
 
@@ -397,6 +416,13 @@ export function useStoryStudio({
             setBurstDividerStyle('hairline');
             setBurstShowTimeStamps(true);
             setBurstSelectedIndices([0, 1, 2]);
+            const defY = photoObj.focusY ?? 0.45;
+            const defZoom = calculateDefaultBurstZoom(naturalDimensions.width, naturalDimensions.height);
+            setBurstPanOffsets([
+                { x: 0.5, y: defY, zoom: defZoom },
+                { x: 0.5, y: defY, zoom: defZoom },
+                { x: 0.5, y: defY, zoom: defZoom },
+            ]);
         } else {
             const def = presets.find((p) => p.isDefault) || presets[0];
             if (def) {
@@ -467,6 +493,15 @@ export function useStoryStudio({
             ) {
                 return false;
             }
+            const defY = photoObj.focusY ?? 0.45;
+            const defZoom = calculateDefaultBurstZoom(naturalDimensions.width, naturalDimensions.height);
+            const areBurstPanOffsetsDefault = burstPanOffsets.every(
+                (p) =>
+                    Math.abs(p.x - 0.5) < 0.001 &&
+                    Math.abs(p.y - defY) < 0.001 &&
+                    Math.abs((p.zoom ?? defZoom) - defZoom) < 0.001
+            );
+            if (!areBurstPanOffsetsDefault) return false;
         } else {
             const def = presets.find((p) => p.isDefault) || presets[0];
             const defaultPresetId = def ? def.id : 'center';
@@ -535,6 +570,7 @@ export function useStoryStudio({
         burstDividerStyle,
         burstShowTimeStamps,
         burstSelectedIndices,
+        burstPanOffsets,
     ]);
 
     const handleClose = useCallback(() => {
@@ -562,6 +598,18 @@ export function useStoryStudio({
         [setIsDownloaded]
     );
 
+    const handleBurstPanChange = useCallback(
+        (panelIndex: number, offset: { x: number; y: number; zoom?: number }) => {
+            setBurstPanOffsets((prev) => {
+                const next = [...prev];
+                next[panelIndex] = offset;
+                return next;
+            });
+            setIsDownloaded(false);
+        },
+        [setIsDownloaded]
+    );
+
     // Live preview canvas ref
     const previewCanvasRef = useRef<HTMLCanvasElement>(null);
 
@@ -579,7 +627,8 @@ export function useStoryStudio({
                 dividerStyle: burstDividerStyle,
                 showTimeStamps: burstShowTimeStamps,
                 timeStamps: activeBurstTimeStamps,
-                focusYList: [photoObj.focusY ?? 0.45, photoObj.focusY ?? 0.45, photoObj.focusY ?? 0.45],
+                panOffsets: burstPanOffsets,
+                focusYList: burstPanOffsets.map((p) => p.y),
             },
             badges: {
                 ...badges,
@@ -605,7 +654,7 @@ export function useStoryStudio({
         burstDividerStyle,
         burstShowTimeStamps,
         activeBurstTimeStamps,
-        photoObj.focusY,
+        burstPanOffsets,
         badges,
         cardTheme,
         activeFilterId,
@@ -630,6 +679,11 @@ export function useStoryStudio({
         setBurstShowTimeStamps,
         burstSelectedIndices,
         setBurstSelectedIndices,
+        burstPanOffsets,
+        setBurstPanOffsets,
+        handleBurstPanChange,
+        activeBurstTimeStamps,
+        activePanelImages,
         burstLoading,
         badges,
         setBadges,

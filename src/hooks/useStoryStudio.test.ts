@@ -228,5 +228,51 @@ describe('useStoryStudio', () => {
             expect(result.current.activeFilterId).toBe('none');
             expect(result.current.isDefaultConfig).toBe(true);
         });
+
+        it('manages burstPanOffsets and resets them to defaults derived from photo aspect ratio', () => {
+            const { result } = renderHook(() => useStoryStudio(burstProps));
+
+            // Default for 16:9 photo (1920x1080) derives to 1.17
+            expect(result.current.burstPanOffsets).toEqual([
+                { x: 0.5, y: 0.45, zoom: 1.17 },
+                { x: 0.5, y: 0.45, zoom: 1.17 },
+                { x: 0.5, y: 0.45, zoom: 1.17 },
+            ]);
+            expect(result.current.isDefaultConfig).toBe(true);
+
+            act(() => {
+                result.current.handleBurstPanChange(1, { x: 0.8, y: 0.2, zoom: 1.5 });
+            });
+
+            expect(result.current.burstPanOffsets[1]).toEqual({ x: 0.8, y: 0.2, zoom: 1.5 });
+            expect(result.current.currentConfig.burst?.panOffsets?.[1]).toEqual({ x: 0.8, y: 0.2, zoom: 1.5 });
+            expect(result.current.isDefaultConfig).toBe(false);
+
+            act(() => {
+                result.current.resetToDefaults();
+            });
+
+            expect(result.current.burstPanOffsets).toEqual([
+                { x: 0.5, y: 0.45, zoom: 1.17 },
+                { x: 0.5, y: 0.45, zoom: 1.17 },
+                { x: 0.5, y: 0.45, zoom: 1.17 },
+            ]);
+            expect(result.current.isDefaultConfig).toBe(true);
+        });
+
+        it('derives precisely 1.25 default zoom for standard 3:2 DSLR/mirrorless burst photos', () => {
+            const dslrBurstProps = {
+                ...burstProps,
+                naturalDimensions: { width: 3000, height: 2000 },
+            };
+            const { result } = renderHook(() => useStoryStudio(dslrBurstProps));
+
+            expect(result.current.burstPanOffsets).toEqual([
+                { x: 0.5, y: 0.45, zoom: 1.25 },
+                { x: 0.5, y: 0.45, zoom: 1.25 },
+                { x: 0.5, y: 0.45, zoom: 1.25 },
+            ]);
+            expect(result.current.isDefaultConfig).toBe(true);
+        });
     });
 });

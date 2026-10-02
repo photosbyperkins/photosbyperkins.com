@@ -1,5 +1,6 @@
 import { STORY_WIDTH, STORY_HEIGHT, hexToRgba, isColorLight, getStoryFilterCss } from './storyConstants';
 import type { StoryRenderConfig, BurstStoryOptions, StoryPhotoFilterId } from './storyConstants';
+import { calculateBurstPanelCrop } from './storyMath';
 import {
     drawRoundRect,
     drawCameraLogoIcon,
@@ -15,10 +16,7 @@ import { formatTeamName } from '../formatters';
  * Renders the story image onto an HTML5 Canvas.
  */
 export async function renderStoryToCanvas(
-    img:
-        | HTMLImageElement
-        | HTMLCanvasElement
-        | (HTMLImageElement | HTMLCanvasElement | null | undefined)[],
+    img: HTMLImageElement | HTMLCanvasElement | (HTMLImageElement | HTMLCanvasElement | null | undefined)[],
     config: StoryRenderConfig,
     targetCanvas?: HTMLCanvasElement
 ): Promise<HTMLCanvasElement> {
@@ -106,140 +104,140 @@ export async function renderStoryToCanvas(
             const scale = padded.cardScale || 0.92;
             const cornerRadius = (padded.cardCornerRadius || 24) * (targetW / STORY_WIDTH);
 
-        // --- A. Background Rendering ---
-        const isFrosted = padded.style === 'frosted' || padded.style === 'glass';
-        if (isFrosted) {
-            // Draw scaled background image
-            const bgScale = Math.max(targetW / naturalW, targetH / naturalH);
-            const bgW = naturalW * bgScale;
-            const bgH = naturalH * bgScale;
-            const bgX = (targetW - bgW) / 2;
-            const bgY = (targetH - bgH) / 2;
+            // --- A. Background Rendering ---
+            const isFrosted = padded.style === 'frosted' || padded.style === 'glass';
+            if (isFrosted) {
+                // Draw scaled background image
+                const bgScale = Math.max(targetW / naturalW, targetH / naturalH);
+                const bgW = naturalW * bgScale;
+                const bgH = naturalH * bgScale;
+                const bgX = (targetW - bgW) / 2;
+                const bgY = (targetH - bgH) / 2;
 
-            let blurred = false;
-            if (typeof document !== 'undefined') {
-                try {
-                    const sw = 64;
-                    const sh = Math.round(64 * (targetH / targetW));
-                    const smallCanvas = document.createElement('canvas');
-                    smallCanvas.width = sw;
-                    smallCanvas.height = sh;
-                    const sCtx = smallCanvas.getContext('2d', { willReadFrequently: true });
-                    if (sCtx && typeof sCtx.getImageData === 'function') {
-                        const sScale = Math.max(sw / naturalW, sh / naturalH);
-                        const sW = naturalW * sScale;
-                        const sH = naturalH * sScale;
-                        const sX = (sw - sW) / 2;
-                        const sY = (sh - sH) / 2;
-                        sCtx.drawImage(primaryImg, sX, sY, sW, sH);
+                let blurred = false;
+                if (typeof document !== 'undefined') {
+                    try {
+                        const sw = 64;
+                        const sh = Math.round(64 * (targetH / targetW));
+                        const smallCanvas = document.createElement('canvas');
+                        smallCanvas.width = sw;
+                        smallCanvas.height = sh;
+                        const sCtx = smallCanvas.getContext('2d', { willReadFrequently: true });
+                        if (sCtx && typeof sCtx.getImageData === 'function') {
+                            const sScale = Math.max(sw / naturalW, sh / naturalH);
+                            const sW = naturalW * sScale;
+                            const sH = naturalH * sScale;
+                            const sX = (sw - sW) / 2;
+                            const sY = (sh - sH) / 2;
+                            sCtx.drawImage(primaryImg, sX, sY, sW, sH);
 
-                        const imgData = sCtx.getImageData(0, 0, sw, sh);
-                        if (config.filterId && config.filterId !== 'none') {
-                            applyStoryFilterToImageData(imgData, config.filterId, config.filterStrength ?? 1.0);
+                            const imgData = sCtx.getImageData(0, 0, sw, sh);
+                            if (config.filterId && config.filterId !== 'none') {
+                                applyStoryFilterToImageData(imgData, config.filterId, config.filterStrength ?? 1.0);
+                            }
+                            applyFastBlurAndAdjust(imgData, 4, 1.8, 0.65);
+                            sCtx.putImageData(imgData, 0, 0);
+
+                            ctx.save();
+                            ctx.imageSmoothingEnabled = true;
+                            ctx.imageSmoothingQuality = 'high';
+                            ctx.drawImage(smallCanvas, 0, 0, targetW, targetH);
+                            ctx.restore();
+                            blurred = true;
                         }
-                        applyFastBlurAndAdjust(imgData, 4, 1.8, 0.65);
-                        sCtx.putImageData(imgData, 0, 0);
-
-                        ctx.save();
-                        ctx.imageSmoothingEnabled = true;
-                        ctx.imageSmoothingQuality = 'high';
-                        ctx.drawImage(smallCanvas, 0, 0, targetW, targetH);
-                        ctx.restore();
-                        blurred = true;
+                    } catch {
+                        blurred = false;
                     }
-                } catch {
-                    blurred = false;
                 }
+
+                if (!blurred) {
+                    ctx.save();
+                    if ('filter' in ctx) {
+                        const blurEffect = `blur(${Math.round(48 * (targetW / STORY_WIDTH))}px) saturate(180%) brightness(0.65)`;
+                        ctx.filter = filterCss ? `${blurEffect} ${filterCss}` : blurEffect;
+                    }
+                    ctx.drawImage(primaryImg, bgX, bgY, bgW, bgH);
+                    ctx.restore();
+                }
+
+                // Frosted glass overlay tint (affected by customColor, NOT by badge theme)
+                const tintColor = padded.customColor || '#0a0a14';
+                ctx.fillStyle = hexToRgba(tintColor);
+                ctx.fillRect(0, 0, targetW, targetH);
+            } else if (padded.style === 'solid' || padded.style === 'custom') {
+                // Solid background color (affected by customColor, NOT by badge theme)
+                ctx.fillStyle = padded.customColor || '#0a0a14';
+                ctx.fillRect(0, 0, targetW, targetH);
+            } else {
+                // Minimal Noir Dark Background (default fallback)
+                const grad = ctx.createLinearGradient(0, 0, 0, targetH);
+                grad.addColorStop(0, '#0a0a0f');
+                grad.addColorStop(0.5, '#0f0f18');
+                grad.addColorStop(1, '#08080c');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, targetW, targetH);
             }
 
-            if (!blurred) {
-                ctx.save();
-                if ('filter' in ctx) {
-                    const blurEffect = `blur(${Math.round(48 * (targetW / STORY_WIDTH))}px) saturate(180%) brightness(0.65)`;
-                    ctx.filter = filterCss ? `${blurEffect} ${filterCss}` : blurEffect;
-                }
-                ctx.drawImage(primaryImg, bgX, bgY, bgW, bgH);
-                ctx.restore();
+            // --- B. Foreground Card Rendering ---
+            const imgRatio = naturalW / naturalH;
+            let cardW = targetW * scale;
+            let cardH = cardW / imgRatio;
+
+            // If card exceeds 85% of vertical space, constrain by height
+            const maxCardH = targetH * 0.82;
+            if (cardH > maxCardH) {
+                cardH = maxCardH;
+                cardW = cardH * imgRatio;
             }
 
-            // Frosted glass overlay tint (affected by customColor, NOT by badge theme)
-            const tintColor = padded.customColor || '#0a0a14';
-            ctx.fillStyle = hexToRgba(tintColor);
-            ctx.fillRect(0, 0, targetW, targetH);
-        } else if (padded.style === 'solid' || padded.style === 'custom') {
-            // Solid background color (affected by customColor, NOT by badge theme)
-            ctx.fillStyle = padded.customColor || '#0a0a14';
-            ctx.fillRect(0, 0, targetW, targetH);
-        } else {
-            // Minimal Noir Dark Background (default fallback)
-            const grad = ctx.createLinearGradient(0, 0, 0, targetH);
-            grad.addColorStop(0, '#0a0a0f');
-            grad.addColorStop(0.5, '#0f0f18');
-            grad.addColorStop(1, '#08080c');
-            ctx.fillStyle = grad;
-            ctx.fillRect(0, 0, targetW, targetH);
+            const cardX = (targetW - cardW) / 2;
+            const cardY =
+                padded.position === 'elevated'
+                    ? (targetH - cardH) * 0.42 // slightly elevated to avoid Instagram Story reply bar
+                    : (targetH - cardH) / 2;
+
+            const effectiveRadius = cardX <= 2 ? 0 : cornerRadius;
+            const isCustomBgLight = Boolean(padded.customColor && isColorLight(padded.customColor));
+
+            // Render Drop Shadow
+            ctx.save();
+            ctx.shadowColor = isCustomBgLight ? 'rgba(0, 0, 0, 0.25)' : 'rgba(0, 0, 0, 0.55)';
+            ctx.shadowBlur = Math.round(40 * (targetW / STORY_WIDTH));
+            ctx.shadowOffsetX = 0;
+            ctx.shadowOffsetY = Math.round(18 * (targetW / STORY_WIDTH));
+
+            drawRoundRect(ctx, cardX, cardY, cardW, cardH, effectiveRadius);
+            ctx.fillStyle = isCustomBgLight ? '#ffffff' : '#0a0a0f';
+            ctx.fill();
+            ctx.restore();
+
+            // Render Clipped Photo Card
+            ctx.save();
+            drawRoundRect(ctx, cardX, cardY, cardW, cardH, effectiveRadius);
+            ctx.clip();
+            drawImageWithStoryFilter(
+                ctx,
+                primaryImg,
+                0,
+                0,
+                naturalW,
+                naturalH,
+                cardX,
+                cardY,
+                cardW,
+                cardH,
+                config.filterId,
+                config.filterStrength ?? 1.0,
+                filterCss
+            );
+
+            // Subtle 1px Glass Border
+            ctx.strokeStyle = isCustomBgLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.2)';
+            ctx.lineWidth = Math.max(1.5, 2 * (targetW / STORY_WIDTH));
+            ctx.stroke();
+            ctx.restore();
         }
-
-        // --- B. Foreground Card Rendering ---
-        const imgRatio = naturalW / naturalH;
-        let cardW = targetW * scale;
-        let cardH = cardW / imgRatio;
-
-        // If card exceeds 85% of vertical space, constrain by height
-        const maxCardH = targetH * 0.82;
-        if (cardH > maxCardH) {
-            cardH = maxCardH;
-            cardW = cardH * imgRatio;
-        }
-
-        const cardX = (targetW - cardW) / 2;
-        const cardY =
-            padded.position === 'elevated'
-                ? (targetH - cardH) * 0.42 // slightly elevated to avoid Instagram Story reply bar
-                : (targetH - cardH) / 2;
-
-        const effectiveRadius = cardX <= 2 ? 0 : cornerRadius;
-        const isCustomBgLight = Boolean(padded.customColor && isColorLight(padded.customColor));
-
-        // Render Drop Shadow
-        ctx.save();
-        ctx.shadowColor = isCustomBgLight ? 'rgba(0, 0, 0, 0.25)' : 'rgba(0, 0, 0, 0.55)';
-        ctx.shadowBlur = Math.round(40 * (targetW / STORY_WIDTH));
-        ctx.shadowOffsetX = 0;
-        ctx.shadowOffsetY = Math.round(18 * (targetW / STORY_WIDTH));
-
-        drawRoundRect(ctx, cardX, cardY, cardW, cardH, effectiveRadius);
-        ctx.fillStyle = isCustomBgLight ? '#ffffff' : '#0a0a0f';
-        ctx.fill();
-        ctx.restore();
-
-        // Render Clipped Photo Card
-        ctx.save();
-        drawRoundRect(ctx, cardX, cardY, cardW, cardH, effectiveRadius);
-        ctx.clip();
-        drawImageWithStoryFilter(
-            ctx,
-            primaryImg,
-            0,
-            0,
-            naturalW,
-            naturalH,
-            cardX,
-            cardY,
-            cardW,
-            cardH,
-            config.filterId,
-            config.filterStrength ?? 1.0,
-            filterCss
-        );
-
-        // Subtle 1px Glass Border
-        ctx.strokeStyle = isCustomBgLight ? 'rgba(0, 0, 0, 0.12)' : 'rgba(255, 255, 255, 0.2)';
-        ctx.lineWidth = Math.max(1.5, 2 * (targetW / STORY_WIDTH));
-        ctx.stroke();
-        ctx.restore();
     }
-}
 
     // ==========================================
     // 2.5. RENDER OPTIONAL DECORATIVE FRAME
@@ -531,10 +529,7 @@ export async function renderStoryToCanvas(
  * Exports the canvas as a JPEG Blob ready for download or navigator.share.
  */
 export async function renderStoryToBlob(
-    img:
-        | HTMLImageElement
-        | HTMLCanvasElement
-        | (HTMLImageElement | HTMLCanvasElement | null | undefined)[],
+    img: HTMLImageElement | HTMLCanvasElement | (HTMLImageElement | HTMLCanvasElement | null | undefined)[],
     config: StoryRenderConfig
 ): Promise<Blob> {
     const canvas = await renderStoryToCanvas(img, config);
@@ -571,7 +566,15 @@ export function renderBurstPanels(
     const style = burst.dividerStyle || 'hairline';
     const showTimeStamps = burst.showTimeStamps ?? true;
     const timeStamps = burst.timeStamps || [0.0, 0.84, 1.42];
-    const focusYList = burst.focusYList || [0.45, 0.45, 0.45];
+    const panOffsets: { x: number; y: number; zoom?: number }[] =
+        burst.panOffsets ||
+        (burst.focusYList
+            ? burst.focusYList.map((y) => ({ x: 0.5, y }))
+            : [
+                  { x: 0.5, y: 0.45 },
+                  { x: 0.5, y: 0.45 },
+                  { x: 0.5, y: 0.45 },
+              ]);
 
     // Ensure 3 panel slots with null for missing frames
     const panelImages: (HTMLImageElement | HTMLCanvasElement | null | undefined)[] = [
@@ -612,7 +615,7 @@ export function renderBurstPanels(
         for (let i = 0; i < 3; i++) {
             const pImg = panelImages[i];
             const panelY = topBottomMargin + i * (panelH + gutter);
-            const focusY = focusYList[i] ?? 0.45;
+            const pan = panOffsets[i] || { x: 0.5, y: 0.45 };
 
             ctx.save();
             // Drop shadow for card
@@ -637,7 +640,9 @@ export function renderBurstPanels(
                     panelY,
                     panelW,
                     panelH,
-                    focusY,
+                    pan.x,
+                    pan.y,
+                    pan.zoom,
                     filterCss,
                     config.filterId,
                     config.filterStrength
@@ -702,7 +707,7 @@ export function renderBurstPanels(
         for (let i = 0; i < 3; i++) {
             const pImg = panelImages[i];
             const panelY = topBottomMargin + i * (panelH + gutter);
-            const focusY = focusYList[i] ?? 0.45;
+            const pan = panOffsets[i] || { x: 0.5, y: 0.45 };
 
             if (pImg) {
                 ctx.save();
@@ -713,7 +718,9 @@ export function renderBurstPanels(
                     panelY,
                     panelW,
                     panelH,
-                    focusY,
+                    pan.x,
+                    pan.y,
+                    pan.zoom,
                     filterCss,
                     config.filterId,
                     config.filterStrength
@@ -762,7 +769,7 @@ export function renderBurstPanels(
             const panelX = 0;
             const panelY = i * (panelH + gap);
             const currentH = i === 2 ? targetH - panelY : panelH;
-            const focusY = focusYList[i] ?? 0.45;
+            const pan = panOffsets[i] || { x: 0.5, y: 0.45 };
 
             if (pImg) {
                 ctx.save();
@@ -773,7 +780,9 @@ export function renderBurstPanels(
                     panelY,
                     targetW,
                     currentH,
-                    focusY,
+                    pan.x,
+                    pan.y,
+                    pan.zoom,
                     filterCss,
                     config.filterId,
                     config.filterStrength
@@ -810,8 +819,10 @@ function drawImageFocalCrop(
     dy: number,
     dw: number,
     dh: number,
-    focusY: number,
-    filterCss: string,
+    panX: number,
+    panY: number,
+    zoom?: number,
+    filterCss = '',
     filterId?: StoryPhotoFilterId,
     filterStrength = 1.0
 ) {
@@ -819,29 +830,13 @@ function drawImageFocalCrop(
     const nh = 'naturalHeight' in img ? img.naturalHeight : img.height;
     if (!nw || !nh) return;
 
-    const targetRatio = dw / dh;
-    const imgRatio = nw / nh;
+    const panelAspect = dw / dh;
+    const crop = calculateBurstPanelCrop(nw, nh, panX, panY, zoom, panelAspect);
 
-    let sx: number;
-    let sy: number;
-    let sw: number;
-    let sh: number;
-
-    if (imgRatio >= targetRatio) {
-        // Image wider than target
-        sh = nh;
-        sw = nh * targetRatio;
-        sx = (nw - sw) / 2;
-        sy = 0;
-    } else {
-        // Image taller than target (common for landscape photos in 2:1 frame)
-        sw = nw;
-        sh = nw / targetRatio;
-        sx = 0;
-        const centerY = focusY * nh;
-        sy = centerY - sh / 2;
-        sy = Math.max(0, Math.min(nh - sh, sy));
-    }
+    const sx = crop.x * nw;
+    const sy = crop.y * nh;
+    const sw = crop.width * nw;
+    const sh = crop.height * nh;
 
     drawImageWithStoryFilter(ctx, img, sx, sy, sw, sh, dx, dy, dw, dh, filterId, filterStrength, filterCss);
 }

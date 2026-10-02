@@ -12,6 +12,7 @@ export interface BurstStoryConfig {
     dividerStyle: BurstDividerStyle;
     showTimeStamps: boolean;
     selectedIndices: (number | null)[];
+    panOffsets?: { x: number; y: number; zoom?: number }[];
 }
 
 export interface StorySettings {

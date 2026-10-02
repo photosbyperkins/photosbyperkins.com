@@ -1,6 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
     calculateNormalizedCrop,
+    calculateBurstPanelCrop,
+    calculateDefaultBurstZoom,
+    BURST_PANEL_ASPECT_RATIO,
     generateStoryPresets,
     drawCameraLogoIcon,
     renderStoryToCanvas,
@@ -78,6 +81,130 @@ describe('storyCanvas calculations', () => {
             // Far right center
             const cropRight = calculateNormalizedCrop(imgW, imgH, 1.5, 0.5, 1.0);
             expect(cropRight.x + cropRight.width).toBeCloseTo(1.0, 4);
+        });
+    });
+
+    describe('calculateBurstPanelCrop', () => {
+        it('calculates exact cover crop for 3:2 landscape image at minimum zoom 1.0 (zero letterboxing)', () => {
+            const imgW = 3000;
+            const imgH = 2000;
+            const crop = calculateBurstPanelCrop(imgW, imgH, 0.5, 0.5, 1.0);
+
+            // In 3:2 photo (1.50) into 27:16 panel (1.6875):
+            // Width spans 100% of image width: cropW = 3000
+            // cropH = 3000 / 1.6875 = 1777.78
+            expect(crop.width).toBeCloseTo(1.0, 3);
+            expect(crop.height).toBeCloseTo(1777.78 / 2000, 3);
+            expect(crop.x).toBeCloseTo(0.0, 3);
+            expect(crop.y).toBeCloseTo((2000 - 1777.78) / 2 / 2000, 3);
+
+            // Aspect ratio matches panel aspect ratio exactly
+            const effectiveRatio = (crop.width * imgW) / (crop.height * imgH);
+            expect(effectiveRatio).toBeCloseTo(BURST_PANEL_ASPECT_RATIO, 4);
+        });
+
+        it('provides active pan travel in both X and Y at default zoom 1.25', () => {
+            const imgW = 3000;
+            const imgH = 2000;
+            const crop = calculateBurstPanelCrop(imgW, imgH, 0.5, 0.5, 1.25);
+
+            // At 1.25x zoom, crop dimensions shrink below 1.0, allowing active panning in all directions
+            expect(crop.width).toBeCloseTo(0.8, 3);
+            expect(crop.height).toBeCloseTo(0.7111, 3);
+            expect(crop.zoom).toBe(1.25);
+
+            // Effective aspect ratio is preserved
+            const effectiveRatio = (crop.width * imgW) / (crop.height * imgH);
+            expect(effectiveRatio).toBeCloseTo(BURST_PANEL_ASPECT_RATIO, 4);
+        });
+
+        it('calculates cover crop for 16:9 image at minimum zoom 1.0', () => {
+            const imgW = 3840;
+            const imgH = 2160;
+            const crop = calculateBurstPanelCrop(imgW, imgH, 0.5, 0.5, 1.0);
+
+            // In 16:9 photo (1.778) into 27:16 panel (1.6875):
+            // Height spans 100% of image height: cropH = 2160
+            // cropW = 2160 * 1.6875 = 3645
+            expect(crop.height).toBeCloseTo(1.0, 3);
+            expect(crop.width).toBeCloseTo(3645 / 3840, 3);
+
+            const effectiveRatio = (crop.width * imgW) / (crop.height * imgH);
+            expect(effectiveRatio).toBeCloseTo(BURST_PANEL_ASPECT_RATIO, 4);
+        });
+
+        it('clamps out of bounds coordinates so burst panel crop never leaves image', () => {
+            const imgW = 3000;
+            const imgH = 2000;
+
+            // Panned beyond top-left
+            const cropTopLeft = calculateBurstPanelCrop(imgW, imgH, -0.5, -0.5, 1.25);
+            expect(cropTopLeft.x).toBe(0);
+            expect(cropTopLeft.y).toBe(0);
+
+            // Panned beyond bottom-right
+            const cropBottomRight = calculateBurstPanelCrop(imgW, imgH, 1.5, 1.5, 1.25);
+            expect(cropBottomRight.x + cropBottomRight.width).toBeCloseTo(1.0, 4);
+            expect(cropBottomRight.y + cropBottomRight.height).toBeCloseTo(1.0, 4);
+        });
+
+        it('clamps zoom strictly between minimum 1.0 (fill frame) and maximum 3.5', () => {
+            const imgW = 3000;
+            const imgH = 2000;
+
+            const underZoom = calculateBurstPanelCrop(imgW, imgH, 0.5, 0.5, 0.2);
+            expect(underZoom.zoom).toBe(1.0);
+
+            const overZoom = calculateBurstPanelCrop(imgW, imgH, 0.5, 0.5, 5.0);
+            expect(overZoom.zoom).toBe(3.5);
+        });
+
+        it('automatically derives default zoom from aspect ratio when zoom is omitted', () => {
+            // 3:2 photo -> default zoom 1.25
+            const crop32 = calculateBurstPanelCrop(3000, 2000, 0.5, 0.5);
+            expect(crop32.zoom).toBe(1.25);
+
+            // 16:9 photo -> default zoom 1.17
+            const crop169 = calculateBurstPanelCrop(3840, 2160, 0.5, 0.5);
+            expect(crop169.zoom).toBe(1.17);
+        });
+    });
+
+    describe('calculateDefaultBurstZoom', () => {
+        it('derives precisely 1.25x for standard 3:2 DSLR/mirrorless photos', () => {
+            // 3:2 = 1.50 -> 27:16 panel (1.6875) -> 1.125 mismatch * (10/9) = 1.25
+            expect(calculateDefaultBurstZoom(3000, 2000)).toBe(1.25);
+            expect(calculateDefaultBurstZoom(6000, 4000)).toBe(1.25);
+            expect(calculateDefaultBurstZoom(1080, 720)).toBe(1.25);
+        });
+
+        it('derives ~1.17x for 16:9 widescreen photos to preserve vertical headroom', () => {
+            // 16:9 = 1.778 -> mismatch ~1.0535 * (10/9) = ~1.17
+            expect(calculateDefaultBurstZoom(3840, 2160)).toBe(1.17);
+            expect(calculateDefaultBurstZoom(1920, 1080)).toBe(1.17);
+        });
+
+        it('derives ~1.41x for 4:3 camera formats to preserve horizontal headroom', () => {
+            // 4:3 = 1.333 -> mismatch ~1.2656 * (10/9) = ~1.41
+            expect(calculateDefaultBurstZoom(4000, 3000)).toBe(1.41);
+        });
+
+        it('derives ~1.88x for 1:1 square photos', () => {
+            // 1:1 = 1.0 -> mismatch 1.6875 * (10/9) = 1.875 -> 1.88
+            expect(calculateDefaultBurstZoom(2000, 2000)).toBe(1.88);
+        });
+
+        it('clamps default zoom between 1.15 and 2.0 for extreme aspect ratios', () => {
+            // Exact panel match (27:16) has mismatch 1.0 -> 1.111 -> clamped to min 1.15
+            expect(calculateDefaultBurstZoom(2700, 1600)).toBe(1.15);
+
+            // Extreme portrait (9:16) has high mismatch -> clamped to max 2.0
+            expect(calculateDefaultBurstZoom(1080, 1920)).toBe(2.0);
+        });
+
+        it('gracefully falls back to 1.25 when dimensions are missing or zero', () => {
+            expect(calculateDefaultBurstZoom(0, 0)).toBe(1.25);
+            expect(calculateDefaultBurstZoom(1920, 0)).toBe(1.25);
         });
     });
 
@@ -1132,6 +1259,92 @@ describe('storyCanvas calculations', () => {
             expect(mockCanvas.width).toBe(1080);
             expect(mockCanvas.height).toBe(1920);
             expect(drawCalls.length).toBeGreaterThanOrEqual(3);
+        });
+
+        it('applies custom panOffsets to burst panel focal crop', async () => {
+            const img1 = createMockImage(3000, 1000);
+            const img2 = createMockImage(3000, 1000);
+            const img3 = createMockImage(3000, 1000);
+            const { mockCanvas, drawCalls } = createMockContext();
+
+            await renderStoryToCanvas(
+                [img1, img2, img3],
+                {
+                    mode: 'burst',
+                    crop: { x: 0, y: 0, width: 1, height: 1, zoom: 1, centerX: 0.5, centerY: 0.5 },
+                    padded: { style: 'frosted', position: 'center', cardScale: 0.92, cardCornerRadius: 24 },
+                    burst: {
+                        dividerStyle: 'hairline',
+                        showTimeStamps: false,
+                        panOffsets: [
+                            { x: 0.0, y: 0.0 }, // Left / top
+                            { x: 0.5, y: 0.5 }, // Center
+                            { x: 1.0, y: 1.0 }, // Right / bottom
+                        ],
+                    },
+                    badges: {
+                        showScoreboard: false,
+                        showAttribution: false,
+                    },
+                },
+                mockCanvas
+            );
+
+            expect(drawCalls.length).toBeGreaterThanOrEqual(3);
+            const panel0Args = drawCalls[0];
+            const panel1Args = drawCalls[1];
+            const panel2Args = drawCalls[2];
+
+            // sx for panel 0 (panX=0) should be 0
+            expect(panel0Args[1]).toBe(0);
+            // sx for panel 1 (panX=0.5) should be greater than 0
+            expect(panel1Args[1]).toBeGreaterThan(0);
+            // sx for panel 2 (panX=1.0) should be greater than panel 1 sx
+            expect(panel2Args[1]).toBeGreaterThan(panel1Args[1] as number);
+        });
+
+        it('applies zoom in panOffsets to magnify burst panel focal crop', async () => {
+            const img1 = createMockImage(3000, 1000);
+            const img2 = createMockImage(3000, 1000);
+            const img3 = createMockImage(3000, 1000);
+            const { mockCanvas, drawCalls } = createMockContext();
+
+            await renderStoryToCanvas(
+                [img1, img2, img3],
+                {
+                    mode: 'burst',
+                    crop: { x: 0, y: 0, width: 1, height: 1, zoom: 1, centerX: 0.5, centerY: 0.5 },
+                    padded: { style: 'frosted', position: 'center', cardScale: 0.92, cardCornerRadius: 24 },
+                    burst: {
+                        dividerStyle: 'hairline',
+                        showTimeStamps: false,
+                        panOffsets: [
+                            { x: 0.5, y: 0.5, zoom: 1.0 }, // 1.0x zoom
+                            { x: 0.5, y: 0.5, zoom: 2.0 }, // 2.0x zoom
+                            { x: 0.5, y: 0.5, zoom: 3.0 }, // 3.0x zoom
+                        ],
+                    },
+                    badges: {
+                        showScoreboard: false,
+                        showAttribution: false,
+                    },
+                },
+                mockCanvas
+            );
+
+            expect(drawCalls.length).toBeGreaterThanOrEqual(3);
+            const panel0Args = drawCalls[0];
+            const panel1Args = drawCalls[1];
+            const panel2Args = drawCalls[2];
+
+            const sw0 = panel0Args[3] as number;
+            const sw1 = panel1Args[3] as number;
+            const sw2 = panel2Args[3] as number;
+
+            // Higher zoom takes a smaller source slice (sw), magnifying the image into the panel
+            expect(sw1).toBeLessThan(sw0);
+            expect(sw2).toBeLessThan(sw1);
+            expect(Math.round(sw0 / sw1)).toBe(2);
         });
     });
 

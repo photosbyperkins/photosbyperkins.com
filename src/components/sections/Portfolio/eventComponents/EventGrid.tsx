@@ -48,9 +48,7 @@ export const EventGrid = React.memo(function EventGrid({
                         key={origUrl}
                         className="portfolio__grid-item"
                         aria-label={`View ${eventName} photo ${i + 1}`}
-                        onClick={() =>
-                            openLightbox(albumImages, i, eventName, selectedYear, maxExifChars, eventScore)
-                        }
+                        onClick={() => openLightbox(albumImages, i, eventName, selectedYear, maxExifChars, eventScore)}
                         onKeyDown={(e) => {
                             if (e.key === 'Enter' || e.key === ' ') {
                                 e.preventDefault();

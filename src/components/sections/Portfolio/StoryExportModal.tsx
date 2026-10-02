@@ -9,6 +9,7 @@ import type { EventScore, PhotoInput } from '../../../types';
 import ModalShell from '../../ui/ModalShell';
 import { StoryBadges } from './StoryBadges';
 import { StoryCropper } from './StoryCropper';
+import { StoryBurstCropper } from './StoryBurstCropper';
 import { StoryFrameOverlay } from './storyFrames/StoryFrameOverlay';
 import { StoryLayoutTabIcon, StoryFiltersTabIcon, StoryFramesTabIcon, StoryBadgesTabIcon } from '../../ui/icons';
 import type { IconProps } from '../../ui/icons';
@@ -87,6 +88,10 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         setBurstShowTimeStamps,
         burstSelectedIndices,
         setBurstSelectedIndices,
+        burstPanOffsets,
+        handleBurstPanChange,
+        activeBurstTimeStamps,
+        activePanelImages,
         badges,
         setBadges,
         cardTheme,
@@ -160,9 +165,43 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isOpen, activeStudioTab, setActiveStudioTab]);
 
-    const validBurstCount = burstSelectedIndices.filter(
-        (idx) => idx !== null && idx !== undefined && idx >= 0
-    ).length;
+    const validBurstCount = burstSelectedIndices.filter((idx) => idx !== null && idx !== undefined && idx >= 0).length;
+
+    const burstFrameUrls = useMemo(() => {
+        if (!photoObj.burst?.frameSources) {
+            return activePanelImages.map((img) => img?.src ?? null);
+        }
+        const sources = photoObj.burst.frameSources;
+        return [
+            burstSelectedIndices[0] !== undefined && burstSelectedIndices[0] !== null
+                ? withBuild(sources[burstSelectedIndices[0]]) || activePanelImages[0]?.src || null
+                : null,
+            burstSelectedIndices[1] !== undefined && burstSelectedIndices[1] !== null
+                ? withBuild(sources[burstSelectedIndices[1]]) || activePanelImages[1]?.src || null
+                : null,
+            burstSelectedIndices[2] !== undefined && burstSelectedIndices[2] !== null
+                ? withBuild(sources[burstSelectedIndices[2]]) || activePanelImages[2]?.src || null
+                : null,
+        ];
+    }, [photoObj.burst, burstSelectedIndices, withBuild, activePanelImages]);
+
+    const burstFallbackUrls = useMemo(() => {
+        if (!photoObj.burst?.frameSources) {
+            return [undefined, undefined, undefined];
+        }
+        const sources = photoObj.burst.frameSources;
+        return [
+            burstSelectedIndices[0] !== undefined && burstSelectedIndices[0] !== null
+                ? sources[burstSelectedIndices[0]]
+                : undefined,
+            burstSelectedIndices[1] !== undefined && burstSelectedIndices[1] !== null
+                ? sources[burstSelectedIndices[1]]
+                : undefined,
+            burstSelectedIndices[2] !== undefined && burstSelectedIndices[2] !== null
+                ? sources[burstSelectedIndices[2]]
+                : undefined,
+        ];
+    }, [photoObj.burst, burstSelectedIndices]);
 
     const footer = (
         <button
@@ -266,6 +305,23 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                         prev.width === w && prev.height === h ? prev : { width: w, height: h }
                                     )
                                 }
+                            />
+                        ) : activeMode === 'burst' && burst ? (
+                            <StoryBurstCropper
+                                images={burstFrameUrls}
+                                fallbackSrcs={burstFallbackUrls}
+                                timeStamps={activeBurstTimeStamps}
+                                showTimeStamps={burstShowTimeStamps}
+                                panOffsets={burstPanOffsets}
+                                onPanChange={handleBurstPanChange}
+                                badges={badges}
+                                theme={cardTheme}
+                                frameId={activeFrameId}
+                                frameColorOverride={effectiveFrameColor}
+                                frameContext={frameContext}
+                                exif={photoObj.exif}
+                                filterId={activeFilterId}
+                                filterStrength={filterStrength}
                             />
                         ) : (
                             <div className="story-export-modal__padded-preview">

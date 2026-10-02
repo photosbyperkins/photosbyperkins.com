@@ -23,9 +23,9 @@ describe('isFrameValidForWizardStep pure helper', () => {
         const slots = [1, null, null];
         expect(isFrameValidForWizardStep(0, 1, slots, total)).toBe(false); // <= TOP
         expect(isFrameValidForWizardStep(1, 1, slots, total)).toBe(false); // == TOP
-        expect(isFrameValidForWizardStep(2, 1, slots, total)).toBe(true);  // valid MID
-        expect(isFrameValidForWizardStep(3, 1, slots, total)).toBe(true);  // valid MID
-        expect(isFrameValidForWizardStep(4, 1, slots, total)).toBe(true);  // valid MID
+        expect(isFrameValidForWizardStep(2, 1, slots, total)).toBe(true); // valid MID
+        expect(isFrameValidForWizardStep(3, 1, slots, total)).toBe(true); // valid MID
+        expect(isFrameValidForWizardStep(4, 1, slots, total)).toBe(true); // valid MID
         expect(isFrameValidForWizardStep(5, 1, slots, total)).toBe(false); // last frame (no room for BTM)
     });
 
@@ -36,13 +36,13 @@ describe('isFrameValidForWizardStep pure helper', () => {
         expect(isFrameValidForWizardStep(1, 2, slots, total)).toBe(false);
         expect(isFrameValidForWizardStep(2, 2, slots, total)).toBe(false);
         expect(isFrameValidForWizardStep(3, 2, slots, total)).toBe(false); // == MID
-        expect(isFrameValidForWizardStep(4, 2, slots, total)).toBe(true);  // valid BTM
-        expect(isFrameValidForWizardStep(5, 2, slots, total)).toBe(true);  // valid BTM
+        expect(isFrameValidForWizardStep(4, 2, slots, total)).toBe(true); // valid BTM
+        expect(isFrameValidForWizardStep(5, 2, slots, total)).toBe(true); // valid BTM
     });
 
     it('returns false when prerequisites are missing', () => {
         expect(isFrameValidForWizardStep(2, 1, [null, null, null], total)).toBe(false); // MID without TOP
-        expect(isFrameValidForWizardStep(4, 2, [1, null, null], total)).toBe(false);    // BTM without MID
+        expect(isFrameValidForWizardStep(4, 2, [1, null, null], total)).toBe(false); // BTM without MID
         expect(isFrameValidForWizardStep(-1, 0, [null, null, null], total)).toBe(false);
         expect(isFrameValidForWizardStep(6, 0, [null, null, null], total)).toBe(false);
     });
@@ -192,12 +192,7 @@ describe('StoryLayoutTab - Sequential Burst Frame Wizard', () => {
     });
 
     it('greys out frames <= TOP and the very last frame when on MID step', () => {
-        const { container } = render(
-            <StoryLayoutTab
-                {...defaultProps}
-                burstSelectedIndices={[1, null, null]}
-            />
-        );
+        const { container } = render(<StoryLayoutTab {...defaultProps} burstSelectedIndices={[1, null, null]} />);
 
         const thumbs = container.querySelectorAll<HTMLButtonElement>('.story-export-modal__burst-thumb');
         // Frame 1 (index 0) <= TOP -> disabled
@@ -304,12 +299,7 @@ describe('StoryLayoutTab - Sequential Burst Frame Wizard', () => {
     });
 
     it('switches active step to corresponding slot when clicking an already assigned thumbnail', () => {
-        const { container } = render(
-            <StoryLayoutTab
-                {...defaultProps}
-                burstSelectedIndices={[0, 2, 4]}
-            />
-        );
+        const { container } = render(<StoryLayoutTab {...defaultProps} burstSelectedIndices={[0, 2, 4]} />);
 
         // Starts on TOP (step 0). Click Frame 3 (index 2) which is MID
         const thumbs = container.querySelectorAll<HTMLButtonElement>('.story-export-modal__burst-thumb');
