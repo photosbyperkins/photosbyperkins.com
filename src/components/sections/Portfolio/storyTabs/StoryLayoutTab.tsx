@@ -210,7 +210,11 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
             {/* Mode Toggle: Smart Crop vs Padded Glass vs 3-Panel Burst */}
             <div className="story-export-modal__section">
                 <div className="story-export-modal__top-row">
-                    <div className="portfolio__segmented-toggle story-export-modal__segmented-control" role="group" aria-label="Story layout mode">
+                    <div
+                        className="portfolio__segmented-toggle story-export-modal__segmented-control"
+                        role="group"
+                        aria-label="Story layout mode"
+                    >
                         <button
                             type="button"
                             className={`story-export-modal__seg-btn ${
@@ -383,7 +387,11 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                             {!burst.isTriptych && (
                                 <div className="story-export-modal__toggle-row">
                                     <span>+Δt</span>
-                                    <div className="portfolio__segmented-toggle story-export-modal__pill-group" role="group" aria-label="Show timestamp">
+                                    <div
+                                        className="portfolio__segmented-toggle story-export-modal__pill-group"
+                                        role="group"
+                                        aria-label="Show timestamp"
+                                    >
                                         <button
                                             type="button"
                                             className={`story-export-modal__pill ${
@@ -649,7 +657,11 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                         <div className="story-export-modal__padded-settings">
                             <div className="story-export-modal__toggle-row">
                                 <span>Background</span>
-                                <div className="portfolio__segmented-toggle story-export-modal__pill-group" role="group" aria-label="Padded background style">
+                                <div
+                                    className="portfolio__segmented-toggle story-export-modal__pill-group"
+                                    role="group"
+                                    aria-label="Padded background style"
+                                >
                                     <button
                                         type="button"
                                         className={`story-export-modal__pill ${
@@ -661,7 +673,9 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                             setPaddedConfig((prev) => ({ ...prev, style: 'frosted' }));
                                             setIsDownloaded(false);
                                         }}
-                                        aria-pressed={paddedConfig.style === 'frosted' || paddedConfig.style === 'glass'}
+                                        aria-pressed={
+                                            paddedConfig.style === 'frosted' || paddedConfig.style === 'glass'
+                                        }
                                     >
                                         {(paddedConfig.style === 'frosted' || paddedConfig.style === 'glass') && (
                                             <motion.span
@@ -762,7 +776,11 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
 
                             <div className="story-export-modal__toggle-row">
                                 <span>Position</span>
-                                <div className="portfolio__segmented-toggle story-export-modal__pill-group" role="group" aria-label="Photo vertical position">
+                                <div
+                                    className="portfolio__segmented-toggle story-export-modal__pill-group"
+                                    role="group"
+                                    aria-label="Photo vertical position"
+                                >
                                     <button
                                         type="button"
                                         className={`story-export-modal__pill ${

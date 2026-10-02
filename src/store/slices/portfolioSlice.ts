@@ -16,6 +16,7 @@ export interface PortfolioSlice {
     favorites: FavoriteStoreItem[];
     isBatchSelectMode: boolean;
     batchSelectedPhotos: FavoriteStoreItem[];
+    visiblePhotosMap: Record<string, FavoriteStoreItem[]>;
 
     openLightbox: (
         images: PhotoInput[],
@@ -32,6 +33,9 @@ export interface PortfolioSlice {
     toggleBatchPhoto: (item: FavoriteStoreItem) => void;
     selectBatchPhotos: (items: FavoriteStoreItem[]) => void;
     clearBatchSelection: () => void;
+    registerVisiblePhotos: (eventName: string, photos: FavoriteStoreItem[]) => void;
+    unregisterVisiblePhotos: (eventName: string) => void;
+    clearVisiblePhotos: () => void;
     toggleFavorite: (item: FavoriteStoreItem) => void;
     addFavorites: (items: FavoriteStoreItem[]) => void;
     removeFavorites: (items: FavoriteStoreItem[]) => void;
@@ -67,6 +71,7 @@ export const createPortfolioSlice: StateCreator<PortfolioSlice, [], [], Portfoli
     favorites: extractLegacyFavorites(),
     isBatchSelectMode: false,
     batchSelectedPhotos: [],
+    visiblePhotosMap: {},
 
     openLightbox: (images, index, eventName, year, maxExifChars, localScore) =>
         set({ lightbox: { images, index, eventName, year, isOpen: true, maxExifChars, localScore } }),
@@ -107,6 +112,37 @@ export const createPortfolioSlice: StateCreator<PortfolioSlice, [], [], Portfoli
         })),
 
     clearBatchSelection: () => set({ batchSelectedPhotos: [] }),
+
+    registerVisiblePhotos: (eventName, photos) =>
+        set((state) => {
+            const existing = state.visiblePhotosMap[eventName];
+            if (existing && existing.length === photos.length) {
+                let identical = true;
+                for (let i = 0; i < photos.length; i++) {
+                    if (getPhotoOriginalUrl(existing[i]) !== getPhotoOriginalUrl(photos[i])) {
+                        identical = false;
+                        break;
+                    }
+                }
+                if (identical) return state;
+            }
+            return {
+                visiblePhotosMap: {
+                    ...state.visiblePhotosMap,
+                    [eventName]: photos,
+                },
+            };
+        }),
+
+    unregisterVisiblePhotos: (eventName) =>
+        set((state) => {
+            if (!(eventName in state.visiblePhotosMap)) return state;
+            const next = { ...state.visiblePhotosMap };
+            delete next[eventName];
+            return { visiblePhotosMap: next };
+        }),
+
+    clearVisiblePhotos: () => set({ visiblePhotosMap: {} }),
 
     toggleFavorite: (item) =>
         set((state) => {

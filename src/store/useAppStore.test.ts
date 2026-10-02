@@ -121,3 +121,65 @@ describe('useAppStore - favorites batch actions', () => {
         expect(getPhotoOriginalUrl(useAppStore.getState().favorites[0])).toBe('/photos/2026/game/photo_002.jpg');
     });
 });
+
+describe('useAppStore - visiblePhotos registration', () => {
+    beforeEach(() => {
+        useAppStore.getState().clearVisiblePhotos();
+    });
+
+    const photo1 = {
+        original: '/photos/event1/p1.jpg',
+        thumb: '/photos/event1/p1_thumb.jpg',
+        eventName: 'Event 1',
+        year: '2026',
+    };
+    const photo2 = {
+        original: '/photos/event1/p2.jpg',
+        thumb: '/photos/event1/p2_thumb.jpg',
+        eventName: 'Event 1',
+        year: '2026',
+    };
+    const photo3 = {
+        original: '/photos/event2/p3.jpg',
+        thumb: '/photos/event2/p3_thumb.jpg',
+        eventName: 'Event 2',
+        year: '2026',
+    };
+
+    it('registers visible photos by event name and ignores identical updates', () => {
+        useAppStore.getState().registerVisiblePhotos('Event 1', [photo1, photo2]);
+        expect(useAppStore.getState().visiblePhotosMap['Event 1']).toHaveLength(2);
+
+        // Subscribing listener to ensure identical re-registration doesn't trigger state change
+        const stateBefore = useAppStore.getState();
+        useAppStore.getState().registerVisiblePhotos('Event 1', [photo1, photo2]);
+        const stateAfter = useAppStore.getState();
+        expect(stateAfter.visiblePhotosMap).toBe(stateBefore.visiblePhotosMap);
+    });
+
+    it('updates visible photos when event photos change', () => {
+        useAppStore.getState().registerVisiblePhotos('Event 1', [photo1]);
+        expect(useAppStore.getState().visiblePhotosMap['Event 1']).toHaveLength(1);
+
+        useAppStore.getState().registerVisiblePhotos('Event 1', [photo1, photo2]);
+        expect(useAppStore.getState().visiblePhotosMap['Event 1']).toHaveLength(2);
+    });
+
+    it('unregisters visible photos for an event', () => {
+        useAppStore.getState().registerVisiblePhotos('Event 1', [photo1]);
+        useAppStore.getState().registerVisiblePhotos('Event 2', [photo3]);
+        expect(Object.keys(useAppStore.getState().visiblePhotosMap)).toEqual(['Event 1', 'Event 2']);
+
+        useAppStore.getState().unregisterVisiblePhotos('Event 1');
+        expect(Object.keys(useAppStore.getState().visiblePhotosMap)).toEqual(['Event 2']);
+    });
+
+    it('clears all visible photos', () => {
+        useAppStore.getState().registerVisiblePhotos('Event 1', [photo1]);
+        useAppStore.getState().registerVisiblePhotos('Event 2', [photo3]);
+        expect(Object.keys(useAppStore.getState().visiblePhotosMap)).toHaveLength(2);
+
+        useAppStore.getState().clearVisiblePhotos();
+        expect(Object.keys(useAppStore.getState().visiblePhotosMap)).toHaveLength(0);
+    });
+});

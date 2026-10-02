@@ -68,7 +68,7 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
                                 type="button"
                                 className="portfolio__batch-btn portfolio__batch-btn--subtle"
                                 onClick={isAllSelected ? onDeselectAll : onSelectAll}
-                                title={isAllSelected ? 'Deselect all photos' : 'Select all photos in album'}
+                                title={isAllSelected ? 'Deselect all photos' : 'Select all visible photos'}
                                 aria-label={isAllSelected ? 'Deselect All' : 'Select All'}
                             >
                                 <span className="portfolio__batch-btn-text-full">
@@ -144,7 +144,9 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
                                     disabled={selectedCount === 0 || isZipping}
                                     title="Download selected photos as ZIP"
                                     aria-label={
-                                        isZipping ? `Compressing ZIP: ${zipProgress}%` : 'Download selected photos as ZIP'
+                                        isZipping
+                                            ? `Compressing ZIP: ${zipProgress}%`
+                                            : 'Download selected photos as ZIP'
                                     }
                                     style={{
                                         cursor: isZipping ? 'wait' : selectedCount === 0 ? 'not-allowed' : 'pointer',

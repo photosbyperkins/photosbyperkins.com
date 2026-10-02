@@ -98,7 +98,11 @@ export default function GlobalSearchOverlay({
                     <div className="portfolio__search-topbar">
                         <div className="portfolio__search-topbar-inner container">
                             <div className="portfolio__search-topbar-left">
-                                <div className="portfolio__segmented-toggle portfolio__search-tab-toggle" role="group" aria-label="Search category">
+                                <div
+                                    className="portfolio__segmented-toggle portfolio__search-tab-toggle"
+                                    role="group"
+                                    aria-label="Search category"
+                                >
                                     <button
                                         type="button"
                                         className={activeTab === 'teams' ? 'active' : ''}

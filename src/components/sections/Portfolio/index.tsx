@@ -12,6 +12,7 @@ import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock';
 import { useAppStore } from '../../../store/useAppStore';
 import { useZipWorker } from '../../../hooks/useZipWorker';
 import { buildEventRows, getSeasonHighlights } from '../../../utils/portfolioTransforms';
+import { computeFeaturedPhotos } from '../../../utils/eventTransforms';
 import { buildFavoritesShareUrl } from '../../../utils/favoritesUrl';
 import { getPhotoOriginalUrl, toPhotoRecord } from '../../../utils/formatters';
 import { GEAR_REGISTRY } from '../../../data/gearData';
@@ -63,6 +64,8 @@ export default function Portfolio({ years }: PortfolioProps) {
     const batchSelectedPhotos = useAppStore((state) => state.batchSelectedPhotos);
     const selectBatchPhotos = useAppStore((state) => state.selectBatchPhotos);
     const clearBatchSelection = useAppStore((state) => state.clearBatchSelection);
+    const visiblePhotosMap = useAppStore((state) => state.visiblePhotosMap);
+    const clearVisiblePhotos = useAppStore((state) => state.clearVisiblePhotos);
     const favorites = useAppStore((state) => state.favorites);
     const addFavorites = useAppStore((state) => state.addFavorites);
     const removeFavorites = useAppStore((state) => state.removeFavorites);
@@ -218,27 +221,59 @@ export default function Portfolio({ years }: PortfolioProps) {
         };
     }, []);
 
+    const prevTabRef = useRef(selectedTab);
+    useEffect(() => {
+        if (prevTabRef.current !== selectedTab) {
+            prevTabRef.current = selectedTab;
+            clearVisiblePhotos();
+        }
+    }, [selectedTab, clearVisiblePhotos]);
+
     const allSelectablePhotos = useMemo(() => {
         const list: FavoriteStoreItem[] = [];
         const seen = new Set<string>();
         for (const [evtName, evtData] of events) {
-            const photos = evtData.album && evtData.album.length > 0 ? evtData.album : evtData.highlights || [];
+            const registered = visiblePhotosMap[evtName];
+            const photos: FavoriteStoreItem[] =
+                registered ??
+                (evtData.album && evtData.album.length > 0
+                    ? evtData.album.map((item) => {
+                          const p = toPhotoRecord(item as FavoriteStoreItem);
+                          return {
+                              ...p,
+                              eventName: evtName,
+                              year: evtData.originalYear || selectedTab,
+                          };
+                      })
+                    : computeFeaturedPhotos(
+                          [],
+                          (evtData.highlights || []).map((h) => toPhotoRecord(h as FavoriteStoreItem))
+                      ).map((p) => ({
+                          ...p,
+                          eventName: evtName,
+                          year: evtData.originalYear || selectedTab,
+                      })));
+
             for (const item of photos) {
-                const photoRecord = toPhotoRecord(item as FavoriteStoreItem);
+                const photoRecord = toPhotoRecord(item);
                 if (photoRecord.original && !seen.has(photoRecord.original)) {
                     seen.add(photoRecord.original);
-                    list.push({
-                        ...photoRecord,
-                        eventName: evtName,
-                        year: evtData.originalYear || selectedTab,
-                    });
+                    list.push(item);
                 }
             }
         }
         return list;
-    }, [events, selectedTab]);
+    }, [events, visiblePhotosMap, selectedTab]);
 
-    const isAllSelected = allSelectablePhotos.length > 0 && batchSelectedPhotos.length === allSelectablePhotos.length;
+    const isAllSelected = useMemo(() => {
+        if (allSelectablePhotos.length === 0) return false;
+        const selectedUrls = new Set(batchSelectedPhotos.map((p) => getPhotoOriginalUrl(p)).filter(Boolean));
+        return allSelectablePhotos.every((p) => {
+            const url = getPhotoOriginalUrl(p);
+            return Boolean(url && selectedUrls.has(url));
+        });
+    }, [allSelectablePhotos, batchSelectedPhotos]);
+
     const handleSelectAll = useCallback(() => {
         selectBatchPhotos(allSelectablePhotos);
     }, [allSelectablePhotos, selectBatchPhotos]);

@@ -240,7 +240,9 @@
             position: relative;
             z-index: 1;
             flex-shrink: 0;
-            transition: transform var(--transition-fast), color var(--transition-fast);
+            transition:
+                transform var(--transition-fast),
+                color var(--transition-fast);
         }
 
         @media (hover: hover) {

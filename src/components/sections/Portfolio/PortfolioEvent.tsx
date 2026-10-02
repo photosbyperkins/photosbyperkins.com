@@ -108,6 +108,8 @@ const PortfolioEvent = memo(function PortfolioEvent({
     const batchSelectedPhotos = useAppStore((state) => state.batchSelectedPhotos);
     const toggleBatchPhoto = useAppStore((state) => state.toggleBatchPhoto);
     const selectBatchPhotos = useAppStore((state) => state.selectBatchPhotos);
+    const registerVisiblePhotos = useAppStore((state) => state.registerVisiblePhotos);
+    const unregisterVisiblePhotos = useAppStore((state) => state.unregisterVisiblePhotos);
 
     const selectedUrls = useMemo(() => {
         const urls = new Set<string>();
@@ -217,6 +219,23 @@ const PortfolioEvent = memo(function PortfolioEvent({
     const featuredPhotos: PhotoRecord[] = useMemo(() => {
         return computeFeaturedPhotos(albumImages, highlightImages);
     }, [albumImages, highlightImages]);
+
+    const visiblePhotos: FavoriteStoreItem[] = useMemo(() => {
+        const list = isGridView || eventName === 'Favorites' ? albumImages : featuredPhotos;
+        const effectiveYear = ev.originalYear || selectedYear;
+        return list.map((p) => ({
+            ...p,
+            eventName,
+            year: effectiveYear,
+        }));
+    }, [isGridView, eventName, albumImages, featuredPhotos, ev.originalYear, selectedYear]);
+
+    useEffect(() => {
+        registerVisiblePhotos(eventName, visiblePhotos);
+        return () => {
+            unregisterVisiblePhotos(eventName);
+        };
+    }, [eventName, visiblePhotos, registerVisiblePhotos, unregisterVisiblePhotos]);
 
     const lastSelectedIdxRef = useRef<number | null>(null);
 
