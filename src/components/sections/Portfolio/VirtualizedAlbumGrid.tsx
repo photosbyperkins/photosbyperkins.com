@@ -73,16 +73,21 @@ export default function VirtualizedAlbumGrid({
         const updateDimensions = () => {
             const w = el.clientWidth;
             if (w <= 0) return;
-            const cols = getCycleSize(w);
+            const windowW = typeof window !== 'undefined' ? window.innerWidth : w;
+            const cols = getCycleSize(windowW);
             setCycleSize(cols);
             setActualRowSize(((w + 4) / cols) * (2 / 3));
         };
 
         const ro = new ResizeObserver(updateDimensions);
         ro.observe(el);
+        window.addEventListener('resize', updateDimensions, { passive: true });
         updateDimensions();
 
-        return () => ro.disconnect();
+        return () => {
+            ro.disconnect();
+            window.removeEventListener('resize', updateDimensions);
+        };
     }, []);
 
     const rows = useMemo(() => {
@@ -168,6 +173,8 @@ export default function VirtualizedAlbumGrid({
                             right: 0,
                             height: actualRowSize,
                             paddingBottom: '4px',
+                            gridTemplateColumns: `repeat(${cycleSize}, minmax(0, 1fr))`,
+                            ['--virtual-cols' as string]: cycleSize,
                         }}
                     >
                         {rowPhotos.map((photo, colIdx) => {

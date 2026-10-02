@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { Save, Star, Share2 } from 'lucide-react';
 import { FullAlbumIcon } from '../../../ui/icons';
 import { useAppStore } from '../../../../store/useAppStore';
@@ -129,23 +130,39 @@ export const EventActions = React.memo(function EventActions({
             )}
 
             {!isFavorites && (
-                <div className="portfolio__segmented-toggle">
+                <div className="portfolio__segmented-toggle" role="group" aria-label="Album view mode">
                     <button
+                        type="button"
                         className={`portfolio__segment-btn ${!isGridView ? 'active' : ''}`}
-                        onClick={onToggleGridView}
+                        onClick={isGridView ? onToggleGridView : undefined}
                         aria-label="Show Featured Photos"
                         aria-pressed={!isGridView}
                         title="Show Featured Photos"
                     >
+                        {!isGridView && (
+                            <motion.span
+                                className="portfolio__segment-pill"
+                                layoutId={`event-toggle-${selectedYear}-${eventName}`}
+                                transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                            />
+                        )}
                         <Star size={16} />
                     </button>
                     <button
+                        type="button"
                         className={`portfolio__segment-btn ${isGridView ? 'active' : ''}`}
-                        onClick={onToggleGridView}
+                        onClick={!isGridView ? onToggleGridView : undefined}
                         aria-label="Show Full Album"
                         aria-pressed={isGridView}
                         title="Show Full Album"
                     >
+                        {isGridView && (
+                            <motion.span
+                                className="portfolio__segment-pill"
+                                layoutId={`event-toggle-${selectedYear}-${eventName}`}
+                                transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                            />
+                        )}
                         <FullAlbumIcon size={16} />
                     </button>
                 </div>

@@ -7,29 +7,40 @@ import { useAppStore } from '../../../store/useAppStore';
 import { getPhotoOriginalUrl } from '../../../utils/formatters';
 import type { EventData, PhotoInput } from '../../../types';
 
+const componentCache: Record<
+    string,
+    React.ForwardRefExoticComponent<React.HTMLAttributes<HTMLElement> & Record<string, unknown>>
+> = {};
+
 vi.mock('framer-motion', () => ({
-    motion: {
-        article: ({
-            children,
-            className,
-            id,
-            ...props
-        }: React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }) => (
-            <article className={className} id={id} {...props}>
-                {children}
-            </article>
-        ),
-        aside: ({
-            children,
-            className,
-            id,
-            ...props
-        }: React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }) => (
-            <aside className={className} id={id} {...props}>
-                {children}
-            </aside>
-        ),
-    },
+    motion: new Proxy(
+        {},
+        {
+            get: (_target, prop: string) => {
+                if (!componentCache[prop]) {
+                    const Component = React.forwardRef<
+                        HTMLElement,
+                        { children?: React.ReactNode } & Record<string, unknown>
+                    >(({ children, ...props }, ref) => {
+                        const {
+                            layoutId: _l,
+                            transition: _t,
+                            initial: _i,
+                            animate: _a,
+                            exit: _e,
+                            whileHover: _wh,
+                            whileTap: _wt,
+                            ...domProps
+                        } = props;
+                        return React.createElement(prop, { ...domProps, ref }, children as React.ReactNode);
+                    });
+                    Component.displayName = `motion.${prop}`;
+                    componentCache[prop] = Component;
+                }
+                return componentCache[prop];
+            },
+        }
+    ),
     AnimatePresence: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
     useInView: () => true,
 }));

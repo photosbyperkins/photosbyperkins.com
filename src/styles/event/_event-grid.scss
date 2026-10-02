@@ -123,6 +123,8 @@
 
         &--virtual-row {
             contain: layout style;
+            grid-template-columns: repeat(var(--virtual-cols, 5), minmax(0, 1fr)) !important;
+            grid-auto-rows: unset;
         }
     }
 }
