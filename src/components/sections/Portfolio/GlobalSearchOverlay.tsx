@@ -98,20 +98,36 @@ export default function GlobalSearchOverlay({
                     <div className="portfolio__search-topbar">
                         <div className="portfolio__search-topbar-inner container">
                             <div className="portfolio__search-topbar-left">
-                                <div className="portfolio__segmented-toggle portfolio__search-tab-toggle">
+                                <div className="portfolio__segmented-toggle portfolio__search-tab-toggle" role="group" aria-label="Search category">
                                     <button
                                         type="button"
                                         className={activeTab === 'teams' ? 'active' : ''}
                                         onClick={() => setActiveTab('teams')}
+                                        aria-pressed={activeTab === 'teams'}
                                     >
-                                        Teams
+                                        {activeTab === 'teams' && (
+                                            <motion.span
+                                                className="portfolio__segment-pill"
+                                                layoutId="searchTabPill"
+                                                transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                            />
+                                        )}
+                                        <span>Teams</span>
                                     </button>
                                     <button
                                         type="button"
                                         className={activeTab === 'gear' ? 'active' : ''}
                                         onClick={() => setActiveTab('gear')}
+                                        aria-pressed={activeTab === 'gear'}
                                     >
-                                        Gear
+                                        {activeTab === 'gear' && (
+                                            <motion.span
+                                                className="portfolio__segment-pill"
+                                                layoutId="searchTabPill"
+                                                transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                            />
+                                        )}
+                                        <span>Gear</span>
                                     </button>
                                 </div>
                                 <div className="portfolio__search-input-wrap">

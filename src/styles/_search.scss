@@ -210,6 +210,11 @@
                 transition: transform 0.15s ease;
             }
 
+            span:not(.portfolio__segment-pill) {
+                position: relative;
+                z-index: 1;
+            }
+
             &:active {
                 transform: scale(0.92);
             }

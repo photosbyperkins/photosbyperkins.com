@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion } from 'framer-motion';
 import { Moon, Sun } from '../../../ui/icons';
 import type { BadgeOptions } from '../../../../utils/storyCanvas';
 import { formatTeamName } from '../../../../utils/formatters';
@@ -44,8 +45,16 @@ export const StoryBadgesTab: React.FC<StoryBadgesTabProps> = ({
                                 setIsDownloaded(false);
                             }}
                             aria-label="Light card theme"
+                            aria-pressed={cardTheme === 'light'}
                             title="Light card theme"
                         >
+                            {cardTheme === 'light' && (
+                                <motion.span
+                                    className="portfolio__segment-pill"
+                                    layoutId="storyBadgeThemePill"
+                                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                />
+                            )}
                             <Sun size={16} />
                         </button>
                         <button
@@ -58,8 +67,16 @@ export const StoryBadgesTab: React.FC<StoryBadgesTabProps> = ({
                                 setIsDownloaded(false);
                             }}
                             aria-label="Dark card theme"
+                            aria-pressed={cardTheme === 'dark'}
                             title="Dark card theme"
                         >
+                            {cardTheme === 'dark' && (
+                                <motion.span
+                                    className="portfolio__segment-pill"
+                                    layoutId="storyBadgeThemePill"
+                                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                />
+                            )}
                             <Moon size={16} />
                         </button>
                     </div>
@@ -215,10 +232,18 @@ export const StoryBadgesTab: React.FC<StoryBadgesTabProps> = ({
                                                 setIsDownloaded(false);
                                             }}
                                             aria-label="Show event scores"
+                                            aria-pressed={badges.showScores !== false}
                                             title="Show scores"
                                             disabled={!badges.showScoreboard}
                                         >
-                                            Scores
+                                            {badges.showScores !== false && (
+                                                <motion.span
+                                                    className="portfolio__segment-pill"
+                                                    layoutId="storyBadgeScoresPill"
+                                                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                                />
+                                            )}
+                                            <span>Scores</span>
                                         </button>
                                         <button
                                             type="button"
@@ -235,10 +260,18 @@ export const StoryBadgesTab: React.FC<StoryBadgesTabProps> = ({
                                                 setIsDownloaded(false);
                                             }}
                                             aria-label="Hide event scores"
+                                            aria-pressed={badges.showScores === false}
                                             title="Hide scores"
                                             disabled={!badges.showScoreboard}
                                         >
-                                            Off
+                                            {badges.showScores === false && (
+                                                <motion.span
+                                                    className="portfolio__segment-pill"
+                                                    layoutId="storyBadgeScoresPill"
+                                                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                                />
+                                            )}
+                                            <span>Off</span>
                                         </button>
                                     </div>
                                 )}

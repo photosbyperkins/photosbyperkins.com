@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { motion, LayoutGroup } from 'framer-motion';
 import { useCanShare } from '../../../hooks/useCanShare';
 import { useStoryImageLoader } from '../../../hooks/useStoryImageLoader';
 import { useStoryStudio, type StoryStudioTab } from '../../../hooks/useStoryStudio';
@@ -382,44 +382,46 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
 
                 {/* Studio Control Tabs Panel */}
                 <div className="story-export-modal__controls-pane">
-                    <div
-                        className="story-export-modal__tab-nav story-export-modal__studio-tabs"
-                        role="tablist"
-                        aria-label="Story Studio Navigation"
-                    >
-                        {STUDIO_TABS.map((tab) => {
-                            const IconComponent = tab.icon;
-                            const isActive = activeStudioTab === tab.id;
-                            return (
-                                <button
-                                    key={tab.id}
-                                    type="button"
-                                    role="tab"
-                                    aria-selected={isActive}
-                                    aria-controls={`tabpanel-${tab.id}`}
-                                    id={`tab-${tab.id}`}
-                                    className={`story-export-modal__tab-btn story-export-modal__studio-tab-btn ${
-                                        isActive
-                                            ? 'story-export-modal__tab-btn--active story-export-modal__studio-tab-btn--active'
-                                            : ''
-                                    }`}
-                                    onClick={() => setActiveStudioTab(tab.id)}
-                                >
-                                    {isActive && (
-                                        <motion.span
-                                            className="story-export-modal__studio-tab-pill"
-                                            layoutId="studioActiveTabPill"
-                                            transition={{ type: 'spring', stiffness: 500, damping: 38 }}
-                                        />
-                                    )}
-                                    <IconComponent size={18} className="story-export-modal__studio-tab-icon" />
-                                    <span className="story-export-modal__tab-label story-export-modal__studio-tab-label">
-                                        {tab.label}
-                                    </span>
-                                </button>
-                            );
-                        })}
-                    </div>
+                    <LayoutGroup id="storyStudioTabs">
+                        <div
+                            className="story-export-modal__tab-nav story-export-modal__studio-tabs"
+                            role="tablist"
+                            aria-label="Story Studio Navigation"
+                        >
+                            {STUDIO_TABS.map((tab) => {
+                                const IconComponent = tab.icon;
+                                const isActive = activeStudioTab === tab.id;
+                                return (
+                                    <button
+                                        key={tab.id}
+                                        type="button"
+                                        role="tab"
+                                        aria-selected={isActive}
+                                        aria-controls={`tabpanel-${tab.id}`}
+                                        id={`tab-${tab.id}`}
+                                        className={`story-export-modal__tab-btn story-export-modal__studio-tab-btn ${
+                                            isActive
+                                                ? 'active story-export-modal__tab-btn--active story-export-modal__studio-tab-btn--active'
+                                                : ''
+                                        }`}
+                                        onClick={() => setActiveStudioTab(tab.id)}
+                                    >
+                                        {isActive && (
+                                            <motion.span
+                                                className="portfolio__segment-pill story-export-modal__studio-tab-pill"
+                                                layoutId="studioActiveTabPill"
+                                                transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                            />
+                                        )}
+                                        <IconComponent size={18} className="story-export-modal__studio-tab-icon" />
+                                        <span className="story-export-modal__tab-label story-export-modal__studio-tab-label">
+                                            {tab.label}
+                                        </span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </LayoutGroup>
 
                     <div className="story-export-modal__tab-panel" role="tabpanel" key={`panel-${activeStudioTab}`}>
                         {/* Layout & Composition Tab Content */}

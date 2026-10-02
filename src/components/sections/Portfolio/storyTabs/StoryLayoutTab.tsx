@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import type { NormalizedCrop, PaddedStyleOptions, StoryPreset } from '../../../../utils/storyCanvas';
 import { isFrameValidForWizardStep } from '../../../../utils/story';
 import type { BurstMetadata } from '../../../../types';
@@ -209,8 +210,9 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
             {/* Mode Toggle: Smart Crop vs Padded Glass vs 3-Panel Burst */}
             <div className="story-export-modal__section">
                 <div className="story-export-modal__top-row">
-                    <div className="portfolio__segmented-toggle story-export-modal__segmented-control">
+                    <div className="portfolio__segmented-toggle story-export-modal__segmented-control" role="group" aria-label="Story layout mode">
                         <button
+                            type="button"
                             className={`story-export-modal__seg-btn ${
                                 activeMode === 'crop' ? 'active story-export-modal__seg-btn--active' : ''
                             }`}
@@ -218,10 +220,19 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                 setActiveMode('crop');
                                 setIsDownloaded(false);
                             }}
+                            aria-pressed={activeMode === 'crop'}
                         >
+                            {activeMode === 'crop' && (
+                                <motion.span
+                                    className="portfolio__segment-pill"
+                                    layoutId="storyLayoutModePill"
+                                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                />
+                            )}
                             <span>9:16 Crop</span>
                         </button>
                         <button
+                            type="button"
                             className={`story-export-modal__seg-btn ${
                                 activeMode === 'padded' ? 'active story-export-modal__seg-btn--active' : ''
                             }`}
@@ -230,11 +241,20 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                 setSelectedPresetId('padded-glass');
                                 setIsDownloaded(false);
                             }}
+                            aria-pressed={activeMode === 'padded'}
                         >
+                            {activeMode === 'padded' && (
+                                <motion.span
+                                    className="portfolio__segment-pill"
+                                    layoutId="storyLayoutModePill"
+                                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                />
+                            )}
                             <span>Padded</span>
                         </button>
                         {burst && burst.total >= 3 && (
                             <button
+                                type="button"
                                 className={`story-export-modal__seg-btn story-export-modal__seg-btn--burst ${
                                     activeMode === 'burst' ? 'active story-export-modal__seg-btn--active' : ''
                                 }`}
@@ -242,7 +262,15 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                     setActiveMode('burst');
                                     setIsDownloaded(false);
                                 }}
+                                aria-pressed={activeMode === 'burst'}
                             >
+                                {activeMode === 'burst' && (
+                                    <motion.span
+                                        className="portfolio__segment-pill"
+                                        layoutId="storyLayoutModePill"
+                                        transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                    />
+                                )}
                                 <span>{burst.isTriptych ? 'Triptych' : 'BURST'}</span>
                             </button>
                         )}
@@ -355,7 +383,7 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                             {!burst.isTriptych && (
                                 <div className="story-export-modal__toggle-row">
                                     <span>+Δt</span>
-                                    <div className="portfolio__segmented-toggle story-export-modal__pill-group">
+                                    <div className="portfolio__segmented-toggle story-export-modal__pill-group" role="group" aria-label="Show timestamp">
                                         <button
                                             type="button"
                                             className={`story-export-modal__pill ${
@@ -365,8 +393,16 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                                 setBurstShowTimeStamps?.(true);
                                                 setIsDownloaded(false);
                                             }}
+                                            aria-pressed={Boolean(burstShowTimeStamps)}
                                         >
-                                            Show
+                                            {burstShowTimeStamps && (
+                                                <motion.span
+                                                    className="portfolio__segment-pill"
+                                                    layoutId="storyBurstTimestampsPill"
+                                                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                                />
+                                            )}
+                                            <span>Show</span>
                                         </button>
                                         <button
                                             type="button"
@@ -377,8 +413,16 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                                 setBurstShowTimeStamps?.(false);
                                                 setIsDownloaded(false);
                                             }}
+                                            aria-pressed={!burstShowTimeStamps}
                                         >
-                                            Hide
+                                            {!burstShowTimeStamps && (
+                                                <motion.span
+                                                    className="portfolio__segment-pill"
+                                                    layoutId="storyBurstTimestampsPill"
+                                                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                                />
+                                            )}
+                                            <span>Hide</span>
                                         </button>
                                     </div>
                                 </div>
@@ -437,6 +481,13 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                                     }${isStepActive ? ' (Active)' : ''}`}
                                                     aria-pressed={isStepActive}
                                                 >
+                                                    {isStepActive && (
+                                                        <motion.span
+                                                            className="portfolio__segment-pill"
+                                                            layoutId="storyBurstWizardStepPill"
+                                                            transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                                        />
+                                                    )}
                                                     <span className="story-export-modal__burst-slot-name">
                                                         {sIdx + 1}. {slotNames[sIdx]}
                                                     </span>
@@ -575,7 +626,15 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                             onClick={() => onSelectPreset(preset)}
                                             title={preset.description}
                                             aria-label={`Framing preset: ${preset.label}`}
+                                            aria-pressed={isSelected}
                                         >
+                                            {isSelected && (
+                                                <motion.span
+                                                    className="portfolio__segment-pill"
+                                                    layoutId="storyPresetPill"
+                                                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                                />
+                                            )}
                                             <span>{preset.label}</span>
                                         </button>
                                     );
@@ -590,7 +649,7 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                         <div className="story-export-modal__padded-settings">
                             <div className="story-export-modal__toggle-row">
                                 <span>Background</span>
-                                <div className="portfolio__segmented-toggle story-export-modal__pill-group">
+                                <div className="portfolio__segmented-toggle story-export-modal__pill-group" role="group" aria-label="Padded background style">
                                     <button
                                         type="button"
                                         className={`story-export-modal__pill ${
@@ -602,8 +661,16 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                             setPaddedConfig((prev) => ({ ...prev, style: 'frosted' }));
                                             setIsDownloaded(false);
                                         }}
+                                        aria-pressed={paddedConfig.style === 'frosted' || paddedConfig.style === 'glass'}
                                     >
-                                        Frosted
+                                        {(paddedConfig.style === 'frosted' || paddedConfig.style === 'glass') && (
+                                            <motion.span
+                                                className="portfolio__segment-pill"
+                                                layoutId="storyPaddedStylePill"
+                                                transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                            />
+                                        )}
+                                        <span>Frosted</span>
                                     </button>
                                     <button
                                         type="button"
@@ -616,8 +683,16 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                             setPaddedConfig((prev) => ({ ...prev, style: 'solid' }));
                                             setIsDownloaded(false);
                                         }}
+                                        aria-pressed={paddedConfig.style === 'solid' || paddedConfig.style === 'custom'}
                                     >
-                                        Solid
+                                        {(paddedConfig.style === 'solid' || paddedConfig.style === 'custom') && (
+                                            <motion.span
+                                                className="portfolio__segment-pill"
+                                                layoutId="storyPaddedStylePill"
+                                                transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                            />
+                                        )}
+                                        <span>Solid</span>
                                     </button>
                                 </div>
                             </div>
@@ -687,7 +762,7 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
 
                             <div className="story-export-modal__toggle-row">
                                 <span>Position</span>
-                                <div className="portfolio__segmented-toggle story-export-modal__pill-group">
+                                <div className="portfolio__segmented-toggle story-export-modal__pill-group" role="group" aria-label="Photo vertical position">
                                     <button
                                         type="button"
                                         className={`story-export-modal__pill ${
@@ -702,8 +777,16 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                             }));
                                             setIsDownloaded(false);
                                         }}
+                                        aria-pressed={paddedConfig.position === 'center'}
                                     >
-                                        Centered
+                                        {paddedConfig.position === 'center' && (
+                                            <motion.span
+                                                className="portfolio__segment-pill"
+                                                layoutId="storyPaddedPositionPill"
+                                                transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                            />
+                                        )}
+                                        <span>Centered</span>
                                     </button>
                                     <button
                                         type="button"
@@ -719,8 +802,16 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                             }));
                                             setIsDownloaded(false);
                                         }}
+                                        aria-pressed={paddedConfig.position === 'elevated'}
                                     >
-                                        Elevated
+                                        {paddedConfig.position === 'elevated' && (
+                                            <motion.span
+                                                className="portfolio__segment-pill"
+                                                layoutId="storyPaddedPositionPill"
+                                                transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                            />
+                                        )}
+                                        <span>Elevated</span>
                                     </button>
                                 </div>
                             </div>
