@@ -102,16 +102,30 @@ describe('BatchActionBar', () => {
         expect(zipBtn.disabled).toBe(true);
     });
 
-    it('handles Story button state and clicks for 1 and 3 photos', () => {
+    it('handles Story button state and clicks for 1, 3, and >3 photos', () => {
         // When 3 photos selected: "Story"
         const { rerender } = render(<BatchActionBar {...getProps()} selectedCount={3} />);
-        const burstStoryBtn = screen.getByRole('button', { name: /Create 3-panel triptych story/i });
+        const burstStoryBtn = screen.getByRole('button', {
+            name: /Create 3-panel triptych story with selected photos$/i,
+        });
         expect(burstStoryBtn).toBeDefined();
         expect((burstStoryBtn as HTMLButtonElement).disabled).toBe(false);
         expect(burstStoryBtn.querySelector('.portfolio__batch-btn-text')?.textContent).toBe('Story');
 
         fireEvent.click(burstStoryBtn);
         expect(mockOnStory).toHaveBeenCalledTimes(1);
+
+        // When 4 photos selected: "Story" (triptych with > 3 photos)
+        rerender(<BatchActionBar {...getProps()} selectedCount={4} />);
+        const multiStoryBtn = screen.getByRole('button', {
+            name: /Create 3-panel triptych story with selected photos \(4 selected\)/i,
+        });
+        expect(multiStoryBtn).toBeDefined();
+        expect((multiStoryBtn as HTMLButtonElement).disabled).toBe(false);
+        expect(multiStoryBtn.querySelector('.portfolio__batch-btn-text')?.textContent).toBe('Story');
+
+        fireEvent.click(multiStoryBtn);
+        expect(mockOnStory).toHaveBeenCalledTimes(2);
 
         // When 1 photo selected: "Story"
         rerender(<BatchActionBar {...getProps()} selectedCount={1} />);
@@ -121,12 +135,23 @@ describe('BatchActionBar', () => {
         expect(singleStoryBtn.querySelector('.portfolio__batch-btn-text')?.textContent).toBe('Story');
 
         fireEvent.click(singleStoryBtn);
-        expect(mockOnStory).toHaveBeenCalledTimes(2);
+        expect(mockOnStory).toHaveBeenCalledTimes(3);
 
-        // When 2 photos selected: disabled
+        // When 2 photos selected: enabled (creates single story with photo selector)
         rerender(<BatchActionBar {...getProps()} selectedCount={2} />);
+        const twoStoryBtn = screen.getByRole('button', {
+            name: /Create story with selected photos \(2 selected\)/i,
+        });
+        expect(twoStoryBtn).toBeDefined();
+        expect((twoStoryBtn as HTMLButtonElement).disabled).toBe(false);
+
+        fireEvent.click(twoStoryBtn);
+        expect(mockOnStory).toHaveBeenCalledTimes(4);
+
+        // When 0 photos selected: disabled
+        rerender(<BatchActionBar {...getProps()} selectedCount={0} />);
         const disabledStoryBtn = screen.getByRole('button', {
-            name: /Select 1 photo or 3 photos to create a story/i,
+            name: /Select photos to create a story/i,
         }) as HTMLButtonElement;
         expect(disabledStoryBtn.disabled).toBe(true);
     });

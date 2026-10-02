@@ -86,9 +86,17 @@ export function useStoryStudio({
 
     const [activeMode, setActiveMode] = useState<'crop' | 'padded' | 'burst'>(() => {
         if (photoObj.burst) {
+            if (photoObj.burst.total < 3) return 'crop';
             return storySettings.mode === 'padded' ? 'padded' : 'burst';
         }
         return storySettings.mode || 'crop';
+    });
+
+    const [activePhotoIndex, setActivePhotoIndex] = useState<number>(() => {
+        if (photoObj.burst && photoObj.burst.index !== undefined) {
+            return photoObj.burst.index;
+        }
+        return 0;
     });
 
     const isTriptych = Boolean(photoObj.burst?.isTriptych || !photoObj.burst?.frameDeltas);
@@ -341,7 +349,8 @@ export function useStoryStudio({
         ]
     );
 
-    const exportImage = activeMode === 'burst' && activePanelImages.length >= 3 ? activePanelImages : loadedImage;
+    const activeSingleImage = (loadedBurstImages && loadedBurstImages[activePhotoIndex]) || loadedImage;
+    const exportImage = activeMode === 'burst' && activePanelImages.length >= 3 ? activePanelImages : activeSingleImage;
 
     const { isExporting, isDownloaded, setIsDownloaded, statusToast, handleExportAction, resetExportState } =
         useStoryExport({
@@ -613,12 +622,30 @@ export function useStoryStudio({
         [setIsDownloaded]
     );
 
+    const handleSelectPhotoIndex = useCallback(
+        (idx: number) => {
+            setActivePhotoIndex(idx);
+            setIsDownloaded(false);
+            const targetImg = loadedBurstImages?.[idx];
+            const w = targetImg?.naturalWidth || naturalDimensions.width;
+            const h = targetImg?.naturalHeight || naturalDimensions.height;
+            const preset = presets.find((p) => p.id === selectedPresetId) || presets.find((p) => p.isDefault);
+            if (preset) {
+                setActiveCrop(preset.crop);
+            } else {
+                setActiveCrop(calculateNormalizedCrop(w, h, 0.5, 0.5, 1.0));
+            }
+        },
+        [loadedBurstImages, naturalDimensions, presets, selectedPresetId, setIsDownloaded]
+    );
+
     // Live preview canvas ref
     const previewCanvasRef = useRef<HTMLCanvasElement>(null);
 
     // Update live preview canvas when options change
     useEffect(() => {
-        const previewImg = activeMode === 'burst' ? activePanelImages : loadedImage;
+        const activeSingleImage = (loadedBurstImages && loadedBurstImages[activePhotoIndex]) || loadedImage;
+        const previewImg = activeMode === 'burst' ? activePanelImages : activeSingleImage;
 
         if (!previewImg || !previewCanvasRef.current) return;
 
@@ -650,6 +677,8 @@ export function useStoryStudio({
         });
     }, [
         loadedImage,
+        loadedBurstImages,
+        activePhotoIndex,
         activePanelImages,
         activeMode,
         activeCrop,
@@ -673,6 +702,9 @@ export function useStoryStudio({
         setActiveMode,
         activeCrop,
         handleCropChange,
+        activePhotoIndex,
+        setActivePhotoIndex,
+        handleSelectPhotoIndex,
         paddedConfig,
         setPaddedConfig,
         burst: photoObj.burst,

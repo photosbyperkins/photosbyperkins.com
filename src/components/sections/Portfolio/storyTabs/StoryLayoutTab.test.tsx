@@ -46,6 +46,26 @@ describe('isFrameValidForWizardStep pure helper', () => {
         expect(isFrameValidForWizardStep(-1, 0, [null, null, null], total)).toBe(false);
         expect(isFrameValidForWizardStep(6, 0, [null, null, null], total)).toBe(false);
     });
+
+    it('validates triptych mode: any unassigned photo is valid regardless of order', () => {
+        // In triptych mode with 5 photos:
+        // Any photo (0..4) is valid for step 0 when all slots empty
+        expect(isFrameValidForWizardStep(0, 0, [null, null, null], 5, true)).toBe(true);
+        expect(isFrameValidForWizardStep(4, 0, [null, null, null], 5, true)).toBe(true);
+
+        // Can choose photo 4 for TOP (step 0), then photo 1 for MID (step 1)
+        expect(isFrameValidForWizardStep(1, 1, [4, null, null], 5, true)).toBe(true);
+        // Photo 4 is already in TOP, so it cannot be selected for MID
+        expect(isFrameValidForWizardStep(4, 1, [4, null, null], 5, true)).toBe(false);
+
+        // Photo currently in active step is considered valid (to allow re-clicking/toggling)
+        expect(isFrameValidForWizardStep(4, 0, [4, null, null], 5, true)).toBe(true);
+
+        // Out of bounds indices or invalid steps are invalid
+        expect(isFrameValidForWizardStep(-1, 0, [null, null, null], 5, true)).toBe(false);
+        expect(isFrameValidForWizardStep(5, 0, [null, null, null], 5, true)).toBe(false);
+        expect(isFrameValidForWizardStep(0, 3, [null, null, null], 5, true)).toBe(false);
+    });
 });
 
 describe('StoryLayoutTab - Sequential Burst Frame Wizard', () => {
@@ -309,5 +329,236 @@ describe('StoryLayoutTab - Sequential Burst Frame Wizard', () => {
         const wizardGroup = screen.getByRole('group', { name: /Burst Wizard Steps/i });
         const stepButtons = wizardGroup.querySelectorAll('button');
         expect(stepButtons[1].className).toContain('story-export-modal__pill--active');
+    });
+});
+
+describe('StoryLayoutTab - Triptych Multi-Photo Selection Wizard', () => {
+    afterEach(() => {
+        cleanup();
+    });
+
+    const triptychMeta: BurstMetadata = {
+        id: 'triptych-batch-1',
+        index: 0,
+        total: 5,
+        isTriptych: true,
+        frameSources: ['/photos/p1.jpg', '/photos/p2.jpg', '/photos/p3.jpg', '/photos/p4.jpg', '/photos/p5.jpg'],
+        frameThumbs: ['/photos/tp1.jpg', '/photos/tp2.jpg', '/photos/tp3.jpg', '/photos/tp4.jpg', '/photos/tp5.jpg'],
+    };
+
+    const defaultTriptychProps = {
+        activeMode: 'burst' as const,
+        setActiveMode: vi.fn(),
+        selectedPresetId: 'center',
+        setSelectedPresetId: vi.fn(),
+        presets: [],
+        onSelectPreset: vi.fn(),
+        activeCrop: { x: 0, y: 0, width: 1, height: 1, zoom: 1, centerX: 0.5, centerY: 0.5 },
+        onCropChange: vi.fn(),
+        naturalDimensions: { width: 1920, height: 1080 },
+        paddedConfig: {
+            style: 'frosted' as const,
+            position: 'center' as const,
+            cardScale: 0.92,
+            cardCornerRadius: 24,
+            customColor: '#0a0a14',
+        },
+        setPaddedConfig: vi.fn(),
+        setIsDownloaded: vi.fn(),
+        burst: triptychMeta,
+    };
+
+    it('renders "Triptych Photos", "Pick 3 photos", P1/P2/P3 slot labels, and omits +Δt toggle', () => {
+        render(<StoryLayoutTab {...defaultTriptychProps} burstSelectedIndices={[null, null, null]} />);
+
+        expect(screen.getByText('Triptych Photos')).not.toBeNull();
+        expect(screen.getByText('Pick 3 photos')).not.toBeNull();
+        expect(screen.queryByText('+Δt')).toBeNull();
+
+        const slotGroup = screen.getByRole('group', { name: /Triptych Photo Slots/i });
+        const stepButtons = slotGroup.querySelectorAll('button');
+        expect(stepButtons).toHaveLength(3);
+        expect(stepButtons[0].textContent).toContain('1. TOP');
+        expect(stepButtons[0].textContent).toContain('Empty');
+
+        // Check thumbnail strip: 5 thumbnails, labeled P1..P5 without timestamp badges
+        const thumbs = document.querySelectorAll<HTMLButtonElement>('.story-export-modal__burst-thumb');
+        expect(thumbs).toHaveLength(5);
+        expect(document.querySelector('.story-export-modal__burst-thumb-badge')).toBeNull();
+        expect(thumbs[0].textContent).toContain('P1');
+        expect(thumbs[4].textContent).toContain('P5');
+
+        // In triptych mode, all 5 photos are initially enabled (no chronological ordering)
+        thumbs.forEach((thumb) => {
+            expect(thumb.disabled).toBe(false);
+        });
+    });
+
+    it('renders "Pick 1 photo" and "3 photos selected" correctly based on selection', () => {
+        const { rerender } = render(<StoryLayoutTab {...defaultTriptychProps} burstSelectedIndices={[0, null, 2]} />);
+        expect(screen.getByText('Pick 1 photo')).not.toBeNull();
+
+        rerender(<StoryLayoutTab {...defaultTriptychProps} burstSelectedIndices={[0, 1, 2]} />);
+        expect(screen.getByText('3 photos selected')).not.toBeNull();
+    });
+
+    it('allows assigning any photo to any slot without chronological constraints', () => {
+        const setBurstSelectedIndices = vi.fn();
+        const { container } = render(
+            <StoryLayoutTab
+                {...defaultTriptychProps}
+                burstSelectedIndices={[null, null, null]}
+                setBurstSelectedIndices={setBurstSelectedIndices}
+            />
+        );
+
+        const thumbs = container.querySelectorAll<HTMLButtonElement>('.story-export-modal__burst-thumb');
+        // Click Photo 5 (index 4) for TOP
+        fireEvent.click(thumbs[4]);
+
+        expect(setBurstSelectedIndices).toHaveBeenCalledWith([4, null, null]);
+
+        // Auto-advances to MID (step 1)
+        const slotGroup = screen.getByRole('group', { name: /Triptych Photo Slots/i });
+        const stepButtons = slotGroup.querySelectorAll('button');
+        expect(stepButtons[1].className).toContain('story-export-modal__pill--active');
+    });
+
+    it('clears ONLY the active slot without downstream invalidation in triptych mode', () => {
+        const setBurstSelectedIndices = vi.fn();
+        const { container } = render(
+            <StoryLayoutTab
+                {...defaultTriptychProps}
+                burstSelectedIndices={[4, 1, 2]}
+                setBurstSelectedIndices={setBurstSelectedIndices}
+            />
+        );
+
+        // activeStep starts at 0 (TOP). Deselect Photo 5 (index 4) which is TOP
+        const thumbs = container.querySelectorAll<HTMLButtonElement>('.story-export-modal__burst-thumb');
+        fireEvent.click(thumbs[4]);
+
+        // Only slot 0 is cleared; slots 1 and 2 remain intact
+        expect(setBurstSelectedIndices).toHaveBeenCalledWith([null, 1, 2]);
+    });
+
+    it('clears ONLY active slot when tapping active slot button in triptych mode', () => {
+        const setBurstSelectedIndices = vi.fn();
+        render(
+            <StoryLayoutTab
+                {...defaultTriptychProps}
+                burstSelectedIndices={[4, 1, 2]}
+                setBurstSelectedIndices={setBurstSelectedIndices}
+            />
+        );
+
+        const slotGroup = screen.getByRole('group', { name: /Triptych Photo Slots/i });
+        const stepButtons = slotGroup.querySelectorAll('button');
+        // Tap active TOP slot pill
+        fireEvent.click(stepButtons[0]);
+
+        // Only slot 0 is cleared; slots 1 and 2 are preserved
+        expect(setBurstSelectedIndices).toHaveBeenCalledWith([null, 1, 2]);
+    });
+});
+
+describe('StoryLayoutTab - Single Photo Selector and Crop Zoom Removal', () => {
+    afterEach(() => {
+        cleanup();
+    });
+
+    const multiPhotoMeta: BurstMetadata = {
+        id: 'batch-multi-1',
+        index: 0,
+        total: 4,
+        isTriptych: true,
+        frameSources: ['/p1.jpg', '/p2.jpg', '/p3.jpg', '/p4.jpg'],
+        frameThumbs: ['/tp1.jpg', '/tp2.jpg', '/tp3.jpg', '/tp4.jpg'],
+    };
+
+    const baseProps = {
+        activeMode: 'crop' as const,
+        setActiveMode: vi.fn(),
+        selectedPresetId: 'center',
+        setSelectedPresetId: vi.fn(),
+        presets: [
+            {
+                id: 'center',
+                label: 'Center',
+                mode: 'crop' as const,
+                crop: { x: 0, y: 0, width: 1, height: 1, zoom: 1, centerX: 0.5, centerY: 0.5 },
+                description: 'Centered',
+            },
+        ],
+        onSelectPreset: vi.fn(),
+        naturalDimensions: { width: 1920, height: 1080 },
+        paddedConfig: {
+            style: 'frosted' as const,
+            position: 'center' as const,
+            cardScale: 0.92,
+            cardCornerRadius: 24,
+            customColor: '#0a0a14',
+        },
+        setPaddedConfig: vi.fn(),
+        setIsDownloaded: vi.fn(),
+        burst: multiPhotoMeta,
+        activePhotoIndex: 0,
+        onSelectPhotoIndex: vi.fn(),
+    };
+
+    it('does NOT render Crop Zoom section in crop mode', () => {
+        render(<StoryLayoutTab {...baseProps} />);
+        expect(screen.queryByText(/Crop Zoom/i)).toBeNull();
+        expect(screen.queryByLabelText(/Crop Zoom Level/i)).toBeNull();
+        expect(screen.queryByRole('group', { name: /Zoom snap points/i })).toBeNull();
+    });
+
+    it('renders single photo selector in crop mode when multiple photos are available', () => {
+        const onSelectPhotoIndex = vi.fn();
+        render(<StoryLayoutTab {...baseProps} onSelectPhotoIndex={onSelectPhotoIndex} />);
+
+        expect(screen.getByText('Selected Photos')).not.toBeNull();
+        expect(screen.getByText('Photo 1 of 4')).not.toBeNull();
+
+        const selector = screen.getByRole('group', { name: /Photo Selector/i });
+        const thumbs = selector.querySelectorAll<HTMLButtonElement>('button');
+        expect(thumbs).toHaveLength(4);
+
+        // Click Photo 3 (index 2)
+        fireEvent.click(thumbs[2]);
+        expect(onSelectPhotoIndex).toHaveBeenCalledWith(2);
+    });
+
+    it('renders single photo selector in padded mode when multiple photos are available', () => {
+        const onSelectPhotoIndex = vi.fn();
+        render(<StoryLayoutTab {...baseProps} activeMode="padded" onSelectPhotoIndex={onSelectPhotoIndex} />);
+
+        expect(screen.getByText('Selected Photos')).not.toBeNull();
+        expect(screen.getByText('Photo 1 of 4')).not.toBeNull();
+
+        const selector = screen.getByRole('group', { name: /Photo Selector/i });
+        const thumbs = selector.querySelectorAll<HTMLButtonElement>('button');
+        expect(thumbs).toHaveLength(4);
+
+        fireEvent.click(thumbs[1]);
+        expect(onSelectPhotoIndex).toHaveBeenCalledWith(1);
+    });
+
+    it('hides burst/triptych mode button in mode toggle when burst.total < 3', () => {
+        const twoPhotoMeta: BurstMetadata = {
+            id: 'batch-2',
+            index: 0,
+            total: 2,
+            isTriptych: true,
+            frameSources: ['/p1.jpg', '/p2.jpg'],
+            frameThumbs: ['/tp1.jpg', '/tp2.jpg'],
+        };
+
+        render(<StoryLayoutTab {...baseProps} burst={twoPhotoMeta} />);
+
+        expect(screen.queryByRole('button', { name: /triptych/i })).toBeNull();
+        expect(screen.queryByRole('button', { name: /burst/i })).toBeNull();
+        expect(screen.getByRole('button', { name: /9:16 Crop/i })).not.toBeNull();
+        expect(screen.getByRole('button', { name: /Padded/i })).not.toBeNull();
     });
 });

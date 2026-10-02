@@ -72,7 +72,7 @@ export function useStoryImageLoader({
         [buildQuery]
     );
 
-    const burstSourcesKey = isOpen && burstSources && burstSources.length >= 3 ? burstSources.join('|') : '';
+    const burstSourcesKey = isOpen && burstSources && burstSources.length >= 2 ? burstSources.join('|') : '';
     const [prevBurstKey, setPrevBurstKey] = useState(burstSourcesKey);
     const [loadedImage, setLoadedImage] = useState<HTMLImageElement | null>(null);
     const [loadedBurstImages, setLoadedBurstImages] = useState<HTMLImageElement[]>([]);
@@ -151,7 +151,7 @@ export function useStoryImageLoader({
     }, [isOpen, displaySrc, originalSrc, thumbSrc, photoObj.width, photoObj.height, withBuild]);
 
     useEffect(() => {
-        if (!isOpen || !burstSources || burstSources.length < 3) {
+        if (!isOpen || !burstSources || burstSources.length < 2) {
             return;
         }
 

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import type { NormalizedCrop, PaddedStyleOptions, StoryPreset } from '../../../../utils/storyCanvas';
-import { calculateNormalizedCrop } from '../../../../utils/storyCanvas';
 import { isFrameValidForWizardStep } from '../../../../utils/story';
 import type { BurstMetadata } from '../../../../types';
 
@@ -11,8 +10,8 @@ interface StoryLayoutTabProps {
     setSelectedPresetId: (id: string) => void;
     presets: StoryPreset[];
     onSelectPreset: (preset: StoryPreset) => void;
-    activeCrop: NormalizedCrop;
-    onCropChange: (crop: NormalizedCrop) => void;
+    activeCrop?: NormalizedCrop;
+    onCropChange?: (crop: NormalizedCrop) => void;
     naturalDimensions: { width: number; height: number };
     paddedConfig: PaddedStyleOptions;
     setPaddedConfig: React.Dispatch<React.SetStateAction<PaddedStyleOptions>>;
@@ -22,6 +21,8 @@ interface StoryLayoutTabProps {
     setBurstShowTimeStamps?: (show: boolean) => void;
     burstSelectedIndices?: (number | null)[];
     setBurstSelectedIndices?: (indices: (number | null)[]) => void;
+    activePhotoIndex?: number;
+    onSelectPhotoIndex?: (idx: number) => void;
 }
 
 export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
@@ -31,9 +32,9 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
     setSelectedPresetId,
     presets,
     onSelectPreset,
-    activeCrop,
-    onCropChange,
-    naturalDimensions,
+    activeCrop: _activeCrop,
+    onCropChange: _onCropChange,
+    naturalDimensions: _naturalDimensions,
     paddedConfig,
     setPaddedConfig,
     setIsDownloaded,
@@ -42,6 +43,8 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
     setBurstShowTimeStamps,
     burstSelectedIndices = [0, 1, 2],
     setBurstSelectedIndices,
+    activePhotoIndex = 0,
+    onSelectPhotoIndex,
 }) => {
     // Normalize slots to a 3-element tuple [slot0, slot1, slot2]
     const slots: (number | null)[] = [
@@ -75,12 +78,14 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
         if (slots[activeStep] === fIdx) {
             const next = [...slots];
             next[activeStep] = null;
-            // Downstream invalidation:
-            if (activeStep === 0) {
-                next[1] = null;
-                next[2] = null;
-            } else if (activeStep === 1) {
-                next[2] = null;
+            if (!burst?.isTriptych) {
+                // Downstream invalidation:
+                if (activeStep === 0) {
+                    next[1] = null;
+                    next[2] = null;
+                } else if (activeStep === 1) {
+                    next[2] = null;
+                }
             }
             setBurstSelectedIndices(next);
             setIsDownloaded(false);
@@ -88,11 +93,22 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
         }
 
         // Check validity for current wizard step
-        const isValid = isFrameValidForWizardStep(fIdx, activeStep, slots, totalFrames);
+        const isValid = isFrameValidForWizardStep(fIdx, activeStep, slots, totalFrames, burst?.isTriptych);
         if (!isValid) return;
 
         setIsDownloaded(false);
         const next = [...slots];
+
+        if (burst?.isTriptych) {
+            next[activeStep] = fIdx;
+            setBurstSelectedIndices(next);
+            // Auto-advance wizard to next empty slot if any
+            const nextEmpty = next.findIndex((s) => s === null);
+            if (nextEmpty !== -1) {
+                setActiveStep(nextEmpty);
+            }
+            return;
+        }
 
         if (activeStep === 0) {
             next[0] = fIdx;
@@ -136,17 +152,21 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
 
     const handleSlotClick = (sIdx: number) => {
         if (activeStep === sIdx && slots[sIdx] !== null) {
-            // Tapping the currently active step pill clears this slot and downstream slots
+            // Tapping the currently active step pill clears this slot (and downstream slots in burst mode)
             const next = [...slots];
-            if (sIdx === 0) {
-                next[0] = null;
-                next[1] = null;
-                next[2] = null;
-            } else if (sIdx === 1) {
-                next[1] = null;
-                next[2] = null;
-            } else if (sIdx === 2) {
-                next[2] = null;
+            if (burst?.isTriptych) {
+                next[sIdx] = null;
+            } else {
+                if (sIdx === 0) {
+                    next[0] = null;
+                    next[1] = null;
+                    next[2] = null;
+                } else if (sIdx === 1) {
+                    next[1] = null;
+                    next[2] = null;
+                } else if (sIdx === 2) {
+                    next[2] = null;
+                }
             }
             setBurstSelectedIndices?.(next);
             setIsDownloaded(false);
@@ -154,15 +174,17 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
         }
 
         // When switching to another step:
-        // You cannot jump to MID if TOP is null
-        if (sIdx === 1 && slots[0] === null) {
-            setActiveStep(0);
-            return;
-        }
-        // You cannot jump to BTM if TOP or MID is null
-        if (sIdx === 2 && (slots[0] === null || slots[1] === null)) {
-            setActiveStep(slots[0] === null ? 0 : 1);
-            return;
+        if (!burst?.isTriptych) {
+            // You cannot jump to MID if TOP is null
+            if (sIdx === 1 && slots[0] === null) {
+                setActiveStep(0);
+                return;
+            }
+            // You cannot jump to BTM if TOP or MID is null
+            if (sIdx === 2 && (slots[0] === null || slots[1] === null)) {
+                setActiveStep(slots[0] === null ? 0 : 1);
+                return;
+            }
         }
         setActiveStep(sIdx);
     };
@@ -170,7 +192,13 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
     const validCount = slots.filter((idx) => idx !== null && idx >= 0).length;
     const neededFrames = Math.max(0, 3 - validCount);
     const feedbackText =
-        neededFrames > 0 ? `Pick ${neededFrames} frame${neededFrames === 1 ? '' : 's'}` : '3 frames selected';
+        neededFrames > 0
+            ? burst?.isTriptych
+                ? `Pick ${neededFrames} photo${neededFrames === 1 ? '' : 's'}`
+                : `Pick ${neededFrames} frame${neededFrames === 1 ? '' : 's'}`
+            : burst?.isTriptych
+              ? '3 photos selected'
+              : '3 frames selected';
 
     return (
         <div className="story-export-modal__tab-content story-export-modal__tab-content--layout">
@@ -201,7 +229,7 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                         >
                             <span>Padded</span>
                         </button>
-                        {burst && (
+                        {burst && burst.total >= 3 && (
                             <button
                                 className={`story-export-modal__seg-btn story-export-modal__seg-btn--burst ${
                                     activeMode === 'burst' ? 'active story-export-modal__seg-btn--active' : ''
@@ -217,47 +245,130 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                     </div>
                 </div>
 
-                {/* 3-Panel Burst / Triptych Settings */}
-                {activeMode === 'burst' && burst && !burst.isTriptych && (
+                {/* Single-Photo Mode Selector (Crop / Padded when multiple photos are selected) */}
+                {activeMode !== 'burst' && burst && burst.frameSources && burst.frameSources.length > 1 && (
                     <div className="story-export-modal__section">
-                        <div className="story-export-modal__padded-settings">
-                            <div className="story-export-modal__toggle-row">
-                                <span>+Δt</span>
-                                <div className="portfolio__segmented-toggle story-export-modal__pill-group">
-                                    <button
-                                        type="button"
-                                        className={`story-export-modal__pill ${
-                                            burstShowTimeStamps ? 'active story-export-modal__pill--active' : ''
-                                        }`}
-                                        onClick={() => {
-                                            setBurstShowTimeStamps?.(true);
-                                            setIsDownloaded(false);
-                                        }}
-                                    >
-                                        Show
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={`story-export-modal__pill ${
-                                            !burstShowTimeStamps ? 'active story-export-modal__pill--active' : ''
-                                        }`}
-                                        onClick={() => {
-                                            setBurstShowTimeStamps?.(false);
-                                            setIsDownloaded(false);
-                                        }}
-                                    >
-                                        Hide
-                                    </button>
-                                </div>
+                        <div className="story-export-modal__burst-selector" style={{ marginTop: 0 }}>
+                            <div
+                                className="story-export-modal__toggle-row"
+                                style={{ marginTop: 0, marginBottom: '0.5rem' }}
+                            >
+                                <span>{burst.isTriptych ? 'Selected Photos' : 'Burst Frames'}</span>
+                                <span
+                                    className="story-export-modal__hint-tag"
+                                    style={{
+                                        color: 'var(--color-text-dim)',
+                                        fontWeight: 500,
+                                    }}
+                                >
+                                    {burst.isTriptych
+                                        ? `Photo ${activePhotoIndex + 1} of ${burst.frameSources.length}`
+                                        : `Frame ${activePhotoIndex + 1} of ${burst.frameSources.length}`}
+                                </span>
                             </div>
 
+                            <div className="story-export-modal__burst-strip" role="group" aria-label="Photo Selector">
+                                {burst.frameSources.map((src, fIdx) => {
+                                    const isSelected = fIdx === activePhotoIndex;
+                                    const thumbUrl = burst.frameThumbs?.[fIdx] || src;
+                                    const delta = burst.frameDeltas?.[fIdx] ?? fIdx * 0.8;
+                                    const labelPrefix = burst.isTriptych ? 'P' : 'F';
+                                    const photoLabel = `${labelPrefix}${fIdx + 1}`;
+                                    const fullTitle = burst.isTriptych ? `Photo ${fIdx + 1}` : `Frame ${fIdx + 1}`;
+
+                                    const ariaLabel = burst.isTriptych
+                                        ? `${fullTitle}.${isSelected ? ' (Selected)' : ''} Tap to select.`
+                                        : `${fullTitle}, elapsed time +${delta.toFixed(2)} seconds.${
+                                              isSelected ? ' (Selected)' : ''
+                                          } Tap to select.`;
+
+                                    const titleText = burst.isTriptych
+                                        ? `${fullTitle}${isSelected ? ' (Selected)' : ''}`
+                                        : `${fullTitle}: +${delta.toFixed(2)}s${isSelected ? ' (Selected)' : ''}`;
+
+                                    return (
+                                        <button
+                                            key={src}
+                                            type="button"
+                                            className={`story-export-modal__burst-thumb${
+                                                isSelected
+                                                    ? ' story-export-modal__burst-thumb--selected story-export-modal__burst-thumb--targeted'
+                                                    : ''
+                                            }`}
+                                            onClick={() => onSelectPhotoIndex?.(fIdx)}
+                                            title={titleText}
+                                            aria-label={ariaLabel}
+                                            aria-pressed={isSelected}
+                                        >
+                                            <img src={thumbUrl} alt={fullTitle} loading="lazy" />
+                                            {isSelected ? (
+                                                <span className="story-export-modal__burst-thumb-slot">
+                                                    {photoLabel}
+                                                </span>
+                                            ) : (
+                                                <span className="story-export-modal__burst-thumb-idx">
+                                                    {photoLabel}
+                                                </span>
+                                            )}
+                                            {!burst.isTriptych && (
+                                                <span className="story-export-modal__burst-thumb-badge">
+                                                    +{delta.toFixed(2)}s
+                                                </span>
+                                            )}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* 3-Panel Burst / Triptych Settings */}
+                {activeMode === 'burst' && burst && (!burst.isTriptych || burst.total > 3) && (
+                    <div className="story-export-modal__section">
+                        <div className="story-export-modal__padded-settings">
+                            {!burst.isTriptych && (
+                                <div className="story-export-modal__toggle-row">
+                                    <span>+Δt</span>
+                                    <div className="portfolio__segmented-toggle story-export-modal__pill-group">
+                                        <button
+                                            type="button"
+                                            className={`story-export-modal__pill ${
+                                                burstShowTimeStamps ? 'active story-export-modal__pill--active' : ''
+                                            }`}
+                                            onClick={() => {
+                                                setBurstShowTimeStamps?.(true);
+                                                setIsDownloaded(false);
+                                            }}
+                                        >
+                                            Show
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`story-export-modal__pill ${
+                                                !burstShowTimeStamps ? 'active story-export-modal__pill--active' : ''
+                                            }`}
+                                            onClick={() => {
+                                                setBurstShowTimeStamps?.(false);
+                                                setIsDownloaded(false);
+                                            }}
+                                        >
+                                            Hide
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
                             {burst.total > 3 && (
-                                <div className="story-export-modal__burst-selector" style={{ marginTop: '1rem' }}>
+                                <div
+                                    className="story-export-modal__burst-selector"
+                                    style={{ marginTop: burst.isTriptych ? 0 : '1rem' }}
+                                >
                                     <div
                                         className="story-export-modal__toggle-row"
-                                        style={{ marginTop: '0.75rem', marginBottom: '0.5rem' }}
+                                        style={{ marginTop: burst.isTriptych ? 0 : '0.75rem', marginBottom: '0.5rem' }}
                                     >
-                                        <span>Burst Frames</span>
+                                        <span>{burst.isTriptych ? 'Triptych Photos' : 'Burst Frames'}</span>
                                         <span
                                             className="story-export-modal__hint-tag"
                                             style={{
@@ -272,16 +383,18 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                         </span>
                                     </div>
 
-                                    {/* Sequential Wizard Segmented Step Picker */}
+                                    {/* Sequential Wizard / Triptych Segmented Step Picker */}
                                     <div
                                         className="portfolio__segmented-toggle story-export-modal__pill-group story-export-modal__burst-slot-group"
                                         role="group"
-                                        aria-label="Burst Wizard Steps"
+                                        aria-label={burst.isTriptych ? 'Triptych Photo Slots' : 'Burst Wizard Steps'}
                                     >
                                         {[0, 1, 2].map((sIdx) => {
                                             const assignedFrame = slots[sIdx];
                                             const isStepActive = activeStep === sIdx;
-                                            const valText = assignedFrame !== null ? `F${assignedFrame + 1}` : 'Empty';
+                                            const valPrefix = burst.isTriptych ? 'P' : 'F';
+                                            const valText =
+                                                assignedFrame !== null ? `${valPrefix}${assignedFrame + 1}` : 'Empty';
                                             return (
                                                 <button
                                                     key={sIdx}
@@ -291,7 +404,11 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                                     }`}
                                                     onClick={() => handleSlotClick(sIdx)}
                                                     aria-label={`Step ${sIdx + 1} (${slotNames[sIdx]}): ${
-                                                        assignedFrame !== null ? `Frame ${assignedFrame + 1}` : 'Empty'
+                                                        assignedFrame !== null
+                                                            ? `${burst.isTriptych ? 'Photo' : 'Frame'} ${
+                                                                  assignedFrame + 1
+                                                              }`
+                                                            : 'Empty'
                                                     }${isStepActive ? ' (Active)' : ''}`}
                                                     aria-pressed={isStepActive}
                                                 >
@@ -315,22 +432,43 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                                 fIdx,
                                                 activeStep,
                                                 slots,
-                                                totalFrames
+                                                totalFrames,
+                                                burst.isTriptych
                                             );
                                             const isDisabled = !isSelected && !isValidForStep;
                                             const thumbUrl = burst.frameThumbs?.[fIdx] || src;
                                             const delta = burst.frameDeltas?.[fIdx] ?? fIdx * 0.8;
 
-                                            let ariaLabel = `Frame ${fIdx + 1}, elapsed time +${delta.toFixed(2)} seconds.`;
+                                            let ariaLabel = burst.isTriptych
+                                                ? `Photo ${fIdx + 1}.`
+                                                : `Frame ${fIdx + 1}, elapsed time +${delta.toFixed(2)} seconds.`;
                                             if (isSelected) {
                                                 ariaLabel += ` Assigned to ${slotNames[assignedSlot]} panel${
                                                     isTargeted ? ' (Active)' : ''
                                                 }. Tap to select.`;
                                             } else if (isDisabled) {
-                                                ariaLabel += ` Unavailable for ${slotNames[activeStep]} panel (sequential order enforced).`;
+                                                ariaLabel += burst.isTriptych
+                                                    ? ' Already assigned to another panel.'
+                                                    : ` Unavailable for ${slotNames[activeStep]} panel (sequential order enforced).`;
                                             } else {
                                                 ariaLabel += ` Tap to assign to ${slotNames[activeStep]} panel.`;
                                             }
+
+                                            const titleText = burst.isTriptych
+                                                ? `Photo ${fIdx + 1}${
+                                                      isSelected
+                                                          ? ` (${slotNames[assignedSlot]})`
+                                                          : isDisabled
+                                                            ? ' (Assigned)'
+                                                            : ''
+                                                  }`
+                                                : `Frame ${fIdx + 1}: +${delta.toFixed(2)}s${
+                                                      isSelected
+                                                          ? ` (${slotNames[assignedSlot]})`
+                                                          : isDisabled
+                                                            ? ' (Disabled)'
+                                                            : ''
+                                                  }`;
 
                                             return (
                                                 <button
@@ -343,28 +481,30 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                                     }`}
                                                     onClick={() => handleBurstFrameClick(fIdx)}
                                                     disabled={isDisabled}
-                                                    title={`Frame ${fIdx + 1}: +${delta.toFixed(2)}s${
-                                                        isSelected
-                                                            ? ` (${slotNames[assignedSlot]})`
-                                                            : isDisabled
-                                                              ? ' (Disabled)'
-                                                              : ''
-                                                    }`}
+                                                    title={titleText}
                                                     aria-label={ariaLabel}
                                                 >
-                                                    <img src={thumbUrl} alt={`Frame ${fIdx + 1}`} loading="lazy" />
+                                                    <img
+                                                        src={thumbUrl}
+                                                        alt={
+                                                            burst.isTriptych ? `Photo ${fIdx + 1}` : `Frame ${fIdx + 1}`
+                                                        }
+                                                        loading="lazy"
+                                                    />
                                                     {isSelected ? (
                                                         <span className="story-export-modal__burst-thumb-slot">
                                                             {slotNames[assignedSlot]}
                                                         </span>
                                                     ) : (
                                                         <span className="story-export-modal__burst-thumb-idx">
-                                                            F{fIdx + 1}
+                                                            {burst.isTriptych ? `P${fIdx + 1}` : `F${fIdx + 1}`}
                                                         </span>
                                                     )}
-                                                    <span className="story-export-modal__burst-thumb-badge">
-                                                        +{delta.toFixed(2)}s
-                                                    </span>
+                                                    {!burst.isTriptych && (
+                                                        <span className="story-export-modal__burst-thumb-badge">
+                                                            +{delta.toFixed(2)}s
+                                                        </span>
+                                                    )}
                                                 </button>
                                             );
                                         })}
@@ -402,75 +542,6 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                         </button>
                                     );
                                 })}
-                        </div>
-
-                        {/* Zoom Level Control */}
-                        <div className="story-export-modal__zoom-control">
-                            <div className="story-export-modal__zoom-header">
-                                <span className="story-export-modal__sublabel">Crop Zoom</span>
-                                <span className="story-export-modal__zoom-value">{activeCrop.zoom.toFixed(2)}x</span>
-                            </div>
-                            <input
-                                type="range"
-                                min="1.0"
-                                max="3.0"
-                                step="0.05"
-                                value={activeCrop.zoom}
-                                onChange={(e) => {
-                                    let newZoom = parseFloat(e.target.value);
-                                    const snapPoints = [1.0, 1.5, 2.0, 2.5, 3.0];
-                                    for (const sp of snapPoints) {
-                                        if (Math.abs(newZoom - sp) <= 0.08) {
-                                            newZoom = sp;
-                                            break;
-                                        }
-                                    }
-                                    const updated = calculateNormalizedCrop(
-                                        naturalDimensions.width,
-                                        naturalDimensions.height,
-                                        activeCrop.centerX,
-                                        activeCrop.centerY,
-                                        newZoom
-                                    );
-                                    onCropChange(updated);
-                                }}
-                                className="story-export-modal__slider"
-                                aria-label="Crop Zoom Level"
-                            />
-                            <div className="story-export-modal__zoom-ticks" role="group" aria-label="Zoom snap points">
-                                {[1.0, 1.5, 2.0, 2.5, 3.0].map((pt) => {
-                                    const isActive = Math.abs(activeCrop.zoom - pt) < 0.04;
-                                    const fraction = (pt - 1.0) / (3.0 - 1.0);
-                                    return (
-                                        <button
-                                            key={pt}
-                                            type="button"
-                                            className={`story-export-modal__zoom-tick ${
-                                                isActive ? 'story-export-modal__zoom-tick--active' : ''
-                                            }`}
-                                            style={{
-                                                left: `calc(9px + ${fraction} * (100% - 18px))`,
-                                            }}
-                                            onClick={() => {
-                                                const updated = calculateNormalizedCrop(
-                                                    naturalDimensions.width,
-                                                    naturalDimensions.height,
-                                                    activeCrop.centerX,
-                                                    activeCrop.centerY,
-                                                    pt
-                                                );
-                                                onCropChange(updated);
-                                            }}
-                                            aria-label={`Snap zoom to ${pt.toFixed(1)}x`}
-                                        >
-                                            <span className="story-export-modal__zoom-tick-mark" />
-                                            <span className="story-export-modal__zoom-tick-label">
-                                                {pt.toFixed(1)}x
-                                            </span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
                         </div>
                     </div>
                 )}

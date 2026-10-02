@@ -352,12 +352,47 @@ async function extractExif(absPath: string) {
     }
 }
 
+export function loadFacesCache(
+    cachePath = path.join(process.cwd(), 'data', '.faces_cache.json')
+): Record<string, any> {
+    if (fs.existsSync(cachePath)) {
+        try {
+            return JSON.parse(fs.readFileSync(cachePath, 'utf8'));
+        } catch {
+            return {};
+        }
+    }
+    return {};
+}
+
+export function extractFaceData(thumb: string, cache: Record<string, any>) {
+    if (!thumb || !cache) return undefined;
+    const val = cache[thumb] || cache[thumb.replace(/\.avif$/, '.webp')];
+    if (val && typeof val === 'object' && val.x != null && val.y != null) {
+        return {
+            focusX: val.x,
+            focusY: val.y,
+            ...(val.score != null ? { faceScore: val.score } : {}),
+            ...(val.recapScore != null ? { recapScore: val.recapScore } : {}),
+            ...(val.faces && val.faces.length > 0
+                ? { faces: val.faces }
+                : { faces: [{ x: Number(val.x.toFixed(3)), y: Number(val.y.toFixed(3)), confidence: 1.0 }] }),
+        };
+    }
+    return undefined;
+}
+
 /**
  * For a given event directory, find:
  *   album      – resized / final / adult images (or flat jpgs if none)
  *   highlights – instagram / ig images
  */
-async function processEventDir(eventDir: string, year: string, eventSlug: string) {
+async function processEventDir(
+    eventDir: string,
+    year: string,
+    eventSlug: string,
+    facesCache: Record<string, any> = {}
+) {
     let subdirs;
     try {
         subdirs = fs
@@ -548,19 +583,24 @@ async function processEventDir(eventDir: string, year: string, eventSlug: string
     }
 
     // Clean up albumArr (remove temporary basenames & aspect ratio)
-    const finalAlbum = albumWithDims.map(({ source, original, thumb, width, height, exif, burst }, i) => ({
-        source,
-        original,
-        thumb,
-        width,
-        height,
-        spriteIndex: i,
-        ...(exif && { exif }),
-        ...(burst && { burst }),
-    }));
+    const finalAlbum = albumWithDims.map(({ source, original, thumb, width, height, exif, burst }, i) => {
+        const faceData = extractFaceData(thumb, facesCache);
+        return {
+            source,
+            original,
+            thumb,
+            width,
+            height,
+            spriteIndex: i,
+            ...(exif && { exif }),
+            ...(burst && { burst }),
+            ...(faceData && faceData),
+        };
+    });
 
     const mappedHighlights = finalHighlights.map(({ source, original, thumb }) => {
         const match = albumWithDims.find((a) => a.original === original);
+        const faceData = extractFaceData(thumb, facesCache);
         return match
             ? {
                   source,
@@ -570,8 +610,9 @@ async function processEventDir(eventDir: string, year: string, eventSlug: string
                   height: match.height,
                   ...(match.exif && { exif: match.exif }),
                   ...(match.burst && { burst: match.burst }),
+                  ...(faceData && faceData),
               }
-            : { source, original, thumb };
+            : { source, original, thumb, ...(faceData && faceData) };
     });
 
     return {
@@ -595,6 +636,7 @@ function formatEventLabel(dirName: string) {
 export async function generatePhotoIndex(): Promise<IndexState> {
     logger.header('Generating photo index...');
     const output: IndexState = {};
+    const facesCache = loadFacesCache();
 
     const years = fs
         .readdirSync(PHOTOS_DIR, { withFileTypes: true })
@@ -624,6 +666,7 @@ export async function generatePhotoIndex(): Promise<IndexState> {
                     const ext = path.extname(abs).toLowerCase();
                     const cleanName = `photo_${String(idx + 1).padStart(3, '0')}${ext}`;
                     const thumbName = `photo_${String(idx + 1).padStart(3, '0')}.avif`;
+                    const webThumb = `/thumbnails/${year}/all-photos/${thumbName}`;
                     let width = 0;
                     let height = 0;
                     let exif = undefined;
@@ -637,14 +680,16 @@ export async function generatePhotoIndex(): Promise<IndexState> {
                             exif = extracted.exif;
                         }
                     } catch { /* ignore */ }
+                    const faceData = extractFaceData(webThumb, facesCache);
                     flatAlbumWithDims.push({
                         source: toWebPath(abs),
                         original: `/photos/${year}/all-photos/${cleanName}`,
-                        thumb: `/thumbnails/${year}/all-photos/${thumbName}`,
+                        thumb: webThumb,
                         width,
                         height,
                         spriteIndex: idx,
                         ...(exif && { exif }),
+                        ...(faceData && faceData),
                     });
                 }
 
@@ -661,7 +706,7 @@ export async function generatePhotoIndex(): Promise<IndexState> {
                 const label = formatEventLabel(eventDir);
                 const eventSlug = slugify(label);
 
-                const result = await processEventDir(eventPath, year, eventSlug);
+                const result = await processEventDir(eventPath, year, eventSlug, facesCache);
 
                 let localScore = null;
                 const scoreFile = path.join(eventPath, 'score.json');

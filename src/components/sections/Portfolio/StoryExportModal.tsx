@@ -3,7 +3,7 @@ import React, { useEffect, useMemo } from 'react';
 import { useCanShare } from '../../../hooks/useCanShare';
 import { useStoryImageLoader } from '../../../hooks/useStoryImageLoader';
 import { useStoryStudio, type StoryStudioTab } from '../../../hooks/useStoryStudio';
-import { parseEventTitle } from '../../../utils/formatters';
+import { parseEventTitle, getPhotoDisplayUrl } from '../../../utils/formatters';
 import { STORY_ASPECT_RATIO } from '../../../utils/storyCanvas';
 import type { EventScore, PhotoInput } from '../../../types';
 import ModalShell from '../../ui/ModalShell';
@@ -51,8 +51,8 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
     const {
         photoObj,
         originalSrc,
-        displaySrc,
-        thumbSrc,
+        displaySrc: _displaySrc,
+        thumbSrc: _thumbSrc,
         withBuild,
         loadedImage,
         loadedBurstImages,
@@ -122,6 +122,8 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         handleClose,
         handleExportAction,
         previewCanvasRef,
+        activePhotoIndex,
+        handleSelectPhotoIndex,
     } = useStoryStudio({
         photoObj,
         naturalDimensions,
@@ -135,6 +137,21 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         canShare,
         onClose,
     });
+
+    const activePhotoSrc = photoObj.burst?.frameSources?.[activePhotoIndex] || originalSrc;
+    const activePhotoThumb = photoObj.burst?.frameThumbs?.[activePhotoIndex] || activePhotoSrc;
+    const activePhotoDisplay = getPhotoDisplayUrl(activePhotoSrc);
+    const activeLoadedImage = (loadedBurstImages && loadedBurstImages[activePhotoIndex]) || loadedImage;
+
+    useEffect(() => {
+        const activeImg = loadedBurstImages[activePhotoIndex];
+        if (activeImg && activeImg.naturalWidth && activeImg.naturalHeight) {
+            setNaturalDimensions({
+                width: activeImg.naturalWidth,
+                height: activeImg.naturalHeight,
+            });
+        }
+    }, [activePhotoIndex, loadedBurstImages, setNaturalDimensions]);
 
     // Keyboard shortcut navigation (Left Arrow / Right Arrow) to switch tabs
     useEffect(() => {
@@ -213,7 +230,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                 isExporting ||
                 (activeMode === 'burst'
                     ? burstLoading || (loadedBurstImages?.length ?? 0) < 3 || validBurstCount < 3
-                    : !loadedImage) ||
+                    : !activeLoadedImage) ||
                 isDownloaded
             }
             title={
@@ -287,8 +304,8 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                         {/* Interactive Cropper when in custom crop mode */}
                         {activeMode === 'crop' ? (
                             <StoryCropper
-                                imageSrc={withBuild(displaySrc)}
-                                fallbackSrc={withBuild(originalSrc) || withBuild(thumbSrc)}
+                                imageSrc={withBuild(activePhotoDisplay)}
+                                fallbackSrc={withBuild(activePhotoSrc) || withBuild(activePhotoThumb)}
                                 naturalWidth={naturalDimensions.width}
                                 naturalHeight={naturalDimensions.height}
                                 crop={activeCrop}
@@ -296,7 +313,11 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                 theme={cardTheme}
                                 frameId={activeFrameId}
                                 frameColorOverride={effectiveFrameColor}
-                                exif={photoObj.exif}
+                                exif={
+                                    photoObj.burst?.frameSources?.[activePhotoIndex] === photoObj.original
+                                        ? photoObj.exif
+                                        : undefined
+                                }
                                 filterId={activeFilterId}
                                 filterStrength={filterStrength}
                                 onChange={handleCropChange}
@@ -405,6 +426,8 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                 setBurstShowTimeStamps={setBurstShowTimeStamps}
                                 burstSelectedIndices={burstSelectedIndices}
                                 setBurstSelectedIndices={setBurstSelectedIndices}
+                                activePhotoIndex={activePhotoIndex}
+                                onSelectPhotoIndex={handleSelectPhotoIndex}
                             />
                         )}
 
@@ -415,7 +438,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                 setActiveFilterId={setActiveFilterId}
                                 filterStrength={filterStrength}
                                 setFilterStrength={setFilterStrength}
-                                previewImageUrl={withBuild(thumbSrc || displaySrc)}
+                                previewImageUrl={withBuild(activePhotoThumb || activePhotoDisplay)}
                                 setIsDownloaded={setIsDownloaded}
                             />
                         )}

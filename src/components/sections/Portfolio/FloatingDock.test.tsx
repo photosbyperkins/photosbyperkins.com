@@ -7,12 +7,20 @@ import { useAppStore } from '../../../store/useAppStore';
 
 vi.mock('framer-motion', () => ({
     motion: {
-        div: ({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode }) => (
+        div: ({
+            children,
+            className,
+            ...props
+        }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode }) => (
             <div className={className} {...props}>
                 {children}
             </div>
         ),
-        aside: ({ children, className, ...props }: React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }) => (
+        aside: ({
+            children,
+            className,
+            ...props
+        }: React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }) => (
             <aside className={className} {...props}>
                 {children}
             </aside>
@@ -24,10 +32,13 @@ vi.mock('framer-motion', () => ({
 
 describe('Portfolio Cohesive Action Dock', () => {
     beforeEach(() => {
-        vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-            ok: true,
-            json: async () => ({ events: {}, recapCount: 0, recapEvents: [] }),
-        }));
+        vi.stubGlobal(
+            'fetch',
+            vi.fn().mockResolvedValue({
+                ok: true,
+                json: async () => ({ events: {}, recapCount: 0, recapEvents: [] }),
+            })
+        );
 
         useAppStore.setState({
             isBatchSelectMode: false,

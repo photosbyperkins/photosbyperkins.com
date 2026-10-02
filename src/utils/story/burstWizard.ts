@@ -5,14 +5,24 @@
  * - Step 0 (TOP): earliest frame (t1), must leave room for MID and BTM.
  * - Step 1 (MID): peak action frame (t2 > t1), must leave room for BTM.
  * - Step 2 (BTM): follow-through frame (t3 > t2).
+ *
+ * In Triptych mode (isTriptych = true), photos are not time-ordered:
+ * - Any photo can be chosen for any step, provided it is not already used in another step.
  */
 export function isFrameValidForWizardStep(
     fIdx: number,
     step: number,
     slots: (number | null)[],
-    totalFrames: number
+    totalFrames: number,
+    isTriptych = false
 ): boolean {
     if (fIdx < 0 || fIdx >= totalFrames) return false;
+    if (step < 0 || step > 2) return false;
+
+    if (isTriptych) {
+        const otherSlots = slots.filter((_, idx) => idx !== step);
+        return !otherSlots.includes(fIdx);
+    }
 
     const [top, mid] = slots;
 

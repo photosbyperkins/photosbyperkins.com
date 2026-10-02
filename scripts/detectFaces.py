@@ -205,10 +205,10 @@ def get_focus(image_path):
                     fw = round(face_w / img_w, 3)
                     fh = round(face_h / img_h, 3)
                     faces_list.append({
-                        "x": cx,
-                        "y": cy,
-                        "w": fw,
-                        "h": fh,
+                        "x": float(cx),
+                        "y": float(cy),
+                        "w": float(fw),
+                        "h": float(fh),
                         "confidence": round(float(confidence), 2)
                     })
                 # Sort left-to-right so Person 1, Person 2 matches visual layout
@@ -292,8 +292,14 @@ def main():
                                     if "x" in val:
                                         photo['focusX'] = val['x']
                                         photo['focusY'] = val['y']
-                                        if "faces" in val:
+                                        if "faces" in val and len(val['faces']) > 0:
                                             photo['faces'] = val['faces']
+                                        else:
+                                            photo['faces'] = [{
+                                                "x": round(float(val['x']), 3),
+                                                "y": round(float(val['y']), 3),
+                                                "confidence": 1.0
+                                            }]
                                         found_count += 1
                                     photo['faceScore'] = val['score']
                                     photo['recapScore'] = val.get('recapScore', 0.0)

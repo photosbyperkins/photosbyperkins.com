@@ -102,12 +102,16 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
 
                             {onStory &&
                                 (() => {
-                                    const canStory = selectedCount === 1 || selectedCount === 3;
+                                    const canStory = selectedCount >= 1;
                                     const storyTooltip = canStory
-                                        ? selectedCount === 3
-                                            ? 'Create 3-panel triptych story with selected photos'
-                                            : 'Create story with selected photo'
-                                        : 'Select 1 photo or 3 photos to create a story';
+                                        ? selectedCount > 3
+                                            ? `Create 3-panel triptych story with selected photos (${selectedCount} selected)`
+                                            : selectedCount === 3
+                                              ? 'Create 3-panel triptych story with selected photos'
+                                              : selectedCount === 2
+                                                ? 'Create story with selected photos (2 selected)'
+                                                : 'Create story with selected photo'
+                                        : 'Select photos to create a story';
 
                                     return (
                                         <button

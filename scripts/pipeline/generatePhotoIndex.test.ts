@@ -9,6 +9,8 @@ import {
     toWebPath,
     shuffle,
     detectBursts,
+    loadFacesCache,
+    extractFaceData,
     type BurstCandidate,
 } from './generatePhotoIndex';
 
@@ -185,6 +187,70 @@ describe('generatePhotoIndex helpers', () => {
             expect(items[3].burst?.index).toBe(3);
             expect(items[3].burst?.deltaSec).toBe(1.5);
             expect(items[0].burst?.frameThumbs).toEqual(['/t1.avif', '/t2.avif', '/t3.avif', '/t4.avif']);
+        });
+    });
+
+    describe('loadFacesCache and extractFaceData', () => {
+        it('returns empty object when cache file does not exist', () => {
+            expect(loadFacesCache('/non/existent/path/faces.json')).toEqual({});
+        });
+
+        it('returns undefined when thumb or cache is missing', () => {
+            expect(extractFaceData('', {})).toBeUndefined();
+            expect(extractFaceData('/thumb.avif', {})).toBeUndefined();
+        });
+
+        it('extracts face data correctly with full faces array', () => {
+            const cache = {
+                '/thumbnails/2026/event/photo_001.avif': {
+                    x: 0.62,
+                    y: 0.15,
+                    score: 180.5,
+                    recapScore: 4.2,
+                    faces: [{ x: 0.62, y: 0.15, w: 0.1, h: 0.1, confidence: 0.9 }],
+                },
+            };
+            const extracted = extractFaceData('/thumbnails/2026/event/photo_001.avif', cache);
+            expect(extracted).toEqual({
+                focusX: 0.62,
+                focusY: 0.15,
+                faceScore: 180.5,
+                recapScore: 4.2,
+                faces: [{ x: 0.62, y: 0.15, w: 0.1, h: 0.1, confidence: 0.9 }],
+            });
+        });
+
+        it('synthesizes single fallback face when faces array is missing or empty', () => {
+            const cache = {
+                '/thumbnails/2026/event/photo_002.avif': {
+                    x: 0.45,
+                    y: 0.25,
+                    score: 95.0,
+                    recapScore: 1.5,
+                },
+            };
+            const extracted = extractFaceData('/thumbnails/2026/event/photo_002.avif', cache);
+            expect(extracted).toEqual({
+                focusX: 0.45,
+                focusY: 0.25,
+                faceScore: 95.0,
+                recapScore: 1.5,
+                faces: [{ x: 0.45, y: 0.25, confidence: 1.0 }],
+            });
+        });
+
+        it('supports webp fallback lookup when avif entry is requested', () => {
+            const cache = {
+                '/thumbnails/2026/event/photo_003.webp': {
+                    x: 0.5,
+                    y: 0.2,
+                    score: 110.0,
+                },
+            };
+            const extracted = extractFaceData('/thumbnails/2026/event/photo_003.avif', cache);
+            expect(extracted?.focusX).toBe(0.5);
+            expect(extracted?.focusY).toBe(0.2);
+            expect(extracted?.faces).toEqual([{ x: 0.5, y: 0.2, confidence: 1.0 }]);
         });
     });
 });

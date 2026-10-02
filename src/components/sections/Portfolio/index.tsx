@@ -180,14 +180,7 @@ export default function Portfolio({ years }: PortfolioProps) {
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [
-        isBatchSelectMode,
-        setIsBatchSelectMode,
-        isGlobalSearchOpen,
-        isLightboxOpen,
-        selectedTab,
-        ensureIndexesLoaded,
-    ]);
+    }, [isBatchSelectMode, setIsBatchSelectMode, isGlobalSearchOpen, isLightboxOpen, selectedTab, ensureIndexesLoaded]);
 
     const allSelectablePhotos = useMemo(() => {
         const list: FavoriteStoreItem[] = [];
@@ -284,7 +277,7 @@ export default function Portfolio({ years }: PortfolioProps) {
                     : undefined);
             setDirectStoryScore(scorePayload);
             setIsDirectStoryOpen(true);
-        } else if (batchSelectedPhotos.length === 3) {
+        } else if (batchSelectedPhotos.length >= 2) {
             const firstItem = batchSelectedPhotos[0];
             const first = toPhotoRecord(firstItem);
             const records = batchSelectedPhotos.map((item) => toPhotoRecord(item));
@@ -302,7 +295,7 @@ export default function Portfolio({ years }: PortfolioProps) {
                 burst: {
                     id: `batch_triptych_${Date.now()}`,
                     index: 0,
-                    total: 3,
+                    total: records.length,
                     isTriptych: true,
                     frameSources: records.map((r) => r.original),
                     frameThumbs: records.map((r) => r.thumb || r.original),
@@ -454,7 +447,9 @@ export default function Portfolio({ years }: PortfolioProps) {
                             >
                                 <Search size={16} strokeWidth={2} className="portfolio__dock-btn-icon" />
                                 <span className="portfolio__dock-btn-text">Search</span>
-                                <kbd className="portfolio__dock-btn-kbd" aria-hidden="true">/</kbd>
+                                <kbd className="portfolio__dock-btn-kbd" aria-hidden="true">
+                                    /
+                                </kbd>
                             </button>
 
                             <span className="portfolio__dock-divider" aria-hidden="true" />
@@ -480,7 +475,9 @@ export default function Portfolio({ years }: PortfolioProps) {
                                         {batchSelectedPhotos.length}
                                     </span>
                                 ) : (
-                                    <kbd className="portfolio__dock-btn-kbd" aria-hidden="true">S</kbd>
+                                    <kbd className="portfolio__dock-btn-kbd" aria-hidden="true">
+                                        S
+                                    </kbd>
                                 )}
                             </button>
                         </div>
