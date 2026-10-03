@@ -122,7 +122,29 @@ export interface BadgeOptions {
     attributionDomain?: string;
 }
 
-export type StoryPhotoFilterId = 'none' | 'bw' | 'bw-contrast' | 'warm' | 'vivid' | 'matte' | 'noir' | 'sepia';
+export type StoryPhotoFilterId =
+    | 'none'
+    | 'bw'
+    | 'bw-contrast'
+    | 'warm'
+    | 'vivid'
+    | 'matte'
+    | 'noir'
+    | 'sepia'
+    | 'chrome'
+    | 'bleach'
+    | 'portra'
+    | 'cinematic'
+    | 'cross-process'
+    | 'hard-flash'
+    | 'midnight'
+    | 'selective-red'
+    | 'selective-green'
+    | 'selective-blue'
+    | 'selective-yellow'
+    | 'selective-purple'
+    | 'neon'
+    | 'duotone';
 
 export interface StoryPhotoFilter {
     id: StoryPhotoFilterId;
@@ -180,6 +202,90 @@ export const STORY_PHOTO_FILTERS: StoryPhotoFilter[] = [
         description: 'Antique warm sepia tone',
         cssFilter: 'sepia(75%) contrast(105%) brightness(98%)',
     },
+    {
+        id: 'chrome',
+        label: 'Chrome',
+        description: 'Vivid 90s action sports slide film with punchy contrast',
+        cssFilter: 'contrast(128%) saturate(145%) brightness(98%)',
+    },
+    {
+        id: 'bleach',
+        label: 'Bleach',
+        description: 'Gritty silver-rich high contrast with muted colors',
+        cssFilter: 'contrast(135%) saturate(35%) brightness(102%)',
+    },
+    {
+        id: 'portra',
+        label: 'Portra',
+        description: 'Soft pastel warmth and flattering skin tones',
+        cssFilter: 'contrast(94%) brightness(105%) saturate(108%) sepia(18%)',
+    },
+    {
+        id: 'cinematic',
+        label: 'Cinematic',
+        description: 'Hollywood split-toning with warm skin tones and teal shadows',
+        cssFilter: 'url(#story-filter-cinematic-swatch)',
+    },
+    {
+        id: 'cross-process',
+        label: 'X-Pro',
+        description: 'Cross-processed film with greenish shadows and golden highlights',
+        cssFilter: 'contrast(125%) saturate(130%) sepia(30%) hue-rotate(50deg)',
+    },
+    {
+        id: 'hard-flash',
+        label: 'Hard Flash',
+        description: 'Direct flash skate zine look with blown specular pop',
+        cssFilter: 'contrast(140%) brightness(115%) saturate(110%)',
+    },
+    {
+        id: 'midnight',
+        label: 'Midnight',
+        description: 'Deep cool cobalt shadows and twilight arena mood',
+        cssFilter: 'contrast(115%) brightness(92%) saturate(95%) hue-rotate(190deg) sepia(22%)',
+    },
+    {
+        id: 'selective-red',
+        label: 'Red Pop',
+        description: 'Isolate vibrant red tones and desaturate background',
+        cssFilter: 'url(#story-filter-selective-red-swatch)',
+    },
+    {
+        id: 'selective-green',
+        label: 'Green Pop',
+        description: 'Isolate vibrant green tones and desaturate background',
+        cssFilter: 'url(#story-filter-selective-green-swatch)',
+    },
+    {
+        id: 'selective-blue',
+        label: 'Blue Pop',
+        description: 'Isolate vibrant blue tones and desaturate background',
+        cssFilter: 'url(#story-filter-selective-blue-swatch)',
+    },
+    {
+        id: 'selective-yellow',
+        label: 'Yellow Pop',
+        description: 'Isolate vibrant yellow & gold tones and desaturate background',
+        cssFilter: 'url(#story-filter-selective-yellow-swatch)',
+    },
+    {
+        id: 'selective-purple',
+        label: 'Purple Pop',
+        description: 'Isolate vibrant purple & magenta tones and desaturate background',
+        cssFilter: 'url(#story-filter-selective-purple-swatch)',
+    },
+    {
+        id: 'neon',
+        label: 'Neon',
+        description: 'Electric magenta and cyan roller rink vibe',
+        cssFilter: 'url(#story-filter-neon-swatch)',
+    },
+    {
+        id: 'duotone',
+        label: 'Duotone',
+        description: 'High-impact crimson and navy match poster treatment',
+        cssFilter: 'url(#story-filter-duotone-swatch)',
+    },
 ];
 
 export const STORY_PHOTO_FILTERS_MAP = Object.fromEntries(STORY_PHOTO_FILTERS.map((f) => [f.id, f])) as Record<
@@ -192,6 +298,14 @@ export const STORY_PHOTO_FILTERS_MAP = Object.fromEntries(STORY_PHOTO_FILTERS.ma
  */
 export function getStoryFilterCss(filterId: StoryPhotoFilterId, strength = 1.0): string {
     if (!filterId || filterId === 'none' || strength <= 0) return 'none';
+    if (filterId === 'selective-red') return 'url(#story-filter-selective-red)';
+    if (filterId === 'selective-green') return 'url(#story-filter-selective-green)';
+    if (filterId === 'selective-blue') return 'url(#story-filter-selective-blue)';
+    if (filterId === 'selective-yellow') return 'url(#story-filter-selective-yellow)';
+    if (filterId === 'selective-purple') return 'url(#story-filter-selective-purple)';
+    if (filterId === 'cinematic') return 'url(#story-filter-cinematic)';
+    if (filterId === 'neon') return 'url(#story-filter-neon)';
+    if (filterId === 'duotone') return 'url(#story-filter-duotone)';
     const clamped = Math.max(0, Math.min(1, strength));
     if (clamped >= 0.99) {
         return STORY_PHOTO_FILTERS_MAP[filterId]?.cssFilter || 'none';
@@ -211,6 +325,18 @@ export function getStoryFilterCss(filterId: StoryPhotoFilterId, strength = 1.0):
             return `contrast(${Math.round(100 + 30 * clamped)}%) brightness(${Math.round(100 - 10 * clamped)}%) saturate(${Math.round(100 - 15 * clamped)}%)`;
         case 'sepia':
             return `sepia(${Math.round(75 * clamped)}%) contrast(${Math.round(100 + 5 * clamped)}%) brightness(${Math.round(100 - 2 * clamped)}%)`;
+        case 'chrome':
+            return `contrast(${Math.round(100 + 28 * clamped)}%) saturate(${Math.round(100 + 45 * clamped)}%) brightness(${Math.round(100 - 2 * clamped)}%)`;
+        case 'bleach':
+            return `contrast(${Math.round(100 + 35 * clamped)}%) saturate(${Math.round(100 - 65 * clamped)}%) brightness(${Math.round(100 + 2 * clamped)}%)`;
+        case 'portra':
+            return `contrast(${Math.round(100 - 6 * clamped)}%) brightness(${Math.round(100 + 5 * clamped)}%) saturate(${Math.round(100 + 8 * clamped)}%) sepia(${Math.round(18 * clamped)}%)`;
+        case 'cross-process':
+            return `contrast(${Math.round(100 + 25 * clamped)}%) saturate(${Math.round(100 + 30 * clamped)}%) sepia(${Math.round(30 * clamped)}%) hue-rotate(${Math.round(50 * clamped)}deg)`;
+        case 'hard-flash':
+            return `contrast(${Math.round(100 + 40 * clamped)}%) brightness(${Math.round(100 + 15 * clamped)}%) saturate(${Math.round(100 + 10 * clamped)}%)`;
+        case 'midnight':
+            return `contrast(${Math.round(100 + 15 * clamped)}%) brightness(${Math.round(100 - 8 * clamped)}%) saturate(${Math.round(100 - 5 * clamped)}%) hue-rotate(${Math.round(190 * clamped)}deg) sepia(${Math.round(22 * clamped)}%)`;
         default:
             return 'none';
     }

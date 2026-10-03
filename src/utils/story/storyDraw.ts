@@ -513,6 +513,297 @@ export function applyStoryFilterToImageData(imageData: ImageData, filterId: Stor
             break;
         }
 
+        case 'selective-red':
+        case 'selective-green':
+        case 'selective-blue':
+        case 'selective-yellow':
+        case 'selective-purple': {
+            const target = filterId.replace('selective-', '') as 'red' | 'green' | 'blue' | 'yellow' | 'purple';
+            for (let i = 0; i < len; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+
+                // Luminance (Rec. 709 weights)
+                const gray = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+
+                // Color isolation via HSL hue distance
+                const max = Math.max(r, g, b);
+                const min = Math.min(r, g, b);
+                const delta = max - min;
+                let match = 0;
+
+                // Ignore near-neutral pixels and very dark shadows to prevent noise
+                if (delta >= 18 && max > 30) {
+                    const sat = delta / max;
+                    let h = 0;
+                    if (max === r) {
+                        h = ((g - b) / delta) % 6;
+                    } else if (max === g) {
+                        h = (b - r) / delta + 2;
+                    } else {
+                        h = (r - g) / delta + 4;
+                    }
+                    h = h * 60;
+                    if (h < 0) h += 360;
+
+                    if (target === 'red') {
+                        // Tight hue window around 0 deg (rejects skin tones at H >= 16 deg)
+                        const dist = Math.min(h, 360 - h);
+                        if (dist <= 10 && sat >= 0.30) {
+                            match = 1;
+                        } else if (dist <= 16 && sat >= 0.25) {
+                            match = (1 - (dist - 10) / 6) * Math.min(1, (sat - 0.22) / 0.08);
+                        }
+                    } else if (target === 'green') {
+                        // Hue centered around 120 deg
+                        const dist = Math.abs(h - 120);
+                        if (dist <= 35 && sat >= 0.18) {
+                            match = 1;
+                        } else if (dist <= 50 && sat >= 0.14) {
+                            match = (1 - (dist - 35) / 15) * Math.min(1, (sat - 0.12) / 0.06);
+                        }
+                    } else if (target === 'blue') {
+                        // Blue: Hue centered around 220 deg (covers rich cyan/royal blue/navy)
+                        const dist = Math.abs(h - 220);
+                        if (dist <= 35 && sat >= 0.18) {
+                            match = 1;
+                        } else if (dist <= 50 && sat >= 0.14) {
+                            match = (1 - (dist - 35) / 15) * Math.min(1, (sat - 0.12) / 0.06);
+                        }
+                    } else if (target === 'yellow') {
+                        // Yellow: Hue centered around 54 deg (covers gold, yellow jerseys, jammer stars)
+                        const dist = Math.abs(h - 54);
+                        if (dist <= 14 && sat >= 0.28) {
+                            match = 1;
+                        } else if (dist <= 24 && sat >= 0.22) {
+                            match = (1 - (dist - 14) / 10) * Math.min(1, (sat - 0.18) / 0.08);
+                        }
+                    } else if (target === 'purple') {
+                        // Purple / Magenta: Hue centered around 295 deg (covers purple jerseys, violet, hot pink)
+                        const dist = Math.abs(h - 295);
+                        if (dist <= 25 && sat >= 0.20) {
+                            match = 1;
+                        } else if (dist <= 40 && sat >= 0.15) {
+                            match = (1 - (dist - 25) / 15) * Math.min(1, (sat - 0.12) / 0.06);
+                        }
+                    }
+                }
+
+                // If match = 1, keep full color.
+                // If match = 0, desaturate according to clamped strength (strength 1 = 100% grayscale; strength 0.5 = 50% color).
+                const keepRatio = Math.max(0, Math.min(1, match + (1 - match) * (1 - clamped)));
+                data[i] = Math.round(gray + (r - gray) * keepRatio);
+                data[i + 1] = Math.round(gray + (g - gray) * keepRatio);
+                data[i + 2] = Math.round(gray + (b - gray) * keepRatio);
+            }
+            break;
+        }
+
+        case 'chrome': {
+            // Vivid 90s action sports slide film
+            const c = 1 + 0.28 * clamped;
+            const sat = 1 + 0.45 * clamped;
+            const br = 1 - 0.02 * clamped;
+            for (let i = 0; i < len; i += 4) {
+                const r = ((data[i] - 128) * c + 128) * br;
+                const g = ((data[i + 1] - 128) * c + 128) * br;
+                const b = ((data[i + 2] - 128) * c + 128) * br;
+                const gray = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+                data[i] = Math.max(0, Math.min(255, Math.round(gray + (r - gray) * sat)));
+                data[i + 1] = Math.max(0, Math.min(255, Math.round(gray + (g - gray) * sat)));
+                data[i + 2] = Math.max(0, Math.min(255, Math.round(gray + (b - gray) * sat)));
+            }
+            break;
+        }
+
+        case 'bleach': {
+            // Gritty high contrast with desaturated midtones
+            const c = 1 + 0.35 * clamped;
+            const sat = 1 - 0.65 * clamped;
+            const br = 1 + 0.02 * clamped;
+            for (let i = 0; i < len; i += 4) {
+                const r = ((data[i] - 128) * c + 128) * br;
+                const g = ((data[i + 1] - 128) * c + 128) * br;
+                const b = ((data[i + 2] - 128) * c + 128) * br;
+                const gray = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+                data[i] = Math.max(0, Math.min(255, Math.round(gray + (r - gray) * sat)));
+                data[i + 1] = Math.max(0, Math.min(255, Math.round(gray + (g - gray) * sat)));
+                data[i + 2] = Math.max(0, Math.min(255, Math.round(gray + (b - gray) * sat)));
+            }
+            break;
+        }
+
+        case 'portra': {
+            // Soft portrait warmth with creamy highlights
+            const c = 1 - 0.06 * clamped;
+            const br = 1 + 0.05 * clamped;
+            const sat = 1 + 0.08 * clamped;
+            const sAmount = 0.18 * clamped;
+            for (let i = 0; i < len; i += 4) {
+                let r = data[i];
+                let g = data[i + 1];
+                let b = data[i + 2];
+                const sr = 0.393 * r + 0.769 * g + 0.189 * b;
+                const sg = 0.349 * r + 0.686 * g + 0.168 * b;
+                const sb = 0.272 * r + 0.534 * g + 0.131 * b;
+                r = r + (sr - r) * sAmount;
+                g = g + (sg - g) * sAmount;
+                b = b + (sb - b) * sAmount;
+                const cr = ((r - 128) * c + 128) * br;
+                const cg = ((g - 128) * c + 128) * br;
+                const cb = ((b - 128) * c + 128) * br;
+                const gray = 0.2126 * cr + 0.7152 * cg + 0.0722 * cb;
+                data[i] = Math.max(0, Math.min(255, Math.round(gray + (cr - gray) * sat)));
+                data[i + 1] = Math.max(0, Math.min(255, Math.round(gray + (cg - gray) * sat)));
+                data[i + 2] = Math.max(0, Math.min(255, Math.round(gray + (cb - gray) * sat)));
+            }
+            break;
+        }
+
+        case 'cinematic': {
+            // Hollywood Teal & Orange Split Toning
+            const c = 1 + 0.15 * clamped;
+            const sat = 1 + 0.20 * clamped;
+            for (let i = 0; i < len; i += 4) {
+                let r = data[i];
+                let g = data[i + 1];
+                let b = data[i + 2];
+                const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+                if (lum < 0.5) {
+                    const shadowWeight = (0.5 - lum) * 2 * clamped;
+                    r -= 20 * shadowWeight;
+                    g += 10 * shadowWeight;
+                    b += 30 * shadowWeight;
+                } else {
+                    const hlWeight = (lum - 0.5) * 2 * clamped;
+                    r += 30 * hlWeight;
+                    g += 12 * hlWeight;
+                    b -= 18 * hlWeight;
+                }
+                const cr = (r - 128) * c + 128;
+                const cg = (g - 128) * c + 128;
+                const cb = (b - 128) * c + 128;
+                const gray = 0.2126 * cr + 0.7152 * cg + 0.0722 * cb;
+                data[i] = Math.max(0, Math.min(255, Math.round(gray + (cr - gray) * sat)));
+                data[i + 1] = Math.max(0, Math.min(255, Math.round(gray + (cg - gray) * sat)));
+                data[i + 2] = Math.max(0, Math.min(255, Math.round(gray + (cb - gray) * sat)));
+            }
+            break;
+        }
+
+        case 'hard-flash': {
+            // Direct flash skate zine look
+            const c = 1 + 0.40 * clamped;
+            const br = 1 + 0.15 * clamped;
+            const sat = 1 + 0.10 * clamped;
+            for (let i = 0; i < len; i += 4) {
+                const r = ((data[i] - 128) * c + 128) * br;
+                const g = ((data[i + 1] - 128) * c + 128) * br;
+                const b = ((data[i + 2] - 128) * c + 128) * br;
+                const gray = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+                data[i] = Math.max(0, Math.min(255, Math.round(gray + (r - gray) * sat)));
+                data[i + 1] = Math.max(0, Math.min(255, Math.round(gray + (g - gray) * sat)));
+                data[i + 2] = Math.max(0, Math.min(255, Math.round(gray + (b - gray) * sat)));
+            }
+            break;
+        }
+
+        case 'midnight': {
+            // Cool sapphire night cast
+            const c = 1 + 0.15 * clamped;
+            const br = 1 - 0.08 * clamped;
+            const coolShift = 30 * clamped;
+            for (let i = 0; i < len; i += 4) {
+                const r = ((data[i] - 128) * c + 128) * br - coolShift * 0.4;
+                const g = ((data[i + 1] - 128) * c + 128) * br;
+                const b = ((data[i + 2] - 128) * c + 128) * br + coolShift;
+                data[i] = Math.max(0, Math.min(255, Math.round(r)));
+                data[i + 1] = Math.max(0, Math.min(255, Math.round(g)));
+                data[i + 2] = Math.max(0, Math.min(255, Math.round(b)));
+            }
+            break;
+        }
+
+        case 'cross-process': {
+            // X-Pro cross processed film
+            const c = 1 + 0.25 * clamped;
+            const sat = 1 + 0.30 * clamped;
+            for (let i = 0; i < len; i += 4) {
+                let r = data[i];
+                let g = data[i + 1];
+                let b = data[i + 2];
+                const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+                if (lum < 0.5) {
+                    const w = (0.5 - lum) * 2 * clamped;
+                    r -= 15 * w;
+                    g += 20 * w;
+                    b += 5 * w;
+                } else {
+                    const w = (lum - 0.5) * 2 * clamped;
+                    r += 25 * w;
+                    g += 10 * w;
+                    b -= 20 * w;
+                }
+                const cr = (r - 128) * c + 128;
+                const cg = (g - 128) * c + 128;
+                const cb = (b - 128) * c + 128;
+                const gray = 0.2126 * cr + 0.7152 * cg + 0.0722 * cb;
+                data[i] = Math.max(0, Math.min(255, Math.round(gray + (cr - gray) * sat)));
+                data[i + 1] = Math.max(0, Math.min(255, Math.round(gray + (cg - gray) * sat)));
+                data[i + 2] = Math.max(0, Math.min(255, Math.round(gray + (cb - gray) * sat)));
+            }
+            break;
+        }
+
+        case 'neon': {
+            // Cyberpunk magenta & cyan drift
+            const c = 1 + 0.30 * clamped;
+            const sat = 1 + 0.50 * clamped;
+            for (let i = 0; i < len; i += 4) {
+                let r = data[i];
+                let g = data[i + 1];
+                let b = data[i + 2];
+                const lum = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+                if (lum < 0.5) {
+                    const w = (0.5 - lum) * 2 * clamped;
+                    r -= 25 * w;
+                    g += 15 * w;
+                    b += 40 * w;
+                } else {
+                    const w = (lum - 0.5) * 2 * clamped;
+                    r += 45 * w;
+                    g -= 15 * w;
+                    b += 30 * w;
+                }
+                const cr = (r - 128) * c + 128;
+                const cg = (g - 128) * c + 128;
+                const cb = (b - 128) * c + 128;
+                const gray = 0.2126 * cr + 0.7152 * cg + 0.0722 * cb;
+                data[i] = Math.max(0, Math.min(255, Math.round(gray + (cr - gray) * sat)));
+                data[i + 1] = Math.max(0, Math.min(255, Math.round(gray + (cg - gray) * sat)));
+                data[i + 2] = Math.max(0, Math.min(255, Math.round(gray + (cb - gray) * sat)));
+            }
+            break;
+        }
+
+        case 'duotone': {
+            // High-impact match poster: deep navy shadows and crimson highlights
+            for (let i = 0; i < len; i += 4) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                const t = (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
+                const duoR = 15 + 225 * t;
+                const duoG = 20 + 15 * t;
+                const duoB = 55 - 10 * t;
+                data[i] = Math.max(0, Math.min(255, Math.round(r + (duoR - r) * clamped)));
+                data[i + 1] = Math.max(0, Math.min(255, Math.round(g + (duoG - g) * clamped)));
+                data[i + 2] = Math.max(0, Math.min(255, Math.round(b + (duoB - b) * clamped)));
+            }
+            break;
+        }
+
         default:
             break;
     }
@@ -547,8 +838,18 @@ export function drawImageWithStoryFilter(
         return;
     }
 
+    const isSvgFilter = Boolean(
+        filterId &&
+            (filterId.startsWith('selective-') ||
+                filterId === 'cinematic' ||
+                filterId === 'neon' ||
+                filterId === 'duotone')
+    );
+
     // Path 1: Native hardware-accelerated canvas filter (Chrome, Firefox, Edge)
-    if (supportsCanvasFilter()) {
+    // Note: SVG url(#...) filters cannot be reliably applied via ctx.filter
+    // across all canvas contexts without tainting or cross-origin restrictions, so we bypass to Path 2.
+    if (supportsCanvasFilter() && !isSvgFilter) {
         ctx.save();
         if (filterCss) {
             ctx.filter = filterCss;

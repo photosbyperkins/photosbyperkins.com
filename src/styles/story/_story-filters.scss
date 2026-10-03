@@ -84,8 +84,8 @@
     }
 
     &__filters-grid {
-        display: flex;
-        flex-wrap: wrap;
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
         gap: 6px;
         padding: 6px;
         background: rgba(0, 0, 0, 0.2);
@@ -100,13 +100,7 @@
         }
 
         @media (max-width: 860px) {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 6px;
             padding: 6px 4px;
-            width: 100%;
-            max-width: 100%;
-            min-width: 0;
             overflow: visible;
         }
     }
@@ -116,8 +110,8 @@
         flex-direction: column;
         align-items: center;
         gap: 6px;
-        flex: 1 1 calc(25% - 6px);
-        min-width: 68px;
+        width: 100%;
+        min-width: 0;
         padding: 8px 6px;
         border-radius: 8px;
         border: 1px solid var(--color-border);
@@ -129,9 +123,6 @@
         text-align: center;
 
         @media (max-width: 860px) {
-            flex: unset;
-            width: 100%;
-            min-width: 0;
             padding: 6px 2px;
             gap: 4px;
         }

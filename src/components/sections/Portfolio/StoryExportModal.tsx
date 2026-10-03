@@ -29,6 +29,7 @@ import { StoryLayoutTab } from './storyTabs/StoryLayoutTab';
 import { StoryFiltersTab } from './storyTabs/StoryFiltersTab';
 import { StoryFramesTab } from './storyTabs/StoryFramesTab';
 import { StoryBadgesTab } from './storyTabs/StoryBadgesTab';
+import { StorySvgFilters } from './StorySvgFilters';
 import '../../../styles/_story-export.scss';
 
 const STUDIO_TABS: Array<{ id: StoryStudioTab; label: string; icon: React.FC<IconProps> }> = [
@@ -491,6 +492,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
             headerActions={headerActions}
             footer={footer}
         >
+            <StorySvgFilters filterStrength={filterStrength} />
             {isPortraitMobile ? (
                 <div
                     className="story-export-modal__mobile-stage"

@@ -1035,10 +1035,10 @@ describe('storyCanvas calculations', () => {
     });
 
     describe('Story Photo Filters', () => {
-        it('exports exactly 8 photo filters with unique IDs', () => {
-            expect(STORY_PHOTO_FILTERS).toHaveLength(8);
+        it('exports exactly 22 photo filters with unique IDs', () => {
+            expect(STORY_PHOTO_FILTERS).toHaveLength(22);
             const ids = STORY_PHOTO_FILTERS.map((f) => f.id);
-            expect(new Set(ids).size).toBe(8);
+            expect(new Set(ids).size).toBe(22);
             expect(ids).toContain('none');
             expect(ids).toContain('bw');
             expect(ids).toContain('bw-contrast');
@@ -1047,6 +1047,20 @@ describe('storyCanvas calculations', () => {
             expect(ids).toContain('matte');
             expect(ids).toContain('noir');
             expect(ids).toContain('sepia');
+            expect(ids).toContain('chrome');
+            expect(ids).toContain('bleach');
+            expect(ids).toContain('portra');
+            expect(ids).toContain('cinematic');
+            expect(ids).toContain('cross-process');
+            expect(ids).toContain('hard-flash');
+            expect(ids).toContain('midnight');
+            expect(ids).toContain('selective-red');
+            expect(ids).toContain('selective-green');
+            expect(ids).toContain('selective-blue');
+            expect(ids).toContain('selective-yellow');
+            expect(ids).toContain('selective-purple');
+            expect(ids).toContain('neon');
+            expect(ids).toContain('duotone');
         });
 
         it('maps every filter properly in STORY_PHOTO_FILTERS_MAP', () => {
@@ -1123,6 +1137,28 @@ describe('storyCanvas calculations', () => {
             expect(getStoryFilterCss('bw', 0.5)).toBe('grayscale(50%) contrast(104%)');
             expect(getStoryFilterCss('bw-contrast', 0.5)).toBe('grayscale(50%) contrast(130%) brightness(98%)');
             expect(getStoryFilterCss('warm', 0.5)).toBe('sepia(14%) saturate(110%) contrast(103%) brightness(101%)');
+        });
+
+        it('returns SVG filter url reference for selective color and split-tone filters', () => {
+            expect(getStoryFilterCss('selective-red', 1.0)).toBe('url(#story-filter-selective-red)');
+            expect(getStoryFilterCss('selective-red', 0.5)).toBe('url(#story-filter-selective-red)');
+            expect(getStoryFilterCss('selective-green', 1.0)).toBe('url(#story-filter-selective-green)');
+            expect(getStoryFilterCss('selective-blue', 1.0)).toBe('url(#story-filter-selective-blue)');
+            expect(getStoryFilterCss('selective-yellow', 1.0)).toBe('url(#story-filter-selective-yellow)');
+            expect(getStoryFilterCss('selective-purple', 1.0)).toBe('url(#story-filter-selective-purple)');
+            expect(getStoryFilterCss('cinematic', 1.0)).toBe('url(#story-filter-cinematic)');
+            expect(getStoryFilterCss('neon', 1.0)).toBe('url(#story-filter-neon)');
+            expect(getStoryFilterCss('duotone', 1.0)).toBe('url(#story-filter-duotone)');
+            expect(getStoryFilterCss('selective-red', 0)).toBe('none');
+        });
+
+        it('supports new analog and cinematic CSS filters', () => {
+            expect(getStoryFilterCss('chrome', 1.0)).toBe('contrast(128%) saturate(145%) brightness(98%)');
+            expect(getStoryFilterCss('bleach', 1.0)).toBe('contrast(135%) saturate(35%) brightness(102%)');
+            expect(getStoryFilterCss('portra', 1.0)).toBe('contrast(94%) brightness(105%) saturate(108%) sepia(18%)');
+            expect(getStoryFilterCss('hard-flash', 1.0)).toBe('contrast(140%) brightness(115%) saturate(110%)');
+            expect(getStoryFilterCss('midnight', 1.0)).toBe('contrast(115%) brightness(92%) saturate(95%) hue-rotate(190deg) sepia(22%)');
+            expect(getStoryFilterCss('cross-process', 1.0)).toBe('contrast(125%) saturate(130%) sepia(30%) hue-rotate(50deg)');
         });
     });
 
@@ -1534,13 +1570,199 @@ describe('storyCanvas calculations', () => {
             }
         });
 
+        it('isolates red tones and desaturates background for selective-red', () => {
+            // Pixel 1: Pure vibrant red (H ~0 deg)
+            // Pixel 2: Cool blue jersey (H ~220 deg)
+            const imgData = {
+                data: new Uint8ClampedArray([
+                    240, 20, 20, 255,  // Red pixel
+                    20, 50, 220, 255,  // Blue pixel
+                ]),
+                width: 2,
+                height: 1,
+            } as ImageData;
+
+            applyStoryFilterToImageData(imgData, 'selective-red', 1.0);
+
+            // Red pixel should remain strongly red (r substantially higher than g & b)
+            expect(imgData.data[0]).toBeGreaterThan(200);
+            expect(imgData.data[1]).toBeLessThan(50);
+            expect(imgData.data[2]).toBeLessThan(50);
+
+            // Blue pixel should be desaturated to near-grayscale (r, g, b almost equal)
+            const blueR = imgData.data[4];
+            const blueG = imgData.data[5];
+            const blueB = imgData.data[6];
+            expect(Math.abs(blueR - blueG)).toBeLessThanOrEqual(3);
+            expect(Math.abs(blueG - blueB)).toBeLessThanOrEqual(3);
+        });
+
+        it('does not isolate warm skin tones as red in selective-red', () => {
+            // Typical human skin tone (H ~25-30 deg, moderate sat)
+            const imgData = {
+                data: new Uint8ClampedArray([
+                    210, 145, 120, 255,
+                    0, 0, 0, 255,
+                ]),
+                width: 2,
+                height: 1,
+            } as ImageData;
+
+            applyStoryFilterToImageData(imgData, 'selective-red', 1.0);
+
+            // Skin tone should be desaturated (delta between channels greatly reduced compared to input delta 210 - 120 = 90)
+            const skinR = imgData.data[0];
+            const skinG = imgData.data[1];
+            const skinB = imgData.data[2];
+            const outputDelta = Math.max(skinR, skinG, skinB) - Math.min(skinR, skinG, skinB);
+            expect(outputDelta).toBeLessThan(15);
+        });
+
+        it('isolates green tones and desaturates others for selective-green', () => {
+            const imgData = {
+                data: new Uint8ClampedArray([
+                    20, 210, 30, 255,  // Green pixel
+                    220, 30, 30, 255,  // Red pixel
+                ]),
+                width: 2,
+                height: 1,
+            } as ImageData;
+
+            applyStoryFilterToImageData(imgData, 'selective-green', 1.0);
+
+            // Green pixel remains vibrant green
+            expect(imgData.data[1]).toBeGreaterThan(190);
+            expect(imgData.data[0]).toBeLessThan(50);
+
+            // Red pixel is desaturated
+            expect(Math.abs(imgData.data[4] - imgData.data[5])).toBeLessThanOrEqual(3);
+        });
+
+        it('isolates blue tones and desaturates others for selective-blue', () => {
+            const imgData = {
+                data: new Uint8ClampedArray([
+                    20, 50, 230, 255,  // Blue pixel
+                    230, 20, 20, 255,  // Red pixel
+                ]),
+                width: 2,
+                height: 1,
+            } as ImageData;
+
+            applyStoryFilterToImageData(imgData, 'selective-blue', 1.0);
+
+            // Blue pixel remains vibrant blue
+            expect(imgData.data[2]).toBeGreaterThan(200);
+            expect(imgData.data[0]).toBeLessThan(60);
+
+            // Red pixel is desaturated
+            expect(Math.abs(imgData.data[4] - imgData.data[5])).toBeLessThanOrEqual(3);
+        });
+
+        it('retains partial color at lower filter strength', () => {
+            const imgData = {
+                data: new Uint8ClampedArray([
+                    20, 50, 220, 255,  // Blue pixel
+                    0, 0, 0, 255,
+                ]),
+                width: 2,
+                height: 1,
+            } as ImageData;
+
+            // At 50% strength for selective-red, the blue pixel should be partially muted, not pure gray
+            applyStoryFilterToImageData(imgData, 'selective-red', 0.5);
+            const blueR = imgData.data[0];
+            const blueB = imgData.data[2];
+            // Blue channel should still be notably higher than red channel
+            expect(blueB - blueR).toBeGreaterThan(40);
+        });
+
+        it('isolates yellow & gold tones and desaturates others for selective-yellow', () => {
+            const imgData = {
+                data: new Uint8ClampedArray([
+                    225, 215, 25, 255,  // Yellow/gold pixel (H ~57 deg)
+                    25, 40, 220, 255,   // Blue pixel
+                ]),
+                width: 2,
+                height: 1,
+            } as ImageData;
+
+            applyStoryFilterToImageData(imgData, 'selective-yellow', 1.0);
+
+            // Yellow pixel remains vibrant yellow (r & g high, b low)
+            expect(imgData.data[0]).toBeGreaterThan(200);
+            expect(imgData.data[1]).toBeGreaterThan(190);
+            expect(imgData.data[2]).toBeLessThan(60);
+
+            // Blue pixel is desaturated
+            expect(Math.abs(imgData.data[4] - imgData.data[5])).toBeLessThanOrEqual(3);
+        });
+
+        it('isolates purple & magenta tones and desaturates others for selective-purple', () => {
+            const imgData = {
+                data: new Uint8ClampedArray([
+                    210, 30, 215, 255,  // Purple/magenta pixel (H ~298 deg)
+                    30, 200, 35, 255,   // Green pixel
+                ]),
+                width: 2,
+                height: 1,
+            } as ImageData;
+
+            applyStoryFilterToImageData(imgData, 'selective-purple', 1.0);
+
+            // Purple pixel remains vibrant purple (r & b high, g low)
+            expect(imgData.data[0]).toBeGreaterThan(180);
+            expect(imgData.data[2]).toBeGreaterThan(180);
+            expect(imgData.data[1]).toBeLessThan(60);
+
+            // Green pixel is desaturated
+            expect(Math.abs(imgData.data[4] - imgData.data[5])).toBeLessThanOrEqual(3);
+        });
+
+        it('applies bleach, chrome, portra, midnight, cross-process, hard-flash without errors', () => {
+            for (const filterId of ['bleach', 'chrome', 'portra', 'midnight', 'cross-process', 'hard-flash'] as const) {
+                const imgData = {
+                    data: new Uint8ClampedArray([180, 110, 60, 255, 40, 70, 150, 255]),
+                    width: 2,
+                    height: 1,
+                } as ImageData;
+                applyStoryFilterToImageData(imgData, filterId, 1.0);
+                expect(imgData.data[0]).toBeGreaterThanOrEqual(0);
+                expect(imgData.data[0]).toBeLessThanOrEqual(255);
+                expect(imgData.data[3]).toBe(255);
+            }
+        });
+
+        it('applies cinematic split toning and duotone poster mapping', () => {
+            const imgData = {
+                data: new Uint8ClampedArray([220, 180, 140, 255, 30, 40, 50, 255]),
+                width: 2,
+                height: 1,
+            } as ImageData;
+
+            applyStoryFilterToImageData(imgData, 'cinematic', 1.0);
+            expect(imgData.data[0]).toBeGreaterThanOrEqual(0);
+            expect(imgData.data[3]).toBe(255);
+
+            const duoData = {
+                data: new Uint8ClampedArray([250, 250, 250, 255, 10, 10, 10, 255]),
+                width: 2,
+                height: 1,
+            } as ImageData;
+            applyStoryFilterToImageData(duoData, 'duotone', 1.0);
+            // Highlights mapped to crimson (r > 200, g < 100)
+            expect(duoData.data[0]).toBeGreaterThan(200);
+            expect(duoData.data[1]).toBeLessThan(100);
+            // Shadows mapped to navy (b > r)
+            expect(duoData.data[6]).toBeGreaterThan(duoData.data[4]);
+        });
+
         it('supportsCanvasFilter detects presence of CanvasRenderingContext2D filter', () => {
             _setSupportsCanvasFilterForTesting(null);
             const supported = supportsCanvasFilter();
             expect(typeof supported).toBe('boolean');
         });
 
-        it('drawImageWithStoryFilter uses native ctx.filter when supported', () => {
+        it('drawImageWithStoryFilter uses native ctx.filter when supported for standard filters', () => {
             _setSupportsCanvasFilterForTesting(true);
 
             const mockCtx = {
@@ -1571,6 +1793,41 @@ describe('storyCanvas calculations', () => {
             expect(mockCtx.filter).toBe('grayscale(100%) contrast(108%)');
             expect(mockCtx.drawImage).toHaveBeenCalledWith(mockImg, 0, 0, 100, 100, 0, 0, 100, 100);
             expect(mockCtx.restore).toHaveBeenCalled();
+
+            _setSupportsCanvasFilterForTesting(null);
+        });
+
+        it('drawImageWithStoryFilter bypasses ctx.filter for SVG url filters to prevent tainting', () => {
+            _setSupportsCanvasFilterForTesting(true);
+
+            for (const filterId of ['selective-red', 'selective-yellow', 'cinematic', 'neon', 'duotone'] as const) {
+                const mockCtx = {
+                    save: vi.fn(),
+                    restore: vi.fn(),
+                    drawImage: vi.fn(),
+                    filter: 'none',
+                } as unknown as CanvasRenderingContext2D;
+
+                const mockImg = { width: 100, height: 100 } as HTMLImageElement;
+                drawImageWithStoryFilter(
+                    mockCtx,
+                    mockImg,
+                    0,
+                    0,
+                    100,
+                    100,
+                    0,
+                    0,
+                    100,
+                    100,
+                    filterId,
+                    1.0,
+                    `url(#story-filter-${filterId})`
+                );
+
+                // Must NOT set ctx.filter with url(#...)
+                expect(mockCtx.filter).toBe('none');
+            }
 
             _setSupportsCanvasFilterForTesting(null);
         });

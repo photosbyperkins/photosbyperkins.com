@@ -750,6 +750,94 @@ test.describe('Story Maker (9:16)', () => {
         await expect(cropperImg).toHaveCSS('filter', 'none');
     });
 
+    test('should support selective color filters (Red Pop, Green Pop, Blue Pop) and export successfully', async ({ page }) => {
+        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
+        await photo.waitFor({ timeout: 10000 });
+        await photo.click();
+
+        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
+        await expect(lightbox).toBeVisible({ timeout: 10000 });
+
+        await page.keyboard.press('c');
+        const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
+        await expect(studioModal).toBeVisible({ timeout: 8000 });
+
+        // Switch to Filters tab
+        const mobileDock = studioModal.locator('.story-mobile-dock');
+        if (await mobileDock.isVisible()) {
+            await studioModal.locator('.story-mobile-dock button:has-text("Filters")').click();
+            await expect(studioModal.locator('.story-mobile-popover')).toBeVisible({ timeout: 5000 });
+        } else {
+            await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Filters")').click();
+        }
+
+        const filterSection = studioModal.locator('.story-export-modal__section--filters');
+        await expect(filterSection).toBeVisible();
+        const currentFilterBadge = filterSection.locator('.story-export-modal__filter-current-badge');
+        const cropperImg = studioModal.locator('.story-cropper__image');
+
+        // 1. Test Red Pop
+        const redPopBtn = filterSection.locator('button:has-text("Red Pop")');
+        await redPopBtn.click();
+        await expect(currentFilterBadge).toHaveText('Red Pop');
+        await expect(redPopBtn).toHaveClass(/active/);
+        await expect(cropperImg).toHaveCSS('filter', /url\("#?story-filter-selective-red"\)/);
+
+        // Verify strength slider is active
+        const slider = filterSection.locator('input[type="range"][aria-label="Filter Strength"]');
+        await expect(slider).toBeVisible();
+
+        // 2. Test Green Pop & Blue Pop
+        const greenPopBtn = filterSection.locator('button:has-text("Green Pop")');
+        await greenPopBtn.click();
+        await expect(currentFilterBadge).toHaveText('Green Pop');
+        await expect(cropperImg).toHaveCSS('filter', /url\("#?story-filter-selective-green"\)/);
+
+        const bluePopBtn = filterSection.locator('button:has-text("Blue Pop")');
+        await bluePopBtn.click();
+        await expect(currentFilterBadge).toHaveText('Blue Pop');
+        await expect(cropperImg).toHaveCSS('filter', /url\("#?story-filter-selective-blue"\)/);
+
+        // 3. Test Yellow Pop & Purple Pop
+        const yellowPopBtn = filterSection.locator('button:has-text("Yellow Pop")');
+        await yellowPopBtn.click();
+        await expect(currentFilterBadge).toHaveText('Yellow Pop');
+        await expect(cropperImg).toHaveCSS('filter', /url\("#?story-filter-selective-yellow"\)/);
+
+        const purplePopBtn = filterSection.locator('button:has-text("Purple Pop")');
+        await purplePopBtn.click();
+        await expect(currentFilterBadge).toHaveText('Purple Pop');
+        await expect(cropperImg).toHaveCSS('filter', /url\("#?story-filter-selective-purple"\)/);
+
+        // 4. Test Cinematic, Neon, Bleach, and Duotone
+        const cinematicBtn = filterSection.locator('button:has-text("Cinematic")');
+        await cinematicBtn.click();
+        await expect(currentFilterBadge).toHaveText('Cinematic');
+        await expect(cropperImg).toHaveCSS('filter', /url\("#?story-filter-cinematic"\)/);
+
+        const neonBtn = filterSection.locator('button:has-text("Neon")');
+        await neonBtn.click();
+        await expect(currentFilterBadge).toHaveText('Neon');
+        await expect(cropperImg).toHaveCSS('filter', /url\("#?story-filter-neon"\)/);
+
+        const bleachBtn = filterSection.locator('button:has-text("Bleach")');
+        await bleachBtn.click();
+        await expect(currentFilterBadge).toHaveText('Bleach');
+        await expect(cropperImg).toHaveCSS('filter', /contrast\(135%\)|contrast\(1\.35\)/);
+
+        const duotoneBtn = filterSection.locator('button:has-text("Duotone")');
+        await duotoneBtn.click();
+        await expect(currentFilterBadge).toHaveText('Duotone');
+        await expect(cropperImg).toHaveCSS('filter', /url\("#?story-filter-duotone"\)/);
+
+        // 5. Download story with Duotone filter active to ensure canvas export succeeds
+        const downloadBtn = studioModal.locator('.story-export-modal__primary-action');
+        await downloadBtn.click();
+
+        // Check for download confirmation state
+        await expect(downloadBtn).toContainText('Downloaded', { timeout: 10000 });
+    });
+
     test('should display Recent tab for frames, initially empty, and populate it only upon download/share', async ({ page }) => {
         // Clear recent frames in localStorage before starting
         await page.evaluate(() => {
