@@ -237,4 +237,215 @@ describe('StoryExportModal', () => {
         const panels = baseElement.querySelectorAll('.story-burst-cropper__panel');
         expect(panels).toHaveLength(2);
     });
+
+    describe('Mobile alternative layout (<= 860px)', () => {
+        beforeEach(() => {
+            window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+                matches: query === '(max-width: 860px)',
+                media: query,
+                onchange: null,
+                addListener: vi.fn(),
+                removeListener: vi.fn(),
+                addEventListener: vi.fn(),
+                removeEventListener: vi.fn(),
+                dispatchEvent: vi.fn(),
+            }));
+        });
+
+        it('renders mobile stage, hero preview, and floating quick-tools dock, omitting desktop controls pane', () => {
+            const { baseElement } = render(
+                <StoryExportModal
+                    isOpen={true}
+                    onClose={mockOnClose}
+                    photo={samplePhoto}
+                    eventName="2024.10.22 - Championship Match - Team A vs Team B"
+                    year="2024"
+                    index={0}
+                />
+            );
+
+            expect(baseElement.querySelector('.story-export-modal--mobile')).not.toBeNull();
+            expect(baseElement.querySelector('.story-export-modal__mobile-stage')).not.toBeNull();
+            expect(baseElement.querySelector('.story-export-modal__mobile-hero')).not.toBeNull();
+            expect(baseElement.querySelector('.story-mobile-dock')).not.toBeNull();
+            expect(baseElement.querySelector('.story-export-modal__controls-pane')).toBeNull();
+
+            // Preview is rendered inside mobile hero
+            const hero = baseElement.querySelector('.story-export-modal__mobile-hero');
+            expect(hero?.querySelector('.story-cropper')).not.toBeNull();
+
+            // Header and Footer remain present
+            expect(baseElement.querySelector('.modal-shell__title')?.textContent).toBe('STORY MAKER');
+            expect(baseElement.querySelector('.story-export-modal__primary-action')).not.toBeNull();
+
+            // Popover drawer is initially closed
+            expect(baseElement.querySelector('.story-mobile-popover')).toBeNull();
+        });
+
+        it('opens popover when a dock button is tapped, toggles it on re-click, and switches tabs', () => {
+            const { baseElement } = render(
+                <StoryExportModal
+                    isOpen={true}
+                    onClose={mockOnClose}
+                    photo={samplePhoto}
+                    eventName="2024.10.22 - Championship Match - Team A vs Team B"
+                    year="2024"
+                    index={0}
+                />
+            );
+
+            const dock = baseElement.querySelector('.story-mobile-dock')!;
+            const layoutDockBtn = within(dock as HTMLElement).getByRole('button', { name: /^layout$/i });
+
+            // Click Layout -> Opens popover
+            fireEvent.click(layoutDockBtn);
+            expect(baseElement.querySelector('.story-mobile-popover')).not.toBeNull();
+            expect(layoutDockBtn.classList.contains('is-active')).toBe(true);
+
+            // Popover shows Layout tab controls (e.g., Mode or Preset buttons)
+            expect(
+                within(baseElement.querySelector('.story-mobile-popover') as HTMLElement).getByRole('button', {
+                    name: /^padded$/i,
+                })
+            ).not.toBeNull();
+
+            // Click Layout again -> Toggles/closes popover
+            fireEvent.click(layoutDockBtn);
+            expect(baseElement.querySelector('.story-mobile-popover')).toBeNull();
+            expect(layoutDockBtn.classList.contains('is-active')).toBe(false);
+
+            // Click Filters -> Opens popover on Filters tab
+            const filtersDockBtn = within(dock as HTMLElement).getByRole('button', { name: /^filters$/i });
+            fireEvent.click(filtersDockBtn);
+            expect(baseElement.querySelector('.story-mobile-popover')).not.toBeNull();
+            expect(filtersDockBtn.classList.contains('is-active')).toBe(true);
+        });
+
+        it('allows switching tabs inside the popover and closing via the popover close button or backdrop', () => {
+            const { baseElement } = render(
+                <StoryExportModal
+                    isOpen={true}
+                    onClose={mockOnClose}
+                    photo={samplePhoto}
+                    eventName="2024.10.22 - Championship Match - Team A vs Team B"
+                    year="2024"
+                    index={0}
+                />
+            );
+
+            // Open popover via Layout dock button
+            const layoutDockBtn = within(baseElement.querySelector('.story-mobile-dock') as HTMLElement).getByRole(
+                'button',
+                { name: /^layout$/i }
+            );
+            fireEvent.click(layoutDockBtn);
+
+            const popover = baseElement.querySelector('.story-mobile-popover') as HTMLElement;
+            expect(popover).not.toBeNull();
+
+            // Switch to Frames tab directly inside the popover tab switcher
+            const framesPopoverTab = within(popover).getByRole('tab', { name: /frames/i });
+            fireEvent.click(framesPopoverTab);
+            expect(framesPopoverTab.getAttribute('aria-selected')).toBe('true');
+
+            // Frames button on dock is also updated in sync
+            const framesDockBtn = within(baseElement.querySelector('.story-mobile-dock') as HTMLElement).getByRole(
+                'button',
+                { name: /^frames$/i }
+            );
+            expect(framesDockBtn.classList.contains('is-active')).toBe(true);
+
+            // Close via close button in popover header
+            const closeBtn = within(popover).getByRole('button', { name: /close controls/i });
+            fireEvent.click(closeBtn);
+            expect(baseElement.querySelector('.story-mobile-popover')).toBeNull();
+
+            // Re-open and close via backdrop click
+            fireEvent.click(layoutDockBtn);
+            expect(baseElement.querySelector('.story-mobile-popover')).not.toBeNull();
+
+            const backdrop = baseElement.querySelector('.story-mobile-popover__backdrop') as HTMLElement;
+            expect(backdrop).not.toBeNull();
+            fireEvent.click(backdrop);
+            expect(baseElement.querySelector('.story-mobile-popover')).toBeNull();
+        });
+
+        it('closes the popover when pressing Escape without closing the modal', () => {
+            const { baseElement } = render(
+                <StoryExportModal
+                    isOpen={true}
+                    onClose={mockOnClose}
+                    photo={samplePhoto}
+                    eventName="2024.10.22 - Championship Match - Team A vs Team B"
+                    year="2024"
+                    index={0}
+                />
+            );
+
+            // Open popover
+            const layoutDockBtn = within(baseElement.querySelector('.story-mobile-dock') as HTMLElement).getByRole(
+                'button',
+                { name: /^layout$/i }
+            );
+            fireEvent.click(layoutDockBtn);
+            expect(baseElement.querySelector('.story-mobile-popover')).not.toBeNull();
+
+            // Press Escape
+            fireEvent.keyDown(window, { key: 'Escape' });
+            expect(baseElement.querySelector('.story-mobile-popover')).toBeNull();
+            expect(mockOnClose).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('Landscape Mobile layout', () => {
+        beforeEach(() => {
+            window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+                matches: query === '(orientation: landscape)' || query === '(max-height: 550px)',
+                media: query,
+                onchange: null,
+                addListener: vi.fn(),
+                removeListener: vi.fn(),
+                addEventListener: vi.fn(),
+                removeEventListener: vi.fn(),
+                dispatchEvent: vi.fn(),
+            }));
+        });
+
+        it('renders 2-column landscape stage with left preview and right controls pane', () => {
+            const { baseElement } = render(
+                <StoryExportModal
+                    isOpen={true}
+                    onClose={mockOnClose}
+                    photo={samplePhoto}
+                    eventName="2024.10.22 - Championship Match - Team A vs Team B"
+                    year="2024"
+                    index={0}
+                />
+            );
+
+            expect(baseElement.querySelector('.story-export-modal--landscape')).not.toBeNull();
+            expect(baseElement.querySelector('.story-export-modal__landscape-stage')).not.toBeNull();
+            expect(baseElement.querySelector('.story-export-modal__landscape-preview')).not.toBeNull();
+            expect(baseElement.querySelector('.story-export-modal__landscape-controls')).not.toBeNull();
+
+            // Preview is rendered inside landscape preview container
+            const preview = baseElement.querySelector('.story-export-modal__landscape-preview');
+            expect(preview?.querySelector('.story-cropper')).not.toBeNull();
+
+            // Dock and mobile-stage are omitted in landscape mode
+            expect(baseElement.querySelector('.story-mobile-dock')).toBeNull();
+            expect(baseElement.querySelector('.story-export-modal__mobile-stage')).toBeNull();
+
+            // Tab bar is present in landscape controls
+            const controls = baseElement.querySelector('.story-export-modal__landscape-controls')!;
+            const layoutTab = within(controls as HTMLElement).getByRole('tab', { name: /^layout$/i });
+            expect(layoutTab).not.toBeNull();
+            expect(layoutTab.getAttribute('aria-selected')).toBe('true');
+
+            // Switch tabs in landscape mode
+            const filtersTab = within(controls as HTMLElement).getByRole('tab', { name: /^filters$/i });
+            fireEvent.click(filtersTab);
+            expect(filtersTab.getAttribute('aria-selected')).toBe('true');
+        });
+    });
 });

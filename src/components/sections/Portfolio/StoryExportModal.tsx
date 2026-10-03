@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { useCanShare } from '../../../hooks/useCanShare';
+import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useStoryImageLoader } from '../../../hooks/useStoryImageLoader';
 import { useStoryStudio, type StoryStudioTab } from '../../../hooks/useStoryStudio';
 import { parseEventTitle, getPhotoDisplayUrl } from '../../../utils/formatters';
@@ -11,6 +12,8 @@ import { StoryBadges } from './StoryBadges';
 import { StoryCropper } from './StoryCropper';
 import { StoryBurstCropper } from './StoryBurstCropper';
 import { StoryFrameOverlay } from './storyFrames/StoryFrameOverlay';
+import { StoryMobileDock } from './storyMobile/StoryMobileDock';
+import { StoryMobilePopover } from './storyMobile/StoryMobilePopover';
 import {
     Check,
     Download,
@@ -54,6 +57,14 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
     localScore,
 }) => {
     const canShare = useCanShare();
+    const isMobileWidth = useMediaQuery('(max-width: 860px)');
+    const isShortHeight = useMediaQuery('(max-height: 550px)');
+    const isLandscape = useMediaQuery('(orientation: landscape)');
+
+    const isLandscapeMobile = isLandscape && (isShortHeight || isMobileWidth);
+    const isPortraitMobile = isMobileWidth && !isLandscapeMobile;
+    const isMobile = isPortraitMobile || isLandscapeMobile;
+    const [isMobilePopoverOpen, setIsMobilePopoverOpen] = useState(false);
 
     const photoRecord = useMemo(() => (typeof photo === 'string' ? { original: photo, thumb: photo } : photo), [photo]);
 
@@ -194,6 +205,29 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isOpen, activeStudioTab, setActiveStudioTab]);
 
+    // Close mobile popover when pressing Escape
+    useEffect(() => {
+        if (!isOpen || !isMobile || !isMobilePopoverOpen) return;
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                setIsMobilePopoverOpen(false);
+            }
+        };
+        window.addEventListener('keydown', handleKeyDown, true);
+        return () => window.removeEventListener('keydown', handleKeyDown, true);
+    }, [isOpen, isMobile, isMobilePopoverOpen]);
+
+    const handleDockTabClick = (tabId: StoryStudioTab) => {
+        if (isMobilePopoverOpen && activeStudioTab === tabId) {
+            setIsMobilePopoverOpen(false);
+        } else {
+            setActiveStudioTab(tabId);
+            setIsMobilePopoverOpen(true);
+        }
+    };
+
     const targetBurstCount = burstPanelCount ?? (photoObj.burst?.total === 2 ? 2 : 3);
     const validBurstCount = burstSelectedIndices
         .slice(0, targetBurstCount)
@@ -289,6 +323,156 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         </button>
     ) : undefined;
 
+    const previewContent = (
+        <>
+            {/* Interactive Cropper when in custom crop mode */}
+            {activeMode === 'crop' ? (
+                <StoryCropper
+                    imageSrc={withBuild(activePhotoDisplay)}
+                    fallbackSrc={withBuild(activePhotoSrc) || withBuild(activePhotoThumb)}
+                    naturalWidth={naturalDimensions.width}
+                    naturalHeight={naturalDimensions.height}
+                    crop={activeCrop}
+                    badges={badges}
+                    theme={cardTheme}
+                    frameId={activeFrameId}
+                    frameColorOverride={effectiveFrameColor}
+                    exif={
+                        photoObj.burst?.frameSources?.[activePhotoIndex] === photoObj.original
+                            ? photoObj.exif
+                            : undefined
+                    }
+                    filterId={activeFilterId}
+                    filterStrength={filterStrength}
+                    onChange={handleCropChange}
+                    onImageLoaded={(w, h) =>
+                        setNaturalDimensions((prev) =>
+                            prev.width === w && prev.height === h ? prev : { width: w, height: h }
+                        )
+                    }
+                />
+            ) : activeMode === 'burst' && burst ? (
+                <StoryBurstCropper
+                    images={burstFrameUrls}
+                    fallbackSrcs={burstFallbackUrls}
+                    timeStamps={activeBurstTimeStamps}
+                    showTimeStamps={burst?.isTriptych || !burst?.frameDeltas ? false : burstShowTimeStamps}
+                    panOffsets={burstPanOffsets}
+                    onPanChange={handleBurstPanChange}
+                    badges={badges}
+                    theme={cardTheme}
+                    frameId={activeFrameId}
+                    frameColorOverride={effectiveFrameColor}
+                    frameContext={frameContext}
+                    exif={photoObj.exif}
+                    filterId={activeFilterId}
+                    filterStrength={filterStrength}
+                    panelCount={targetBurstCount}
+                />
+            ) : (
+                <div className="story-export-modal__padded-preview">
+                    <canvas
+                        ref={previewCanvasRef}
+                        className="story-export-modal__canvas"
+                        style={{ aspectRatio: `${STORY_ASPECT_RATIO}` }}
+                        width="1080"
+                        height="1920"
+                    />
+                    <StoryFrameOverlay
+                        frameId={activeFrameId}
+                        colorOverride={effectiveFrameColor}
+                        context={frameContext}
+                    />
+                    <StoryBadges badges={badges} theme={cardTheme} />
+                </div>
+            )}
+
+            {/* Image load error fallback */}
+            {imageError && (
+                <div className="story-export-modal__error-overlay">
+                    <span>Failed to load high-resolution image preview.</span>
+                </div>
+            )}
+        </>
+    );
+
+    const activeTabPanelContent = (
+        <>
+            {/* Layout & Composition Tab Content */}
+            {activeStudioTab === 'layout' && (
+                <StoryLayoutTab
+                    activeMode={activeMode}
+                    setActiveMode={setActiveMode}
+                    selectedPresetId={selectedPresetId}
+                    setSelectedPresetId={setSelectedPresetId}
+                    presets={presets}
+                    onSelectPreset={handleSelectPreset}
+                    activeCrop={activeCrop}
+                    onCropChange={handleCropChange}
+                    naturalDimensions={naturalDimensions}
+                    paddedConfig={paddedConfig}
+                    setPaddedConfig={setPaddedConfig}
+                    setIsDownloaded={setIsDownloaded}
+                    burst={burst}
+                    burstShowTimeStamps={burstShowTimeStamps}
+                    setBurstShowTimeStamps={setBurstShowTimeStamps}
+                    burstSelectedIndices={burstSelectedIndices}
+                    setBurstSelectedIndices={setBurstSelectedIndices}
+                    activePhotoIndex={activePhotoIndex}
+                    onSelectPhotoIndex={handleSelectPhotoIndex}
+                    defaultFocusX={photoObj.focusX}
+                    defaultFocusY={photoObj.focusY}
+                    burstPanelCount={burstPanelCount}
+                    setBurstPanelCount={setBurstPanelCount}
+                    panelCount={targetBurstCount}
+                />
+            )}
+
+            {/* Filters & Atmosphere Tab Content */}
+            {activeStudioTab === 'filters' && (
+                <StoryFiltersTab
+                    activeFilterId={activeFilterId}
+                    setActiveFilterId={setActiveFilterId}
+                    filterStrength={filterStrength}
+                    setFilterStrength={setFilterStrength}
+                    previewImageUrl={withBuild(activePhotoThumb || activePhotoDisplay)}
+                    setIsDownloaded={setIsDownloaded}
+                />
+            )}
+
+            {/* Decorative Frames Tab Content */}
+            {activeStudioTab === 'frames' && (
+                <StoryFramesTab
+                    activeFrameId={activeFrameId}
+                    setActiveFrameId={setActiveFrameId}
+                    selectedFrameCategory={selectedFrameCategory}
+                    setSelectedFrameCategory={setSelectedFrameCategory}
+                    categoryCounts={categoryCounts}
+                    displayedFrames={displayedFrames}
+                    frameColorChoice={frameColorChoice}
+                    setFrameColorChoice={setFrameColorChoice}
+                    frameCustomColor={frameCustomColor}
+                    setFrameCustomColor={setFrameCustomColor}
+                    effectiveFrameColor={effectiveFrameColor}
+                    frameContext={frameContext}
+                    setIsDownloaded={setIsDownloaded}
+                />
+            )}
+
+            {/* Story Badges & Watermark Tab Content */}
+            {activeStudioTab === 'badges' && (
+                <StoryBadgesTab
+                    badges={badges}
+                    setBadges={setBadges}
+                    cardTheme={cardTheme}
+                    setCardTheme={setCardTheme}
+                    eventInfo={eventInfo}
+                    setIsDownloaded={setIsDownloaded}
+                />
+            )}
+        </>
+    );
+
     return (
         <ModalShell
             isOpen={isOpen}
@@ -296,208 +480,164 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
             title="STORY MAKER"
             ariaLabel="Story Maker"
             maxWidth="wide"
-            className="story-export-modal"
+            className={`story-export-modal ${isPortraitMobile ? 'story-export-modal--mobile' : ''} ${
+                isLandscapeMobile ? 'story-export-modal--landscape' : ''
+            }`}
             headerActions={headerActions}
             footer={footer}
         >
-            <div
-                className="story-export-modal__body"
-                onClick={(e) => e.stopPropagation()}
-                onPointerDown={(e) => e.stopPropagation()}
-            >
-                {/* Visual Canvas Stage / Preview Workspace */}
-                <div className="story-export-modal__preview-pane">
-                    <div className="story-export-modal__viewport-card">
-                        {/* Interactive Cropper when in custom crop mode */}
-                        {activeMode === 'crop' ? (
-                            <StoryCropper
-                                imageSrc={withBuild(activePhotoDisplay)}
-                                fallbackSrc={withBuild(activePhotoSrc) || withBuild(activePhotoThumb)}
-                                naturalWidth={naturalDimensions.width}
-                                naturalHeight={naturalDimensions.height}
-                                crop={activeCrop}
-                                badges={badges}
-                                theme={cardTheme}
-                                frameId={activeFrameId}
-                                frameColorOverride={effectiveFrameColor}
-                                exif={
-                                    photoObj.burst?.frameSources?.[activePhotoIndex] === photoObj.original
-                                        ? photoObj.exif
-                                        : undefined
-                                }
-                                filterId={activeFilterId}
-                                filterStrength={filterStrength}
-                                onChange={handleCropChange}
-                                onImageLoaded={(w, h) =>
-                                    setNaturalDimensions((prev) =>
-                                        prev.width === w && prev.height === h ? prev : { width: w, height: h }
-                                    )
-                                }
-                            />
-                        ) : activeMode === 'burst' && burst ? (
-                            <StoryBurstCropper
-                                images={burstFrameUrls}
-                                fallbackSrcs={burstFallbackUrls}
-                                timeStamps={activeBurstTimeStamps}
-                                showTimeStamps={burst?.isTriptych || !burst?.frameDeltas ? false : burstShowTimeStamps}
-                                panOffsets={burstPanOffsets}
-                                onPanChange={handleBurstPanChange}
-                                badges={badges}
-                                theme={cardTheme}
-                                frameId={activeFrameId}
-                                frameColorOverride={effectiveFrameColor}
-                                frameContext={frameContext}
-                                exif={photoObj.exif}
-                                filterId={activeFilterId}
-                                filterStrength={filterStrength}
-                                panelCount={targetBurstCount}
-                            />
-                        ) : (
-                            <div className="story-export-modal__padded-preview">
-                                <canvas
-                                    ref={previewCanvasRef}
-                                    className="story-export-modal__canvas"
-                                    style={{ aspectRatio: `${STORY_ASPECT_RATIO}` }}
-                                    width="1080"
-                                    height="1920"
-                                />
-                                <StoryFrameOverlay
-                                    frameId={activeFrameId}
-                                    colorOverride={effectiveFrameColor}
-                                    context={frameContext}
-                                />
-                                <StoryBadges badges={badges} theme={cardTheme} />
-                            </div>
-                        )}
+            {isPortraitMobile ? (
+                <div
+                    className="story-export-modal__mobile-stage"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (isMobilePopoverOpen) setIsMobilePopoverOpen(false);
+                    }}
+                    onPointerDown={(e) => e.stopPropagation()}
+                >
+                    {/* Visual 9:16 Canvas Hero Preview */}
+                    <div className="story-export-modal__mobile-hero">{previewContent}</div>
 
-                        {/* Image load error fallback */}
-                        {imageError && (
-                            <div className="story-export-modal__error-overlay">
-                                <span>Failed to load high-resolution image preview.</span>
-                            </div>
-                        )}
-                    </div>
+                    {/* Floating Quick-Tools Capsule Dock */}
+                    <StoryMobileDock
+                        tabs={STUDIO_TABS}
+                        activeTab={activeStudioTab}
+                        isOpen={isMobilePopoverOpen}
+                        onTabClick={handleDockTabClick}
+                    />
+
+                    {/* Pop-over Editor Drawer */}
+                    <StoryMobilePopover
+                        isOpen={isMobilePopoverOpen}
+                        onClose={() => setIsMobilePopoverOpen(false)}
+                        activeTab={activeStudioTab}
+                        tabs={STUDIO_TABS}
+                        onSelectTab={setActiveStudioTab}
+                    >
+                        {activeTabPanelContent}
+                    </StoryMobilePopover>
                 </div>
+            ) : isLandscapeMobile ? (
+                <div
+                    className="story-export-modal__landscape-stage"
+                    onClick={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                >
+                    {/* Visual 9:16 Canvas Preview filling height on the left */}
+                    <div className="story-export-modal__landscape-preview">{previewContent}</div>
 
-                {/* Studio Control Tabs Panel */}
-                <div className="story-export-modal__controls-pane">
-                    <LayoutGroup id="storyStudioTabs">
+                    {/* Studio Control Tabs and Panel on the right */}
+                    <div className="story-export-modal__landscape-controls">
+                        <LayoutGroup id="storyLandscapeTabs">
+                            <div
+                                className="story-export-modal__tab-nav story-export-modal__studio-tabs story-export-modal__landscape-tabs"
+                                role="tablist"
+                                aria-label="Story Studio Navigation"
+                            >
+                                {STUDIO_TABS.map((tab) => {
+                                    const IconComponent = tab.icon;
+                                    const isActive = activeStudioTab === tab.id;
+                                    return (
+                                        <button
+                                            key={tab.id}
+                                            type="button"
+                                            role="tab"
+                                            aria-selected={isActive}
+                                            aria-controls={`tabpanel-${tab.id}`}
+                                            id={`landscape-tab-${tab.id}`}
+                                            className={`story-export-modal__tab-btn story-export-modal__studio-tab-btn ${
+                                                isActive
+                                                    ? 'active story-export-modal__tab-btn--active story-export-modal__studio-tab-btn--active'
+                                                    : ''
+                                            }`}
+                                            onClick={() => setActiveStudioTab(tab.id)}
+                                        >
+                                            {isActive && (
+                                                <motion.span
+                                                    className="portfolio__segment-pill story-export-modal__studio-tab-pill"
+                                                    layoutId="landscapeActiveTabPill"
+                                                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                                />
+                                            )}
+                                            <IconComponent size={16} className="story-export-modal__studio-tab-icon" />
+                                            <span className="story-export-modal__tab-label story-export-modal__studio-tab-label">
+                                                {tab.label}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </LayoutGroup>
+
                         <div
-                            className="story-export-modal__tab-nav story-export-modal__studio-tabs"
-                            role="tablist"
-                            aria-label="Story Studio Navigation"
+                            className="story-export-modal__tab-panel story-export-modal__landscape-tab-panel"
+                            role="tabpanel"
+                            key={`landscape-panel-${activeStudioTab}`}
                         >
-                            {STUDIO_TABS.map((tab) => {
-                                const IconComponent = tab.icon;
-                                const isActive = activeStudioTab === tab.id;
-                                return (
-                                    <button
-                                        key={tab.id}
-                                        type="button"
-                                        role="tab"
-                                        aria-selected={isActive}
-                                        aria-controls={`tabpanel-${tab.id}`}
-                                        id={`tab-${tab.id}`}
-                                        className={`story-export-modal__tab-btn story-export-modal__studio-tab-btn ${
-                                            isActive
-                                                ? 'active story-export-modal__tab-btn--active story-export-modal__studio-tab-btn--active'
-                                                : ''
-                                        }`}
-                                        onClick={() => setActiveStudioTab(tab.id)}
-                                    >
-                                        {isActive && (
-                                            <motion.span
-                                                className="portfolio__segment-pill story-export-modal__studio-tab-pill"
-                                                layoutId="studioActiveTabPill"
-                                                transition={{ type: 'spring', stiffness: 500, damping: 38 }}
-                                            />
-                                        )}
-                                        <IconComponent size={18} className="story-export-modal__studio-tab-icon" />
-                                        <span className="story-export-modal__tab-label story-export-modal__studio-tab-label">
-                                            {tab.label}
-                                        </span>
-                                    </button>
-                                );
-                            })}
+                            {activeTabPanelContent}
                         </div>
-                    </LayoutGroup>
-
-                    <div className="story-export-modal__tab-panel" role="tabpanel" key={`panel-${activeStudioTab}`}>
-                        {/* Layout & Composition Tab Content */}
-                        {activeStudioTab === 'layout' && (
-                            <StoryLayoutTab
-                                activeMode={activeMode}
-                                setActiveMode={setActiveMode}
-                                selectedPresetId={selectedPresetId}
-                                setSelectedPresetId={setSelectedPresetId}
-                                presets={presets}
-                                onSelectPreset={handleSelectPreset}
-                                activeCrop={activeCrop}
-                                onCropChange={handleCropChange}
-                                naturalDimensions={naturalDimensions}
-                                paddedConfig={paddedConfig}
-                                setPaddedConfig={setPaddedConfig}
-                                setIsDownloaded={setIsDownloaded}
-                                burst={burst}
-                                burstShowTimeStamps={burstShowTimeStamps}
-                                setBurstShowTimeStamps={setBurstShowTimeStamps}
-                                burstSelectedIndices={burstSelectedIndices}
-                                setBurstSelectedIndices={setBurstSelectedIndices}
-                                activePhotoIndex={activePhotoIndex}
-                                onSelectPhotoIndex={handleSelectPhotoIndex}
-                                defaultFocusX={photoObj.focusX}
-                                defaultFocusY={photoObj.focusY}
-                                burstPanelCount={burstPanelCount}
-                                setBurstPanelCount={setBurstPanelCount}
-                                panelCount={targetBurstCount}
-                            />
-                        )}
-
-                        {/* Filters & Atmosphere Tab Content */}
-                        {activeStudioTab === 'filters' && (
-                            <StoryFiltersTab
-                                activeFilterId={activeFilterId}
-                                setActiveFilterId={setActiveFilterId}
-                                filterStrength={filterStrength}
-                                setFilterStrength={setFilterStrength}
-                                previewImageUrl={withBuild(activePhotoThumb || activePhotoDisplay)}
-                                setIsDownloaded={setIsDownloaded}
-                            />
-                        )}
-
-                        {/* Decorative Frames Tab Content */}
-                        {activeStudioTab === 'frames' && (
-                            <StoryFramesTab
-                                activeFrameId={activeFrameId}
-                                setActiveFrameId={setActiveFrameId}
-                                selectedFrameCategory={selectedFrameCategory}
-                                setSelectedFrameCategory={setSelectedFrameCategory}
-                                categoryCounts={categoryCounts}
-                                displayedFrames={displayedFrames}
-                                frameColorChoice={frameColorChoice}
-                                setFrameColorChoice={setFrameColorChoice}
-                                frameCustomColor={frameCustomColor}
-                                setFrameCustomColor={setFrameCustomColor}
-                                effectiveFrameColor={effectiveFrameColor}
-                                frameContext={frameContext}
-                                setIsDownloaded={setIsDownloaded}
-                            />
-                        )}
-
-                        {/* Story Badges & Watermark Tab Content */}
-                        {activeStudioTab === 'badges' && (
-                            <StoryBadgesTab
-                                badges={badges}
-                                setBadges={setBadges}
-                                cardTheme={cardTheme}
-                                setCardTheme={setCardTheme}
-                                eventInfo={eventInfo}
-                                setIsDownloaded={setIsDownloaded}
-                            />
-                        )}
                     </div>
                 </div>
-            </div>
+            ) : (
+                <div
+                    className="story-export-modal__body"
+                    onClick={(e) => e.stopPropagation()}
+                    onPointerDown={(e) => e.stopPropagation()}
+                >
+                    {/* Visual Canvas Stage / Preview Workspace */}
+                    <div className="story-export-modal__preview-pane">
+                        <div className="story-export-modal__viewport-card">{previewContent}</div>
+                    </div>
+
+                    {/* Studio Control Tabs Panel */}
+                    <div className="story-export-modal__controls-pane">
+                        <LayoutGroup id="storyStudioTabs">
+                            <div
+                                className="story-export-modal__tab-nav story-export-modal__studio-tabs"
+                                role="tablist"
+                                aria-label="Story Studio Navigation"
+                            >
+                                {STUDIO_TABS.map((tab) => {
+                                    const IconComponent = tab.icon;
+                                    const isActive = activeStudioTab === tab.id;
+                                    return (
+                                        <button
+                                            key={tab.id}
+                                            type="button"
+                                            role="tab"
+                                            aria-selected={isActive}
+                                            aria-controls={`tabpanel-${tab.id}`}
+                                            id={`tab-${tab.id}`}
+                                            className={`story-export-modal__tab-btn story-export-modal__studio-tab-btn ${
+                                                isActive
+                                                    ? 'active story-export-modal__tab-btn--active story-export-modal__studio-tab-btn--active'
+                                                    : ''
+                                            }`}
+                                            onClick={() => setActiveStudioTab(tab.id)}
+                                        >
+                                            {isActive && (
+                                                <motion.span
+                                                    className="portfolio__segment-pill story-export-modal__studio-tab-pill"
+                                                    layoutId="studioActiveTabPill"
+                                                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                                />
+                                            )}
+                                            <IconComponent size={18} className="story-export-modal__studio-tab-icon" />
+                                            <span className="story-export-modal__tab-label story-export-modal__studio-tab-label">
+                                                {tab.label}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </LayoutGroup>
+
+                        <div className="story-export-modal__tab-panel" role="tabpanel" key={`panel-${activeStudioTab}`}>
+                            {activeTabPanelContent}
+                        </div>
+                    </div>
+                </div>
+            )}
         </ModalShell>
     );
 };
