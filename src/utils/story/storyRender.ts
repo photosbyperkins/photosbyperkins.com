@@ -559,13 +559,18 @@ export function renderBurstPanels(
 ) {
     const burst: BurstStoryOptions = config.burst || {
         dividerStyle: 'hairline',
-        showTimeStamps: true,
-        timeStamps: [0.0, 0.84, 1.42],
+        showTimeStamps: false,
+        timeStamps: [],
         focusYList: [0.45, 0.45, 0.45],
     };
     const style = burst.dividerStyle || 'hairline';
-    const showTimeStamps = burst.showTimeStamps ?? true;
-    const timeStamps = burst.timeStamps || [0.0, 0.84, 1.42];
+    const isMultiPhoto = Boolean(
+        burst.isTriptych || !burst.timeStamps || burst.timeStamps.length === 0 || burst.timeStamps.every((t) => t === 0)
+    );
+    const showTimeStamps = Boolean(
+        !isMultiPhoto && burst.showTimeStamps && burst.timeStamps && burst.timeStamps.some((t) => t > 0)
+    );
+    const timeStamps = burst.timeStamps || [];
     const panOffsets: { x: number; y: number; zoom?: number }[] =
         burst.panOffsets ||
         (burst.focusYList
@@ -657,7 +662,7 @@ export function renderBurstPanels(
                 ctx.restore();
 
                 if (showTimeStamps) {
-                    const dt = timeStamps[i] ?? (i === 0 ? 0 : i * 0.8);
+                    const dt = timeStamps[i] ?? 0;
                     drawTimestampPill(ctx, panelX, panelY, panelW, panelH, dt, resScale);
                 }
             } else {
@@ -727,7 +732,7 @@ export function renderBurstPanels(
                 ctx.restore();
 
                 if (showTimeStamps) {
-                    const dt = timeStamps[i] ?? (i === 0 ? 0 : i * 0.8);
+                    const dt = timeStamps[i] ?? 0;
                     drawTimestampPill(ctx, panelX, panelY, panelW, panelH, dt, resScale);
                 }
             } else {
@@ -789,7 +794,7 @@ export function renderBurstPanels(
                 ctx.restore();
 
                 if (showTimeStamps) {
-                    const dt = timeStamps[i] ?? (i === 0 ? 0 : i * 0.8);
+                    const dt = timeStamps[i] ?? 0;
                     drawTimestampPill(ctx, panelX, panelY, targetW, currentH, dt, resScale);
                 }
             } else {

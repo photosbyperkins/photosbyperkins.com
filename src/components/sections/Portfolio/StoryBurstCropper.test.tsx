@@ -366,4 +366,26 @@ describe('StoryBurstCropper', () => {
             '2-Panel Duet Interactive Cropper'
         );
     });
+
+    it('suppresses timestamp pills when timestamps have zero delta even if showTimeStamps is true', () => {
+        const duetImages = ['/photos/duet_1.jpg', '/photos/duet_2.jpg'];
+        const duetPanOffsets = [
+            { x: 0.5, y: 0.45, zoom: 1.0 },
+            { x: 0.5, y: 0.45, zoom: 1.0 },
+        ];
+
+        const { container } = render(
+            <StoryBurstCropper
+                images={duetImages}
+                panOffsets={duetPanOffsets}
+                onPanChange={mockOnPanChange}
+                panelCount={2}
+                timeStamps={[0.0, 0.0]}
+                showTimeStamps={true}
+            />
+        );
+
+        const pills = container.querySelectorAll('.story-burst-cropper__timestamp-pill');
+        expect(pills.length).toBe(0);
+    });
 });

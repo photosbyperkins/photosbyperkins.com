@@ -222,6 +222,7 @@ export interface BurstStoryOptions {
     dividerStyle: BurstDividerStyle;
     showTimeStamps: boolean;
     panelCount?: 2 | 3;
+    isTriptych?: boolean;
     timeStamps?: number[]; // [0.0, 0.84, 1.42] seconds elapsed
     focusYList?: number[]; // vertical focal centers per panel (defaults to 0.5)
     panOffsets?: { x: number; y: number; zoom?: number }[]; // per-panel 2D pan and zoom (normalized 0..1, zoom 1..3.5)

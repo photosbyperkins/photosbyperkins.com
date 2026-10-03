@@ -61,7 +61,8 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
     const effectivePanelCount: 2 | 3 = burstPanelCount ?? panelCount ?? (burst?.total === 2 || burst?.isDuet ? 2 : 3);
     const isDuetLayout = effectivePanelCount === 2;
     const slotNames = isDuetLayout ? ['TOP', 'BTM'] : ['TOP', 'MID', 'BTM'];
-    const enforceOrdering = Boolean(!burst?.isTriptych && burstShowTimeStamps);
+    const isMultiPhoto = Boolean(burst?.isTriptych || !burst?.frameDeltas);
+    const enforceOrdering = Boolean(!isMultiPhoto && burstShowTimeStamps);
 
     // Normalize slots to a tuple matching panel count
     const slots: (number | null)[] = isDuetLayout
@@ -78,12 +79,12 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
 
     const totalFrames = burst?.total || burst?.frameSources?.length || (isDuetLayout ? 2 : 6);
     const isFrameSelectorSuppressed = Boolean(
-        !burst?.isTriptych && burstShowTimeStamps && totalFrames === effectivePanelCount
+        !isMultiPhoto && burstShowTimeStamps && totalFrames === effectivePanelCount
     );
 
     // Active elapsed time delta (+Δt) span calculation
     const activeTimeDeltaText = (() => {
-        if (!burstShowTimeStamps || burst?.isTriptych || !burst?.frameDeltas) return null;
+        if (!burstShowTimeStamps || isMultiPhoto || !burst?.frameDeltas) return null;
         const assigned = slots.filter((idx): idx is number => idx !== null && idx !== undefined);
         if (assigned.length < 2) return null;
         const minIdx = Math.min(...assigned);
@@ -587,7 +588,7 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                 {activeMode === 'burst' && burst && burst.total >= 2 && (
                     <div className="story-export-modal__section">
                         <div className="story-export-modal__padded-settings">
-                            {!burst.isTriptych && (
+                            {!isMultiPhoto && (
                                 <div className="story-export-modal__toggle-row">
                                     <div className="story-export-modal__label-with-badge">
                                         <span>+Δt</span>

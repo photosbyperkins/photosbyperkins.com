@@ -377,5 +377,55 @@ describe('useStoryStudio', () => {
             expect(result.current.burstSelectedIndices).toEqual([5, 6]);
             expect(result.current.isDefaultConfig).toBe(true);
         });
+
+        it('suppresses timestamps and preserves false burstShowTimeStamps in non-burst / curated Duet', () => {
+            const curatedDuetPhoto: PhotoRecord = {
+                original: '/photos/curated_1.jpg',
+                thumb: '/photos/curated_1_thumb.jpg',
+                focusX: 0.5,
+                focusY: 0.45,
+                burst: {
+                    id: 'batch_duet_test_123',
+                    index: 0,
+                    total: 2,
+                    isTriptych: true,
+                    isDuet: true,
+                    frameSources: ['/photos/curated_1.jpg', '/photos/curated_2.jpg'],
+                    frameThumbs: ['/photos/curated_1_thumb.jpg', '/photos/curated_2_thumb.jpg'],
+                },
+            };
+
+            const curatedProps = {
+                ...defaultProps,
+                photoObj: curatedDuetPhoto,
+                originalSrc: curatedDuetPhoto.original,
+            };
+
+            const { result } = renderHook(() => useStoryStudio(curatedProps));
+
+            expect(result.current.activeMode).toBe('burst');
+            expect(result.current.burstPanelCount).toBe(2);
+            expect(result.current.isDuet).toBe(true);
+            expect(result.current.burstShowTimeStamps).toBe(false);
+            expect(result.current.currentConfig.burst?.showTimeStamps).toBe(false);
+            expect(result.current.currentConfig.burst?.isTriptych).toBe(true);
+            expect(result.current.isDefaultConfig).toBe(true);
+
+            // Calling resetToDefaults() should NOT enable timestamps
+            act(() => {
+                result.current.resetToDefaults();
+            });
+
+            expect(result.current.burstShowTimeStamps).toBe(false);
+            expect(result.current.currentConfig.burst?.showTimeStamps).toBe(false);
+            expect(result.current.isDefaultConfig).toBe(true);
+
+            // Attempting to setBurstShowTimeStamps(true) should be ignored
+            act(() => {
+                result.current.setBurstShowTimeStamps(true);
+            });
+            expect(result.current.burstShowTimeStamps).toBe(false);
+            expect(result.current.currentConfig.burst?.showTimeStamps).toBe(false);
+        });
     });
 });

@@ -326,17 +326,22 @@ export const StoryBurstCropper: React.FC<StoryBurstCropperProps> = ({
             aria-label={count === 2 ? '2-Panel Duet Interactive Cropper' : '3-Panel Burst Interactive Cropper'}
         >
             <div className="story-burst-cropper__panels">
-                {panelIndices.map((panelIdx) => {
-                    const src = images[panelIdx];
-                    const nw = imageDims[panelIdx]?.width || 1920;
-                    const nh = imageDims[panelIdx]?.height || 1080;
-                    const defZoom = calculateDefaultBurstZoom(nw, nh, panelAspect);
-                    const pan = panOffsets[panelIdx] || { x: 0.5, y: 0.45, zoom: defZoom };
-                    const zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, pan.zoom ?? defZoom));
-                    const dt = timeStamps?.[panelIdx] ?? (panelIdx === 0 ? 0 : panelIdx * 0.8);
-                    const slotName = slotNames[panelIdx];
-                    const isDraggingThis = draggingPanel === panelIdx;
-                    const isStepActive = activeStep === panelIdx;
+                {(() => {
+                    const hasValidDeltas = Boolean(
+                        timeStamps && timeStamps.length > 0 && timeStamps.some((t) => t !== undefined && t > 0)
+                    );
+                    const shouldShowTimeStamps = Boolean(showTimeStamps && hasValidDeltas);
+                    return panelIndices.map((panelIdx) => {
+                        const src = images[panelIdx];
+                        const nw = imageDims[panelIdx]?.width || 1920;
+                        const nh = imageDims[panelIdx]?.height || 1080;
+                        const defZoom = calculateDefaultBurstZoom(nw, nh, panelAspect);
+                        const pan = panOffsets[panelIdx] || { x: 0.5, y: 0.45, zoom: defZoom };
+                        const zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, pan.zoom ?? defZoom));
+                        const dt = timeStamps?.[panelIdx] ?? 0;
+                        const slotName = slotNames[panelIdx];
+                        const isDraggingThis = draggingPanel === panelIdx;
+                        const isStepActive = activeStep === panelIdx;
 
                     const crop = calculateBurstPanelCrop(nw, nh, pan.x, pan.y, zoom, panelAspect);
 
@@ -447,7 +452,7 @@ export const StoryBurstCropper: React.FC<StoryBurstCropperProps> = ({
                                     </div>
 
                                     {/* Timestamp Pill */}
-                                    {showTimeStamps && (
+                                    {shouldShowTimeStamps && (
                                         <div className="story-burst-cropper__timestamp-pill" aria-hidden="true">
                                             +{dt === 0 ? '0.00' : dt.toFixed(2)}s
                                         </div>
@@ -463,7 +468,8 @@ export const StoryBurstCropper: React.FC<StoryBurstCropperProps> = ({
                             )}
                         </div>
                     );
-                })}
+                });
+                })()}
             </div>
 
             {/* Decorative Frame Overlay */}

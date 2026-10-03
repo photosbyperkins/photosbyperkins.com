@@ -575,7 +575,7 @@ export default function Portfolio({ years }: PortfolioProps) {
             {isDirectStoryOpen && directStoryPhoto && (
                 <Suspense fallback={null}>
                     <StoryExportModal
-                        key={`direct-story-${directStoryPhoto.original}`}
+                        key={`direct-story-${directStoryPhoto.burst?.id || directStoryPhoto.original}`}
                         isOpen={isDirectStoryOpen}
                         onClose={() => {
                             setIsDirectStoryOpen(false);

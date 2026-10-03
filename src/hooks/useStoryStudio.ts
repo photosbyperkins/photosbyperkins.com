@@ -174,15 +174,33 @@ export function useStoryStudio({
         return 0;
     });
 
-    const isTriptych = Boolean(photoObj.burst?.isTriptych || !photoObj.burst?.frameDeltas);
+    const isMultiPhoto = Boolean(photoObj.burst?.isTriptych || !photoObj.burst?.frameDeltas);
+    const isTriptych = isMultiPhoto;
 
     const [burstDividerStyle, setBurstDividerStyle] = useState<BurstDividerStyle>(
         () => storySettings.burstConfig?.dividerStyle || 'hairline'
     );
     const [burstShowTimeStamps, setBurstShowTimeStamps] = useState<boolean>(() => {
-        if (isTriptych) return false;
+        if (isMultiPhoto) return false;
         return storySettings.burstConfig?.showTimeStamps ?? true;
     });
+
+    const handleSetBurstShowTimeStamps = useCallback(
+        (val: boolean) => {
+            if (isMultiPhoto) {
+                setBurstShowTimeStamps(false);
+                return;
+            }
+            setBurstShowTimeStamps(val);
+        },
+        [isMultiPhoto]
+    );
+
+    useEffect(() => {
+        if (isMultiPhoto && burstShowTimeStamps) {
+            setBurstShowTimeStamps(false);
+        }
+    }, [isMultiPhoto, burstShowTimeStamps]);
     const [burstSelectedIndices, setBurstSelectedIndices] = useState<(number | null)[]>(() => {
         if (photoObj.burst && photoObj.burst.total >= 2) {
             const total = photoObj.burst.total;
@@ -382,11 +400,12 @@ export function useStoryStudio({
             padded: paddedConfig,
             burst: {
                 dividerStyle: burstDividerStyle,
-                showTimeStamps: burstShowTimeStamps,
+                showTimeStamps: isMultiPhoto ? false : burstShowTimeStamps,
                 panelCount: targetPanelCount,
-                timeStamps: activeBurstTimeStamps,
+                timeStamps: isMultiPhoto ? [] : activeBurstTimeStamps,
                 panOffsets: burstPanOffsets,
                 focusYList: burstPanOffsets.map((p) => p.y),
+                isTriptych: isMultiPhoto,
             },
             badges,
             resolution: '1080x1920',
@@ -407,6 +426,7 @@ export function useStoryStudio({
             targetPanelCount,
             activeBurstTimeStamps,
             burstPanOffsets,
+            isMultiPhoto,
             badges,
             cardTheme,
             activeFrameId,
@@ -444,7 +464,7 @@ export function useStoryStudio({
             paddedConfig,
             burstConfig: {
                 dividerStyle: burstDividerStyle,
-                showTimeStamps: burstShowTimeStamps,
+                showTimeStamps: isMultiPhoto ? false : burstShowTimeStamps,
                 selectedIndices: burstSelectedIndices,
                 panOffsets: burstPanOffsets,
                 panelCount: targetPanelCount,
@@ -479,6 +499,8 @@ export function useStoryStudio({
         burstShowTimeStamps,
         burstSelectedIndices,
         burstPanOffsets,
+        targetPanelCount,
+        isMultiPhoto,
         setStorySettings,
     ]);
 
@@ -510,7 +532,7 @@ export function useStoryStudio({
             setBurstPanelCount(defaultPanelCount);
             setActiveMode('burst');
             setBurstDividerStyle('hairline');
-            setBurstShowTimeStamps(true);
+            setBurstShowTimeStamps(isMultiPhoto ? false : true);
             setBurstSelectedIndices(defaultIndices);
             const defY = photoObj.focusY ?? 0.45;
             const panelAspect = defaultPanelCount === 2 ? DUET_PANEL_ASPECT_RATIO : BURST_PANEL_ASPECT_RATIO;
@@ -560,6 +582,7 @@ export function useStoryStudio({
         resetStorySettings,
         resetExportState,
         photoObj.burst,
+        isMultiPhoto,
         targetPanelCount,
         presets,
         naturalDimensions.width,
@@ -598,7 +621,12 @@ export function useStoryStudio({
                 burstSelectedIndices.length === defaultIndices.length &&
                 burstSelectedIndices.every((val, i) => val === defaultIndices[i]);
 
-            if (burstDividerStyle !== 'hairline' || burstShowTimeStamps !== true || !areIndicesDefault) {
+            const defaultBurstShowTimeStamps = isMultiPhoto ? false : true;
+            if (
+                burstDividerStyle !== 'hairline' ||
+                burstShowTimeStamps !== defaultBurstShowTimeStamps ||
+                !areIndicesDefault
+            ) {
                 return false;
             }
             const defY = photoObj.focusY ?? 0.45;
@@ -680,6 +708,7 @@ export function useStoryStudio({
         burstShowTimeStamps,
         burstSelectedIndices,
         burstPanOffsets,
+        isMultiPhoto,
     ]);
 
     const handleClose = useCallback(() => {
@@ -756,11 +785,12 @@ export function useStoryStudio({
             padded: paddedConfig,
             burst: {
                 dividerStyle: burstDividerStyle,
-                showTimeStamps: burstShowTimeStamps,
+                showTimeStamps: isMultiPhoto ? false : burstShowTimeStamps,
                 panelCount: targetPanelCount,
-                timeStamps: activeBurstTimeStamps,
+                timeStamps: isMultiPhoto ? [] : activeBurstTimeStamps,
                 panOffsets: burstPanOffsets,
                 focusYList: burstPanOffsets.map((p) => p.y),
+                isTriptych: isMultiPhoto,
             },
             badges: {
                 ...badges,
@@ -803,6 +833,7 @@ export function useStoryStudio({
         targetPanelCount,
         activeBurstTimeStamps,
         burstPanOffsets,
+        isMultiPhoto,
         badges,
         cardTheme,
         activeFilterId,
@@ -829,8 +860,8 @@ export function useStoryStudio({
         isDuet,
         burstDividerStyle,
         setBurstDividerStyle,
-        burstShowTimeStamps,
-        setBurstShowTimeStamps,
+        burstShowTimeStamps: isMultiPhoto ? false : burstShowTimeStamps,
+        setBurstShowTimeStamps: handleSetBurstShowTimeStamps,
         burstSelectedIndices,
         setBurstSelectedIndices,
         burstPanOffsets,

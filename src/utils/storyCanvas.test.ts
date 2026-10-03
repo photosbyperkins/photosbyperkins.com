@@ -1253,6 +1253,74 @@ describe('storyCanvas calculations', () => {
             expect(drawCalls.length).toBeGreaterThanOrEqual(3);
         });
 
+        it('suppresses timestamps when rendering non-burst / curated Duet even if showTimeStamps is true', async () => {
+            const img1 = createMockImage(3000, 2000);
+            const img2 = createMockImage(3000, 2000);
+            const { mockCanvas, mockCtx } = createMockContext();
+
+            await renderStoryToCanvas(
+                [img1, img2],
+                {
+                    mode: 'burst',
+                    crop: { x: 0, y: 0, width: 1, height: 1, zoom: 1, centerX: 0.5, centerY: 0.5 },
+                    padded: { style: 'frosted', position: 'center', cardScale: 0.92, cardCornerRadius: 24 },
+                    burst: {
+                        dividerStyle: 'hairline',
+                        showTimeStamps: true,
+                        isTriptych: true,
+                        panelCount: 2,
+                        timeStamps: [0.0, 0.0],
+                    },
+                    badges: {
+                        showScoreboard: false,
+                        showAttribution: false,
+                    },
+                },
+                mockCanvas
+            );
+
+            const fillTextCalls = (mockCtx.fillText as unknown as ReturnType<typeof vi.fn>).mock.calls;
+            const timestampCalls = fillTextCalls.filter(
+                (call) => typeof call[0] === 'string' && /^\+\d+\.\d+s$/.test(call[0])
+            );
+            expect(timestampCalls.length).toBe(0);
+        });
+
+        it('draws timestamps when rendering real continuous burst with deltas and showTimeStamps is true', async () => {
+            const img1 = createMockImage(3000, 2000);
+            const img2 = createMockImage(3000, 2000);
+            const { mockCanvas, mockCtx } = createMockContext();
+
+            await renderStoryToCanvas(
+                [img1, img2],
+                {
+                    mode: 'burst',
+                    crop: { x: 0, y: 0, width: 1, height: 1, zoom: 1, centerX: 0.5, centerY: 0.5 },
+                    padded: { style: 'frosted', position: 'center', cardScale: 0.92, cardCornerRadius: 24 },
+                    burst: {
+                        dividerStyle: 'hairline',
+                        showTimeStamps: true,
+                        isTriptych: false,
+                        panelCount: 2,
+                        timeStamps: [0.0, 0.42],
+                    },
+                    badges: {
+                        showScoreboard: false,
+                        showAttribution: false,
+                    },
+                },
+                mockCanvas
+            );
+
+            const fillTextCalls = (mockCtx.fillText as unknown as ReturnType<typeof vi.fn>).mock.calls;
+            const timestampCalls = fillTextCalls.filter(
+                (call) => typeof call[0] === 'string' && /^\+\d+\.\d+s$/.test(call[0])
+            );
+            expect(timestampCalls.length).toBe(2);
+            expect(timestampCalls[0][0]).toBe('+0.00s');
+            expect(timestampCalls[1][0]).toBe('+0.42s');
+        });
+
         it('renders burst story in filmstrip divider style', async () => {
             const img1 = createMockImage(3000, 2000);
             const img2 = createMockImage(3000, 2000);
