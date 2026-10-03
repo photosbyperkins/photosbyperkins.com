@@ -36,6 +36,7 @@ export interface StoryBurstCropperProps {
     filterStrength?: number;
     activeStep?: number;
     onSelectPanel?: (panelIndex: number) => void;
+    onSelectEmptyPanel?: (panelIndex: number) => void;
     panelCount?: 2 | 3;
 }
 
@@ -61,6 +62,7 @@ export const StoryBurstCropper: React.FC<StoryBurstCropperProps> = ({
     filterStrength,
     activeStep,
     onSelectPanel,
+    onSelectEmptyPanel,
     panelCount,
 }) => {
     const count: 2 | 3 = panelCount ?? (images.length === 2 ? 2 : 3);
@@ -316,15 +318,16 @@ export const StoryBurstCropper: React.FC<StoryBurstCropperProps> = ({
     };
 
     return (
-        <div
-            className="story-burst-cropper"
-            data-panels={count}
-            style={{
-                aspectRatio: `${STORY_ASPECT_RATIO}`,
-            }}
-            role="region"
-            aria-label={count === 2 ? '2-Panel Duet Interactive Cropper' : '3-Panel Burst Interactive Cropper'}
-        >
+        <div className="story-burst-cropper-container story-cropper" onClick={(e) => e.stopPropagation()}>
+            <div
+                className="story-burst-cropper"
+                data-panels={count}
+                style={{
+                    aspectRatio: `${STORY_ASPECT_RATIO}`,
+                }}
+                role="region"
+                aria-label={count === 2 ? '2-Panel Duet Interactive Cropper' : '3-Panel Burst Interactive Cropper'}
+            >
             <div className="story-burst-cropper__panels">
                 {(() => {
                     const hasValidDeltas = Boolean(
@@ -353,7 +356,47 @@ export const StoryBurstCropper: React.FC<StoryBurstCropperProps> = ({
                     const zoomText = zoom > 1.05 ? ` Zoomed ${zoom.toFixed(1)}x.` : '';
                     const panelAria = src
                         ? `Panel ${panelIdx + 1} (${slotName}).${zoomText} Drag to pan. Scroll or pinch to zoom. Use arrow keys to nudge.`
-                        : `Panel ${panelIdx + 1} (${slotName}) is empty. Select frame below.`;
+                        : `Panel ${panelIdx + 1} (${slotName}) is empty. Tap to select photo.`;
+
+                    if (!src) {
+                        return (
+                            <div
+                                key={panelIdx}
+                                ref={(el) => {
+                                    panelRefs.current[panelIdx] = el;
+                                }}
+                                className={`story-burst-cropper__panel story-burst-cropper__panel--empty${
+                                    isStepActive ? ' story-burst-cropper__panel--active-step' : ''
+                                }`}
+                                tabIndex={0}
+                                role="button"
+                                aria-label={panelAria}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onSelectEmptyPanel?.(panelIdx);
+                                    onSelectPanel?.(panelIdx);
+                                }}
+                                onPointerDown={(e) => {
+                                    e.stopPropagation();
+                                }}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        onSelectEmptyPanel?.(panelIdx);
+                                        onSelectPanel?.(panelIdx);
+                                    }
+                                }}
+                            >
+                                <div className="story-burst-cropper__empty-content">
+                                    <span className="story-burst-cropper__empty-slot">
+                                        {panelIdx + 1}. {slotName}
+                                    </span>
+                                    <span className="story-burst-cropper__empty-sub">Tap to select photo</span>
+                                </div>
+                            </div>
+                        );
+                    }
 
                     return (
                         <div
@@ -361,12 +404,10 @@ export const StoryBurstCropper: React.FC<StoryBurstCropperProps> = ({
                             ref={(el) => {
                                 panelRefs.current[panelIdx] = el;
                             }}
-                            className={`story-burst-cropper__panel${
-                                src ? ' story-burst-cropper__panel--has-image' : ' story-burst-cropper__panel--empty'
-                            }${isDraggingThis ? ' story-burst-cropper__panel--dragging' : ''}${
-                                isStepActive ? ' story-burst-cropper__panel--active-step' : ''
-                            }`}
-                            tabIndex={src ? 0 : -1}
+                            className={`story-burst-cropper__panel story-burst-cropper__panel--has-image${
+                                isDraggingThis ? ' story-burst-cropper__panel--dragging' : ''
+                            }${isStepActive ? ' story-burst-cropper__panel--active-step' : ''}`}
+                            tabIndex={0}
                             role="group"
                             aria-label={panelAria}
                             onPointerDown={(e) => handlePointerDown(panelIdx, e)}
@@ -381,89 +422,78 @@ export const StoryBurstCropper: React.FC<StoryBurstCropperProps> = ({
                             onDoubleClick={(e) => handleDoubleClick(panelIdx, e)}
                             onKeyDown={(e) => handleKeyDown(panelIdx, e)}
                         >
-                            {src ? (
-                                <>
-                                    <div
-                                        className="story-burst-cropper__image-wrapper"
-                                        style={{
-                                            width: `${scaleX * 100}%`,
-                                            height: `${scaleY * 100}%`,
-                                            transform: `translate3d(${translateX}%, ${translateY}%, 0)`,
-                                        }}
-                                    >
-                                        <img
-                                            src={src}
-                                            alt={`Burst frame ${panelIdx + 1} (${slotName})`}
-                                            className="story-burst-cropper__image"
-                                            draggable={false}
-                                            style={{
-                                                filter: filterCss,
-                                            }}
-                                            onLoad={(e) => {
-                                                const img = e.currentTarget;
-                                                if (img.naturalWidth && img.naturalHeight) {
-                                                    setImageDims((prev) => {
-                                                        const cur = prev[panelIdx];
-                                                        if (
-                                                            cur &&
-                                                            cur.width === img.naturalWidth &&
-                                                            cur.height === img.naturalHeight
-                                                        ) {
-                                                            return prev;
-                                                        }
-                                                        const next = [...prev];
-                                                        next[panelIdx] = {
-                                                            width: img.naturalWidth,
-                                                            height: img.naturalHeight,
-                                                        };
-                                                        return next;
-                                                    });
+                            <div
+                                className="story-burst-cropper__image-wrapper"
+                                style={{
+                                    width: `${scaleX * 100}%`,
+                                    height: `${scaleY * 100}%`,
+                                    transform: `translate3d(${translateX}%, ${translateY}%, 0)`,
+                                }}
+                            >
+                                <img
+                                    src={src}
+                                    alt={`Burst frame ${panelIdx + 1} (${slotName})`}
+                                    className="story-burst-cropper__image"
+                                    draggable={false}
+                                    style={{
+                                        filter: filterCss,
+                                    }}
+                                    onLoad={(e) => {
+                                        const img = e.currentTarget;
+                                        if (img.naturalWidth && img.naturalHeight) {
+                                            setImageDims((prev) => {
+                                                const cur = prev[panelIdx];
+                                                if (
+                                                    cur &&
+                                                    cur.width === img.naturalWidth &&
+                                                    cur.height === img.naturalHeight
+                                                ) {
+                                                    return prev;
                                                 }
-                                            }}
-                                            onError={(e) => {
-                                                const fallback = fallbackSrcs?.[panelIdx];
-                                                if (fallback && e.currentTarget.src !== fallback) {
-                                                    e.currentTarget.src = fallback;
-                                                }
-                                            }}
-                                        />
-                                    </div>
+                                                const next = [...prev];
+                                                next[panelIdx] = {
+                                                    width: img.naturalWidth,
+                                                    height: img.naturalHeight,
+                                                };
+                                                return next;
+                                            });
+                                        }
+                                    }}
+                                    onError={(e) => {
+                                        const fallback = fallbackSrcs?.[panelIdx];
+                                        if (fallback && e.currentTarget.src !== fallback) {
+                                            e.currentTarget.src = fallback;
+                                        }
+                                    }}
+                                />
+                            </div>
 
-                                    {/* Rule-of-Thirds Grid Overlay during dragging */}
-                                    <div
-                                        className={`story-burst-cropper__grid${
-                                            isDraggingThis ? ' story-burst-cropper__grid--visible' : ''
-                                        }`}
-                                        aria-hidden="true"
-                                    >
-                                        <span className="story-burst-cropper__grid-col story-burst-cropper__grid-col--1" />
-                                        <span className="story-burst-cropper__grid-col story-burst-cropper__grid-col--2" />
-                                        <span className="story-burst-cropper__grid-row story-burst-cropper__grid-row--1" />
-                                        <span className="story-burst-cropper__grid-row story-burst-cropper__grid-row--2" />
-                                    </div>
+                            {/* Rule-of-Thirds Grid Overlay during dragging */}
+                            <div
+                                className={`story-burst-cropper__grid${
+                                    isDraggingThis ? ' story-burst-cropper__grid--visible' : ''
+                                }`}
+                                aria-hidden="true"
+                            >
+                                <span className="story-burst-cropper__grid-col story-burst-cropper__grid-col--1" />
+                                <span className="story-burst-cropper__grid-col story-burst-cropper__grid-col--2" />
+                                <span className="story-burst-cropper__grid-row story-burst-cropper__grid-row--1" />
+                                <span className="story-burst-cropper__grid-row story-burst-cropper__grid-row--2" />
+                            </div>
 
-                                    {/* Slot badge indicator */}
-                                    <div className="story-burst-cropper__slot-pill" aria-hidden="true">
-                                        <span className="story-burst-cropper__slot-name">{slotName}</span>
-                                        {zoom > 1.05 && (
-                                            <span className="story-burst-cropper__zoom-pill">{zoom.toFixed(1)}x</span>
-                                        )}
-                                        <span className="story-burst-cropper__pan-hint">Pan/Zoom</span>
-                                    </div>
+                            {/* Slot badge indicator */}
+                            <div className="story-burst-cropper__slot-pill" aria-hidden="true">
+                                <span className="story-burst-cropper__slot-name">{slotName}</span>
+                                {zoom > 1.05 && (
+                                    <span className="story-burst-cropper__zoom-pill">{zoom.toFixed(1)}x</span>
+                                )}
+                                <span className="story-burst-cropper__pan-hint">Pan/Zoom</span>
+                            </div>
 
-                                    {/* Timestamp Pill */}
-                                    {shouldShowTimeStamps && (
-                                        <div className="story-burst-cropper__timestamp-pill" aria-hidden="true">
-                                            +{dt === 0 ? '0.00' : dt.toFixed(2)}s
-                                        </div>
-                                    )}
-                                </>
-                            ) : (
-                                <div className="story-burst-cropper__empty-content">
-                                    <span className="story-burst-cropper__empty-slot">
-                                        {panelIdx + 1}. {slotName}
-                                    </span>
-                                    <span className="story-burst-cropper__empty-sub">Tap below to select</span>
+                            {/* Timestamp Pill */}
+                            {shouldShowTimeStamps && (
+                                <div className="story-burst-cropper__timestamp-pill" aria-hidden="true">
+                                    +{dt === 0 ? '0.00' : dt.toFixed(2)}s
                                 </div>
                             )}
                         </div>
@@ -478,5 +508,14 @@ export const StoryBurstCropper: React.FC<StoryBurstCropperProps> = ({
             {/* Badges Layer */}
             <StoryBadges badges={badges} theme={theme} />
         </div>
-    );
+
+        <div className="story-cropper__hint">
+            <span>
+                {count === 2
+                    ? 'Tap panel to select • Drag to reposition • Scroll, pinch, or double-click to zoom'
+                    : 'Tap panel to select • Drag to reposition • Scroll, pinch, or double-click to zoom'}
+            </span>
+        </div>
+    </div>
+);
 };

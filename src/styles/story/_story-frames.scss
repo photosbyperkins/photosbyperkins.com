@@ -26,7 +26,8 @@
         gap: 8px;
     }
 
-    &__frames-header-tint {
+    &__frames-header-tint,
+    &__background-header-tint {
         display: flex;
         align-items: center;
         gap: 6px;

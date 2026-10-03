@@ -112,16 +112,44 @@ export function calculateBurstPanelCrop(
 }
 
 /**
+ * Calculates the exact zoom level required to fit 100% of the photo inside the 9:16 story frame
+ * with the specified card scale (defaults to 0.92 for comfortable glassmorphic letterbox margins).
+ *
+ * @param imgW Source image natural width
+ * @param imgH Source image natural height
+ * @param cardScale Fraction of story width (or height) the fitted card occupies (default: 0.92)
+ */
+export function calculateFitZoom(
+    imgW: number,
+    imgH: number,
+    cardScale = 0.92
+): number {
+    if (!imgW || !imgH) return 0.92;
+    const imgRatio = imgW / imgH;
+    const scale = Math.max(0.5, Math.min(1.0, cardScale));
+    if (imgRatio >= STORY_ASPECT_RATIO) {
+        // Image is wider than 9:16 (e.g. 3:2 landscape) -> width constrains fit
+        return parseFloat(((STORY_ASPECT_RATIO / imgRatio) * scale).toFixed(3));
+    }
+    // Image is narrower than 9:16 -> height constrains fit
+    return parseFloat(((imgRatio / STORY_ASPECT_RATIO) * scale).toFixed(3));
+}
+
+/**
  * Calculates a normalized 9:16 crop rectangle centered at (centerX, centerY) with a given zoom.
+ * Supports continuous zoom from fitZoom (< 1.0, uncropped padded letterbox) to 3.5 (tight action crop).
+ * When zoomed out (zoom < 1.0), the crop expands beyond the image bounds and centers the card.
  */
 export function calculateNormalizedCrop(
     imgW: number,
     imgH: number,
     centerX: number,
     centerY: number,
-    zoom = 1.0
+    zoom = 1.0,
+    minZoom?: number
 ): NormalizedCrop {
-    const safeZoom = Math.max(1.0, Math.min(3.5, zoom));
+    const safeMinZoom = minZoom !== undefined ? Math.max(0.05, minZoom) : Math.min(1.0, zoom);
+    const safeZoom = Math.max(safeMinZoom, Math.min(3.5, zoom));
     const imgRatio = imgW / imgH;
 
     let cropW: number;
@@ -137,26 +165,43 @@ export function calculateNormalizedCrop(
         cropH = cropW / STORY_ASPECT_RATIO;
     }
 
-    // Clamp center coordinates so the crop never samples outside the source image
+    // Clamp center coordinates so the crop never samples outside the source image when zoom >= 1.0.
+    // When zoom < 1.0 (crop exceeds image dimensions), lock to center so the card remains centered.
     const halfW = cropW / 2;
     const halfH = cropH / 2;
 
-    const minX = halfW;
-    const maxX = imgW - halfW;
-    const minY = halfH;
-    const maxY = imgH - halfH;
+    let clampedCenterX: number;
+    if (cropW >= imgW) {
+        clampedCenterX = imgW / 2;
+    } else {
+        const minX = halfW;
+        const maxX = imgW - halfW;
+        clampedCenterX = Math.max(
+            minX,
+            Math.min(maxX, (typeof centerX === 'number' && !isNaN(centerX) ? centerX : 0.5) * imgW)
+        );
+    }
 
-    const clampedCenterX = Math.max(minX, Math.min(maxX, centerX * imgW));
-    const clampedCenterY = Math.max(minY, Math.min(maxY, centerY * imgH));
+    let clampedCenterY: number;
+    if (cropH >= imgH) {
+        clampedCenterY = imgH / 2;
+    } else {
+        const minY = halfH;
+        const maxY = imgH - halfH;
+        clampedCenterY = Math.max(
+            minY,
+            Math.min(maxY, (typeof centerY === 'number' && !isNaN(centerY) ? centerY : 0.5) * imgH)
+        );
+    }
 
     const left = clampedCenterX - halfW;
     const top = clampedCenterY - halfH;
 
     return {
-        x: Math.max(0, Math.min(1, left / imgW)),
-        y: Math.max(0, Math.min(1, top / imgH)),
-        width: Math.max(0, Math.min(1, cropW / imgW)),
-        height: Math.max(0, Math.min(1, cropH / imgH)),
+        x: left / imgW,
+        y: top / imgH,
+        width: cropW / imgW,
+        height: cropH / imgH,
         zoom: safeZoom,
         centerX: clampedCenterX / imgW,
         centerY: clampedCenterY / imgH,
@@ -164,7 +209,8 @@ export function calculateNormalizedCrop(
 }
 
 /**
- * Generates context-aware 9:16 crop presets based on the number and positions of detected people.
+ * Generates context-aware 9:16 framing presets sorted from least zoomed in (padded) to most zoomed in.
+ * Guaranteed to have at most 3 options.
  */
 export function generateStoryPresets(options: {
     width: number;
@@ -187,29 +233,32 @@ export function generateStoryPresets(options: {
 
     const numPeople = effectiveFaces.length;
 
+    // --- ALWAYS OPTION 1: Least zoomed in (Padded letterbox view) ---
+    const fitZoom = calculateFitZoom(w, h, 0.92);
+    presets.push({
+        id: 'padded-glass',
+        label: 'Padded',
+        description: 'Full uncropped image with letterbox background',
+        crop: calculateNormalizedCrop(w, h, 0.5, 0.5, fitZoom, fitZoom),
+        mode: 'solo',
+    });
+
     // --- CASE 0: No People Detected ---
     if (numPeople === 0) {
-        presets.push({
-            id: 'thirds-left',
-            label: 'Left',
-            description: 'Frames left side of action',
-            crop: calculateNormalizedCrop(w, h, 0.33, 0.5, 1.0),
-            mode: 'crop',
-        });
         presets.push({
             id: 'center',
             label: 'Center',
             description: 'Balanced center composition',
             crop: calculateNormalizedCrop(w, h, 0.5, 0.5, 1.0),
-            mode: 'crop',
+            mode: 'solo',
             isDefault: true,
         });
         presets.push({
-            id: 'thirds-right',
-            label: 'Right',
-            description: 'Frames right side of action',
-            crop: calculateNormalizedCrop(w, h, 0.67, 0.5, 1.0),
-            mode: 'crop',
+            id: 'closeup',
+            label: 'Close-up',
+            description: 'Dynamic 1.35x zoom on center action',
+            crop: calculateNormalizedCrop(w, h, 0.5, 0.5, 1.35),
+            mode: 'solo',
         });
     }
 
@@ -221,18 +270,18 @@ export function generateStoryPresets(options: {
 
         presets.push({
             id: 'subject',
-            label: 'Subject Focus',
+            label: 'Subject',
             description: 'Framed on skater with natural headroom',
             crop: calculateNormalizedCrop(w, h, p1.x, headAdjustedY, 1.0),
-            mode: 'crop',
+            mode: 'solo',
             isDefault: true,
         });
         presets.push({
             id: 'closeup',
-            label: 'Close-up Action',
+            label: 'Close-up',
             description: 'Dynamic 1.35x zoom on athlete',
             crop: calculateNormalizedCrop(w, h, p1.x, Math.max(0.12, p1.y - 0.03), 1.35),
-            mode: 'crop',
+            mode: 'solo',
         });
     }
 
@@ -247,27 +296,18 @@ export function generateStoryPresets(options: {
 
         presets.push({
             id: 'duo',
-            label: 'Duo Focus',
+            label: 'Duo',
             description: 'Frames both subjects together',
             crop: calculateNormalizedCrop(w, h, midX, headAdjustedY, 1.0),
-            mode: 'crop',
+            mode: 'solo',
             isDefault: true,
         });
-
-        // Individual subject focus
         presets.push({
-            id: 'person-1',
-            label: 'Left Focus',
-            description: 'Focus on left subject',
-            crop: calculateNormalizedCrop(w, h, f1.x, Math.max(0.15, f1.y - 0.06), 1.15),
-            mode: 'crop',
-        });
-        presets.push({
-            id: 'person-2',
-            label: 'Right Focus',
-            description: 'Focus on right subject',
-            crop: calculateNormalizedCrop(w, h, f2.x, Math.max(0.15, f2.y - 0.06), 1.15),
-            mode: 'crop',
+            id: 'closeup',
+            label: 'Close-up',
+            description: 'Tighter 1.25x action framing',
+            crop: calculateNormalizedCrop(w, h, midX, Math.max(0.12, headAdjustedY - 0.03), 1.25),
+            mode: 'solo',
         });
     }
 
@@ -276,47 +316,29 @@ export function generateStoryPresets(options: {
         // Group centroid
         const avgX = effectiveFaces.reduce((sum, f) => sum + f.x, 0) / numPeople;
         const avgY = effectiveFaces.reduce((sum, f) => sum + f.y, 0) / numPeople;
+        const headAdjustedY = Math.max(0.18, avgY - 0.05);
 
         presets.push({
             id: 'pack',
-            label: 'Group Action',
+            label: 'Group',
             description: 'Frames all subjects in the frame',
-            crop: calculateNormalizedCrop(w, h, avgX, Math.max(0.18, avgY - 0.05), 1.0),
-            mode: 'crop',
+            crop: calculateNormalizedCrop(w, h, avgX, headAdjustedY, 1.0),
+            mode: 'solo',
             isDefault: true,
         });
 
-        // Primary Subject
         const primary = effectiveFaces[0];
         presets.push({
-            id: 'primary',
+            id: 'lead',
             label: 'Lead Focus',
             description: 'Focus on primary action subject',
-            crop: calculateNormalizedCrop(w, h, primary.x, Math.max(0.15, primary.y - 0.06), 1.2),
-            mode: 'crop',
+            crop: calculateNormalizedCrop(w, h, primary.x, Math.max(0.15, primary.y - 0.06), 1.25),
+            mode: 'solo',
         });
-
-        // Add buttons for individual detected persons (up to 4)
-        for (let i = 0; i < Math.min(4, effectiveFaces.length); i++) {
-            const p = effectiveFaces[i];
-            presets.push({
-                id: `person-${i + 1}`,
-                label: `Subject ${i + 1}`,
-                description: `Focus on subject ${i + 1}`,
-                crop: calculateNormalizedCrop(w, h, p.x, Math.max(0.15, p.y - 0.06), 1.2),
-                mode: 'crop',
-            });
-        }
     }
 
-    // --- ALWAYS PRESENT: Glassmorphic Padded Mode Preset ---
-    presets.push({
-        id: 'padded-glass',
-        label: 'Padded',
-        description: '100% full uncropped image with frosted blur',
-        crop: calculateNormalizedCrop(w, h, 0.5, 0.5, 1.0),
-        mode: 'padded',
-    });
-
-    return presets;
+    // Guaranteed sort: least zoomed in (padded) to most zoomed in, and at most 3 options
+    return presets
+        .sort((a, b) => a.crop.zoom - b.crop.zoom)
+        .slice(0, 3);
 }

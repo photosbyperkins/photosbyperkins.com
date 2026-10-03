@@ -10,7 +10,7 @@ describe('useAppStore - storySettings', () => {
     it('initializes with DEFAULT_STORY_SETTINGS', () => {
         const settings = useAppStore.getState().storySettings;
         expect(settings).toEqual(DEFAULT_STORY_SETTINGS);
-        expect(settings.mode).toBe('crop');
+        expect(settings.mode).toBe('solo');
         expect(settings.badgeTheme).toBe('dark');
         expect(settings.filterStrength).toBe(1.0);
         expect(settings.showScoreboard).toBe(true);

@@ -39,7 +39,7 @@ describe('useStoryStudio', () => {
         const { result } = renderHook(() => useStoryStudio(defaultProps));
 
         expect(result.current.activeStudioTab).toBe('layout');
-        expect(result.current.activeMode).toBe('crop');
+        expect(result.current.activeMode).toBe('solo');
         expect(result.current.selectedPresetId).toBeDefined();
         expect(result.current.activeFilterId).toBe('none');
         expect(result.current.activeFrameId).toBe('none');

@@ -4,6 +4,7 @@ import type { BurstDividerStyle } from '../store/slices/storySlice';
 import { useStoryExport } from './useStoryExport';
 import {
     calculateNormalizedCrop,
+    calculateFitZoom,
     calculateDefaultBurstZoom,
     generateStoryPresets,
     renderStoryToCanvas,
@@ -100,6 +101,7 @@ export function useStoryStudio({
             setBurstPanelCount(newCount);
             setIsDownloaded(false);
             if (newCount === 2) {
+                setBurstActiveStep((prev) => (prev > 1 ? 1 : prev));
                 // Switching to Duet (2 panels)
                 setBurstSelectedIndices((prev) => {
                     const s0 = prev[0] ?? 0;
@@ -159,12 +161,13 @@ export function useStoryStudio({
         [photoObj.burst?.total, photoObj.focusY, naturalDimensions.width, naturalDimensions.height]
     );
 
-    const [activeMode, setActiveMode] = useState<'crop' | 'padded' | 'burst'>(() => {
+    const [activeMode, setActiveMode] = useState<'solo' | 'crop' | 'padded' | 'burst'>(() => {
         if (photoObj.burst) {
-            if (photoObj.burst.total < 2) return 'crop';
-            return storySettings.mode === 'padded' ? 'padded' : 'burst';
+            if (photoObj.burst.total < 2) return 'solo';
+            return 'burst';
         }
-        return storySettings.mode || 'crop';
+        if (storySettings.mode === 'crop' || storySettings.mode === 'padded') return 'solo';
+        return storySettings.mode || 'solo';
     });
 
     const [activePhotoIndex, setActivePhotoIndex] = useState<number>(() => {
@@ -219,6 +222,13 @@ export function useStoryStudio({
         return storySettings.burstConfig?.selectedIndices || (isDuet ? [0, 1] : [0, 1, 2]);
     });
 
+    const [burstActiveStep, setBurstActiveStep] = useState<number>(() => {
+        if (burstSelectedIndices[0] === null || burstSelectedIndices[0] === undefined) return 0;
+        if (burstSelectedIndices[1] === null || burstSelectedIndices[1] === undefined) return 1;
+        if (targetPanelCount === 3 && (burstSelectedIndices[2] === null || burstSelectedIndices[2] === undefined)) return 2;
+        return 0;
+    });
+
     const [burstPanOffsets, setBurstPanOffsets] = useState<{ x: number; y: number; zoom?: number }[]>(() => {
         const defY = photoObj.focusY ?? 0.45;
         const saved = storySettings.burstConfig?.panOffsets;
@@ -256,7 +266,12 @@ export function useStoryStudio({
 
     const [activeCrop, setActiveCrop] = useState<NormalizedCrop>(() => {
         if (storySettings.mode === 'padded') {
-            return calculateNormalizedCrop(naturalDimensions.width, naturalDimensions.height, 0.5, 0.5, 1.0);
+            const fit = calculateFitZoom(
+                naturalDimensions.width,
+                naturalDimensions.height,
+                storySettings.paddedConfig?.cardScale || 0.92
+            );
+            return calculateNormalizedCrop(naturalDimensions.width, naturalDimensions.height, 0.5, 0.5, fit, fit);
         }
         const matchedPreset = storySettings.presetId ? presets.find((p) => p.id === storySettings.presetId) : undefined;
         if (matchedPreset) {
@@ -279,7 +294,6 @@ export function useStoryStudio({
     // Padded mode configuration
     const [paddedConfig, setPaddedConfig] = useState<PaddedStyleOptions>(() => ({
         style: storySettings.paddedConfig?.style || 'frosted',
-        position: storySettings.paddedConfig?.position || 'center',
         cardScale: storySettings.paddedConfig?.cardScale ?? 0.92,
         cardCornerRadius: storySettings.paddedConfig?.cardCornerRadius ?? 24,
         customColor: storySettings.paddedConfig?.customColor || '#0a0a14',
@@ -534,6 +548,7 @@ export function useStoryStudio({
             setBurstDividerStyle('hairline');
             setBurstShowTimeStamps(isMultiPhoto ? false : true);
             setBurstSelectedIndices(defaultIndices);
+            setBurstActiveStep(0);
             const defY = photoObj.focusY ?? 0.45;
             const panelAspect = defaultPanelCount === 2 ? DUET_PANEL_ASPECT_RATIO : BURST_PANEL_ASPECT_RATIO;
             const defZoom = calculateDefaultBurstZoom(naturalDimensions.width, naturalDimensions.height, panelAspect);
@@ -546,7 +561,7 @@ export function useStoryStudio({
                 setActiveCrop(def.crop);
             } else {
                 setSelectedPresetId('center');
-                setActiveMode('crop');
+                setActiveMode('solo');
                 setActiveCrop(
                     calculateNormalizedCrop(
                         naturalDimensions.width,
@@ -561,7 +576,6 @@ export function useStoryStudio({
         setPaddedConfig({
             style: 'frosted',
             customColor: '#0a0a14',
-            position: 'center',
             cardScale: 0.92,
             cardCornerRadius: 24,
         });
@@ -642,36 +656,33 @@ export function useStoryStudio({
         } else {
             const def = presets.find((p) => p.isDefault) || presets[0];
             const defaultPresetId = def ? def.id : 'center';
-            const defaultMode = def ? def.mode : 'crop';
+            const defaultMode = def ? def.mode : 'solo';
 
             if (selectedPresetId !== defaultPresetId) return false;
-            if (activeMode !== defaultMode) return false;
+            if (activeMode !== defaultMode && activeMode !== 'solo') return false;
 
-            if (activeMode === 'crop') {
-                const defaultCrop = def
-                    ? def.crop
-                    : calculateNormalizedCrop(
-                          naturalDimensions.width,
-                          naturalDimensions.height,
-                          photoObj.focusX ?? 0.5,
-                          photoObj.focusY ?? 0.5,
-                          1.0
-                      );
-                if (
-                    Math.abs(activeCrop.zoom - defaultCrop.zoom) > 0.001 ||
-                    Math.abs(activeCrop.x - defaultCrop.x) > 0.001 ||
-                    Math.abs(activeCrop.y - defaultCrop.y) > 0.001
-                ) {
-                    return false;
-                }
+            const defaultCrop = def
+                ? def.crop
+                : calculateNormalizedCrop(
+                      naturalDimensions.width,
+                      naturalDimensions.height,
+                      photoObj.focusX ?? 0.5,
+                      photoObj.focusY ?? 0.5,
+                      1.0
+                  );
+            if (
+                Math.abs(activeCrop.zoom - defaultCrop.zoom) > 0.001 ||
+                Math.abs(activeCrop.x - defaultCrop.x) > 0.001 ||
+                Math.abs(activeCrop.y - defaultCrop.y) > 0.001
+            ) {
+                return false;
             }
         }
 
-        if (activeMode === 'padded') {
+        if (activeMode === 'padded' || activeMode === 'solo') {
             if (
                 paddedConfig.style !== 'frosted' ||
                 paddedConfig.customColor !== '#0a0a14' ||
-                paddedConfig.position !== 'center' ||
                 Math.abs(paddedConfig.cardScale - 0.92) > 0.001 ||
                 paddedConfig.cardCornerRadius !== 24
             ) {
@@ -864,6 +875,8 @@ export function useStoryStudio({
         setBurstShowTimeStamps: handleSetBurstShowTimeStamps,
         burstSelectedIndices,
         setBurstSelectedIndices,
+        burstActiveStep,
+        setBurstActiveStep,
         burstPanOffsets,
         setBurstPanOffsets,
         handleBurstPanChange,

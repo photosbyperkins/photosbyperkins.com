@@ -558,8 +558,7 @@ describe('StoryLayoutTab - Single Photo Selector and Crop Zoom Removal', () => {
         expect(screen.queryByRole('button', { name: /duet/i })).toBeNull();
         expect(screen.queryByRole('button', { name: /triptych/i })).toBeNull();
         expect(screen.queryByRole('button', { name: /burst/i })).toBeNull();
-        expect(screen.getByRole('button', { name: /^9:16$/i })).not.toBeNull();
-        expect(screen.getByRole('button', { name: /Padded/i })).not.toBeNull();
+        expect(screen.getByRole('button', { name: /center/i })).not.toBeNull();
     });
 
     it('renders Duet button in mode toggle when burst.total === 2', () => {
@@ -576,8 +575,7 @@ describe('StoryLayoutTab - Single Photo Selector and Crop Zoom Removal', () => {
         render(<StoryLayoutTab {...baseProps} burst={twoPhotoMeta} />);
 
         expect(screen.getByRole('button', { name: /duet/i })).not.toBeNull();
-        expect(screen.getByRole('button', { name: /^9:16$/i })).not.toBeNull();
-        expect(screen.getByRole('button', { name: /Padded/i })).not.toBeNull();
+        expect(screen.getByRole('button', { name: /solo/i })).not.toBeNull();
     });
 
     it('renders 2 wizard slots (TOP, BTM) and Duet photo controls when panelCount is 2 with >2 photos', () => {
@@ -610,9 +608,9 @@ describe('StoryLayoutTab - Single Photo Selector and Crop Zoom Removal', () => {
         expect(stepButtons[0].textContent).toContain('1. TOP');
         expect(stepButtons[1].textContent).toContain('2. BTM');
 
-        const swapBtn = slotGroup.querySelector<HTMLButtonElement>('.story-export-modal__swap-pill');
+        const swapBtn = screen.getByRole('button', { name: /Swap Top and Bottom photos/i }) as HTMLButtonElement;
         expect(swapBtn).not.toBeNull();
-        expect(swapBtn?.disabled).toBe(true);
+        expect(swapBtn.disabled).toBe(true);
     });
 
     it('renders both Duet and Triptych mode toggle buttons for camera bursts with >= 3 frames', () => {
@@ -627,8 +625,7 @@ describe('StoryLayoutTab - Single Photo Selector and Crop Zoom Removal', () => {
 
         render(<StoryLayoutTab {...baseProps} burst={cameraBurstMeta} />);
 
-        expect(screen.getByRole('button', { name: /^9:16$/i })).not.toBeNull();
-        expect(screen.getByRole('button', { name: /^Padded$/i })).not.toBeNull();
+        expect(screen.getByRole('button', { name: /solo/i })).not.toBeNull();
         expect(screen.getByRole('button', { name: /^Duet$/i })).not.toBeNull();
         expect(screen.getByRole('button', { name: /^Triptych$/i })).not.toBeNull();
         expect(screen.queryByRole('button', { name: /^BURST$/i })).toBeNull();
@@ -1018,5 +1015,250 @@ describe('StoryLayoutTab - Single Photo Selector and Crop Zoom Removal', () => {
             />
         );
         expect(screen.queryByRole('button', { name: /Reverse frame sequence/i })).toBeNull();
+    });
+
+    it('renders integrated framing header containing Framing label, inline zoom slider, and zoom value readout', () => {
+        const onCropChange = vi.fn();
+        const { container } = render(
+            <StoryLayoutTab
+                {...baseProps}
+                onCropChange={onCropChange}
+                activeCrop={{ x: 0.21875, y: 0, centerX: 0.5, centerY: 0.5, width: 0.5625, height: 1.0, zoom: 1.0 }}
+            />
+        );
+
+        const framingHeader = container.querySelector('.story-export-modal__framing-header');
+        expect(framingHeader).not.toBeNull();
+
+        const sublabel = framingHeader?.querySelector('.story-export-modal__sublabel');
+        expect(sublabel?.textContent).toBe('Framing');
+
+        const zoomSlider = screen.getByRole('slider', { name: /Photo Zoom/i });
+        expect(zoomSlider).not.toBeNull();
+        expect(zoomSlider.classList.contains('story-export-modal__slider--inline')).toBe(true);
+
+        const zoomValue = framingHeader?.querySelector('.story-export-modal__zoom-value');
+        expect(zoomValue?.textContent).toBe('Fill');
+
+        // Adjusting slider calls onCropChange
+        fireEvent.change(zoomSlider, { target: { value: '1.5' } });
+        expect(onCropChange).toHaveBeenCalled();
+    });
+
+    it('respects controlled burstActiveStep and calls setBurstActiveStep when picking slots', () => {
+        const setBurstActiveStep = vi.fn();
+        const twoPhotoMeta: BurstMetadata = {
+            id: 'batch-duet-step',
+            index: 0,
+            total: 2,
+            isTriptych: true,
+            isDuet: true,
+            frameSources: ['/p1.jpg', '/p2.jpg'],
+            frameThumbs: ['/tp1.jpg', '/tp2.jpg'],
+        };
+
+        render(
+            <StoryLayoutTab
+                {...baseProps}
+                activeMode="burst"
+                burst={twoPhotoMeta}
+                panelCount={2}
+                burstSelectedIndices={[0, null]}
+                burstActiveStep={1}
+                setBurstActiveStep={setBurstActiveStep}
+            />
+        );
+
+        // Slot 2 (BTM) should be active since burstActiveStep is 1
+        const slot2Btn = screen.getByRole('button', { name: /Step 2 \(BTM\): Empty/i });
+        expect(slot2Btn.getAttribute('aria-pressed')).toBe('true');
+        expect(slot2Btn.classList.contains('active')).toBe(true);
+
+        // Clicking slot 1 (TOP) triggers setBurstActiveStep(0)
+        const slot1Btn = screen.getByRole('button', { name: /Step 1 \(TOP\)/i });
+        fireEvent.click(slot1Btn);
+        expect(setBurstActiveStep).toHaveBeenCalledWith(0);
+    });
+
+    it('renders Solo mode toggle button with Title Case typography matching Duet and Triptych', () => {
+        const burstMeta: BurstMetadata = {
+            id: 'burst-mode-casing',
+            index: 0,
+            total: 3,
+            frameSources: ['/f1.jpg', '/f2.jpg', '/f3.jpg'],
+            frameThumbs: ['/tf1.jpg', '/tf2.jpg', '/tf3.jpg'],
+        };
+
+        render(<StoryLayoutTab {...baseProps} burst={burstMeta} />);
+
+        const soloBtn = screen.getByRole('button', { name: /^Solo$/i });
+        expect(soloBtn.textContent).toBe('Solo');
+
+        const duetBtn = screen.getByRole('button', { name: /^Duet$/i });
+        expect(duetBtn.textContent).toBe('Duet');
+
+        const triptychBtn = screen.getByRole('button', { name: /^Triptych$/i });
+        expect(triptychBtn.textContent).toBe('Triptych');
+    });
+
+    it('renders active panel Framing & Zoom slider when a slot is assigned in Duet, and updates on slider input', () => {
+        const twoPhotoMeta: BurstMetadata = {
+            id: 'duet-zoom-slider',
+            index: 0,
+            total: 2,
+            isTriptych: true,
+            isDuet: true,
+            frameSources: ['/p1.jpg', '/p2.jpg'],
+            frameThumbs: ['/tp1.jpg', '/tp2.jpg'],
+        };
+
+        const onBurstPanChange = vi.fn();
+        const burstPanOffsets = [
+            { x: 0.5, y: 0.45, zoom: 1.0 },
+            { x: 0.5, y: 0.45, zoom: 1.5 },
+        ];
+
+        const { rerender } = render(
+            <StoryLayoutTab
+                {...baseProps}
+                activeMode="burst"
+                burst={twoPhotoMeta}
+                panelCount={2}
+                burstSelectedIndices={[0, 1]}
+                burstActiveStep={0}
+                burstPanOffsets={burstPanOffsets}
+                onBurstPanChange={onBurstPanChange}
+            />
+        );
+
+        // TOP panel is active and assigned Frame 1 -> TOP Framing zoom slider is visible
+        expect(screen.getByText('TOP Framing')).not.toBeNull();
+        const slider = screen.getByLabelText(/TOP Panel Zoom/i) as HTMLInputElement;
+        expect(slider).not.toBeNull();
+        expect(slider.value).toBe('1');
+        expect(screen.getByText('1.0x')).not.toBeNull();
+
+        // Change zoom on TOP panel slider to 1.75
+        fireEvent.change(slider, { target: { value: '1.75' } });
+        expect(onBurstPanChange).toHaveBeenCalledWith(0, {
+            x: 0.5,
+            y: 0.45,
+            zoom: 1.75,
+        });
+
+        // Switch to Step 1 (BTM) where zoom is 1.5
+        rerender(
+            <StoryLayoutTab
+                {...baseProps}
+                activeMode="burst"
+                burst={twoPhotoMeta}
+                panelCount={2}
+                burstSelectedIndices={[0, 1]}
+                burstActiveStep={1}
+                burstPanOffsets={burstPanOffsets}
+                onBurstPanChange={onBurstPanChange}
+            />
+        );
+
+        expect(screen.getByText('BTM Framing')).not.toBeNull();
+        const btmSlider = screen.getByLabelText(/BTM Panel Zoom/i) as HTMLInputElement;
+        expect(btmSlider.value).toBe('1.5');
+        expect(screen.getByText('1.50x')).not.toBeNull();
+    });
+
+    it('hides active panel Framing & Zoom slider when the active slot is empty', () => {
+        const twoPhotoMeta: BurstMetadata = {
+            id: 'duet-zoom-empty-slot',
+            index: 0,
+            total: 2,
+            isTriptych: true,
+            isDuet: true,
+            frameSources: ['/p1.jpg', '/p2.jpg'],
+            frameThumbs: ['/tp1.jpg', '/tp2.jpg'],
+        };
+
+        render(
+            <StoryLayoutTab
+                {...baseProps}
+                activeMode="burst"
+                burst={twoPhotoMeta}
+                panelCount={2}
+                burstSelectedIndices={[0, null]}
+                burstActiveStep={1}
+                burstPanOffsets={[
+                    { x: 0.5, y: 0.45, zoom: 1.0 },
+                    { x: 0.5, y: 0.45, zoom: 1.0 },
+                ]}
+            />
+        );
+
+        // BTM slot is active but Empty -> framing zoom slider should NOT be rendered
+        expect(screen.queryByText(/BTM Framing/i)).toBeNull();
+        expect(screen.queryByLabelText(/BTM Panel Zoom/i)).toBeNull();
+    });
+
+    it('renders Solo Background section with inline color picker in header and Frosted | Solid toggle below', () => {
+        const setPaddedConfig = vi.fn();
+        const onCropChange = vi.fn();
+        const setSelectedPresetId = vi.fn();
+
+        const { container } = render(
+            <StoryLayoutTab
+                {...baseProps}
+                activeMode="solo"
+                paddedConfig={{ style: 'frosted', customColor: '#0a0a14', cardScale: 0.92, cardCornerRadius: 24 }}
+                setPaddedConfig={setPaddedConfig}
+                onCropChange={onCropChange}
+                setSelectedPresetId={setSelectedPresetId}
+                activeCrop={{ x: 0, y: 0, width: 1, height: 1, zoom: 1.0, centerX: 0.5, centerY: 0.5 }}
+            />
+        );
+
+        // Header line has Background label and inline tint row
+        const bgHeader = container.querySelector('.story-export-modal__background-header');
+        expect(bgHeader).not.toBeNull();
+        expect(bgHeader?.textContent).toContain('Background');
+
+        // Color picker and swatches are located inside the header tint row
+        const headerTint = bgHeader?.querySelector('.story-export-modal__background-header-tint');
+        expect(headerTint).not.toBeNull();
+        expect(headerTint?.querySelectorAll('.story-export-modal__quick-swatch').length).toBeGreaterThan(0);
+        expect(headerTint?.querySelector('.story-export-modal__color-picker')).not.toBeNull();
+
+        // Second row has Frosted and Solid toggle
+        const frostedBtn = screen.getByRole('button', { name: 'Frosted' });
+        const solidBtn = screen.getByRole('button', { name: 'Solid' });
+        expect(frostedBtn).not.toBeNull();
+        expect(solidBtn).not.toBeNull();
+
+        // Clicking Solid updates paddedConfig and ensures crop transitions to padded when zoomed in
+        fireEvent.click(solidBtn);
+        expect(setPaddedConfig).toHaveBeenCalled();
+        expect(onCropChange).toHaveBeenCalled();
+        expect(setSelectedPresetId).toHaveBeenCalledWith('padded-glass');
+    });
+
+    it('wraps Solo Selected Photo section inside padded-settings for outline and frosting consistency', () => {
+        const multiPhotoMeta: BurstMetadata = {
+            id: 'solo-curated-multi',
+            index: 0,
+            total: 3,
+            isTriptych: true,
+            frameSources: ['/p1.jpg', '/p2.jpg', '/p3.jpg'],
+            frameThumbs: ['/tp1.jpg', '/tp2.jpg', '/tp3.jpg'],
+        };
+
+        const { container } = render(
+            <StoryLayoutTab
+                {...baseProps}
+                activeMode="solo"
+                burst={multiPhotoMeta}
+            />
+        );
+
+        const selector = container.querySelector('.story-export-modal__burst-selector');
+        expect(selector).not.toBeNull();
+        const parentPaddedSettings = selector?.closest('.story-export-modal__padded-settings');
+        expect(parentPaddedSettings).not.toBeNull();
     });
 });

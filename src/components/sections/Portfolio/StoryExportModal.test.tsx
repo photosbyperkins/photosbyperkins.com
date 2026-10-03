@@ -69,7 +69,7 @@ describe('StoryExportModal', () => {
         // At default configuration, Reset to Defaults button is hidden
         expect(within(baseElement).queryByRole('button', { name: /Reset story format to defaults/i })).toBeNull();
 
-        // Switch to Padded mode to alter story format
+        // Switch to Padded framing to alter story format
         const paddedBtn = within(baseElement).getByRole('button', { name: /^padded$/i });
         fireEvent.click(paddedBtn);
 
@@ -123,7 +123,7 @@ describe('StoryExportModal', () => {
         expect(within(baseElement).getByRole('tab', { name: /badges/i, selected: true })).toBeDefined();
     });
 
-    it('switches to padded mode and renders padded-preview container', () => {
+    it('switches to padded framing and renders padded cropper elements', () => {
         const { baseElement } = render(
             <StoryExportModal
                 isOpen={true}
@@ -135,14 +135,14 @@ describe('StoryExportModal', () => {
             />
         );
 
-        // Click 'Padded' segmented toggle
+        // Click 'Padded' framing preset button
         const paddedBtn = within(baseElement).getByRole('button', { name: /^padded$/i });
         fireEvent.click(paddedBtn);
 
-        const viewportCard = baseElement.querySelector('.story-export-modal__viewport-card');
-        const paddedPreview = baseElement.querySelector('.story-export-modal__padded-preview');
-        expect(paddedPreview).not.toBeNull();
-        expect(viewportCard?.contains(paddedPreview!)).toBe(true);
+        const paddedWrapper = baseElement.querySelector('.story-cropper__image-wrapper--padded');
+        const bgLayer = baseElement.querySelector('.story-cropper__background-layer');
+        expect(paddedWrapper).not.toBeNull();
+        expect(bgLayer).not.toBeNull();
     });
 
     it('disables download button in burst mode when fewer than 3 frames are selected', () => {
@@ -302,7 +302,7 @@ describe('StoryExportModal', () => {
             expect(baseElement.querySelector('.story-mobile-popover')).not.toBeNull();
             expect(layoutDockBtn.classList.contains('is-active')).toBe(true);
 
-            // Popover shows Layout tab controls (e.g., Mode or Preset buttons)
+            // Popover shows Layout tab controls (e.g., Framing preset buttons)
             expect(
                 within(baseElement.querySelector('.story-mobile-popover') as HTMLElement).getByRole('button', {
                     name: /^padded$/i,
@@ -394,6 +394,83 @@ describe('StoryExportModal', () => {
             fireEvent.keyDown(window, { key: 'Escape' });
             expect(baseElement.querySelector('.story-mobile-popover')).toBeNull();
             expect(mockOnClose).not.toHaveBeenCalled();
+        });
+
+        it('automatically opens the layout popover and switches to that frame selector when tapping an empty frame', () => {
+            const duetPhoto: PhotoRecord = {
+                ...samplePhoto,
+                burst: {
+                    id: 'duet-empty-panel-test',
+                    index: 0,
+                    total: 3,
+                    isDuet: true,
+                    deltaSec: 0.35,
+                    frameSources: ['/photos/d1.jpg', '/photos/d2.jpg', '/photos/d3.jpg'],
+                    frameThumbs: ['/photos/td1.jpg', '/photos/td2.jpg', '/photos/td3.jpg'],
+                    frameDeltas: [0, 0.35, 0.7],
+                },
+            };
+
+            const { baseElement } = render(
+                <StoryExportModal
+                    isOpen={true}
+                    onClose={mockOnClose}
+                    photo={duetPhoto}
+                    eventName="2024.10.22 - Championship Match"
+                    year="2024"
+                    index={0}
+                />
+            );
+
+            // Popover starts closed
+            expect(baseElement.querySelector('.story-mobile-popover')).toBeNull();
+
+            // Open layout popover to deselect the 2nd slot
+            const layoutDockBtn = within(baseElement.querySelector('.story-mobile-dock') as HTMLElement).getByRole(
+                'button',
+                { name: /^layout$/i }
+            );
+            fireEvent.click(layoutDockBtn);
+
+            const popover = baseElement.querySelector('.story-mobile-popover') as HTMLElement;
+            expect(popover).not.toBeNull();
+
+            // Step 2 button is initially assigned to Frame 2. Click it to activate step 2
+            const btmStepBtn = within(popover).getByRole('button', {
+                name: /Step 2 \(BTM\): Frame 2/i,
+            });
+            fireEvent.click(btmStepBtn);
+
+            // In the burst strip, click Frame 2 to deselect it
+            const frame2Thumb = within(popover).getByRole('button', {
+                name: /Assigned to BTM panel/i,
+            });
+            fireEvent.click(frame2Thumb);
+
+            // Close the popover via close button
+            const closeBtn = within(popover).getByRole('button', { name: /close controls/i });
+            fireEvent.click(closeBtn);
+            expect(baseElement.querySelector('.story-mobile-popover')).toBeNull();
+
+            // Find the empty panel (slot 2)
+            const emptyPanel = baseElement.querySelector<HTMLElement>('.story-burst-cropper__panel--empty');
+            expect(emptyPanel).not.toBeNull();
+
+            // Tap the empty panel in the preview hero
+            fireEvent.click(emptyPanel!);
+
+            // 1. Popover should automatically open
+            const reopenedPopover = baseElement.querySelector('.story-mobile-popover');
+            expect(reopenedPopover).not.toBeNull();
+
+            // 2. Active dock tab should be layout
+            expect(layoutDockBtn.classList.contains('is-active')).toBe(true);
+
+            // 3. Step 2 (BTM) selector should be active in the layout tab
+            const btmEmptyBtn = within(reopenedPopover as HTMLElement).getByRole('button', {
+                name: /Step 2 \(BTM\): Empty/i,
+            });
+            expect(btmEmptyBtn.getAttribute('aria-pressed')).toBe('true');
         });
     });
 

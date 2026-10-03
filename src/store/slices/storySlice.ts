@@ -17,7 +17,7 @@ export interface BurstStoryConfig {
 }
 
 export interface StorySettings {
-    mode: 'crop' | 'padded' | 'burst';
+    mode: 'solo' | 'crop' | 'padded' | 'burst';
     presetId?: string;
     cropZoom?: number;
     paddedConfig: PaddedStyleOptions;
@@ -35,12 +35,11 @@ export interface StorySettings {
 }
 
 export const DEFAULT_STORY_SETTINGS: StorySettings = {
-    mode: 'crop',
+    mode: 'solo',
     presetId: 'center',
     cropZoom: 1.0,
     paddedConfig: {
         style: 'frosted',
-        position: 'center',
         cardScale: 0.92,
         cardCornerRadius: 24,
         customColor: '#0a0a14',

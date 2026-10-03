@@ -74,15 +74,28 @@ export async function renderStoryToCanvas(
         renderBurstPanels(ctx, imageList, config, targetW, targetH, resScale, filterCss);
     }
     // ==========================================
-    // 2. RENDER MODE: CROP & PADDED (requires primaryImg)
+    // 2. RENDER MODE: SOLO (UNIFIED), CROP & PADDED (requires primaryImg)
     // ==========================================
     else if (primaryImg) {
-        if (config.mode === 'crop') {
+        const isSolo = config.mode === 'solo' || !config.mode;
+        const isLegacyPadded = config.mode === 'padded';
+
+        // In solo mode, determine whether photo is padded (zoomed out) or full-bleed cover (zoom >= 1.0)
+        const isPadded =
+            isLegacyPadded ||
+            (isSolo &&
+                Boolean(
+                    config.crop &&
+                        (config.crop.zoom < 0.999 || config.crop.width > 1.001 || config.crop.height > 1.001)
+                ));
+
+        if (!isPadded) {
+            // Full-bleed 9:16 cover rendering (Zoom >= 1.0 or legacy crop)
             const { crop } = config;
-            const sx = crop.x * naturalW;
-            const sy = crop.y * naturalH;
-            const sw = crop.width * naturalW;
-            const sh = crop.height * naturalH;
+            const sx = Math.max(0, crop.x * naturalW);
+            const sy = Math.max(0, crop.y * naturalH);
+            const sw = Math.min(naturalW - sx, crop.width * naturalW);
+            const sh = Math.min(naturalH - sy, crop.height * naturalH);
 
             drawImageWithStoryFilter(
                 ctx,
@@ -100,8 +113,13 @@ export async function renderStoryToCanvas(
                 filterCss
             );
         } else {
-            const { padded } = config;
-            const scale = padded.cardScale || 0.92;
+            const padded =
+                config.padded || {
+                    style: 'frosted',
+                    cardScale: 0.92,
+                    cardCornerRadius: 24,
+                    customColor: '#0a0a14',
+                };
             const cornerRadius = (padded.cardCornerRadius || 24) * (targetW / STORY_WIDTH);
 
             // --- A. Background Rendering ---
@@ -179,24 +197,31 @@ export async function renderStoryToCanvas(
             }
 
             // --- B. Foreground Card Rendering ---
-            const imgRatio = naturalW / naturalH;
-            let cardW = targetW * scale;
-            let cardH = cardW / imgRatio;
+            let cardW: number;
+            let cardH: number;
 
-            // If card exceeds 85% of vertical space, constrain by height
-            const maxCardH = targetH * 0.82;
-            if (cardH > maxCardH) {
-                cardH = maxCardH;
-                cardW = cardH * imgRatio;
+            if (isSolo && config.crop && config.crop.width > 0 && config.crop.height > 0) {
+                cardW = targetW / config.crop.width;
+                cardH = targetH / config.crop.height;
+            } else {
+                const scale = padded.cardScale || 0.92;
+                const imgRatio = naturalW / naturalH;
+                cardW = targetW * scale;
+                cardH = cardW / imgRatio;
+
+                // If card exceeds 85% of vertical space, constrain by height
+                const maxCardH = targetH * 0.82;
+                if (cardH > maxCardH) {
+                    cardH = maxCardH;
+                    cardW = cardH * imgRatio;
+                }
             }
 
             const cardX = (targetW - cardW) / 2;
-            const cardY =
-                padded.position === 'elevated'
-                    ? (targetH - cardH) * 0.42 // slightly elevated to avoid Instagram Story reply bar
-                    : (targetH - cardH) / 2;
+            // Always centered vertically & horizontally (eliminating legacy elevated position)
+            const cardY = (targetH - cardH) / 2;
 
-            const effectiveRadius = cardX <= 2 ? 0 : cornerRadius;
+            const effectiveRadius = cardX <= 2 && cardY <= 2 ? 0 : cornerRadius;
             const isCustomBgLight = Boolean(padded.customColor && isColorLight(padded.customColor));
 
             // Render Drop Shadow

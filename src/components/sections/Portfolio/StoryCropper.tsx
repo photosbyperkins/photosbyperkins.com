@@ -1,6 +1,12 @@
-import React, { useRef, useState, useCallback } from 'react';
-import type { NormalizedCrop, BadgeOptions, StoryPhotoFilterId } from '../../../utils/storyCanvas';
-import { calculateNormalizedCrop, STORY_ASPECT_RATIO, getStoryFilterCss } from '../../../utils/storyCanvas';
+import React, { useRef, useState, useCallback, useMemo } from 'react';
+import type { NormalizedCrop, BadgeOptions, StoryPhotoFilterId, PaddedStyleOptions } from '../../../utils/storyCanvas';
+import {
+    calculateNormalizedCrop,
+    calculateFitZoom,
+    STORY_ASPECT_RATIO,
+    getStoryFilterCss,
+    hexToRgba,
+} from '../../../utils/storyCanvas';
 import { StoryBadges } from './StoryBadges';
 import type { StoryFrameId, StoryFrameContext } from './storyFrames/types';
 import { StoryFrameOverlay } from './storyFrames/StoryFrameOverlay';
@@ -12,6 +18,7 @@ interface StoryCropperProps {
     naturalWidth: number;
     naturalHeight: number;
     crop: NormalizedCrop;
+    paddedConfig?: PaddedStyleOptions;
     badges?: BadgeOptions;
     theme?: 'dark' | 'light';
     frameId?: StoryFrameId;
@@ -29,6 +36,7 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
     naturalWidth,
     naturalHeight,
     crop,
+    paddedConfig,
     badges,
     theme,
     frameId,
@@ -52,6 +60,13 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
     };
 
     const currentSrc = failedSrcs.has(imageSrc) && fallbackSrc ? fallbackSrc : imageSrc;
+
+    // Minimum zoom allowed is derived from the fitZoom calculation for this photo
+    const minZoom = useMemo(() => {
+        return calculateFitZoom(naturalWidth, naturalHeight, paddedConfig?.cardScale || 0.92);
+    }, [naturalWidth, naturalHeight, paddedConfig?.cardScale]);
+
+    const isPadded = crop.zoom < 0.999 || crop.width > 1.001 || crop.height > 1.001;
 
     const dragStartRef = useRef<{ mouseX: number; mouseY: number; startCenterX: number; startCenterY: number } | null>(
         null
@@ -97,7 +112,14 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
         const newCenterX = dragStartRef.current.startCenterX + normDeltaX;
         const newCenterY = dragStartRef.current.startCenterY + normDeltaY;
 
-        const updated = calculateNormalizedCrop(naturalWidth, naturalHeight, newCenterX, newCenterY, crop.zoom);
+        const updated = calculateNormalizedCrop(
+            naturalWidth,
+            naturalHeight,
+            newCenterX,
+            newCenterY,
+            crop.zoom,
+            minZoom
+        );
         onChange(updated);
     };
 
@@ -117,8 +139,8 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
         (e: React.WheelEvent) => {
             e.preventDefault();
             e.stopPropagation();
-            const zoomDelta = e.deltaY < 0 ? 0.1 : -0.1;
-            const newZoom = Math.max(1.0, Math.min(3.5, crop.zoom + zoomDelta));
+            const zoomDelta = e.deltaY < 0 ? 0.08 : -0.08;
+            const newZoom = Math.max(minZoom, Math.min(3.5, crop.zoom + zoomDelta));
 
             if (newZoom !== crop.zoom) {
                 const updated = calculateNormalizedCrop(
@@ -126,12 +148,13 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
                     naturalHeight,
                     crop.centerX,
                     crop.centerY,
-                    newZoom
+                    newZoom,
+                    minZoom
                 );
                 onChange(updated);
             }
         },
-        [crop, naturalWidth, naturalHeight, onChange]
+        [crop, naturalWidth, naturalHeight, minZoom, onChange]
     );
 
     // Touch pinch-to-zoom support
@@ -144,14 +167,15 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
 
             if (touchDistanceRef.current != null) {
                 const delta = (dist - touchDistanceRef.current) * 0.005;
-                const newZoom = Math.max(1.0, Math.min(3.5, crop.zoom + delta));
+                const newZoom = Math.max(minZoom, Math.min(3.5, crop.zoom + delta));
                 if (newZoom !== crop.zoom) {
                     const updated = calculateNormalizedCrop(
                         naturalWidth,
                         naturalHeight,
                         crop.centerX,
                         crop.centerY,
-                        newZoom
+                        newZoom,
+                        minZoom
                     );
                     onChange(updated);
                 }
@@ -165,11 +189,72 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
         touchDistanceRef.current = null;
     };
 
+    // Double click to toggle between Fit (minZoom) and Fill (1.0)
+    const handleDoubleClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const targetZoom = crop.zoom <= minZoom + 0.05 ? 1.0 : minZoom;
+        const updated = calculateNormalizedCrop(
+            naturalWidth,
+            naturalHeight,
+            crop.centerX,
+            crop.centerY,
+            targetZoom,
+            minZoom
+        );
+        onChange(updated);
+    };
+
+    // Keyboard navigation: Arrow keys nudge crop, +/- adjust zoom, 0 resets zoom
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        const step = e.shiftKey ? 0.08 : 0.02;
+        let newCenterX = crop.centerX;
+        let newCenterY = crop.centerY;
+        let newZoom = crop.zoom;
+
+        if (e.key === 'ArrowUp') {
+            newCenterY = Math.max(0, crop.centerY - step);
+            e.preventDefault();
+        } else if (e.key === 'ArrowDown') {
+            newCenterY = Math.min(1, crop.centerY + step);
+            e.preventDefault();
+        } else if (e.key === 'ArrowLeft') {
+            newCenterX = Math.max(0, crop.centerX - step);
+            e.preventDefault();
+        } else if (e.key === 'ArrowRight') {
+            newCenterX = Math.min(1, crop.centerX + step);
+            e.preventDefault();
+        } else if (e.key === '+' || e.key === '=' || e.key === 'Add') {
+            newZoom = Math.min(3.5, parseFloat((crop.zoom + 0.1).toFixed(2)));
+            e.preventDefault();
+        } else if (e.key === '-' || e.key === '_' || e.key === 'Subtract') {
+            newZoom = Math.max(minZoom, parseFloat((crop.zoom - 0.1).toFixed(2)));
+            e.preventDefault();
+        } else if (e.key === '0') {
+            newZoom = minZoom;
+            e.preventDefault();
+        } else {
+            return;
+        }
+
+        const updated = calculateNormalizedCrop(
+            naturalWidth,
+            naturalHeight,
+            newCenterX,
+            newCenterY,
+            newZoom,
+            minZoom
+        );
+        onChange(updated);
+    };
+
     return (
         <div className="story-cropper" onClick={(e) => e.stopPropagation()}>
             <div
                 ref={containerRef}
                 className={`story-cropper__viewport ${isDragging ? 'story-cropper__viewport--dragging' : ''}`}
+                tabIndex={0}
+                role="region"
+                aria-label="Story interactive cropper. Use arrow keys to pan, plus and minus to zoom."
                 onPointerDown={handlePointerDown}
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
@@ -177,12 +262,52 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
                 onWheel={handleWheel}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
+                onDoubleClick={handleDoubleClick}
+                onKeyDown={handleKeyDown}
                 onClick={(e) => e.stopPropagation()}
                 style={{ aspectRatio: `${STORY_ASPECT_RATIO}` }}
             >
+                {/* Background Layer (Frosted or Solid) for Padded / Zoomed-out Solo Mode */}
+                {isPadded && paddedConfig && (
+                    <div className="story-cropper__background-layer" aria-hidden="true">
+                        {paddedConfig.style === 'frosted' || paddedConfig.style === 'glass' ? (
+                            <>
+                                <img
+                                    src={currentSrc}
+                                    alt=""
+                                    className="story-cropper__background-image"
+                                    style={{
+                                        filter: filterCss
+                                            ? `blur(28px) saturate(180%) brightness(0.65) ${filterCss}`
+                                            : 'blur(28px) saturate(180%) brightness(0.65)',
+                                    }}
+                                    draggable={false}
+                                    aria-hidden="true"
+                                    onError={handleImgError}
+                                />
+                                <div
+                                    className="story-cropper__background-tint"
+                                    style={{
+                                        backgroundColor: hexToRgba(paddedConfig.customColor || '#0a0a14'),
+                                    }}
+                                />
+                            </>
+                        ) : (
+                            <div
+                                className="story-cropper__background-solid"
+                                style={{
+                                    backgroundColor: paddedConfig.customColor || '#0a0a14',
+                                }}
+                            />
+                        )}
+                    </div>
+                )}
+
                 {/* Scaled Image */}
                 <div
-                    className="story-cropper__image-wrapper"
+                    className={`story-cropper__image-wrapper ${
+                        isPadded ? 'story-cropper__image-wrapper--padded' : ''
+                    }`}
                     style={{
                         width: `${scaleX * 100}%`,
                         height: `${scaleY * 100}%`,
@@ -226,7 +351,7 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
                             badges?.showScoreboard && (badges?.scoreboardTitle || badges?.teams?.length)
                         ),
                         hasAttribution: Boolean(badges?.showAttribution),
-                        layoutMode: 'crop',
+                        layoutMode: isPadded ? 'padded' : 'solo',
                         exif,
                     };
                     return (
@@ -243,7 +368,7 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
             </div>
 
             <div className="story-cropper__hint">
-                <span>Drag to reposition • Scroll or pinch to zoom</span>
+                <span>Drag to reposition • Scroll, pinch, or double-click to zoom</span>
             </div>
         </div>
     );

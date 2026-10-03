@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion, LayoutGroup } from 'framer-motion';
 import { useCanShare } from '../../../hooks/useCanShare';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
@@ -111,6 +111,8 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         setBurstShowTimeStamps,
         burstSelectedIndices,
         setBurstSelectedIndices,
+        burstActiveStep,
+        setBurstActiveStep,
         burstPanOffsets,
         handleBurstPanChange,
         activeBurstTimeStamps,
@@ -160,6 +162,17 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         canShare,
         onClose,
     });
+
+    const handleSelectEmptyBurstPanel = useCallback(
+        (panelIdx: number) => {
+            setActiveStudioTab('layout');
+            setBurstActiveStep(panelIdx);
+            if (isPortraitMobile) {
+                setIsMobilePopoverOpen(true);
+            }
+        },
+        [setActiveStudioTab, setBurstActiveStep, isPortraitMobile]
+    );
 
     const activePhotoSrc = photoObj.burst?.frameSources?.[activePhotoIndex] || originalSrc;
     const activePhotoThumb = photoObj.burst?.frameThumbs?.[activePhotoIndex] || activePhotoSrc;
@@ -326,13 +339,35 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
     const previewContent = (
         <>
             {/* Interactive Cropper when in custom crop mode */}
-            {activeMode === 'crop' ? (
+            {activeMode === 'burst' && burst ? (
+                <StoryBurstCropper
+                    images={burstFrameUrls}
+                    fallbackSrcs={burstFallbackUrls}
+                    timeStamps={activeBurstTimeStamps}
+                    showTimeStamps={burst?.isTriptych || !burst?.frameDeltas ? false : burstShowTimeStamps}
+                    panOffsets={burstPanOffsets}
+                    onPanChange={handleBurstPanChange}
+                    badges={badges}
+                    theme={cardTheme}
+                    frameId={activeFrameId}
+                    frameColorOverride={effectiveFrameColor}
+                    frameContext={frameContext}
+                    exif={photoObj.exif}
+                    filterId={activeFilterId}
+                    filterStrength={filterStrength}
+                    panelCount={targetBurstCount}
+                    activeStep={burstActiveStep}
+                    onSelectPanel={setBurstActiveStep}
+                    onSelectEmptyPanel={handleSelectEmptyBurstPanel}
+                />
+            ) : (
                 <StoryCropper
                     imageSrc={withBuild(activePhotoDisplay)}
                     fallbackSrc={withBuild(activePhotoSrc) || withBuild(activePhotoThumb)}
                     naturalWidth={naturalDimensions.width}
                     naturalHeight={naturalDimensions.height}
                     crop={activeCrop}
+                    paddedConfig={paddedConfig}
                     badges={badges}
                     theme={cardTheme}
                     frameId={activeFrameId}
@@ -351,40 +386,6 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                         )
                     }
                 />
-            ) : activeMode === 'burst' && burst ? (
-                <StoryBurstCropper
-                    images={burstFrameUrls}
-                    fallbackSrcs={burstFallbackUrls}
-                    timeStamps={activeBurstTimeStamps}
-                    showTimeStamps={burst?.isTriptych || !burst?.frameDeltas ? false : burstShowTimeStamps}
-                    panOffsets={burstPanOffsets}
-                    onPanChange={handleBurstPanChange}
-                    badges={badges}
-                    theme={cardTheme}
-                    frameId={activeFrameId}
-                    frameColorOverride={effectiveFrameColor}
-                    frameContext={frameContext}
-                    exif={photoObj.exif}
-                    filterId={activeFilterId}
-                    filterStrength={filterStrength}
-                    panelCount={targetBurstCount}
-                />
-            ) : (
-                <div className="story-export-modal__padded-preview">
-                    <canvas
-                        ref={previewCanvasRef}
-                        className="story-export-modal__canvas"
-                        style={{ aspectRatio: `${STORY_ASPECT_RATIO}` }}
-                        width="1080"
-                        height="1920"
-                    />
-                    <StoryFrameOverlay
-                        frameId={activeFrameId}
-                        colorOverride={effectiveFrameColor}
-                        context={frameContext}
-                    />
-                    <StoryBadges badges={badges} theme={cardTheme} />
-                </div>
             )}
 
             {/* Image load error fallback */}
@@ -425,6 +426,10 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                     burstPanelCount={burstPanelCount}
                     setBurstPanelCount={setBurstPanelCount}
                     panelCount={targetBurstCount}
+                    burstActiveStep={burstActiveStep}
+                    setBurstActiveStep={setBurstActiveStep}
+                    burstPanOffsets={burstPanOffsets}
+                    onBurstPanChange={handleBurstPanChange}
                 />
             )}
 

@@ -572,3 +572,19 @@ export const ArrowLeftRight = createIcon(
     { strokeWidth: 2.3 }
 );
 export const ArrowLeftRightIcon = ArrowLeftRight;
+
+/**
+ * TriptychReverse
+ * Two opposing horizontal arrows curving outward,
+ * representing reversing the top and bottom panels around the center panel.
+ */
+export const TriptychReverse = createIcon(
+    <>
+        <path d="m6 4-3.5 3.5 3.5 3.5" />
+        <path d="M2.5 7.5 H 7 C 9.5 7.5, 10 4, 12 4 C 14 4, 14.5 7.5, 17 7.5 H 21.5" />
+        <path d="m18 13 3.5 3.5-3.5 3.5" />
+        <path d="M2.5 16.5 H 7 C 9.5 16.5, 10 20, 12 20 C 14 20, 14.5 16.5, 17 16.5 H 21.5" />
+    </>,
+    { strokeWidth: 2.3 }
+);
+export const TriptychReverseIcon = TriptychReverse;

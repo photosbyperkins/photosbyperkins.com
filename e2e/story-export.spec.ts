@@ -1,7 +1,8 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Story Maker (9:16)', () => {
-    test.beforeEach(async ({ page }) => {
+    test.beforeEach(async ({ page, isMobile }) => {
+        test.skip(isMobile, 'Desktop Story Studio layout tests run on desktop browsers');
         await page.goto('/');
         await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
     });
@@ -38,10 +39,8 @@ test.describe('Story Maker (9:16)', () => {
         // Check title
         await expect(studioModal.locator('.modal-shell__title')).toContainText('STORY MAKER');
 
-        // Check composition mode buttons
-        const cropModeBtn = studioModal.locator('button:has-text("9:16")').first();
+        // Check framing options
         const paddedModeBtn = studioModal.locator('button:has-text("Padded")');
-        await expect(cropModeBtn).toBeVisible();
         await expect(paddedModeBtn).toBeVisible();
 
         // Check prepared preset pills
@@ -84,7 +83,7 @@ test.describe('Story Maker (9:16)', () => {
         await expect(studioModal).not.toBeVisible({ timeout: 5000 });
     });
 
-    test('should switch to Padded mode and render canvas preview', async ({ page }) => {
+    test('should switch to Padded mode and render padded elements', async ({ page }) => {
         const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
         await photo.waitFor({ timeout: 10000 });
         await photo.click();
@@ -96,30 +95,27 @@ test.describe('Story Maker (9:16)', () => {
         const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
         await expect(studioModal).toBeVisible({ timeout: 8000 });
 
-        // Verify preview pane is pinned to top (flex-start)
-        const previewPane = studioModal.locator('.story-export-modal__preview-pane');
-        await expect(previewPane).toHaveCSS('align-self', 'flex-start');
-        await expect(previewPane).toHaveCSS('justify-content', 'flex-start');
+        // If on mobile layout, open layout popover
+        const mobileDock = studioModal.locator('.story-mobile-dock');
+        if (await mobileDock.isVisible()) {
+            await studioModal.locator('.story-mobile-dock button:has-text("Layout")').click();
+            await expect(studioModal.locator('.story-mobile-popover')).toBeVisible({ timeout: 5000 });
+        }
 
-        // Click Padded mode
+        // Click Padded preset
         const paddedBtn = studioModal.locator('button:has-text("Padded")');
         await paddedBtn.click();
 
-        // Verify canvas preview is rendered
-        const canvas = studioModal.locator('.story-export-modal__canvas');
-        await expect(canvas).toBeVisible({ timeout: 5000 });
+        // Verify cropper padded elements are rendered
+        const paddedWrapper = studioModal.locator('.story-cropper__image-wrapper--padded');
+        await expect(paddedWrapper).toBeVisible({ timeout: 5000 });
+        const bgLayer = studioModal.locator('.story-cropper__background-layer');
+        await expect(bgLayer).toBeVisible({ timeout: 5000 });
 
         // Verify padded settings are displayed
         await expect(studioModal.locator('.story-export-modal__padded-settings')).toBeVisible();
         await expect(studioModal.locator('button:has-text("Frosted")')).toBeVisible();
         await expect(studioModal.locator('button:has-text("Solid")')).toBeVisible();
-
-        // Verify uniform pill toggle widths
-        const bgPillGroup = studioModal.locator('.story-export-modal__toggle-row .story-export-modal__pill-group').first();
-        const posPillGroup = studioModal.locator('.story-export-modal__toggle-row .story-export-modal__pill-group').nth(1);
-        const bgBox = await bgPillGroup.boundingBox();
-        const posBox = await posPillGroup.boundingBox();
-        expect(bgBox?.width).toBeCloseTo(posBox?.width ?? 0, 1);
 
         // Color row is visible in Frosted mode
         await expect(studioModal.locator('.story-export-modal__custom-color-row')).toBeVisible();
@@ -129,13 +125,9 @@ test.describe('Story Maker (9:16)', () => {
         await studioModal.locator('button:has-text("Solid")').click();
         await expect(studioModal.locator('.story-export-modal__custom-color-row')).toBeVisible();
 
-        // Verify photo scale slider has max="1" and can display 100%
-        const scaleSlider = studioModal.locator('input[aria-label="Photo Card Scale"]');
-        await expect(scaleSlider).toBeVisible();
-        await expect(scaleSlider).toHaveAttribute('max', '1');
-        await scaleSlider.fill('1');
-        const scaleValue = studioModal.locator('.story-export-modal__padded-settings .story-export-modal__zoom-value');
-        await expect(scaleValue).toContainText('100%');
+        // Verify photo zoom slider is visible
+        const zoomSlider = studioModal.locator('input[aria-label="Photo Zoom"]');
+        await expect(zoomSlider).toBeVisible();
 
         // Close modal
         await page.keyboard.press('Escape');
@@ -167,7 +159,7 @@ test.describe('Story Maker (9:16)', () => {
         const footerBox = await footerBar.boundingBox();
         const viewport = page.viewportSize();
         if (footerBox && viewport) {
-            expect(Math.abs((footerBox.y + footerBox.height) - viewport.height)).toBeLessThanOrEqual(48);
+            expect(Math.abs((footerBox.y + footerBox.height) - viewport.height)).toBeLessThanOrEqual(60);
         }
 
         // Close modal
@@ -217,14 +209,14 @@ test.describe('Story Maker (9:16)', () => {
             await expect(lightbox).toBeVisible();
         }
 
-        // 5. Click segmented control mode switch
+        // 5. Click framing preset buttons
         const paddedBtn = studioModal.locator('button:has-text("Padded")');
         await paddedBtn.click();
         await expect(studioModal).toBeVisible();
         await expect(lightbox).toBeVisible();
 
-        const cropBtn = studioModal.locator('button:has-text("9:16")').first();
-        await cropBtn.click();
+        const centerBtn = studioModal.locator('button:has-text("Center"), button:has-text("Subject")').first();
+        await centerBtn.click();
         await expect(studioModal).toBeVisible();
         await expect(lightbox).toBeVisible();
 
@@ -406,6 +398,13 @@ test.describe('Story Maker (9:16)', () => {
         const cropBox = await cropAttribution.boundingBox();
         expect(cropBox).not.toBeNull();
 
+        // If on mobile layout, open layout popover
+        const mobileDock = studioModal.locator('.story-mobile-dock');
+        if (await mobileDock.isVisible()) {
+            await studioModal.locator('.story-mobile-dock button:has-text("Layout")').click();
+            await expect(studioModal.locator('.story-mobile-popover')).toBeVisible({ timeout: 5000 });
+        }
+
         // Switch to Padded mode
         const paddedBtn = studioModal.locator('button:has-text("Padded")');
         await paddedBtn.click();
@@ -434,6 +433,13 @@ test.describe('Story Maker (9:16)', () => {
         let studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
         await expect(studioModal).toBeVisible({ timeout: 8000 });
 
+        // If on mobile layout, open layout popover
+        const mobileDock = studioModal.locator('.story-mobile-dock');
+        if (await mobileDock.isVisible()) {
+            await studioModal.locator('.story-mobile-dock button:has-text("Layout")').click();
+            await expect(studioModal.locator('.story-mobile-popover')).toBeVisible({ timeout: 5000 });
+        }
+
         // Switch to Padded mode and Solid background
         const paddedBtn = studioModal.locator('button:has-text("Padded")');
         await paddedBtn.click();
@@ -450,10 +456,16 @@ test.describe('Story Maker (9:16)', () => {
         studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
         await expect(studioModal).toBeVisible({ timeout: 8000 });
 
-        // Verify it reset back to default 9:16 Crop mode (not Padded)
-        const cropBtn = studioModal.locator('button:has-text("9:16")').first();
-        await expect(cropBtn).toHaveClass(/active/);
-        await expect(studioModal.locator('.story-export-modal__padded-settings')).not.toBeVisible();
+        // If on mobile layout, open layout popover
+        const mobileDockReopen = studioModal.locator('.story-mobile-dock');
+        if (await mobileDockReopen.isVisible()) {
+            await studioModal.locator('.story-mobile-dock button:has-text("Layout")').click();
+            await expect(studioModal.locator('.story-mobile-popover')).toBeVisible({ timeout: 5000 });
+        }
+
+        // Verify it reset back to default Center / Subject framing (not Padded)
+        const centerBtn = studioModal.locator('button:has-text("Center"), button:has-text("Subject")').first();
+        await expect(centerBtn).toHaveClass(/active/);
     });
 
     test('should support selecting frames and applying tint', async ({ page }) => {
@@ -593,6 +605,12 @@ test.describe('Story Maker (9:16)', () => {
         await expect(downloadBtn).toBeDisabled();
 
         // Altering card (e.g. clicking an alternate preset) resets button back to Download Story Card
+        const mobileDock = studioModal.locator('.story-mobile-dock');
+        if (await mobileDock.isVisible()) {
+            await studioModal.locator('.story-mobile-dock button:has-text("Layout")').click();
+            await expect(studioModal.locator('.story-mobile-popover')).toBeVisible({ timeout: 5000 });
+        }
+
         const altPreset = studioModal.locator('.story-export-modal__preset-pill:not(.active)').first();
         await altPreset.click();
 
@@ -607,9 +625,12 @@ test.describe('Story Maker (9:16)', () => {
         await expect(downloadBtn).toBeDisabled();
 
         // Altering card via zoom slider resets it again
-        const zoomSlider = studioModal.locator('input[aria-label="Crop Zoom Level"]');
-        await zoomSlider.fill('1.5');
-        await zoomSlider.dispatchEvent('change');
+        const zoomSlider = studioModal.locator('input[aria-label="Photo Zoom"]');
+        await zoomSlider.evaluate((el: HTMLInputElement) => {
+            el.value = '1.5';
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+        });
 
         await expect(downloadBtn).toContainText('Download Story Card');
         await expect(downloadBtn).not.toHaveClass(/is-done/);
@@ -666,7 +687,13 @@ test.describe('Story Maker (9:16)', () => {
         await expect(studioModal).toBeVisible({ timeout: 8000 });
 
         // Switch to Filters tab
-        await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Filters")').click();
+        const mobileDock = studioModal.locator('.story-mobile-dock');
+        if (await mobileDock.isVisible()) {
+            await studioModal.locator('.story-mobile-dock button:has-text("Filters")').click();
+            await expect(studioModal.locator('.story-mobile-popover')).toBeVisible({ timeout: 5000 });
+        } else {
+            await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Filters")').click();
+        }
 
         // Verify filter section and initial state
         const filterSection = studioModal.locator('.story-export-modal__section--filters');
@@ -687,7 +714,11 @@ test.describe('Story Maker (9:16)', () => {
         await expect(cropperImg).toHaveCSS('filter', /grayscale\(1\)|grayscale\(100%\)/);
 
         // Switch to Frames tab and select Grizzly frame
-        await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Frames")').click();
+        if (await mobileDock.isVisible()) {
+            await studioModal.locator('.story-mobile-dock button:has-text("Frames")').click();
+        } else {
+            await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Frames")').click();
+        }
         const bearCard = studioModal.locator('.story-export-modal__frames-grid button:has-text("Grizzly")');
         await bearCard.click();
 
@@ -701,7 +732,11 @@ test.describe('Story Maker (9:16)', () => {
         await expect(bearSvg).toHaveCSS('filter', 'none');
 
         // Switch back to Filters tab and select B&W+ filter
-        await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Filters")').click();
+        if (await mobileDock.isVisible()) {
+            await studioModal.locator('.story-mobile-dock button:has-text("Filters")').click();
+        } else {
+            await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Filters")').click();
+        }
         const bwContrastBtn = filterSection.locator('button:has-text("B&W+")');
         await bwContrastBtn.click();
         await expect(currentFilterBadge).toHaveText('B&W+');

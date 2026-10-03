@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { ArrowLeftRight, ArrowUpDown } from '../../../ui/icons';
+import { ArrowLeftRight, TriptychReverse } from '../../../ui/icons';
 import type { NormalizedCrop, PaddedStyleOptions, StoryPreset } from '../../../../utils/storyCanvas';
+import { calculateFitZoom, calculateNormalizedCrop } from '../../../../utils/storyCanvas';
 import { isFrameValidForWizardStep } from '../../../../utils/story';
 import type { BurstMetadata } from '../../../../types';
 
 interface StoryLayoutTabProps {
-    activeMode: 'crop' | 'padded' | 'burst';
-    setActiveMode: (mode: 'crop' | 'padded' | 'burst') => void;
+    activeMode: 'solo' | 'crop' | 'padded' | 'burst';
+    setActiveMode: (mode: 'solo' | 'crop' | 'padded' | 'burst') => void;
     selectedPresetId: string;
     setSelectedPresetId: (id: string) => void;
     presets: StoryPreset[];
@@ -30,6 +31,10 @@ interface StoryLayoutTabProps {
     panelCount?: 2 | 3;
     burstPanelCount?: 2 | 3;
     setBurstPanelCount?: (count: 2 | 3) => void;
+    burstActiveStep?: number;
+    setBurstActiveStep?: (step: number) => void;
+    burstPanOffsets?: { x: number; y: number; zoom?: number }[];
+    onBurstPanChange?: (panelIdx: number, offset: { x: number; y: number; zoom?: number }) => void;
 }
 
 export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
@@ -39,9 +44,9 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
     setSelectedPresetId,
     presets,
     onSelectPreset,
-    activeCrop: _activeCrop,
-    onCropChange: _onCropChange,
-    naturalDimensions: _naturalDimensions,
+    activeCrop,
+    onCropChange,
+    naturalDimensions,
     paddedConfig,
     setPaddedConfig,
     setIsDownloaded,
@@ -57,7 +62,50 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
     panelCount,
     burstPanelCount,
     setBurstPanelCount,
+    burstActiveStep,
+    setBurstActiveStep,
+    burstPanOffsets,
+    onBurstPanChange,
 }) => {
+    const isSoloMode = activeMode !== 'burst';
+    const fitZoom = calculateFitZoom(
+        naturalDimensions.width,
+        naturalDimensions.height,
+        paddedConfig.cardScale || 0.92
+    );
+
+    const handleZoomSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newZoom = parseFloat(e.target.value);
+        if (onCropChange && activeCrop) {
+            const updated = calculateNormalizedCrop(
+                naturalDimensions.width,
+                naturalDimensions.height,
+                activeCrop.centerX,
+                activeCrop.centerY,
+                newZoom,
+                fitZoom
+            );
+            onCropChange(updated);
+            setSelectedPresetId('custom');
+            setIsDownloaded(false);
+        }
+    };
+
+    const ensurePadded = () => {
+        if (activeCrop && activeCrop.zoom >= 0.999 && onCropChange) {
+            const fitCrop = calculateNormalizedCrop(
+                naturalDimensions.width,
+                naturalDimensions.height,
+                0.5,
+                0.5,
+                fitZoom,
+                fitZoom
+            );
+            onCropChange(fitCrop);
+            setSelectedPresetId('padded-glass');
+        }
+    };
+
     const effectivePanelCount: 2 | 3 = burstPanelCount ?? panelCount ?? (burst?.total === 2 || burst?.isDuet ? 2 : 3);
     const isDuetLayout = effectivePanelCount === 2;
     const slotNames = isDuetLayout ? ['TOP', 'BTM'] : ['TOP', 'MID', 'BTM'];
@@ -69,13 +117,30 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
         ? [burstSelectedIndices[0] ?? null, burstSelectedIndices[1] ?? null]
         : [burstSelectedIndices[0] ?? null, burstSelectedIndices[1] ?? null, burstSelectedIndices[2] ?? null];
 
+    const isSwapDisabled = Boolean(enforceOrdering || slots[0] === null || slots[1] === null);
+
+    const handleBurstZoomSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newZoom = parseFloat(e.target.value);
+        if (onBurstPanChange) {
+            const currentPan = burstPanOffsets?.[activeStep] || { x: 0.5, y: 0.45, zoom: 1.0 };
+            onBurstPanChange(activeStep, {
+                ...currentPan,
+                zoom: newZoom,
+            });
+            setIsDownloaded(false);
+        }
+    };
+
     // Wizard step: 0 = TOP, 1 = MID (or BTM in duet), 2 = BTM
-    const [activeStep, setActiveStep] = useState<number>(() => {
+    const [internalActiveStep, setInternalActiveStep] = useState<number>(() => {
         if (burstSelectedIndices[0] === null || burstSelectedIndices[0] === undefined) return 0;
         if (burstSelectedIndices[1] === null || burstSelectedIndices[1] === undefined) return 1;
         if (!isDuetLayout && (burstSelectedIndices[2] === null || burstSelectedIndices[2] === undefined)) return 2;
         return 0;
     });
+
+    const activeStep = burstActiveStep !== undefined ? burstActiveStep : internalActiveStep;
+    const setActiveStep = setBurstActiveStep || setInternalActiveStep;
 
     const totalFrames = burst?.total || burst?.frameSources?.length || (isDuetLayout ? 2 : 6);
     const isFrameSelectorSuppressed = Boolean(
@@ -377,56 +442,35 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
 
     return (
         <div className="story-export-modal__tab-content story-export-modal__tab-content--layout">
-            {/* Mode Toggle: Smart Crop vs Padded Glass vs 3-Panel Burst */}
+            {/* Mode Toggle: SOLO vs Duet vs Triptych (shown when photo is a burst with >= 2 photos) */}
             <div className="story-export-modal__section">
-                <div className="story-export-modal__top-row">
-                    <div
-                        className="portfolio__segmented-toggle story-export-modal__segmented-control"
-                        role="group"
-                        aria-label="Story layout mode"
-                    >
-                        <button
-                            type="button"
-                            className={`story-export-modal__seg-btn ${
-                                activeMode === 'crop' ? 'active story-export-modal__seg-btn--active' : ''
-                            }`}
-                            onClick={() => {
-                                setActiveMode('crop');
-                                setIsDownloaded(false);
-                            }}
-                            aria-pressed={activeMode === 'crop'}
+                {burst && burst.total >= 2 && (
+                    <div className="story-export-modal__top-row" style={{ marginBottom: '0.75rem' }}>
+                        <div
+                            className="portfolio__segmented-toggle story-export-modal__segmented-control"
+                            role="group"
+                            aria-label="Story layout mode"
                         >
-                            {activeMode === 'crop' && (
-                                <motion.span
-                                    className="portfolio__segment-pill"
-                                    layoutId="storyLayoutModePill"
-                                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
-                                />
-                            )}
-                            <span>9:16</span>
-                        </button>
-                        <button
-                            type="button"
-                            className={`story-export-modal__seg-btn ${
-                                activeMode === 'padded' ? 'active story-export-modal__seg-btn--active' : ''
-                            }`}
-                            onClick={() => {
-                                setActiveMode('padded');
-                                setSelectedPresetId('padded-glass');
-                                setIsDownloaded(false);
-                            }}
-                            aria-pressed={activeMode === 'padded'}
-                        >
-                            {activeMode === 'padded' && (
-                                <motion.span
-                                    className="portfolio__segment-pill"
-                                    layoutId="storyLayoutModePill"
-                                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
-                                />
-                            )}
-                            <span>Padded</span>
-                        </button>
-                        {burst && burst.total >= 2 && (
+                            <button
+                                type="button"
+                                className={`story-export-modal__seg-btn ${
+                                    isSoloMode ? 'active story-export-modal__seg-btn--active' : ''
+                                }`}
+                                onClick={() => {
+                                    setActiveMode('solo');
+                                    setIsDownloaded(false);
+                                }}
+                                aria-pressed={isSoloMode}
+                            >
+                                {isSoloMode && (
+                                    <motion.span
+                                        className="portfolio__segment-pill"
+                                        layoutId="storyLayoutModePill"
+                                        transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                    />
+                                )}
+                                <span>Solo</span>
+                            </button>
                             <button
                                 type="button"
                                 className={`story-export-modal__seg-btn story-export-modal__seg-btn--burst ${
@@ -453,42 +497,42 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                 )}
                                 <span>Duet</span>
                             </button>
-                        )}
-                        {burst && burst.total >= 3 && (
-                            <button
-                                type="button"
-                                className={`story-export-modal__seg-btn story-export-modal__seg-btn--burst ${
-                                    activeMode === 'burst' && effectivePanelCount === 3
-                                        ? 'active story-export-modal__seg-btn--active'
-                                        : ''
-                                }`}
-                                onClick={() => {
-                                    setActiveMode('burst');
-                                    setBurstPanelCount?.(3);
-                                    if (!burst?.isTriptych && burstShowTimeStamps && totalFrames === 3) {
-                                        setBurstSelectedIndices?.([0, 1, 2]);
-                                    }
-                                    setIsDownloaded(false);
-                                }}
-                                aria-pressed={activeMode === 'burst' && effectivePanelCount === 3}
-                            >
-                                {activeMode === 'burst' && effectivePanelCount === 3 && (
-                                    <motion.span
-                                        className="portfolio__segment-pill"
-                                        layoutId="storyLayoutModePill"
-                                        transition={{ type: 'spring', stiffness: 500, damping: 38 }}
-                                    />
-                                )}
-                                <span>Triptych</span>
-                            </button>
-                        )}
+                            {burst.total >= 3 && (
+                                <button
+                                    type="button"
+                                    className={`story-export-modal__seg-btn story-export-modal__seg-btn--burst ${
+                                        activeMode === 'burst' && effectivePanelCount === 3
+                                            ? 'active story-export-modal__seg-btn--active'
+                                            : ''
+                                    }`}
+                                    onClick={() => {
+                                        setActiveMode('burst');
+                                        setBurstPanelCount?.(3);
+                                        if (!burst?.isTriptych && burstShowTimeStamps && totalFrames === 3) {
+                                            setBurstSelectedIndices?.([0, 1, 2]);
+                                        }
+                                        setIsDownloaded(false);
+                                    }}
+                                    aria-pressed={activeMode === 'burst' && effectivePanelCount === 3}
+                                >
+                                    {activeMode === 'burst' && effectivePanelCount === 3 && (
+                                        <motion.span
+                                            className="portfolio__segment-pill"
+                                            layoutId="storyLayoutModePill"
+                                            transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                        />
+                                    )}
+                                    <span>Triptych</span>
+                                </button>
+                            )}
+                        </div>
                     </div>
-                </div>
+                )}
 
                 {/* Single-Photo Mode Selector (Crop / Padded when multiple photos are selected) */}
                 {activeMode !== 'burst' && burst && burst.frameSources && burst.frameSources.length > 1 && (
                     <div className="story-export-modal__section">
-                        <div className="story-export-modal__burst-selector" style={{ marginTop: 0 }}>
+                        <div className="story-export-modal__padded-settings">
                             <div
                                 className="story-export-modal__toggle-row"
                                 style={{ marginTop: 0, marginBottom: '0.5rem' }}
@@ -507,78 +551,80 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                 </span>
                             </div>
 
-                            <div className="story-export-modal__burst-strip" role="group" aria-label="Photo Selector">
-                                {burst.frameSources.map((src, fIdx) => {
-                                    const isSelected = fIdx === activePhotoIndex;
-                                    const thumbUrl = burst.frameThumbs?.[fIdx] || src;
-                                    const delta = burst.frameDeltas?.[fIdx] ?? fIdx * 0.8;
-                                    const labelPrefix = burst.isTriptych ? 'P' : 'F';
-                                    const photoLabel = `${labelPrefix}${fIdx + 1}`;
-                                    const fullTitle = burst.isTriptych ? `Photo ${fIdx + 1}` : `Frame ${fIdx + 1}`;
+                            <div className="story-export-modal__burst-selector" style={{ marginTop: 0 }}>
+                                <div className="story-export-modal__burst-strip" role="group" aria-label="Photo Selector">
+                                    {burst.frameSources.map((src, fIdx) => {
+                                        const isSelected = fIdx === activePhotoIndex;
+                                        const thumbUrl = burst.frameThumbs?.[fIdx] || src;
+                                        const delta = burst.frameDeltas?.[fIdx] ?? fIdx * 0.8;
+                                        const labelPrefix = burst.isTriptych ? 'P' : 'F';
+                                        const photoLabel = `${labelPrefix}${fIdx + 1}`;
+                                        const fullTitle = burst.isTriptych ? `Photo ${fIdx + 1}` : `Frame ${fIdx + 1}`;
 
-                                    const ariaLabel = burst.isTriptych
-                                        ? `${fullTitle}.${isSelected ? ' (Selected)' : ''} Tap to select.`
-                                        : `${fullTitle}, elapsed time +${delta.toFixed(2)} seconds.${
-                                              isSelected ? ' (Selected)' : ''
-                                          } Tap to select.`;
+                                        const ariaLabel = burst.isTriptych
+                                            ? `${fullTitle}.${isSelected ? ' (Selected)' : ''} Tap to select.`
+                                            : `${fullTitle}, elapsed time +${delta.toFixed(2)} seconds.${
+                                                  isSelected ? ' (Selected)' : ''
+                                              } Tap to select.`;
 
-                                    const titleText = burst.isTriptych
-                                        ? `${fullTitle}${isSelected ? ' (Selected)' : ''}`
-                                        : `${fullTitle}: +${delta.toFixed(2)}s${isSelected ? ' (Selected)' : ''}`;
+                                        const titleText = burst.isTriptych
+                                            ? `${fullTitle}${isSelected ? ' (Selected)' : ''}`
+                                            : `${fullTitle}: +${delta.toFixed(2)}s${isSelected ? ' (Selected)' : ''}`;
 
-                                    const fx =
-                                        burst?.frameFocusX?.[fIdx] ??
-                                        (fIdx === activePhotoIndex ? defaultFocusX : undefined) ??
-                                        defaultFocusX;
-                                    const fy =
-                                        burst?.frameFocusY?.[fIdx] ??
-                                        (fIdx === activePhotoIndex ? defaultFocusY : undefined) ??
-                                        defaultFocusY;
-                                    const objectPosition =
-                                        fx != null && fy != null ? `${fx * 100}% ${fy * 100}%` : undefined;
+                                        const fx =
+                                            burst?.frameFocusX?.[fIdx] ??
+                                            (fIdx === activePhotoIndex ? defaultFocusX : undefined) ??
+                                            defaultFocusX;
+                                        const fy =
+                                            burst?.frameFocusY?.[fIdx] ??
+                                            (fIdx === activePhotoIndex ? defaultFocusY : undefined) ??
+                                            defaultFocusY;
+                                        const objectPosition =
+                                            fx != null && fy != null ? `${fx * 100}% ${fy * 100}%` : undefined;
 
-                                    return (
-                                        <button
-                                            key={src}
-                                            type="button"
-                                            className={`story-export-modal__burst-thumb${
-                                                isSelected
-                                                    ? ' story-export-modal__burst-thumb--selected story-export-modal__burst-thumb--targeted'
-                                                    : ''
-                                            }`}
-                                            style={
-                                                objectPosition
-                                                    ? ({ '--thumb-focus': objectPosition } as React.CSSProperties)
-                                                    : undefined
-                                            }
-                                            onClick={() => onSelectPhotoIndex?.(fIdx)}
-                                            title={titleText}
-                                            aria-label={ariaLabel}
-                                            aria-pressed={isSelected}
-                                        >
-                                            <img
-                                                src={thumbUrl}
-                                                alt={fullTitle}
-                                                loading="lazy"
-                                                style={objectPosition ? { objectPosition } : undefined}
-                                            />
-                                            {isSelected ? (
-                                                <span className="story-export-modal__burst-thumb-slot">
-                                                    {photoLabel}
-                                                </span>
-                                            ) : (
-                                                <span className="story-export-modal__burst-thumb-idx">
-                                                    {photoLabel}
-                                                </span>
-                                            )}
-                                            {!burst.isTriptych && (
-                                                <span className="story-export-modal__burst-thumb-badge">
-                                                    +{delta.toFixed(2)}s
-                                                </span>
-                                            )}
-                                        </button>
-                                    );
-                                })}
+                                        return (
+                                            <button
+                                                key={src}
+                                                type="button"
+                                                className={`story-export-modal__burst-thumb${
+                                                    isSelected
+                                                        ? ' story-export-modal__burst-thumb--selected story-export-modal__burst-thumb--targeted'
+                                                        : ''
+                                                }`}
+                                                style={
+                                                    objectPosition
+                                                        ? ({ '--thumb-focus': objectPosition } as React.CSSProperties)
+                                                        : undefined
+                                                }
+                                                onClick={() => onSelectPhotoIndex?.(fIdx)}
+                                                title={titleText}
+                                                aria-label={ariaLabel}
+                                                aria-pressed={isSelected}
+                                            >
+                                                <img
+                                                    src={thumbUrl}
+                                                    alt={fullTitle}
+                                                    loading="lazy"
+                                                    style={objectPosition ? { objectPosition } : undefined}
+                                                />
+                                                {isSelected ? (
+                                                    <span className="story-export-modal__burst-thumb-slot">
+                                                        {photoLabel}
+                                                    </span>
+                                                ) : (
+                                                    <span className="story-export-modal__burst-thumb-idx">
+                                                        {photoLabel}
+                                                    </span>
+                                                )}
+                                                {!burst.isTriptych && (
+                                                    <span className="story-export-modal__burst-thumb-badge">
+                                                        +{delta.toFixed(2)}s
+                                                    </span>
+                                                )}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -588,81 +634,30 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                 {activeMode === 'burst' && burst && burst.total >= 2 && (
                     <div className="story-export-modal__section">
                         <div className="story-export-modal__padded-settings">
-                            {!isMultiPhoto && (
-                                <div className="story-export-modal__toggle-row">
-                                    <div className="story-export-modal__label-with-badge">
-                                        <span>+Δt</span>
-                                        {burstShowTimeStamps && activeTimeDeltaText && (
-                                            <span
-                                                className="story-export-modal__delta-badge"
-                                                data-testid="burst-delta-badge"
-                                            >
-                                                ({activeTimeDeltaText})
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div
-                                        className="portfolio__segmented-toggle story-export-modal__pill-group"
-                                        role="group"
-                                        aria-label="Show timestamp"
-                                    >
-                                        <button
-                                            type="button"
-                                            className={`story-export-modal__pill ${
-                                                burstShowTimeStamps ? 'active story-export-modal__pill--active' : ''
-                                            }`}
-                                            onClick={() => handleToggleTimeStamps(true)}
-                                            aria-pressed={Boolean(burstShowTimeStamps)}
+                            <div
+                                className="story-export-modal__toggle-row story-export-modal__slot-header"
+                                style={{ marginTop: 0, marginBottom: isFrameSelectorSuppressed ? 0 : '0.5rem' }}
+                            >
+                                <div className="story-export-modal__label-with-badge">
+                                    <span>
+                                        {burst.isTriptych
+                                            ? isDuetLayout
+                                                ? 'Duet Photos'
+                                                : 'Triptych Photos'
+                                            : isDuetLayout
+                                              ? 'Duet Frames'
+                                              : 'Burst Frames'}
+                                    </span>
+                                    {!isMultiPhoto && <span>+Δt</span>}
+                                    {burstShowTimeStamps && activeTimeDeltaText && (
+                                        <span
+                                            className="story-export-modal__delta-badge"
+                                            data-testid="burst-delta-badge"
                                         >
-                                            {burstShowTimeStamps && (
-                                                <motion.span
-                                                    className="portfolio__segment-pill"
-                                                    layoutId="storyBurstTimestampsPill"
-                                                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
-                                                />
-                                            )}
-                                            <span>Show</span>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className={`story-export-modal__pill ${
-                                                !burstShowTimeStamps ? 'active story-export-modal__pill--active' : ''
-                                            }`}
-                                            onClick={() => handleToggleTimeStamps(false)}
-                                            aria-pressed={!burstShowTimeStamps}
-                                        >
-                                            {!burstShowTimeStamps && (
-                                                <motion.span
-                                                    className="portfolio__segment-pill"
-                                                    layoutId="storyBurstTimestampsPill"
-                                                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
-                                                />
-                                            )}
-                                            <span>Hide</span>
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {burst.total >= 2 && !isFrameSelectorSuppressed && (
-                                <div
-                                    className="story-export-modal__burst-selector"
-                                    style={{ marginTop: burst.isTriptych ? 0 : '1rem' }}
-                                >
-                                    <div
-                                        className="story-export-modal__toggle-row"
-                                        style={{ marginTop: burst.isTriptych ? 0 : '0.75rem', marginBottom: '0.5rem' }}
-                                    >
-                                        <span>
-                                            {burst.isTriptych
-                                                ? isDuetLayout
-                                                    ? 'Duet Photos'
-                                                    : 'Triptych Photos'
-                                                : isDuetLayout
-                                                  ? 'Duet Frames'
-                                                  : 'Burst Frames'}
+                                            ({activeTimeDeltaText})
                                         </span>
-                                        <div className="story-export-modal__slot-header-actions">
+                                    )}
+                                        {!isFrameSelectorSuppressed && (
                                             <span
                                                 className="story-export-modal__hint-tag"
                                                 style={{
@@ -675,116 +670,172 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                             >
                                                 {feedbackText}
                                             </span>
-                                            {canReverseTriptych && (
-                                                <button
-                                                    type="button"
-                                                    className="story-export-modal__reverse-btn"
-                                                    onClick={handleReverseTriptychSlots}
-                                                    title="Reverse frame sequence (invert top and bottom)"
-                                                    aria-label="Reverse frame sequence"
-                                                >
-                                                    <ArrowUpDown size={13} />
-                                                    <span>Reverse</span>
-                                                </button>
-                                            )}
-                                        </div>
+                                        )}
                                     </div>
-
-                                    {/* Sequential Wizard / Triptych / Duet Segmented Step Picker */}
-                                    <div
-                                        className="portfolio__segmented-toggle story-export-modal__pill-group story-export-modal__burst-slot-group"
-                                        role="group"
-                                        aria-label={
-                                            burst.isTriptych
-                                                ? isDuetLayout
-                                                    ? 'Duet Photo Slots'
-                                                    : 'Triptych Photo Slots'
-                                                : isDuetLayout
-                                                  ? 'Duet Frame Slots'
-                                                  : 'Burst Wizard Steps'
-                                        }
-                                    >
-                                        {(isDuetLayout ? [0, 1] : [0, 1, 2]).map((sIdx) => {
-                                            const assignedFrame = slots[sIdx];
-                                            const isStepActive = activeStep === sIdx;
-                                            const valPrefix = burst.isTriptych ? 'P' : 'F';
-                                            const valText =
-                                                assignedFrame !== null ? `${valPrefix}${assignedFrame + 1}` : 'Empty';
-                                            const slotBtn = (
+                                    <div className="story-export-modal__slot-header-actions">
+                                        {!isMultiPhoto && (
+                                            <div
+                                                className="portfolio__segmented-toggle story-export-modal__pill-group story-export-modal__pill-group--inline"
+                                                role="group"
+                                                aria-label="Show timestamp"
+                                            >
                                                 <button
-                                                    key={sIdx}
                                                     type="button"
-                                                    className={`story-export-modal__pill story-export-modal__burst-slot-pill ${
-                                                        isStepActive ? 'active story-export-modal__pill--active' : ''
+                                                    className={`story-export-modal__pill ${
+                                                        burstShowTimeStamps ? 'active story-export-modal__pill--active' : ''
                                                     }`}
-                                                    onClick={() => handleSlotClick(sIdx)}
-                                                    aria-label={`Step ${sIdx + 1} (${slotNames[sIdx]}): ${
-                                                        assignedFrame !== null
-                                                            ? `${burst.isTriptych ? 'Photo' : 'Frame'} ${
-                                                                  assignedFrame + 1
-                                                              }`
-                                                            : 'Empty'
-                                                    }${isStepActive ? ' (Active)' : ''}`}
-                                                    aria-pressed={isStepActive}
+                                                    onClick={() => handleToggleTimeStamps(true)}
+                                                    aria-pressed={Boolean(burstShowTimeStamps)}
                                                 >
-                                                    {isStepActive && (
+                                                    {burstShowTimeStamps && (
                                                         <motion.span
                                                             className="portfolio__segment-pill"
-                                                            layoutId="storyBurstWizardStepPill"
+                                                            layoutId="storyBurstTimestampsPill"
                                                             transition={{ type: 'spring', stiffness: 500, damping: 38 }}
                                                         />
                                                     )}
-                                                    <span className="story-export-modal__burst-slot-name">
-                                                        {sIdx + 1}. {slotNames[sIdx]}
-                                                    </span>
-                                                    <span className="story-export-modal__burst-slot-val">
-                                                        {valText}
-                                                    </span>
+                                                    <span>Show</span>
                                                 </button>
-                                            );
-
-                                            if (isDuetLayout && sIdx === 0) {
-                                                const isSwapDisabled = Boolean(
-                                                    enforceOrdering || slots[0] === null || slots[1] === null
-                                                );
-                                                return (
-                                                    <React.Fragment key="duet-slots-with-swap">
-                                                        {slotBtn}
-                                                        <button
-                                                            type="button"
-                                                            className={`story-export-modal__swap-pill ${
-                                                                isSwapDisabled
-                                                                    ? 'story-export-modal__swap-pill--disabled'
-                                                                    : ''
-                                                            }`}
-                                                            onClick={handleSwapSlots}
-                                                            disabled={isSwapDisabled}
-                                                            title={
-                                                                isSwapDisabled
-                                                                    ? undefined
-                                                                    : 'Swap Top and Bottom photos'
-                                                            }
-                                                            aria-label="Swap Top and Bottom photos"
-                                                            aria-disabled={isSwapDisabled}
-                                                            tabIndex={isSwapDisabled ? -1 : 0}
-                                                        >
-                                                            <ArrowLeftRight
-                                                                size={17}
-                                                                style={{
-                                                                    visibility: isSwapDisabled ? 'hidden' : 'visible',
-                                                                    opacity: isSwapDisabled ? 0 : 1,
-                                                                }}
-                                                            />
-                                                        </button>
-                                                    </React.Fragment>
-                                                );
-                                            }
-                                            return slotBtn;
-                                        })}
+                                                <button
+                                                    type="button"
+                                                    className={`story-export-modal__pill ${
+                                                        !burstShowTimeStamps ? 'active story-export-modal__pill--active' : ''
+                                                    }`}
+                                                    onClick={() => handleToggleTimeStamps(false)}
+                                                    aria-pressed={!burstShowTimeStamps}
+                                                >
+                                                    {!burstShowTimeStamps && (
+                                                        <motion.span
+                                                            className="portfolio__segment-pill"
+                                                            layoutId="storyBurstTimestampsPill"
+                                                            transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                                        />
+                                                    )}
+                                                    <span>Hide</span>
+                                                </button>
+                                            </div>
+                                        )}
+                                        {isDuetLayout && (
+                                            <button
+                                                type="button"
+                                                className={`story-export-modal__reverse-btn story-export-modal__swap-pill ${
+                                                    isSwapDisabled ? 'story-export-modal__swap-pill--disabled' : ''
+                                                }`}
+                                                onClick={handleSwapSlots}
+                                                disabled={isSwapDisabled}
+                                                title={isSwapDisabled ? undefined : 'Swap Top and Bottom photos'}
+                                                aria-label="Swap Top and Bottom photos"
+                                                aria-disabled={isSwapDisabled}
+                                                tabIndex={isSwapDisabled ? -1 : 0}
+                                            >
+                                                <ArrowLeftRight size={13} />
+                                                <span>Swap</span>
+                                            </button>
+                                        )}
+                                        {canReverseTriptych && (
+                                            <button
+                                                type="button"
+                                                className="story-export-modal__reverse-btn"
+                                                onClick={handleReverseTriptychSlots}
+                                                title="Reverse frame sequence (invert top and bottom)"
+                                                aria-label="Reverse frame sequence"
+                                            >
+                                                <TriptychReverse size={13} />
+                                                <span>Reverse</span>
+                                            </button>
+                                        )}
                                     </div>
+                                </div>
 
-                                    {!(totalFrames === 2 && isDuetLayout) && (
-                                        <div className="story-export-modal__burst-strip">
+                                {!isFrameSelectorSuppressed && (
+                                    <div
+                                        className="story-export-modal__burst-selector"
+                                        style={{ marginTop: '0.5rem' }}
+                                    >
+                                        {/* Sequential Wizard / Triptych / Duet Segmented Step Picker */}
+                                        <div
+                                            className="portfolio__segmented-toggle story-export-modal__pill-group story-export-modal__burst-slot-group"
+                                            role="group"
+                                            aria-label={
+                                                burst.isTriptych
+                                                    ? isDuetLayout
+                                                        ? 'Duet Photo Slots'
+                                                        : 'Triptych Photo Slots'
+                                                    : isDuetLayout
+                                                      ? 'Duet Frame Slots'
+                                                      : 'Burst Wizard Steps'
+                                            }
+                                        >
+                                            {(isDuetLayout ? [0, 1] : [0, 1, 2]).map((sIdx) => {
+                                                const assignedFrame = slots[sIdx];
+                                                const isStepActive = activeStep === sIdx;
+                                                const valPrefix = burst.isTriptych ? 'P' : 'F';
+                                                const valText =
+                                                    assignedFrame !== null ? `${valPrefix}${assignedFrame + 1}` : 'Empty';
+                                                return (
+                                                    <button
+                                                        key={sIdx}
+                                                        type="button"
+                                                        className={`story-export-modal__pill story-export-modal__burst-slot-pill ${
+                                                            isStepActive ? 'active story-export-modal__pill--active' : ''
+                                                        }`}
+                                                        onClick={() => handleSlotClick(sIdx)}
+                                                        aria-label={`Step ${sIdx + 1} (${slotNames[sIdx]}): ${
+                                                            assignedFrame !== null
+                                                                ? `${burst.isTriptych ? 'Photo' : 'Frame'} ${
+                                                                      assignedFrame + 1
+                                                                  }`
+                                                                : 'Empty'
+                                                        }${isStepActive ? ' (Active)' : ''}`}
+                                                        aria-pressed={isStepActive}
+                                                    >
+                                                        {isStepActive && (
+                                                            <motion.span
+                                                                className="portfolio__segment-pill"
+                                                                layoutId="storyBurstWizardStepPill"
+                                                                transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                                            />
+                                                        )}
+                                                        <span className="story-export-modal__burst-slot-name">
+                                                            {sIdx + 1}. {slotNames[sIdx]}
+                                                        </span>
+                                                        <span className="story-export-modal__burst-slot-val">
+                                                            {valText}
+                                                        </span>
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+
+                                        {/* Active Panel Framing & Zoom Slider */}
+                                        {slots[activeStep] !== null && burstPanOffsets && (
+                                            <div className="story-export-modal__framing-header story-export-modal__framing-header--burst">
+                                                <span className="story-export-modal__sublabel">
+                                                    {slotNames[activeStep]} Framing
+                                                </span>
+                                                <div className="story-export-modal__framing-zoom">
+                                                    <span className="story-export-modal__framing-zoom-label">Zoom</span>
+                                                    <input
+                                                        type="range"
+                                                        min="1.0"
+                                                        max="3.0"
+                                                        step="0.01"
+                                                        value={burstPanOffsets[activeStep]?.zoom ?? 1.0}
+                                                        onChange={handleBurstZoomSliderChange}
+                                                        className="story-export-modal__slider story-export-modal__slider--inline"
+                                                        aria-label={`${slotNames[activeStep]} Panel Zoom`}
+                                                    />
+                                                    <span className="story-export-modal__zoom-value">
+                                                        {(burstPanOffsets[activeStep]?.zoom ?? 1.0) <= 1.01
+                                                            ? '1.0x'
+                                                            : `${(burstPanOffsets[activeStep]?.zoom ?? 1.0).toFixed(2)}x`}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {!(totalFrames === 2 && isDuetLayout) && (
+                                            <div className="story-export-modal__burst-strip">
                                             {burst.frameSources.map((src, fIdx) => {
                                                 const assignedSlot = slots.indexOf(fIdx);
                                                 const isSelected = assignedSlot !== -1;
@@ -898,16 +949,41 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                     </div>
                 )}
 
-                {/* Prepared Crop Presets (N-Way Segmented Toggle) */}
-                {activeMode === 'crop' && (
+                {/* Framing & Presets Section (for Solo Mode) */}
+                {isSoloMode && (
                     <div className="story-export-modal__section">
+                        <div className="story-export-modal__framing-header">
+                            <span className="story-export-modal__sublabel">Framing</span>
+                            <div className="story-export-modal__framing-zoom">
+                                <span className="story-export-modal__framing-zoom-label">Zoom</span>
+                                <input
+                                    type="range"
+                                    min={fitZoom}
+                                    max="3.5"
+                                    step="0.01"
+                                    value={activeCrop?.zoom ?? 1.0}
+                                    onChange={handleZoomSliderChange}
+                                    className="story-export-modal__slider story-export-modal__slider--inline"
+                                    aria-label="Photo Zoom"
+                                />
+                                <span className="story-export-modal__zoom-value">
+                                    {Math.abs((activeCrop?.zoom ?? 1.0) - fitZoom) < 0.02
+                                        ? 'Fit'
+                                        : Math.abs((activeCrop?.zoom ?? 1.0) - 1.0) < 0.02
+                                          ? 'Fill'
+                                          : `${(activeCrop?.zoom ?? 1.0).toFixed(2)}x`}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Framing Options (at most 3 options, sorted from least zoomed in (padded) to most) */}
                         <div
                             className="portfolio__segmented-toggle story-export-modal__presets-grid"
                             role="group"
                             aria-label="Framing presets"
                         >
                             {presets
-                                .filter((p) => p.mode === 'crop')
+                                .filter((p) => p.mode === 'solo' || p.mode === 'crop')
                                 .map((preset) => {
                                     const isSelected = selectedPresetId === preset.id;
                                     return (
@@ -919,7 +995,7 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                             }`}
                                             onClick={() => onSelectPreset(preset)}
                                             title={preset.description}
-                                            aria-label={`Framing preset: ${preset.label}`}
+                                            aria-label={preset.label}
                                             aria-pressed={isSelected}
                                         >
                                             {isSelected && (
@@ -937,209 +1013,134 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                     </div>
                 )}
 
-                {/* Padded Mode Settings */}
-                {activeMode === 'padded' && (
+                {/* Background Settings (for Solo Mode) */}
+                {isSoloMode && (
                     <div className="story-export-modal__section">
                         <div className="story-export-modal__padded-settings">
-                            <div className="story-export-modal__toggle-row">
-                                <span>Background</span>
-                                <div
-                                    className="portfolio__segmented-toggle story-export-modal__pill-group"
-                                    role="group"
-                                    aria-label="Padded background style"
-                                >
-                                    <button
-                                        type="button"
-                                        className={`story-export-modal__pill ${
-                                            paddedConfig.style === 'frosted' || paddedConfig.style === 'glass'
-                                                ? 'active story-export-modal__pill--active'
-                                                : ''
-                                        }`}
-                                        onClick={() => {
-                                            setPaddedConfig((prev) => ({ ...prev, style: 'frosted' }));
-                                            setIsDownloaded(false);
-                                        }}
-                                        aria-pressed={
-                                            paddedConfig.style === 'frosted' || paddedConfig.style === 'glass'
+                            {/* Row 1: Header with "Background" label on left and inline color swatches + picker on right (like Frame) */}
+                            <div className="story-export-modal__toggle-row story-export-modal__background-header">
+                                <div className="story-export-modal__label-with-badge">
+                                    <span>Background</span>
+                                </div>
+
+                                <div className="story-export-modal__frames-header-tint story-export-modal__background-header-tint story-export-modal__custom-color-row">
+                                    <div className="story-export-modal__quick-swatches">
+                                        {['#0a0a14', '#ffffff', '#f59e0b', '#e60000', '#06b6d4'].map((color) => {
+                                            const currentColor = (paddedConfig.customColor || '#0a0a14').toLowerCase();
+                                            const isSelected = currentColor === color.toLowerCase();
+                                            return (
+                                                <button
+                                                    key={color}
+                                                    type="button"
+                                                    className={`story-export-modal__quick-swatch ${
+                                                        isSelected ? 'is-active' : ''
+                                                    }`}
+                                                    style={{ backgroundColor: color }}
+                                                    onClick={() => {
+                                                        setPaddedConfig((prev) => ({
+                                                            ...prev,
+                                                            customColor: color,
+                                                        }));
+                                                        ensurePadded();
+                                                        setIsDownloaded(false);
+                                                    }}
+                                                    title={color}
+                                                    aria-label={`Select background color ${color}`}
+                                                />
+                                            );
+                                        })}
+                                    </div>
+                                    <label
+                                        className="story-export-modal__color-picker"
+                                        title={
+                                            paddedConfig.style === 'solid' || paddedConfig.style === 'custom'
+                                                ? 'Choose solid background color'
+                                                : 'Choose frosted tint color'
                                         }
                                     >
-                                        {(paddedConfig.style === 'frosted' || paddedConfig.style === 'glass') && (
-                                            <motion.span
-                                                className="portfolio__segment-pill"
-                                                layoutId="storyPaddedStylePill"
-                                                transition={{ type: 'spring', stiffness: 500, damping: 38 }}
-                                            />
-                                        )}
-                                        <span>Frosted</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={`story-export-modal__pill ${
-                                            paddedConfig.style === 'solid' || paddedConfig.style === 'custom'
-                                                ? 'active story-export-modal__pill--active'
-                                                : ''
-                                        }`}
-                                        onClick={() => {
-                                            setPaddedConfig((prev) => ({ ...prev, style: 'solid' }));
-                                            setIsDownloaded(false);
-                                        }}
-                                        aria-pressed={paddedConfig.style === 'solid' || paddedConfig.style === 'custom'}
-                                    >
-                                        {(paddedConfig.style === 'solid' || paddedConfig.style === 'custom') && (
-                                            <motion.span
-                                                className="portfolio__segment-pill"
-                                                layoutId="storyPaddedStylePill"
-                                                transition={{ type: 'spring', stiffness: 500, damping: 38 }}
-                                            />
-                                        )}
-                                        <span>Solid</span>
-                                    </button>
+                                        <span
+                                            className="story-export-modal__color-swatch"
+                                            style={{
+                                                backgroundColor: paddedConfig.customColor || '#0a0a14',
+                                            }}
+                                        />
+                                        <input
+                                            type="color"
+                                            value={paddedConfig.customColor || '#0a0a14'}
+                                            onChange={(e) => {
+                                                setPaddedConfig((prev) => ({
+                                                    ...prev,
+                                                    customColor: e.target.value,
+                                                }));
+                                                ensurePadded();
+                                                setIsDownloaded(false);
+                                            }}
+                                            className="story-export-modal__color-input"
+                                            aria-label={
+                                                paddedConfig.style === 'solid' || paddedConfig.style === 'custom'
+                                                    ? 'Solid background color'
+                                                    : 'Frosted tint color'
+                                            }
+                                        />
+                                    </label>
                                 </div>
                             </div>
 
-                            <div className="story-export-modal__custom-color-row">
-                                <div className="story-export-modal__quick-swatches">
-                                    {['#0a0a14', '#1e293b', '#2c1810', '#ffffff', '#f59e0b', '#e60000'].map((color) => {
-                                        const currentColor = (paddedConfig.customColor || '#0a0a14').toLowerCase();
-                                        const isSelected = currentColor === color.toLowerCase();
-                                        return (
-                                            <button
-                                                key={color}
-                                                type="button"
-                                                className={`story-export-modal__quick-swatch ${
-                                                    isSelected ? 'is-active' : ''
-                                                }`}
-                                                style={{ backgroundColor: color }}
-                                                onClick={() => {
-                                                    setPaddedConfig((prev) => ({
-                                                        ...prev,
-                                                        customColor: color,
-                                                    }));
-                                                    setIsDownloaded(false);
-                                                }}
-                                                title={color}
-                                                aria-label={`Select background color ${color}`}
-                                            />
-                                        );
-                                    })}
-                                </div>
-                                <label
-                                    className="story-export-modal__color-picker"
-                                    title={
-                                        paddedConfig.style === 'solid' || paddedConfig.style === 'custom'
-                                            ? 'Choose solid background color'
-                                            : 'Choose frosted tint color'
+                            {/* Row 2: Frosted | Solid segmented toggle */}
+                            <div
+                                className="portfolio__segmented-toggle story-export-modal__pill-group story-export-modal__pill-group--full"
+                                role="group"
+                                aria-label="Background style"
+                            >
+                                <button
+                                    type="button"
+                                    className={`story-export-modal__pill ${
+                                        paddedConfig.style === 'frosted' || paddedConfig.style === 'glass'
+                                            ? 'active story-export-modal__pill--active'
+                                            : ''
+                                    }`}
+                                    onClick={() => {
+                                        setPaddedConfig((prev) => ({ ...prev, style: 'frosted' }));
+                                        ensurePadded();
+                                        setIsDownloaded(false);
+                                    }}
+                                    aria-pressed={
+                                        paddedConfig.style === 'frosted' || paddedConfig.style === 'glass'
                                     }
                                 >
-                                    <span
-                                        className="story-export-modal__color-swatch"
-                                        style={{
-                                            backgroundColor: paddedConfig.customColor || '#0a0a14',
-                                        }}
-                                    />
-                                    <input
-                                        type="color"
-                                        value={paddedConfig.customColor || '#0a0a14'}
-                                        onChange={(e) => {
-                                            setPaddedConfig((prev) => ({
-                                                ...prev,
-                                                customColor: e.target.value,
-                                            }));
-                                            setIsDownloaded(false);
-                                        }}
-                                        className="story-export-modal__color-input"
-                                        aria-label={
-                                            paddedConfig.style === 'solid' || paddedConfig.style === 'custom'
-                                                ? 'Solid background color'
-                                                : 'Frosted tint color'
-                                        }
-                                    />
-                                </label>
-                                <span className="story-export-modal__hex-code">
-                                    {(paddedConfig.customColor || '#0a0a14').toUpperCase()}
-                                </span>
-                            </div>
-
-                            <div className="story-export-modal__toggle-row">
-                                <span>Position</span>
-                                <div
-                                    className="portfolio__segmented-toggle story-export-modal__pill-group"
-                                    role="group"
-                                    aria-label="Photo vertical position"
+                                    {(paddedConfig.style === 'frosted' || paddedConfig.style === 'glass') && (
+                                        <motion.span
+                                            className="portfolio__segment-pill"
+                                            layoutId="storyPaddedStylePill"
+                                            transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                        />
+                                    )}
+                                    <span>Frosted</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`story-export-modal__pill ${
+                                        paddedConfig.style === 'solid' || paddedConfig.style === 'custom'
+                                            ? 'active story-export-modal__pill--active'
+                                            : ''
+                                    }`}
+                                    onClick={() => {
+                                        setPaddedConfig((prev) => ({ ...prev, style: 'solid' }));
+                                        ensurePadded();
+                                        setIsDownloaded(false);
+                                    }}
+                                    aria-pressed={paddedConfig.style === 'solid' || paddedConfig.style === 'custom'}
                                 >
-                                    <button
-                                        type="button"
-                                        className={`story-export-modal__pill ${
-                                            paddedConfig.position === 'center'
-                                                ? 'active story-export-modal__pill--active'
-                                                : ''
-                                        }`}
-                                        onClick={() => {
-                                            setPaddedConfig((prev) => ({
-                                                ...prev,
-                                                position: 'center',
-                                            }));
-                                            setIsDownloaded(false);
-                                        }}
-                                        aria-pressed={paddedConfig.position === 'center'}
-                                    >
-                                        {paddedConfig.position === 'center' && (
-                                            <motion.span
-                                                className="portfolio__segment-pill"
-                                                layoutId="storyPaddedPositionPill"
-                                                transition={{ type: 'spring', stiffness: 500, damping: 38 }}
-                                            />
-                                        )}
-                                        <span>Centered</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={`story-export-modal__pill ${
-                                            paddedConfig.position === 'elevated'
-                                                ? 'active story-export-modal__pill--active'
-                                                : ''
-                                        }`}
-                                        onClick={() => {
-                                            setPaddedConfig((prev) => ({
-                                                ...prev,
-                                                position: 'elevated',
-                                            }));
-                                            setIsDownloaded(false);
-                                        }}
-                                        aria-pressed={paddedConfig.position === 'elevated'}
-                                    >
-                                        {paddedConfig.position === 'elevated' && (
-                                            <motion.span
-                                                className="portfolio__segment-pill"
-                                                layoutId="storyPaddedPositionPill"
-                                                transition={{ type: 'spring', stiffness: 500, damping: 38 }}
-                                            />
-                                        )}
-                                        <span>Elevated</span>
-                                    </button>
-                                </div>
+                                    {(paddedConfig.style === 'solid' || paddedConfig.style === 'custom') && (
+                                        <motion.span
+                                            className="portfolio__segment-pill"
+                                            layoutId="storyPaddedStylePill"
+                                            transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                        />
+                                    )}
+                                    <span>Solid</span>
+                                </button>
                             </div>
-
-                            <div className="story-export-modal__zoom-header">
-                                <span className="story-export-modal__sublabel">Photo Scale</span>
-                                <span className="story-export-modal__zoom-value">
-                                    {Math.round(paddedConfig.cardScale * 100)}%
-                                </span>
-                            </div>
-                            <input
-                                type="range"
-                                min="0.80"
-                                max="1"
-                                step="0.02"
-                                value={paddedConfig.cardScale}
-                                onChange={(e) => {
-                                    const scale = parseFloat(e.target.value);
-                                    setPaddedConfig((prev) => ({ ...prev, cardScale: scale }));
-                                    setIsDownloaded(false);
-                                }}
-                                className="story-export-modal__slider"
-                                aria-label="Photo Card Scale"
-                            />
                         </div>
                     </div>
                 )}

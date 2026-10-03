@@ -233,33 +233,28 @@ describe('storyCanvas calculations', () => {
         const w = 3840;
         const h = 2560;
 
-        it('generates 0-people presets when no faces exist ordered logically as Left, Center, Right', () => {
+        it('generates 0-people presets sorted from least zoomed in (padded) to most with at most 3 options', () => {
             const presets = generateStoryPresets({ width: w, height: h });
-            const ids = presets.map((p) => p.id);
-
-            expect(ids).toContain('center');
-            expect(ids).toContain('thirds-left');
-            expect(ids).toContain('thirds-right');
-            expect(ids).toContain('padded-glass');
-
-            const cropPresets = presets.filter((p) => p.mode === 'crop');
-            expect(cropPresets.map((p) => p.id)).toEqual(['thirds-left', 'center', 'thirds-right']);
-            expect(cropPresets.map((p) => p.label)).toEqual(['Left', 'Center', 'Right']);
+            expect(presets.length).toBeLessThanOrEqual(3);
+            expect(presets.map((p) => p.id)).toEqual(['padded-glass', 'center', 'closeup']);
+            expect(presets.map((p) => p.label)).toEqual(['Padded', 'Center', 'Close-up']);
+            expect(presets[0].crop.zoom).toBeLessThan(presets[1].crop.zoom);
+            expect(presets[1].crop.zoom).toBeLessThan(presets[2].crop.zoom);
             expect(presets.find((p) => p.id === 'center')?.isDefault).toBe(true);
         });
 
-        it('generates solo person presets when 1 face exists', () => {
+        it('generates solo person presets with at most 3 options sorted by zoom', () => {
             const presets = generateStoryPresets({
                 width: w,
                 height: h,
                 faces: [{ x: 0.4, y: 0.35, w: 0.1, h: 0.15 }],
             });
-            const ids = presets.map((p) => p.id);
-
-            expect(ids).toContain('subject');
-            expect(ids).toContain('closeup');
-            expect(ids).not.toContain('wide-action');
-            expect(ids).toContain('padded-glass');
+            expect(presets.length).toBeLessThanOrEqual(3);
+            expect(presets.map((p) => p.id)).toEqual(['padded-glass', 'subject', 'closeup']);
+            expect(presets.map((p) => p.label)).toEqual(['Padded', 'Subject', 'Close-up']);
+            expect(presets[0].crop.zoom).toBeLessThan(presets[1].crop.zoom);
+            expect(presets[1].crop.zoom).toBeLessThan(presets[2].crop.zoom);
+            expect(presets.find((p) => p.id === 'subject')?.isDefault).toBe(true);
         });
 
         it('falls back to focusX and focusY when faces array is absent', () => {
@@ -269,14 +264,11 @@ describe('storyCanvas calculations', () => {
                 focusX: 0.45,
                 focusY: 0.3,
             });
-            const ids = presets.map((p) => p.id);
-
-            expect(ids).toContain('subject');
-            expect(ids).toContain('closeup');
-            expect(ids).toContain('padded-glass');
+            expect(presets.length).toBeLessThanOrEqual(3);
+            expect(presets.map((p) => p.id)).toEqual(['padded-glass', 'subject', 'closeup']);
         });
 
-        it('generates duo presets when 2 faces exist', () => {
+        it('generates duo presets with at most 3 options sorted by zoom', () => {
             const presets = generateStoryPresets({
                 width: w,
                 height: h,
@@ -285,15 +277,15 @@ describe('storyCanvas calculations', () => {
                     { x: 0.65, y: 0.42, w: 0.09, h: 0.13 },
                 ],
             });
-            const ids = presets.map((p) => p.id);
-
-            expect(ids).toContain('duo');
-            expect(ids).toContain('person-1');
-            expect(ids).toContain('person-2');
-            expect(ids).toContain('padded-glass');
+            expect(presets.length).toBeLessThanOrEqual(3);
+            expect(presets.map((p) => p.id)).toEqual(['padded-glass', 'duo', 'closeup']);
+            expect(presets.map((p) => p.label)).toEqual(['Padded', 'Duo', 'Close-up']);
+            expect(presets[0].crop.zoom).toBeLessThan(presets[1].crop.zoom);
+            expect(presets[1].crop.zoom).toBeLessThan(presets[2].crop.zoom);
+            expect(presets.find((p) => p.id === 'duo')?.isDefault).toBe(true);
         });
 
-        it('generates pack / group presets when 3+ faces exist', () => {
+        it('generates pack / group presets when 3+ faces exist with at most 3 options sorted by zoom', () => {
             const presets = generateStoryPresets({
                 width: w,
                 height: h,
@@ -303,14 +295,12 @@ describe('storyCanvas calculations', () => {
                     { x: 0.75, y: 0.42 },
                 ],
             });
-            const ids = presets.map((p) => p.id);
-
-            expect(ids).toContain('pack');
-            expect(ids).toContain('primary');
-            expect(ids).toContain('person-1');
-            expect(ids).toContain('person-2');
-            expect(ids).toContain('person-3');
-            expect(ids).toContain('padded-glass');
+            expect(presets.length).toBeLessThanOrEqual(3);
+            expect(presets.map((p) => p.id)).toEqual(['padded-glass', 'pack', 'lead']);
+            expect(presets.map((p) => p.label)).toEqual(['Padded', 'Group', 'Lead Focus']);
+            expect(presets[0].crop.zoom).toBeLessThan(presets[1].crop.zoom);
+            expect(presets[1].crop.zoom).toBeLessThan(presets[2].crop.zoom);
+            expect(presets.find((p) => p.id === 'pack')?.isDefault).toBe(true);
         });
     });
 

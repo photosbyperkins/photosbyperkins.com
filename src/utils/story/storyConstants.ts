@@ -21,14 +21,14 @@ export interface StoryPreset {
     label: string;
     description: string;
     crop: NormalizedCrop;
-    mode: 'crop' | 'padded';
+    mode: 'solo' | 'crop' | 'padded';
     isDefault?: boolean;
 }
 
 export interface PaddedStyleOptions {
     style: 'frosted' | 'solid' | 'glass' | 'custom' | 'noir';
     customColor?: string;
-    position: 'center' | 'elevated';
+    position?: 'center' | 'elevated'; // Deprecated: always centered
     cardScale: number; // 0.8..1.0 (default: 0.92)
     cardCornerRadius: number; // in pixels at 1080x1920 (default: 24)
 }
@@ -229,7 +229,7 @@ export interface BurstStoryOptions {
 }
 
 export interface StoryRenderConfig {
-    mode: 'crop' | 'padded' | 'burst';
+    mode: 'solo' | 'crop' | 'padded' | 'burst';
     crop: NormalizedCrop;
     padded: PaddedStyleOptions;
     burst?: BurstStoryOptions;

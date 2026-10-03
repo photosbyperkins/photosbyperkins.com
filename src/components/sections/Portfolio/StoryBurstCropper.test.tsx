@@ -66,7 +66,30 @@ describe('StoryBurstCropper', () => {
         expect(panels[0].classList.contains('story-burst-cropper__panel--has-image')).toBe(true);
         expect(panels[1].classList.contains('story-burst-cropper__panel--empty')).toBe(true);
         expect(panels[1].textContent).toContain('2. MID');
-        expect(panels[1].textContent).toContain('Tap below to select');
+        expect(panels[1].textContent).toContain('Tap to select photo');
+    });
+
+    it('triggers onSelectEmptyPanel and onSelectPanel when clicking or pressing Enter on an empty slot', () => {
+        const mockOnSelectEmptyPanel = vi.fn();
+        const { container } = render(
+            <StoryBurstCropper
+                images={[sampleImages[0], null, sampleImages[2]]}
+                panOffsets={defaultPanOffsets}
+                onPanChange={mockOnPanChange}
+                onSelectPanel={mockOnSelectPanel}
+                onSelectEmptyPanel={mockOnSelectEmptyPanel}
+            />
+        );
+
+        const emptyPanel = container.querySelectorAll<HTMLElement>('.story-burst-cropper__panel')[1];
+        fireEvent.click(emptyPanel);
+
+        expect(mockOnSelectEmptyPanel).toHaveBeenCalledWith(1);
+        expect(mockOnSelectPanel).toHaveBeenCalledWith(1);
+
+        mockOnSelectEmptyPanel.mockClear();
+        fireEvent.keyDown(emptyPanel, { key: 'Enter' });
+        expect(mockOnSelectEmptyPanel).toHaveBeenCalledWith(1);
     });
 
     it('handles direct pointer drag to pan an individual frame', () => {
@@ -387,5 +410,28 @@ describe('StoryBurstCropper', () => {
 
         const pills = container.querySelectorAll('.story-burst-cropper__timestamp-pill');
         expect(pills.length).toBe(0);
+    });
+
+    it('renders consistent interaction hint for both Duet and Triptych', () => {
+        const duetImages = ['/photos/duet_1.jpg', '/photos/duet_2.jpg'];
+        const duetPanOffsets = [
+            { x: 0.5, y: 0.45, zoom: 1.0 },
+            { x: 0.5, y: 0.45, zoom: 1.0 },
+        ];
+
+        const { container } = render(
+            <StoryBurstCropper
+                images={duetImages}
+                panOffsets={duetPanOffsets}
+                panelCount={2}
+                onPanChange={mockOnPanChange}
+            />
+        );
+
+        const hint = container.querySelector('.story-cropper__hint');
+        expect(hint).not.toBeNull();
+        expect(hint?.textContent).toContain('Tap panel to select');
+        expect(hint?.textContent).toContain('Drag to reposition');
+        expect(hint?.textContent).toContain('double-click to zoom');
     });
 });
