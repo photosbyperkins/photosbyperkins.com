@@ -167,7 +167,7 @@ test.describe('Platform Complete Resolution Suite', () => {
                     await layoutTab.click();
                     await page.waitForTimeout(300);
                 }
-                const cropBtn = studioModal.locator('button:has-text("9:16 Crop")');
+                const cropBtn = studioModal.locator('button:has-text("9:16")');
                 if (await cropBtn.isVisible()) {
                     await cropBtn.click();
                     await page.waitForTimeout(300);

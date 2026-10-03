@@ -26,6 +26,8 @@ export interface BurstMetadata {
     frameThumbs?: string[];
     frameDeltas?: number[];
     isTriptych?: boolean;
+    isDuet?: boolean;
+    panelCount?: 2 | 3;
     frameFocusX?: (number | undefined)[];
     frameFocusY?: (number | undefined)[];
 }

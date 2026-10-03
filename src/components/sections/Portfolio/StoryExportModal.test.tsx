@@ -184,9 +184,9 @@ describe('StoryExportModal', () => {
             />
         );
 
-        // Switch to Burst mode
-        const burstBtn = within(baseElement).getByRole('button', { name: /^burst$/i });
-        fireEvent.click(burstBtn);
+        // Switch to Triptych mode
+        const triptychBtn = within(baseElement).getByRole('button', { name: /^triptych$/i });
+        fireEvent.click(triptychBtn);
 
         expect(baseElement.querySelector('.story-burst-cropper')).not.toBeNull();
 
@@ -201,5 +201,40 @@ describe('StoryExportModal', () => {
         expect(exportBtn?.disabled).toBe(true);
         expect(exportBtn?.getAttribute('aria-label')).toBe('Pick 1 more frame to download');
         expect(exportBtn?.getAttribute('title')).toBe('Pick 1 more frame to download');
+    });
+
+    it('renders 2-panel Duet cropper when photo has a 2-frame burst', () => {
+        const duetPhoto: PhotoRecord = {
+            ...samplePhoto,
+            burst: {
+                id: 'duet-test',
+                index: 0,
+                total: 2,
+                isDuet: true,
+                deltaSec: 0.35,
+                frameSources: ['/photos/d1.jpg', '/photos/d2.jpg'],
+                frameThumbs: ['/photos/td1.jpg', '/photos/td2.jpg'],
+                frameDeltas: [0, 0.35],
+            },
+        };
+
+        const { baseElement } = render(
+            <StoryExportModal
+                isOpen={true}
+                onClose={mockOnClose}
+                photo={duetPhoto}
+                eventName="2024.10.22 - Championship Match"
+                year="2024"
+                index={0}
+            />
+        );
+
+        // Burst / Duet mode is default for burst photos
+        const cropper = baseElement.querySelector('.story-burst-cropper');
+        expect(cropper).not.toBeNull();
+        expect(cropper?.getAttribute('data-panels')).toBe('2');
+
+        const panels = baseElement.querySelectorAll('.story-burst-cropper__panel');
+        expect(panels).toHaveLength(2);
     });
 });

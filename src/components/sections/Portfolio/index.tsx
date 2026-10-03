@@ -364,10 +364,11 @@ export default function Portfolio({ years }: PortfolioProps) {
                 focusX: first.focusX ?? 0.5,
                 focusY: first.focusY ?? 0.45,
                 burst: {
-                    id: `batch_triptych_${Date.now()}`,
+                    id: records.length === 2 ? `batch_duet_${Date.now()}` : `batch_triptych_${Date.now()}`,
                     index: 0,
                     total: records.length,
                     isTriptych: true,
+                    ...(records.length === 2 ? { isDuet: true } : {}),
                     frameSources: records.map((r) => r.original),
                     frameThumbs: records.map((r) => r.thumb || r.original),
                     frameFocusX: records.map((r) => r.focusX),

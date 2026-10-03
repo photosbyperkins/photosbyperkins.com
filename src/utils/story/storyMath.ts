@@ -3,6 +3,7 @@ import type { NormalizedCrop, StoryPreset } from './storyConstants';
 import { STORY_ASPECT_RATIO } from './storyConstants';
 
 export const BURST_PANEL_ASPECT_RATIO = 27 / 16; // 1.6875 (matches 1080 / (1920 / 3))
+export const DUET_PANEL_ASPECT_RATIO = 9 / 8; // 1.125 (matches 1080 / (1920 / 2))
 
 /**
  * Calculates the active default zoom level for a burst panel derived dynamically from the photo's aspect ratio.

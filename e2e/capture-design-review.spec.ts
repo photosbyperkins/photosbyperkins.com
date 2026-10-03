@@ -75,7 +75,7 @@ test.describe('Design Review Screenshot Capture', () => {
 
         // Mobile Layout Crop
         await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Layout")').click();
-        await studioModal.locator('button:has-text("9:16 Crop")').click();
+        await studioModal.locator('button:has-text("9:16")').first().click();
         await page.waitForTimeout(300);
         await page.screenshot({ path: path.join(ARTIFACT_DIR, 'review_story_mobile_layout_crop.png') });
 

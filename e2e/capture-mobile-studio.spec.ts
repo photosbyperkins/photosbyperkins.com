@@ -46,7 +46,7 @@ test.describe('Mobile Studio Screenshot Capture', () => {
             });
 
             // Switch back to Crop
-            const cropBtn = studioModal.locator('button:has-text("9:16 Crop")');
+            const cropBtn = studioModal.locator('button:has-text("9:16")').first();
             await cropBtn.click();
             await page.waitForTimeout(400);
 

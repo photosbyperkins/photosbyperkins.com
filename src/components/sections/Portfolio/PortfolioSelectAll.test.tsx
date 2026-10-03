@@ -221,6 +221,11 @@ describe('Portfolio Select All visible photos', () => {
         // 2. Enter select mode & Select All
         const selectBtn = screen.getByRole('button', { name: /Select Photos/i });
         fireEvent.click(selectBtn);
+
+        await waitFor(() => {
+            expect(screen.getAllByRole('checkbox').length).toBe(13);
+        });
+
         const selectAllBtn = screen.getByRole('button', { name: /^Select All$/i });
         fireEvent.click(selectAllBtn);
         expect(useAppStore.getState().batchSelectedPhotos.length).toBe(13);

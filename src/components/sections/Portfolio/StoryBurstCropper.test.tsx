@@ -320,4 +320,50 @@ describe('StoryBurstCropper', () => {
         expect(container.querySelector('.story-cropper__badge--scoreboard')?.textContent).toContain('Team Red');
         expect(container.querySelector('.story-frame-overlay')).not.toBeNull();
     });
+
+    it('renders 2 panels with TOP and BTM slot names in Duet mode', () => {
+        const duetImages = ['/photos/duet_1.jpg', '/photos/duet_2.jpg'];
+        const duetPanOffsets = [
+            { x: 0.5, y: 0.45, zoom: 1.0 },
+            { x: 0.5, y: 0.45, zoom: 1.0 },
+        ];
+
+        const { container } = render(
+            <StoryBurstCropper
+                images={duetImages}
+                panOffsets={duetPanOffsets}
+                onPanChange={mockOnPanChange}
+                panelCount={2}
+            />
+        );
+
+        const panels = container.querySelectorAll('.story-burst-cropper__panel');
+        expect(panels.length).toBe(2);
+
+        const slotNames = container.querySelectorAll('.story-burst-cropper__slot-name');
+        expect(slotNames.length).toBe(2);
+        expect(slotNames[0].textContent).toBe('TOP');
+        expect(slotNames[1].textContent).toBe('BTM');
+
+        const cropperRegion = container.querySelector('.story-burst-cropper');
+        expect(cropperRegion?.getAttribute('aria-label')).toBe('2-Panel Duet Interactive Cropper');
+    });
+
+    it('infers 2 panels automatically when images array has length 2 without explicit panelCount', () => {
+        const duetImages = ['/photos/duet_1.jpg', '/photos/duet_2.jpg'];
+        const duetPanOffsets = [
+            { x: 0.5, y: 0.45, zoom: 1.0 },
+            { x: 0.5, y: 0.45, zoom: 1.0 },
+        ];
+
+        const { container } = render(
+            <StoryBurstCropper images={duetImages} panOffsets={duetPanOffsets} onPanChange={mockOnPanChange} />
+        );
+
+        const panels = container.querySelectorAll('.story-burst-cropper__panel');
+        expect(panels.length).toBe(2);
+        expect(container.querySelector('.story-burst-cropper')?.getAttribute('aria-label')).toBe(
+            '2-Panel Duet Interactive Cropper'
+        );
+    });
 });

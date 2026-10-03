@@ -115,7 +115,7 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
                                             : selectedCount === 3
                                               ? 'Create 3-panel triptych story with selected photos'
                                               : selectedCount === 2
-                                                ? 'Create story with selected photos (2 selected)'
+                                                ? 'Create 2-panel duet story with selected photos'
                                                 : 'Create story with selected photo'
                                         : 'Select photos to create a story';
 

@@ -576,12 +576,11 @@ export function renderBurstPanels(
                   { x: 0.5, y: 0.45 },
               ]);
 
-    // Ensure 3 panel slots with null for missing frames
-    const panelImages: (HTMLImageElement | HTMLCanvasElement | null | undefined)[] = [
-        images[0] ?? null,
-        images[1] ?? null,
-        images[2] ?? null,
-    ];
+    const panelCount: 2 | 3 = burst.panelCount ?? (images.length === 2 ? 2 : 3);
+    const panelImages: (HTMLImageElement | HTMLCanvasElement | null | undefined)[] =
+        panelCount === 2
+            ? [images[0] ?? null, images[1] ?? null]
+            : [images[0] ?? null, images[1] ?? null, images[2] ?? null];
 
     if (style === 'gutter') {
         // Dark background with blurred middle image glow
@@ -608,11 +607,11 @@ export function renderBurstPanels(
         const topBottomMargin = Math.round(40 * resScale);
         const panelW = targetW - margin * 2;
         const panelX = margin;
-        const availableH = targetH - topBottomMargin * 2 - gutter * 2;
-        const panelH = Math.floor(availableH / 3);
+        const availableH = targetH - topBottomMargin * 2 - gutter * (panelCount - 1);
+        const panelH = Math.floor(availableH / panelCount);
         const panelRadius = Math.round(18 * resScale);
 
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < panelCount; i++) {
             const pImg = panelImages[i];
             const panelY = topBottomMargin + i * (panelH + gutter);
             const pan = panOffsets[i] || { x: 0.5, y: 0.45 };
@@ -683,8 +682,8 @@ export function renderBurstPanels(
         const topBottomMargin = Math.round(42 * resScale);
         const panelW = targetW - sideMargin * 2;
         const panelX = sideMargin;
-        const availableH = targetH - topBottomMargin * 2 - gutter * 2;
-        const panelH = Math.floor(availableH / 3);
+        const availableH = targetH - topBottomMargin * 2 - gutter * (panelCount - 1);
+        const panelH = Math.floor(availableH / panelCount);
 
         // Draw decorative film perforations / sprocket holes
         const holeW = Math.round(14 * resScale);
@@ -704,7 +703,7 @@ export function renderBurstPanels(
         }
         ctx.restore();
 
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < panelCount; i++) {
             const pImg = panelImages[i];
             const panelY = topBottomMargin + i * (panelH + gutter);
             const pan = panOffsets[i] || { x: 0.5, y: 0.45 };
@@ -761,14 +760,14 @@ export function renderBurstPanels(
         ctx.fillRect(0, 0, targetW, targetH);
 
         const gap = Math.round(4 * resScale);
-        const availableH = targetH - gap * 2;
-        const panelH = Math.floor(availableH / 3);
+        const availableH = targetH - gap * (panelCount - 1);
+        const panelH = Math.floor(availableH / panelCount);
 
-        for (let i = 0; i < 3; i++) {
+        for (let i = 0; i < panelCount; i++) {
             const pImg = panelImages[i];
             const panelX = 0;
             const panelY = i * (panelH + gap);
-            const currentH = i === 2 ? targetH - panelY : panelH;
+            const currentH = i === panelCount - 1 ? targetH - panelY : panelH;
             const pan = panOffsets[i] || { x: 0.5, y: 0.45 };
 
             if (pImg) {
@@ -802,7 +801,7 @@ export function renderBurstPanels(
             }
 
             // Hairline separator
-            if (i < 2) {
+            if (i < panelCount - 1) {
                 ctx.save();
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.16)';
                 ctx.fillRect(0, panelY + currentH, targetW, gap);

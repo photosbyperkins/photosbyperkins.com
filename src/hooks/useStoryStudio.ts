@@ -7,6 +7,8 @@ import {
     calculateDefaultBurstZoom,
     generateStoryPresets,
     renderStoryToCanvas,
+    BURST_PANEL_ASPECT_RATIO,
+    DUET_PANEL_ASPECT_RATIO,
 } from '../utils/storyCanvas';
 import { STORY_FRAME_DEFINITIONS } from '../components/sections/Portfolio/storyFrames/frameDefinitions';
 import { STORY_FRAME_CATEGORIES } from '../components/sections/Portfolio/storyFrames/types';
@@ -84,9 +86,82 @@ export function useStoryStudio({
         return presets.find((p) => p.isDefault)?.id || 'center';
     });
 
+    const [burstPanelCount, setBurstPanelCount] = useState<2 | 3>(() => {
+        if (photoObj.burst?.panelCount) return photoObj.burst.panelCount;
+        if (photoObj.burst && (photoObj.burst.total === 2 || photoObj.burst.isDuet)) return 2;
+        return storySettings.burstConfig?.panelCount || 3;
+    });
+
+    const targetPanelCount: 2 | 3 = burstPanelCount;
+    const isDuet = targetPanelCount === 2;
+
+    const handleSetBurstPanelCount = useCallback(
+        (newCount: 2 | 3) => {
+            setBurstPanelCount(newCount);
+            setIsDownloaded(false);
+            if (newCount === 2) {
+                // Switching to Duet (2 panels)
+                setBurstSelectedIndices((prev) => {
+                    const s0 = prev[0] ?? 0;
+                    let s1 = prev[2] ?? prev[1];
+                    const total = photoObj.burst?.total || 2;
+                    if (s1 === undefined || s1 === null || s1 === s0) {
+                        s1 = s0 === 0 ? (total > 1 ? 1 : 0) : 0;
+                    }
+                    return [s0, s1];
+                });
+                setBurstPanOffsets((prev) => {
+                    const defY = photoObj.focusY ?? 0.45;
+                    const defZoom = calculateDefaultBurstZoom(
+                        naturalDimensions.width,
+                        naturalDimensions.height,
+                        DUET_PANEL_ASPECT_RATIO
+                    );
+                    return [
+                        prev[0] ? { ...prev[0], zoom: prev[0].zoom ?? defZoom } : { x: 0.5, y: defY, zoom: defZoom },
+                        prev[1] ? { ...prev[1], zoom: prev[1].zoom ?? defZoom } : { x: 0.5, y: defY, zoom: defZoom },
+                    ];
+                });
+            } else {
+                // Switching to 3 panels (Triptych / Burst)
+                setBurstSelectedIndices((prev) => {
+                    const total = photoObj.burst?.total || 3;
+                    const s0 = prev[0] ?? 0;
+                    const sLast = prev[1] ?? (total > 2 ? 2 : 1);
+                    let mid: number | null = null;
+                    if (sLast > s0 + 1) {
+                        mid = Math.floor((s0 + sLast) / 2);
+                    } else if (total >= 3) {
+                        for (let i = 0; i < total; i++) {
+                            if (i !== s0 && i !== sLast) {
+                                mid = i;
+                                break;
+                            }
+                        }
+                    }
+                    return [s0, mid ?? 1, sLast];
+                });
+                setBurstPanOffsets((prev) => {
+                    const defY = photoObj.focusY ?? 0.45;
+                    const defZoom = calculateDefaultBurstZoom(
+                        naturalDimensions.width,
+                        naturalDimensions.height,
+                        BURST_PANEL_ASPECT_RATIO
+                    );
+                    return [
+                        prev[0] ? { ...prev[0], zoom: prev[0].zoom ?? defZoom } : { x: 0.5, y: defY, zoom: defZoom },
+                        prev[1] ? { ...prev[1], zoom: prev[1].zoom ?? defZoom } : { x: 0.5, y: defY, zoom: defZoom },
+                        prev[2] || { x: 0.5, y: defY, zoom: defZoom },
+                    ];
+                });
+            }
+        },
+        [photoObj.burst?.total, photoObj.focusY, naturalDimensions.width, naturalDimensions.height]
+    );
+
     const [activeMode, setActiveMode] = useState<'crop' | 'padded' | 'burst'>(() => {
         if (photoObj.burst) {
-            if (photoObj.burst.total < 3) return 'crop';
+            if (photoObj.burst.total < 2) return 'crop';
             return storySettings.mode === 'padded' ? 'padded' : 'burst';
         }
         return storySettings.mode || 'crop';
@@ -109,66 +184,57 @@ export function useStoryStudio({
         return storySettings.burstConfig?.showTimeStamps ?? true;
     });
     const [burstSelectedIndices, setBurstSelectedIndices] = useState<(number | null)[]>(() => {
-        if (photoObj.burst && photoObj.burst.total >= 3) {
+        if (photoObj.burst && photoObj.burst.total >= 2) {
             const total = photoObj.burst.total;
+            const currentIdx = photoObj.burst.index ?? 0;
+
+            if (total === 2) return [0, 1];
+            if (isDuet) {
+                if (currentIdx >= total - 1) return [total - 2, total - 1];
+                return [currentIdx, currentIdx + 1];
+            }
             if (total === 3) return [0, 1, 2];
-            const currentIdx = photoObj.burst.index;
             if (currentIdx === 0) return [0, 1, 2];
             if (currentIdx >= total - 1) return [total - 3, total - 2, total - 1];
             return [currentIdx - 1, currentIdx, currentIdx + 1];
         }
-        return storySettings.burstConfig?.selectedIndices || [0, 1, 2];
+        return storySettings.burstConfig?.selectedIndices || (isDuet ? [0, 1] : [0, 1, 2]);
     });
 
     const [burstPanOffsets, setBurstPanOffsets] = useState<{ x: number; y: number; zoom?: number }[]>(() => {
         const defY = photoObj.focusY ?? 0.45;
         const saved = storySettings.burstConfig?.panOffsets;
-        const defZoom = calculateDefaultBurstZoom(naturalDimensions.width, naturalDimensions.height);
-        return [
-            saved?.[0] || { x: 0.5, y: defY, zoom: defZoom },
-            saved?.[1] || { x: 0.5, y: defY, zoom: defZoom },
-            saved?.[2] || { x: 0.5, y: defY, zoom: defZoom },
-        ];
+        const panelAspect = targetPanelCount === 2 ? DUET_PANEL_ASPECT_RATIO : BURST_PANEL_ASPECT_RATIO;
+        const defZoom = calculateDefaultBurstZoom(naturalDimensions.width, naturalDimensions.height, panelAspect);
+        return Array.from({ length: targetPanelCount }, (_, i) => saved?.[i] || { x: 0.5, y: defY, zoom: defZoom });
     });
 
     const activePanelImages = useMemo(() => {
         if (!loadedBurstImages || loadedBurstImages.length === 0) {
-            return loadedImage ? [loadedImage, loadedImage, loadedImage] : [];
+            return loadedImage ? Array(targetPanelCount).fill(loadedImage) : [];
         }
-        const img0 =
-            burstSelectedIndices[0] !== undefined && burstSelectedIndices[0] !== null
-                ? loadedBurstImages[burstSelectedIndices[0]] || null
-                : null;
-        const img1 =
-            burstSelectedIndices[1] !== undefined && burstSelectedIndices[1] !== null
-                ? loadedBurstImages[burstSelectedIndices[1]] || null
-                : null;
-        const img2 =
-            burstSelectedIndices[2] !== undefined && burstSelectedIndices[2] !== null
-                ? loadedBurstImages[burstSelectedIndices[2]] || null
-                : null;
-        return [img0, img1, img2];
-    }, [loadedBurstImages, burstSelectedIndices, loadedImage]);
+        return burstSelectedIndices.slice(0, targetPanelCount).map((idx) => {
+            return idx !== undefined && idx !== null ? loadedBurstImages[idx] || null : null;
+        });
+    }, [loadedBurstImages, burstSelectedIndices, loadedImage, targetPanelCount]);
 
     const activeBurstTimeStamps = useMemo(() => {
         if (isTriptych || !photoObj.burst?.frameDeltas) {
-            return [0.0, 0.0, 0.0];
+            return Array(targetPanelCount).fill(0.0);
         }
         const deltas = photoObj.burst.frameDeltas;
         const base =
             burstSelectedIndices[0] !== undefined && burstSelectedIndices[0] !== null
                 ? (deltas[burstSelectedIndices[0]] ?? 0)
                 : 0;
-        const d1 =
-            burstSelectedIndices[1] !== undefined && burstSelectedIndices[1] !== null
-                ? (deltas[burstSelectedIndices[1]] ?? 0.0)
-                : 0.0;
-        const d2 =
-            burstSelectedIndices[2] !== undefined && burstSelectedIndices[2] !== null
-                ? (deltas[burstSelectedIndices[2]] ?? 0.0)
-                : 0.0;
-        return [0.0, Number(Math.max(0, d1 - base).toFixed(2)), Number(Math.max(0, d2 - base).toFixed(2))];
-    }, [photoObj.burst, burstSelectedIndices, isTriptych]);
+        return burstSelectedIndices.slice(0, targetPanelCount).map((idx, i) => {
+            if (i === 0) return 0.0;
+            if (idx !== undefined && idx !== null) {
+                return Number(Math.abs((deltas[idx] ?? 0.0) - base).toFixed(2));
+            }
+            return 0.0;
+        });
+    }, [photoObj.burst, burstSelectedIndices, isTriptych, targetPanelCount]);
 
     const [activeCrop, setActiveCrop] = useState<NormalizedCrop>(() => {
         if (storySettings.mode === 'padded') {
@@ -317,6 +383,7 @@ export function useStoryStudio({
             burst: {
                 dividerStyle: burstDividerStyle,
                 showTimeStamps: burstShowTimeStamps,
+                panelCount: targetPanelCount,
                 timeStamps: activeBurstTimeStamps,
                 panOffsets: burstPanOffsets,
                 focusYList: burstPanOffsets.map((p) => p.y),
@@ -337,6 +404,7 @@ export function useStoryStudio({
             paddedConfig,
             burstDividerStyle,
             burstShowTimeStamps,
+            targetPanelCount,
             activeBurstTimeStamps,
             burstPanOffsets,
             badges,
@@ -350,7 +418,8 @@ export function useStoryStudio({
     );
 
     const activeSingleImage = (loadedBurstImages && loadedBurstImages[activePhotoIndex]) || loadedImage;
-    const exportImage = activeMode === 'burst' && activePanelImages.length >= 3 ? activePanelImages : activeSingleImage;
+    const exportImage =
+        activeMode === 'burst' && activePanelImages.length >= targetPanelCount ? activePanelImages : activeSingleImage;
 
     const { isExporting, isDownloaded, setIsDownloaded, statusToast, handleExportAction, resetExportState } =
         useStoryExport({
@@ -378,6 +447,7 @@ export function useStoryStudio({
                 showTimeStamps: burstShowTimeStamps,
                 selectedIndices: burstSelectedIndices,
                 panOffsets: burstPanOffsets,
+                panelCount: targetPanelCount,
             },
             filterId: activeFilterId,
             filterStrength,
@@ -424,17 +494,28 @@ export function useStoryStudio({
         setFrameColorChoice('signature');
         setFrameCustomColor('#ffffff');
         if (photoObj.burst) {
+            const defaultPanelCount: 2 | 3 = photoObj.burst.total === 2 || photoObj.burst.isDuet ? 2 : 3;
+            const total = photoObj.burst.total;
+            const currentIdx = photoObj.burst.index ?? 0;
+            let defaultIndices: (number | null)[];
+            if (defaultPanelCount === 2) {
+                if (total === 2 || currentIdx === 0) defaultIndices = [0, 1];
+                else if (currentIdx >= total - 1) defaultIndices = [total - 2, total - 1];
+                else defaultIndices = [currentIdx, currentIdx + 1];
+            } else {
+                if (total === 3 || currentIdx === 0) defaultIndices = [0, 1, 2];
+                else if (currentIdx >= total - 1) defaultIndices = [total - 3, total - 2, total - 1];
+                else defaultIndices = [currentIdx - 1, currentIdx, currentIdx + 1];
+            }
+            setBurstPanelCount(defaultPanelCount);
             setActiveMode('burst');
             setBurstDividerStyle('hairline');
             setBurstShowTimeStamps(true);
-            setBurstSelectedIndices([0, 1, 2]);
+            setBurstSelectedIndices(defaultIndices);
             const defY = photoObj.focusY ?? 0.45;
-            const defZoom = calculateDefaultBurstZoom(naturalDimensions.width, naturalDimensions.height);
-            setBurstPanOffsets([
-                { x: 0.5, y: defY, zoom: defZoom },
-                { x: 0.5, y: defY, zoom: defZoom },
-                { x: 0.5, y: defY, zoom: defZoom },
-            ]);
+            const panelAspect = defaultPanelCount === 2 ? DUET_PANEL_ASPECT_RATIO : BURST_PANEL_ASPECT_RATIO;
+            const defZoom = calculateDefaultBurstZoom(naturalDimensions.width, naturalDimensions.height, panelAspect);
+            setBurstPanOffsets(Array.from({ length: defaultPanelCount }, () => ({ x: 0.5, y: defY, zoom: defZoom })));
         } else {
             const def = presets.find((p) => p.isDefault) || presets[0];
             if (def) {
@@ -479,6 +560,7 @@ export function useStoryStudio({
         resetStorySettings,
         resetExportState,
         photoObj.burst,
+        targetPanelCount,
         presets,
         naturalDimensions.width,
         naturalDimensions.height,
@@ -496,17 +578,32 @@ export function useStoryStudio({
         if (frameColorChoice !== 'signature') return false;
 
         if (activeMode === 'burst') {
-            if (
-                burstDividerStyle !== 'hairline' ||
-                burstShowTimeStamps !== true ||
-                burstSelectedIndices[0] !== 0 ||
-                burstSelectedIndices[1] !== 1 ||
-                burstSelectedIndices[2] !== 2
-            ) {
+            const defaultPanelCount: 2 | 3 = photoObj.burst?.total === 2 || photoObj.burst?.isDuet ? 2 : 3;
+            if (burstPanelCount !== defaultPanelCount) return false;
+            const total = photoObj.burst?.total ?? 2;
+            const currentIdx = photoObj.burst?.index ?? 0;
+            const defaultIndices: (number | null)[] = (() => {
+                if (defaultPanelCount === 2) {
+                    if (total === 2 || currentIdx === 0) return [0, 1];
+                    if (currentIdx >= total - 1) return [total - 2, total - 1];
+                    return [currentIdx, currentIdx + 1];
+                } else {
+                    if (total === 3 || currentIdx === 0) return [0, 1, 2];
+                    if (currentIdx >= total - 1) return [total - 3, total - 2, total - 1];
+                    return [currentIdx - 1, currentIdx, currentIdx + 1];
+                }
+            })();
+
+            const areIndicesDefault =
+                burstSelectedIndices.length === defaultIndices.length &&
+                burstSelectedIndices.every((val, i) => val === defaultIndices[i]);
+
+            if (burstDividerStyle !== 'hairline' || burstShowTimeStamps !== true || !areIndicesDefault) {
                 return false;
             }
             const defY = photoObj.focusY ?? 0.45;
-            const defZoom = calculateDefaultBurstZoom(naturalDimensions.width, naturalDimensions.height);
+            const panelAspect = targetPanelCount === 2 ? DUET_PANEL_ASPECT_RATIO : BURST_PANEL_ASPECT_RATIO;
+            const defZoom = calculateDefaultBurstZoom(naturalDimensions.width, naturalDimensions.height, panelAspect);
             const areBurstPanOffsetsDefault = burstPanOffsets.every(
                 (p) =>
                     Math.abs(p.x - 0.5) < 0.001 &&
@@ -660,6 +757,7 @@ export function useStoryStudio({
             burst: {
                 dividerStyle: burstDividerStyle,
                 showTimeStamps: burstShowTimeStamps,
+                panelCount: targetPanelCount,
                 timeStamps: activeBurstTimeStamps,
                 panOffsets: burstPanOffsets,
                 focusYList: burstPanOffsets.map((p) => p.y),
@@ -702,6 +800,7 @@ export function useStoryStudio({
         paddedConfig,
         burstDividerStyle,
         burstShowTimeStamps,
+        targetPanelCount,
         activeBurstTimeStamps,
         burstPanOffsets,
         badges,
@@ -725,6 +824,9 @@ export function useStoryStudio({
         paddedConfig,
         setPaddedConfig,
         burst: photoObj.burst,
+        burstPanelCount: targetPanelCount,
+        setBurstPanelCount: handleSetBurstPanelCount,
+        isDuet,
         burstDividerStyle,
         setBurstDividerStyle,
         burstShowTimeStamps,

@@ -39,7 +39,7 @@ test.describe('Story Maker (9:16)', () => {
         await expect(studioModal.locator('.modal-shell__title')).toContainText('STORY MAKER');
 
         // Check composition mode buttons
-        const cropModeBtn = studioModal.locator('button:has-text("9:16 Crop")');
+        const cropModeBtn = studioModal.locator('button:has-text("9:16")').first();
         const paddedModeBtn = studioModal.locator('button:has-text("Padded")');
         await expect(cropModeBtn).toBeVisible();
         await expect(paddedModeBtn).toBeVisible();
@@ -223,7 +223,7 @@ test.describe('Story Maker (9:16)', () => {
         await expect(studioModal).toBeVisible();
         await expect(lightbox).toBeVisible();
 
-        const cropBtn = studioModal.locator('button:has-text("9:16 Crop")');
+        const cropBtn = studioModal.locator('button:has-text("9:16")').first();
         await cropBtn.click();
         await expect(studioModal).toBeVisible();
         await expect(lightbox).toBeVisible();
@@ -451,7 +451,7 @@ test.describe('Story Maker (9:16)', () => {
         await expect(studioModal).toBeVisible({ timeout: 8000 });
 
         // Verify it reset back to default 9:16 Crop mode (not Padded)
-        const cropBtn = studioModal.locator('button:has-text("9:16 Crop")');
+        const cropBtn = studioModal.locator('button:has-text("9:16")').first();
         await expect(cropBtn).toHaveClass(/active/);
         await expect(studioModal.locator('.story-export-modal__padded-settings')).not.toBeVisible();
     });
@@ -498,7 +498,7 @@ test.describe('Story Maker (9:16)', () => {
         const tintRow = studioModal.locator('.story-export-modal__frames-header-tint');
         await expect(tintRow).toBeVisible();
 
-        // Verify no icons in 9:16 Crop / Padded buttons, zoom header, frame header, or badge list
+        // Verify no icons in 9:16 / Padded buttons, zoom header, frame header, or badge list
         await expect(studioModal.locator('.story-export-modal__seg-btn svg')).toHaveCount(0);
         await expect(studioModal.locator('.story-export-modal__zoom-header svg')).toHaveCount(0);
         await expect(studioModal.locator('.story-export-modal__accordion-title svg')).toHaveCount(0);

@@ -4,6 +4,7 @@ import {
     getStoryFilterCss,
     STORY_ASPECT_RATIO,
     BURST_PANEL_ASPECT_RATIO,
+    DUET_PANEL_ASPECT_RATIO,
     calculateBurstPanelCrop,
     calculateDefaultBurstZoom,
 } from '../../../utils/storyCanvas';
@@ -35,9 +36,11 @@ export interface StoryBurstCropperProps {
     filterStrength?: number;
     activeStep?: number;
     onSelectPanel?: (panelIndex: number) => void;
+    panelCount?: 2 | 3;
 }
 
-const SLOT_NAMES = ['TOP', 'MID', 'BTM'];
+const DEFAULT_SLOT_NAMES = ['TOP', 'MID', 'BTM'];
+const DUET_SLOT_NAMES = ['TOP', 'BTM'];
 const MIN_ZOOM = 1.0;
 const MAX_ZOOM = 3.5;
 
@@ -58,7 +61,13 @@ export const StoryBurstCropper: React.FC<StoryBurstCropperProps> = ({
     filterStrength,
     activeStep,
     onSelectPanel,
+    panelCount,
 }) => {
+    const count: 2 | 3 = panelCount ?? (images.length === 2 ? 2 : 3);
+    const slotNames = count === 2 ? DUET_SLOT_NAMES : DEFAULT_SLOT_NAMES;
+    const panelAspect = count === 2 ? DUET_PANEL_ASPECT_RATIO : BURST_PANEL_ASPECT_RATIO;
+    const panelIndices = count === 2 ? [0, 1] : [0, 1, 2];
+
     const filterCss = filterId && filterId !== 'none' ? getStoryFilterCss(filterId, filterStrength ?? 1.0) : undefined;
 
     const panelRefs = useRef<(HTMLDivElement | null)[]>([null, null, null]);
@@ -169,7 +178,7 @@ export const StoryBurstCropper: React.FC<StoryBurstCropperProps> = ({
 
         const nw = imageDims[panelIdx]?.width || 1920;
         const nh = imageDims[panelIdx]?.height || 1080;
-        const defZoom = calculateDefaultBurstZoom(nw, nh, BURST_PANEL_ASPECT_RATIO);
+        const defZoom = calculateDefaultBurstZoom(nw, nh, panelAspect);
         const currentPan = panOffsets[panelIdx] || { x: 0.5, y: 0.45, zoom: defZoom };
         const currentZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, currentPan.zoom ?? defZoom));
         const zoomDelta = e.deltaY < 0 ? 0.1 : -0.1;
@@ -199,7 +208,7 @@ export const StoryBurstCropper: React.FC<StoryBurstCropperProps> = ({
             const dist = Math.hypot(t1.clientX - t2.clientX, t1.clientY - t2.clientY);
             const nw = imageDims[panelIdx]?.width || 1920;
             const nh = imageDims[panelIdx]?.height || 1080;
-            const defZoom = calculateDefaultBurstZoom(nw, nh, BURST_PANEL_ASPECT_RATIO);
+            const defZoom = calculateDefaultBurstZoom(nw, nh, panelAspect);
             const currentPan = panOffsets[panelIdx] || { x: 0.5, y: 0.45, zoom: defZoom };
             touchDistRef.current = {
                 panelIdx,
@@ -222,7 +231,7 @@ export const StoryBurstCropper: React.FC<StoryBurstCropperProps> = ({
 
             const nw = imageDims[panelIdx]?.width || 1920;
             const nh = imageDims[panelIdx]?.height || 1080;
-            const defZoom = calculateDefaultBurstZoom(nw, nh, BURST_PANEL_ASPECT_RATIO);
+            const defZoom = calculateDefaultBurstZoom(nw, nh, panelAspect);
             const currentPan = panOffsets[panelIdx] || { x: 0.5, y: 0.45, zoom: defZoom };
             if (Math.abs(newZoom - (currentPan.zoom ?? defZoom)) > 0.005) {
                 onPanChange(panelIdx, {
@@ -248,7 +257,7 @@ export const StoryBurstCropper: React.FC<StoryBurstCropperProps> = ({
         e.stopPropagation();
         const nw = imageDims[panelIdx]?.width || 1920;
         const nh = imageDims[panelIdx]?.height || 1080;
-        const defZoom = calculateDefaultBurstZoom(nw, nh, BURST_PANEL_ASPECT_RATIO);
+        const defZoom = calculateDefaultBurstZoom(nw, nh, panelAspect);
         const currentPan = panOffsets[panelIdx] || { x: 0.5, y: 0.45, zoom: defZoom };
         const currentZoom = currentPan.zoom ?? defZoom;
         const targetZoom = currentZoom > defZoom ? 1.0 : 1.8;
@@ -266,7 +275,7 @@ export const StoryBurstCropper: React.FC<StoryBurstCropperProps> = ({
         if (!images[panelIdx]) return;
         const nw = imageDims[panelIdx]?.width || 1920;
         const nh = imageDims[panelIdx]?.height || 1080;
-        const defZoom = calculateDefaultBurstZoom(nw, nh, BURST_PANEL_ASPECT_RATIO);
+        const defZoom = calculateDefaultBurstZoom(nw, nh, panelAspect);
         const currentPan = panOffsets[panelIdx] || { x: 0.5, y: 0.45, zoom: defZoom };
         const currentZoom = currentPan.zoom ?? defZoom;
         const step = e.shiftKey ? 0.1 : 0.03;
@@ -309,26 +318,27 @@ export const StoryBurstCropper: React.FC<StoryBurstCropperProps> = ({
     return (
         <div
             className="story-burst-cropper"
+            data-panels={count}
             style={{
                 aspectRatio: `${STORY_ASPECT_RATIO}`,
             }}
             role="region"
-            aria-label="3-Panel Burst Interactive Cropper"
+            aria-label={count === 2 ? '2-Panel Duet Interactive Cropper' : '3-Panel Burst Interactive Cropper'}
         >
             <div className="story-burst-cropper__panels">
-                {[0, 1, 2].map((panelIdx) => {
+                {panelIndices.map((panelIdx) => {
                     const src = images[panelIdx];
                     const nw = imageDims[panelIdx]?.width || 1920;
                     const nh = imageDims[panelIdx]?.height || 1080;
-                    const defZoom = calculateDefaultBurstZoom(nw, nh, BURST_PANEL_ASPECT_RATIO);
+                    const defZoom = calculateDefaultBurstZoom(nw, nh, panelAspect);
                     const pan = panOffsets[panelIdx] || { x: 0.5, y: 0.45, zoom: defZoom };
                     const zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, pan.zoom ?? defZoom));
                     const dt = timeStamps?.[panelIdx] ?? (panelIdx === 0 ? 0 : panelIdx * 0.8);
-                    const slotName = SLOT_NAMES[panelIdx];
+                    const slotName = slotNames[panelIdx];
                     const isDraggingThis = draggingPanel === panelIdx;
                     const isStepActive = activeStep === panelIdx;
 
-                    const crop = calculateBurstPanelCrop(nw, nh, pan.x, pan.y, zoom, BURST_PANEL_ASPECT_RATIO);
+                    const crop = calculateBurstPanelCrop(nw, nh, pan.x, pan.y, zoom, panelAspect);
 
                     const scaleX = 1 / Math.max(0.001, crop.width);
                     const scaleY = 1 / Math.max(0.001, crop.height);

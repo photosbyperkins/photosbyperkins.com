@@ -196,7 +196,7 @@ describe('BatchActionBar', () => {
         // When 2 photos selected: enabled (creates single story with photo selector)
         rerender(<BatchActionBar {...getProps()} selectedCount={2} />);
         const twoStoryBtn = screen.getByRole('button', {
-            name: /Create story with selected photos \(2 selected\)/i,
+            name: /Create 2-panel duet story with selected photos/i,
         });
         expect(twoStoryBtn).toBeDefined();
         expect((twoStoryBtn as HTMLButtonElement).disabled).toBe(false);

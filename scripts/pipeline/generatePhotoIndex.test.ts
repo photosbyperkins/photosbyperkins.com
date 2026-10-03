@@ -154,7 +154,7 @@ describe('generatePhotoIndex helpers', () => {
             expect(items[2].burst?.total).toBe(3);
         });
 
-        it('splits bursts when delta time exceeds threshold', () => {
+        it('splits bursts when delta time exceeds threshold and creates distinct 2-photo bursts', () => {
             const items: BurstCandidate[] = [
                 { original: '/p1.jpg', width: 3000, height: 2000, timestampMs: 10000, cameraSerial: 'CAM-123' },
                 { original: '/p2.jpg', width: 3000, height: 2000, timestampMs: 10800, cameraSerial: 'CAM-123' },
@@ -164,12 +164,33 @@ describe('generatePhotoIndex helpers', () => {
 
             detectBursts(items, 'test-event', 2.0);
 
-            // Group 1 only had 2 photos (p1, p2) -> not a burst
-            // Group 2 only had 2 photos (p3, p4) -> not a burst
+            // Group 1 has 2 photos (p1, p2) -> 2-photo burst (Duet)
+            expect(items[0].burst).toBeDefined();
+            expect(items[0].burst?.id).toBe('test-event-burst-1');
+            expect(items[0].burst?.total).toBe(2);
+            expect(items[0].burst?.isDuet).toBe(true);
+            expect(items[1].burst?.id).toBe('test-event-burst-1');
+            expect(items[1].burst?.deltaSec).toBe(0.8);
+
+            // Group 2 has 2 photos (p3, p4) -> second 2-photo burst (Duet)
+            expect(items[2].burst).toBeDefined();
+            expect(items[2].burst?.id).toBe('test-event-burst-2');
+            expect(items[2].burst?.total).toBe(2);
+            expect(items[2].burst?.isDuet).toBe(true);
+            expect(items[3].burst?.id).toBe('test-event-burst-2');
+            expect(items[3].burst?.deltaSec).toBe(0.5);
+        });
+
+        it('does not group isolated single photos into bursts', () => {
+            const items: BurstCandidate[] = [
+                { original: '/single1.jpg', width: 3000, height: 2000, timestampMs: 10000, cameraSerial: 'CAM-123' },
+                { original: '/single2.jpg', width: 3000, height: 2000, timestampMs: 15000, cameraSerial: 'CAM-123' }, // 5.0s gap
+            ];
+
+            detectBursts(items, 'test-event', 2.0);
+
             expect(items[0].burst).toBeUndefined();
             expect(items[1].burst).toBeUndefined();
-            expect(items[2].burst).toBeUndefined();
-            expect(items[3].burst).toBeUndefined();
         });
 
         it('handles bursts with >3 photos and assigns correct metadata', () => {

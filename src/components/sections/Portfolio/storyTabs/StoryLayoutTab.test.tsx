@@ -517,7 +517,7 @@ describe('StoryLayoutTab - Single Photo Selector and Crop Zoom Removal', () => {
         const onSelectPhotoIndex = vi.fn();
         render(<StoryLayoutTab {...baseProps} onSelectPhotoIndex={onSelectPhotoIndex} />);
 
-        expect(screen.getByText('Selected Photos')).not.toBeNull();
+        expect(screen.getByText('Selected Photo')).not.toBeNull();
         expect(screen.getByText('Photo 1 of 4')).not.toBeNull();
 
         const selector = screen.getByRole('group', { name: /Photo Selector/i });
@@ -533,7 +533,7 @@ describe('StoryLayoutTab - Single Photo Selector and Crop Zoom Removal', () => {
         const onSelectPhotoIndex = vi.fn();
         render(<StoryLayoutTab {...baseProps} activeMode="padded" onSelectPhotoIndex={onSelectPhotoIndex} />);
 
-        expect(screen.getByText('Selected Photos')).not.toBeNull();
+        expect(screen.getByText('Selected Photo')).not.toBeNull();
         expect(screen.getByText('Photo 1 of 4')).not.toBeNull();
 
         const selector = screen.getByRole('group', { name: /Photo Selector/i });
@@ -544,21 +544,479 @@ describe('StoryLayoutTab - Single Photo Selector and Crop Zoom Removal', () => {
         expect(onSelectPhotoIndex).toHaveBeenCalledWith(1);
     });
 
-    it('hides burst/triptych mode button in mode toggle when burst.total < 3', () => {
+    it('hides multi-panel mode button in mode toggle when burst.total < 2', () => {
+        const singlePhotoMeta: BurstMetadata = {
+            id: 'single-1',
+            index: 0,
+            total: 1,
+            frameSources: ['/p1.jpg'],
+            frameThumbs: ['/tp1.jpg'],
+        };
+
+        render(<StoryLayoutTab {...baseProps} burst={singlePhotoMeta} />);
+
+        expect(screen.queryByRole('button', { name: /duet/i })).toBeNull();
+        expect(screen.queryByRole('button', { name: /triptych/i })).toBeNull();
+        expect(screen.queryByRole('button', { name: /burst/i })).toBeNull();
+        expect(screen.getByRole('button', { name: /^9:16$/i })).not.toBeNull();
+        expect(screen.getByRole('button', { name: /Padded/i })).not.toBeNull();
+    });
+
+    it('renders Duet button in mode toggle when burst.total === 2', () => {
         const twoPhotoMeta: BurstMetadata = {
             id: 'batch-2',
             index: 0,
             total: 2,
             isTriptych: true,
+            isDuet: true,
             frameSources: ['/p1.jpg', '/p2.jpg'],
             frameThumbs: ['/tp1.jpg', '/tp2.jpg'],
         };
 
         render(<StoryLayoutTab {...baseProps} burst={twoPhotoMeta} />);
 
-        expect(screen.queryByRole('button', { name: /triptych/i })).toBeNull();
-        expect(screen.queryByRole('button', { name: /burst/i })).toBeNull();
-        expect(screen.getByRole('button', { name: /9:16 Crop/i })).not.toBeNull();
+        expect(screen.getByRole('button', { name: /duet/i })).not.toBeNull();
+        expect(screen.getByRole('button', { name: /^9:16$/i })).not.toBeNull();
         expect(screen.getByRole('button', { name: /Padded/i })).not.toBeNull();
+    });
+
+    it('renders 2 wizard slots (TOP, BTM) and Duet photo controls when panelCount is 2 with >2 photos', () => {
+        const multiDuetMeta: BurstMetadata = {
+            id: 'batch-duet-multi',
+            index: 0,
+            total: 4,
+            isTriptych: true,
+            isDuet: true,
+            frameSources: ['/p1.jpg', '/p2.jpg', '/p3.jpg', '/p4.jpg'],
+            frameThumbs: ['/tp1.jpg', '/tp2.jpg', '/tp3.jpg', '/tp4.jpg'],
+        };
+
+        render(
+            <StoryLayoutTab
+                {...baseProps}
+                activeMode="burst"
+                burst={multiDuetMeta}
+                panelCount={2}
+                burstSelectedIndices={[null, null]}
+            />
+        );
+
+        expect(screen.getByText('Duet Photos')).not.toBeNull();
+        expect(screen.getByText('Pick 2 photos')).not.toBeNull();
+
+        const slotGroup = screen.getByRole('group', { name: /Duet Photo Slots/i });
+        const stepButtons = slotGroup.querySelectorAll('.story-export-modal__burst-slot-pill');
+        expect(stepButtons).toHaveLength(2);
+        expect(stepButtons[0].textContent).toContain('1. TOP');
+        expect(stepButtons[1].textContent).toContain('2. BTM');
+
+        const swapBtn = slotGroup.querySelector<HTMLButtonElement>('.story-export-modal__swap-pill');
+        expect(swapBtn).not.toBeNull();
+        expect(swapBtn?.disabled).toBe(true);
+    });
+
+    it('renders both Duet and Triptych mode toggle buttons for camera bursts with >= 3 frames', () => {
+        const cameraBurstMeta: BurstMetadata = {
+            id: 'cam-burst-3',
+            index: 0,
+            total: 6,
+            frameSources: ['/f1.jpg', '/f2.jpg', '/f3.jpg', '/f4.jpg', '/f5.jpg', '/f6.jpg'],
+            frameThumbs: ['/tf1.jpg', '/tf2.jpg', '/tf3.jpg', '/tf4.jpg', '/tf5.jpg', '/tf6.jpg'],
+            frameDeltas: [0, 0.2, 0.4, 0.6, 0.8, 1.0],
+        };
+
+        render(<StoryLayoutTab {...baseProps} burst={cameraBurstMeta} />);
+
+        expect(screen.getByRole('button', { name: /^9:16$/i })).not.toBeNull();
+        expect(screen.getByRole('button', { name: /^Padded$/i })).not.toBeNull();
+        expect(screen.getByRole('button', { name: /^Duet$/i })).not.toBeNull();
+        expect(screen.getByRole('button', { name: /^Triptych$/i })).not.toBeNull();
+        expect(screen.queryByRole('button', { name: /^BURST$/i })).toBeNull();
+    });
+
+    it('allows arbitrary ordering and swapping in camera burst when timestamps (+Δt) are disabled', () => {
+        const cameraBurstMeta: BurstMetadata = {
+            id: 'cam-burst-swap',
+            index: 0,
+            total: 4,
+            frameSources: ['/f1.jpg', '/f2.jpg', '/f3.jpg', '/f4.jpg'],
+            frameThumbs: ['/tf1.jpg', '/tf2.jpg', '/tf3.jpg', '/tf4.jpg'],
+            frameDeltas: [0, 0.2, 0.4, 0.6],
+        };
+
+        const setBurstSelectedIndices = vi.fn();
+        const { container } = render(
+            <StoryLayoutTab
+                {...baseProps}
+                activeMode="burst"
+                burst={cameraBurstMeta}
+                burstShowTimeStamps={false}
+                burstPanelCount={2}
+                burstSelectedIndices={[0, 3]}
+                setBurstSelectedIndices={setBurstSelectedIndices}
+            />
+        );
+
+        // When burstShowTimeStamps is false, Swap button should be visible in Duet mode
+        const swapBtn = screen.getByRole('button', { name: /Swap Top and Bottom photos/i });
+        expect(swapBtn).not.toBeNull();
+
+        fireEvent.click(swapBtn);
+        expect(setBurstSelectedIndices).toHaveBeenCalledWith([3, 0]);
+
+        // Also test that thumbs can be selected in reverse order
+        const thumbs = container.querySelectorAll<HTMLButtonElement>('.story-export-modal__burst-thumb');
+        // None of the non-selected thumbnails should be disabled when timestamps are hidden
+        thumbs.forEach((thumb) => {
+            expect(thumb.disabled).toBe(false);
+        });
+    });
+
+    it('disables swap and hides icon but preserves button in DOM when timestamps (+Δt) are enabled', () => {
+        const cameraBurstMeta: BurstMetadata = {
+            id: 'cam-burst-swap-disabled',
+            index: 0,
+            total: 4,
+            frameSources: ['/f1.jpg', '/f2.jpg', '/f3.jpg', '/f4.jpg'],
+            frameThumbs: ['/tf1.jpg', '/tf2.jpg', '/tf3.jpg', '/tf4.jpg'],
+            frameDeltas: [0, 0.2, 0.4, 0.6],
+        };
+
+        const setBurstSelectedIndices = vi.fn();
+        render(
+            <StoryLayoutTab
+                {...baseProps}
+                activeMode="burst"
+                burst={cameraBurstMeta}
+                burstShowTimeStamps={true}
+                burstPanelCount={2}
+                burstSelectedIndices={[0, 3]}
+                setBurstSelectedIndices={setBurstSelectedIndices}
+            />
+        );
+
+        const swapBtn = screen.getByRole('button', { name: /Swap Top and Bottom photos/i }) as HTMLButtonElement;
+        expect(swapBtn).not.toBeNull();
+        expect(swapBtn.disabled).toBe(true);
+        expect(swapBtn.classList.contains('story-export-modal__swap-pill--disabled')).toBe(true);
+
+        fireEvent.click(swapBtn);
+        expect(setBurstSelectedIndices).not.toHaveBeenCalled();
+    });
+
+    it('automatically sorts existing chosen frames chronologically when toggling +Δt to Show', () => {
+        const cameraBurstMeta: BurstMetadata = {
+            id: 'cam-burst-auto-sort',
+            index: 0,
+            total: 5,
+            frameSources: ['/f1.jpg', '/f2.jpg', '/f3.jpg', '/f4.jpg', '/f5.jpg'],
+            frameThumbs: ['/tf1.jpg', '/tf2.jpg', '/tf3.jpg', '/tf4.jpg', '/tf5.jpg'],
+            frameDeltas: [0, 0.2, 0.4, 0.6, 0.8],
+        };
+
+        const setBurstSelectedIndices = vi.fn();
+        const setBurstShowTimeStamps = vi.fn();
+
+        render(
+            <StoryLayoutTab
+                {...baseProps}
+                activeMode="burst"
+                burst={cameraBurstMeta}
+                burstShowTimeStamps={false}
+                setBurstShowTimeStamps={setBurstShowTimeStamps}
+                burstPanelCount={2}
+                burstSelectedIndices={[3, 0]}
+                setBurstSelectedIndices={setBurstSelectedIndices}
+            />
+        );
+
+        // Click the Show button for +Δt
+        const showBtn = screen.getByRole('button', { name: /^Show$/i });
+        fireEvent.click(showBtn);
+
+        expect(setBurstShowTimeStamps).toHaveBeenCalledWith(true);
+        // Automatically sorts [3, 0] -> [0, 3] so top frame is chronologically first
+        expect(setBurstSelectedIndices).toHaveBeenCalledWith([0, 3]);
+    });
+
+    it('automatically sorts 3-panel frames chronologically when toggling +Δt to Show', () => {
+        const cameraBurstMeta: BurstMetadata = {
+            id: 'cam-burst-auto-sort-3',
+            index: 0,
+            total: 6,
+            frameSources: ['/f1.jpg', '/f2.jpg', '/f3.jpg', '/f4.jpg', '/f5.jpg', '/f6.jpg'],
+            frameThumbs: ['/tf1.jpg', '/tf2.jpg', '/tf3.jpg', '/tf4.jpg', '/tf5.jpg', '/tf6.jpg'],
+            frameDeltas: [0, 0.2, 0.4, 0.6, 0.8, 1.0],
+        };
+
+        const setBurstSelectedIndices = vi.fn();
+        const setBurstShowTimeStamps = vi.fn();
+
+        render(
+            <StoryLayoutTab
+                {...baseProps}
+                activeMode="burst"
+                burst={cameraBurstMeta}
+                burstShowTimeStamps={false}
+                setBurstShowTimeStamps={setBurstShowTimeStamps}
+                burstPanelCount={3}
+                burstSelectedIndices={[4, 1, 2]}
+                setBurstSelectedIndices={setBurstSelectedIndices}
+            />
+        );
+
+        const showBtn = screen.getByRole('button', { name: /^Show$/i });
+        fireEvent.click(showBtn);
+
+        expect(setBurstShowTimeStamps).toHaveBeenCalledWith(true);
+        // Automatically sorts [4, 1, 2] -> [1, 2, 4]
+        expect(setBurstSelectedIndices).toHaveBeenCalledWith([1, 2, 4]);
+    });
+
+    it('suppresses frame selector and selects [0, 1] in Duet when only 2 frames are available and +Δt is shown', () => {
+        const cameraBurstMeta2: BurstMetadata = {
+            id: 'cam-burst-2',
+            index: 0,
+            total: 2,
+            frameSources: ['/f1.jpg', '/f2.jpg'],
+            frameThumbs: ['/tf1.jpg', '/tf2.jpg'],
+            frameDeltas: [0, 0.5],
+        };
+
+        const setBurstSelectedIndices = vi.fn();
+        const setBurstShowTimeStamps = vi.fn();
+
+        const { container, rerender } = render(
+            <StoryLayoutTab
+                {...baseProps}
+                activeMode="burst"
+                burst={cameraBurstMeta2}
+                burstShowTimeStamps={true}
+                setBurstShowTimeStamps={setBurstShowTimeStamps}
+                burstPanelCount={2}
+                burstSelectedIndices={[0, 1]}
+                setBurstSelectedIndices={setBurstSelectedIndices}
+            />
+        );
+
+        // Frame selector (slots and thumbnail strip) should be suppressed
+        expect(container.querySelector('.story-export-modal__burst-selector')).toBeNull();
+        // But +Δt toggle is still visible
+        expect(screen.getByRole('button', { name: /^Show$/i })).not.toBeNull();
+        expect(screen.getByRole('button', { name: /^Hide$/i })).not.toBeNull();
+
+        // Toggling to Hide reveals the frame selector
+        const hideBtn = screen.getByRole('button', { name: /^Hide$/i });
+        fireEvent.click(hideBtn);
+        expect(setBurstShowTimeStamps).toHaveBeenCalledWith(false);
+
+        // Rerender with burstShowTimeStamps = false
+        rerender(
+            <StoryLayoutTab
+                {...baseProps}
+                activeMode="burst"
+                burst={cameraBurstMeta2}
+                burstShowTimeStamps={false}
+                setBurstShowTimeStamps={setBurstShowTimeStamps}
+                burstPanelCount={2}
+                burstSelectedIndices={[0, 1]}
+                setBurstSelectedIndices={setBurstSelectedIndices}
+            />
+        );
+
+        // Frame selector is now visible
+        expect(container.querySelector('.story-export-modal__burst-selector')).not.toBeNull();
+    });
+
+    it('suppresses frame selector and selects [0, 1, 2] in Triptych when only 3 frames are available and +Δt is shown', () => {
+        const cameraBurstMeta3: BurstMetadata = {
+            id: 'cam-burst-3',
+            index: 0,
+            total: 3,
+            frameSources: ['/f1.jpg', '/f2.jpg', '/f3.jpg'],
+            frameThumbs: ['/tf1.jpg', '/tf2.jpg', '/tf3.jpg'],
+            frameDeltas: [0, 0.4, 0.8],
+        };
+
+        const setBurstSelectedIndices = vi.fn();
+        const setBurstShowTimeStamps = vi.fn();
+
+        const { container, rerender } = render(
+            <StoryLayoutTab
+                {...baseProps}
+                activeMode="burst"
+                burst={cameraBurstMeta3}
+                burstShowTimeStamps={true}
+                setBurstShowTimeStamps={setBurstShowTimeStamps}
+                burstPanelCount={3}
+                burstSelectedIndices={[0, 1, 2]}
+                setBurstSelectedIndices={setBurstSelectedIndices}
+            />
+        );
+
+        // Frame selector should be suppressed
+        expect(container.querySelector('.story-export-modal__burst-selector')).toBeNull();
+
+        // When toggling +Δt to Hide, frame selector becomes visible
+        rerender(
+            <StoryLayoutTab
+                {...baseProps}
+                activeMode="burst"
+                burst={cameraBurstMeta3}
+                burstShowTimeStamps={false}
+                setBurstShowTimeStamps={setBurstShowTimeStamps}
+                burstPanelCount={3}
+                burstSelectedIndices={[0, 1, 2]}
+                setBurstSelectedIndices={setBurstSelectedIndices}
+            />
+        );
+
+        expect(container.querySelector('.story-export-modal__burst-selector')).not.toBeNull();
+    });
+
+    it('does NOT suppress frame selector in Duet when >2 frames are available even with +Δt shown', () => {
+        const cameraBurstMeta4: BurstMetadata = {
+            id: 'cam-burst-4',
+            index: 0,
+            total: 4,
+            frameSources: ['/f1.jpg', '/f2.jpg', '/f3.jpg', '/f4.jpg'],
+            frameThumbs: ['/tf1.jpg', '/tf2.jpg', '/tf3.jpg', '/tf4.jpg'],
+            frameDeltas: [0, 0.2, 0.4, 0.6],
+        };
+
+        const { container } = render(
+            <StoryLayoutTab
+                {...baseProps}
+                activeMode="burst"
+                burst={cameraBurstMeta4}
+                burstShowTimeStamps={true}
+                burstPanelCount={2}
+                burstSelectedIndices={[0, 1]}
+            />
+        );
+
+        // Frame selector must NOT be suppressed because user can pick which 2 of the 4 frames to use
+        expect(container.querySelector('.story-export-modal__burst-selector')).not.toBeNull();
+    });
+
+    it('streamlines 2-frame Duet when +Δt is Hidden by suppressing the thumbnail strip while keeping the slot bar and swap button', () => {
+        const cameraBurstMeta2: BurstMetadata = {
+            id: 'cam-burst-2',
+            index: 0,
+            total: 2,
+            frameSources: ['/f1.jpg', '/f2.jpg'],
+            frameThumbs: ['/tf1.jpg', '/tf2.jpg'],
+            frameDeltas: [0, 0.42],
+        };
+
+        const setBurstSelectedIndices = vi.fn();
+
+        const { container } = render(
+            <StoryLayoutTab
+                {...baseProps}
+                activeMode="burst"
+                burst={cameraBurstMeta2}
+                burstShowTimeStamps={false}
+                burstPanelCount={2}
+                burstSelectedIndices={[0, 1]}
+                setBurstSelectedIndices={setBurstSelectedIndices}
+            />
+        );
+
+        // Burst selector (slot group with swap pill) is visible
+        expect(container.querySelector('.story-export-modal__burst-slot-group')).not.toBeNull();
+        expect(screen.getByRole('button', { name: /Swap Top and Bottom photos/i })).not.toBeNull();
+
+        // But thumbnail strip is suppressed
+        expect(container.querySelector('.story-export-modal__burst-strip')).toBeNull();
+
+        // Clicking a slot pill does NOT clear it to null
+        const topSlotPill = screen.getByRole('button', { name: /Step 1 \(TOP\)/i });
+        fireEvent.click(topSlotPill);
+        expect(setBurstSelectedIndices).not.toHaveBeenCalledWith([null, 1]);
+    });
+
+    it('displays active time delta (+Δt) badge in settings row when timestamps are enabled', () => {
+        const cameraBurstMeta4: BurstMetadata = {
+            id: 'cam-burst-4',
+            index: 0,
+            total: 4,
+            frameSources: ['/f1.jpg', '/f2.jpg', '/f3.jpg', '/f4.jpg'],
+            frameThumbs: ['/tf1.jpg', '/tf2.jpg', '/tf3.jpg', '/tf4.jpg'],
+            frameDeltas: [0, 0.21, 0.42, 0.63],
+        };
+
+        const { container, rerender } = render(
+            <StoryLayoutTab
+                {...baseProps}
+                activeMode="burst"
+                burst={cameraBurstMeta4}
+                burstShowTimeStamps={true}
+                burstPanelCount={2}
+                burstSelectedIndices={[0, 1]}
+            />
+        );
+
+        const badge = container.querySelector('.story-export-modal__delta-badge');
+        expect(badge).not.toBeNull();
+        expect(badge?.textContent).toBe('(+0.21s)');
+
+        // When timestamp is hidden, badge is not rendered
+        rerender(
+            <StoryLayoutTab
+                {...baseProps}
+                activeMode="burst"
+                burst={cameraBurstMeta4}
+                burstShowTimeStamps={false}
+                burstPanelCount={2}
+                burstSelectedIndices={[0, 1]}
+            />
+        );
+        expect(container.querySelector('.story-export-modal__delta-badge')).toBeNull();
+    });
+
+    it('renders Sequence Invert / Reverse button for Triptych when +Δt is Hidden and all 3 frames are assigned', () => {
+        const cameraBurstMeta4: BurstMetadata = {
+            id: 'cam-burst-4',
+            index: 0,
+            total: 4,
+            frameSources: ['/f1.jpg', '/f2.jpg', '/f3.jpg', '/f4.jpg'],
+            frameThumbs: ['/tf1.jpg', '/tf2.jpg', '/tf3.jpg', '/tf4.jpg'],
+            frameDeltas: [0, 0.21, 0.42, 0.63],
+        };
+
+        const setBurstSelectedIndices = vi.fn();
+
+        const { rerender } = render(
+            <StoryLayoutTab
+                {...baseProps}
+                activeMode="burst"
+                burst={cameraBurstMeta4}
+                burstShowTimeStamps={false}
+                burstPanelCount={3}
+                burstSelectedIndices={[0, 1, 2]}
+                setBurstSelectedIndices={setBurstSelectedIndices}
+            />
+        );
+
+        const reverseBtn = screen.getByRole('button', { name: /Reverse frame sequence/i });
+        expect(reverseBtn).not.toBeNull();
+
+        fireEvent.click(reverseBtn);
+        expect(setBurstSelectedIndices).toHaveBeenCalledWith([2, 1, 0]);
+
+        // When +Δt is shown (chronological ordering enforced), Reverse button is not rendered
+        rerender(
+            <StoryLayoutTab
+                {...baseProps}
+                activeMode="burst"
+                burst={cameraBurstMeta4}
+                burstShowTimeStamps={true}
+                burstPanelCount={3}
+                burstSelectedIndices={[0, 1, 2]}
+                setBurstSelectedIndices={setBurstSelectedIndices}
+            />
+        );
+        expect(screen.queryByRole('button', { name: /Reverse frame sequence/i })).toBeNull();
     });
 });

@@ -93,6 +93,9 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         paddedConfig,
         setPaddedConfig,
         burst,
+        burstPanelCount,
+        setBurstPanelCount,
+        isDuet,
         burstShowTimeStamps,
         setBurstShowTimeStamps,
         burstSelectedIndices,
@@ -191,43 +194,32 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isOpen, activeStudioTab, setActiveStudioTab]);
 
-    const validBurstCount = burstSelectedIndices.filter((idx) => idx !== null && idx !== undefined && idx >= 0).length;
+    const targetBurstCount = burstPanelCount ?? (photoObj.burst?.total === 2 ? 2 : 3);
+    const validBurstCount = burstSelectedIndices
+        .slice(0, targetBurstCount)
+        .filter((idx) => idx !== null && idx !== undefined && idx >= 0).length;
 
     const burstFrameUrls = useMemo(() => {
         if (!photoObj.burst?.frameSources) {
             return activePanelImages.map((img) => img?.src ?? null);
         }
         const sources = photoObj.burst.frameSources;
-        return [
-            burstSelectedIndices[0] !== undefined && burstSelectedIndices[0] !== null
-                ? withBuild(sources[burstSelectedIndices[0]]) || activePanelImages[0]?.src || null
-                : null,
-            burstSelectedIndices[1] !== undefined && burstSelectedIndices[1] !== null
-                ? withBuild(sources[burstSelectedIndices[1]]) || activePanelImages[1]?.src || null
-                : null,
-            burstSelectedIndices[2] !== undefined && burstSelectedIndices[2] !== null
-                ? withBuild(sources[burstSelectedIndices[2]]) || activePanelImages[2]?.src || null
-                : null,
-        ];
-    }, [photoObj.burst, burstSelectedIndices, withBuild, activePanelImages]);
+        return burstSelectedIndices.slice(0, targetBurstCount).map((idx, i) => {
+            return idx !== undefined && idx !== null
+                ? withBuild(sources[idx]) || activePanelImages[i]?.src || null
+                : null;
+        });
+    }, [photoObj.burst, burstSelectedIndices, withBuild, activePanelImages, targetBurstCount]);
 
     const burstFallbackUrls = useMemo(() => {
         if (!photoObj.burst?.frameSources) {
-            return [undefined, undefined, undefined];
+            return Array(targetBurstCount).fill(undefined);
         }
         const sources = photoObj.burst.frameSources;
-        return [
-            burstSelectedIndices[0] !== undefined && burstSelectedIndices[0] !== null
-                ? sources[burstSelectedIndices[0]]
-                : undefined,
-            burstSelectedIndices[1] !== undefined && burstSelectedIndices[1] !== null
-                ? sources[burstSelectedIndices[1]]
-                : undefined,
-            burstSelectedIndices[2] !== undefined && burstSelectedIndices[2] !== null
-                ? sources[burstSelectedIndices[2]]
-                : undefined,
-        ];
-    }, [photoObj.burst, burstSelectedIndices]);
+        return burstSelectedIndices.slice(0, targetBurstCount).map((idx) => {
+            return idx !== undefined && idx !== null ? sources[idx] : undefined;
+        });
+    }, [photoObj.burst, burstSelectedIndices, targetBurstCount]);
 
     const footer = (
         <button
@@ -238,7 +230,9 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
             disabled={
                 isExporting ||
                 (activeMode === 'burst'
-                    ? burstLoading || (loadedBurstImages?.length ?? 0) < 3 || validBurstCount < 3
+                    ? burstLoading ||
+                      (loadedBurstImages?.length ?? 0) < targetBurstCount ||
+                      validBurstCount < targetBurstCount
                     : !activeLoadedImage) ||
                 isDownloaded
             }
@@ -247,8 +241,10 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                     ? canShare
                         ? 'Story Card Shared'
                         : 'Story Card Downloaded'
-                    : activeMode === 'burst' && validBurstCount < 3
-                      ? `Pick ${3 - validBurstCount} more frame${3 - validBurstCount === 1 ? '' : 's'} to download`
+                    : activeMode === 'burst' && validBurstCount < targetBurstCount
+                      ? `Pick ${targetBurstCount - validBurstCount} more ${
+                            burst?.isTriptych ? 'photo' : 'frame'
+                        }${targetBurstCount - validBurstCount === 1 ? '' : 's'} to download`
                       : canShare
                         ? 'Share Story Card'
                         : 'Download Story Card'
@@ -258,8 +254,10 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                     ? canShare
                         ? 'Story Card Shared'
                         : 'Story Card Downloaded'
-                    : activeMode === 'burst' && validBurstCount < 3
-                      ? `Pick ${3 - validBurstCount} more frame${3 - validBurstCount === 1 ? '' : 's'} to download`
+                    : activeMode === 'burst' && validBurstCount < targetBurstCount
+                      ? `Pick ${targetBurstCount - validBurstCount} more ${
+                            burst?.isTriptych ? 'photo' : 'frame'
+                        }${targetBurstCount - validBurstCount === 1 ? '' : 's'} to download`
                       : canShare
                         ? 'Share Story Card'
                         : 'Download Story Card'
@@ -352,6 +350,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                 exif={photoObj.exif}
                                 filterId={activeFilterId}
                                 filterStrength={filterStrength}
+                                panelCount={targetBurstCount}
                             />
                         ) : (
                             <div className="story-export-modal__padded-preview">
@@ -448,6 +447,9 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                 onSelectPhotoIndex={handleSelectPhotoIndex}
                                 defaultFocusX={photoObj.focusX}
                                 defaultFocusY={photoObj.focusY}
+                                burstPanelCount={burstPanelCount}
+                                setBurstPanelCount={setBurstPanelCount}
+                                panelCount={targetBurstCount}
                             />
                         )}
 

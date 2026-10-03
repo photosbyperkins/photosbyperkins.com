@@ -13,6 +13,7 @@ export interface BurstStoryConfig {
     showTimeStamps: boolean;
     selectedIndices: (number | null)[];
     panOffsets?: { x: number; y: number; zoom?: number }[];
+    panelCount?: 2 | 3;
 }
 
 export interface StorySettings {

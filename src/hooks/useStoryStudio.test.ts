@@ -274,5 +274,108 @@ describe('useStoryStudio', () => {
             ]);
             expect(result.current.isDefaultConfig).toBe(true);
         });
+
+        it('initializes Duet mode with 2 panels when burst.total === 2', () => {
+            const duetPhoto: PhotoRecord = {
+                original: '/photos/match_duet_1.jpg',
+                thumb: '/photos/match_duet_1_thumb.jpg',
+                focusX: 0.5,
+                focusY: 0.45,
+                burst: {
+                    id: 'burst_duet_1',
+                    index: 0,
+                    total: 2,
+                    isDuet: true,
+                    deltaSec: 0.42,
+                    frameSources: ['/photos/match_duet_1.jpg', '/photos/match_duet_2.jpg'],
+                    frameThumbs: ['/photos/match_duet_1_thumb.jpg', '/photos/match_duet_2_thumb.jpg'],
+                    frameDeltas: [0.0, 0.42],
+                },
+            };
+
+            const duetProps = {
+                ...defaultProps,
+                photoObj: duetPhoto,
+                originalSrc: duetPhoto.original,
+            };
+
+            const { result } = renderHook(() => useStoryStudio(duetProps));
+
+            expect(result.current.activeMode).toBe('burst');
+            expect(result.current.burstPanelCount).toBe(2);
+            expect(result.current.isDuet).toBe(true);
+            expect(result.current.burstSelectedIndices).toEqual([0, 1]);
+            expect(result.current.burstPanOffsets).toHaveLength(2);
+            expect(result.current.currentConfig.burst?.panelCount).toBe(2);
+            expect(result.current.isDefaultConfig).toBe(true);
+
+            // Modifying and resetting
+            act(() => {
+                result.current.setBurstShowTimeStamps(false);
+            });
+            expect(result.current.isDefaultConfig).toBe(false);
+
+            act(() => {
+                result.current.resetToDefaults();
+            });
+            expect(result.current.burstSelectedIndices).toEqual([0, 1]);
+            expect(result.current.burstPanOffsets).toHaveLength(2);
+            expect(result.current.burstShowTimeStamps).toBe(true);
+            expect(result.current.isDefaultConfig).toBe(true);
+        });
+
+        it('dynamically switches between 3-panel and 2-panel (Duet) modes with setBurstPanelCount', () => {
+            const { result } = renderHook(() => useStoryStudio(burstProps));
+
+            expect(result.current.burstPanelCount).toBe(3);
+            expect(result.current.burstSelectedIndices).toHaveLength(3);
+            expect(result.current.burstPanOffsets).toHaveLength(3);
+
+            // Switch to Duet (2 panels)
+            act(() => {
+                result.current.setBurstPanelCount(2);
+            });
+
+            expect(result.current.burstPanelCount).toBe(2);
+            expect(result.current.isDuet).toBe(true);
+            expect(result.current.burstSelectedIndices).toHaveLength(2);
+            expect(result.current.burstPanOffsets).toHaveLength(2);
+            expect(result.current.currentConfig.burst?.panelCount).toBe(2);
+
+            // Switch back to 3 panels
+            act(() => {
+                result.current.setBurstPanelCount(3);
+            });
+
+            expect(result.current.burstPanelCount).toBe(3);
+            expect(result.current.isDuet).toBe(false);
+            expect(result.current.burstSelectedIndices).toHaveLength(3);
+            expect(result.current.burstPanOffsets).toHaveLength(3);
+            expect(result.current.currentConfig.burst?.panelCount).toBe(3);
+        });
+
+        it('initializes Duet with context-aware frames around current photo index', () => {
+            const longBurstProps = {
+                ...burstProps,
+                photoObj: {
+                    ...burstProps.photoObj,
+                    burst: {
+                        id: 'burst-long',
+                        index: 5,
+                        total: 8,
+                        frameSources: Array.from({ length: 8 }, (_, i) => `/frame-${i}.jpg`),
+                        frameThumbs: Array.from({ length: 8 }, (_, i) => `/thumb-${i}.jpg`),
+                        frameDeltas: [0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4],
+                        isDuet: true,
+                    },
+                },
+            };
+
+            const { result } = renderHook(() => useStoryStudio(longBurstProps));
+            expect(result.current.isDuet).toBe(true);
+            // Frame 5 of 8 in Duet should select [5, 6]
+            expect(result.current.burstSelectedIndices).toEqual([5, 6]);
+            expect(result.current.isDefaultConfig).toBe(true);
+        });
     });
 });

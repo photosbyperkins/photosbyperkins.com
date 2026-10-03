@@ -4,6 +4,7 @@ import {
     calculateBurstPanelCrop,
     calculateDefaultBurstZoom,
     BURST_PANEL_ASPECT_RATIO,
+    DUET_PANEL_ASPECT_RATIO,
     generateStoryPresets,
     drawCameraLogoIcon,
     renderStoryToCanvas,
@@ -167,6 +168,26 @@ describe('storyCanvas calculations', () => {
             // 16:9 photo -> default zoom 1.17
             const crop169 = calculateBurstPanelCrop(3840, 2160, 0.5, 0.5);
             expect(crop169.zoom).toBe(1.17);
+        });
+
+        it('calculates 9:8 Duet panel crop for 3:2 landscape photos', () => {
+            // In 9:8 panel (1.125), 3:2 photo (1.50) is wider than panel
+            // At zoom 1.0 (exact cover fit), height fills 100%, width takes 1.125 / 1.5 = 0.75 of source width
+            const crop = calculateBurstPanelCrop(3000, 2000, 0.5, 0.5, 1.0, DUET_PANEL_ASPECT_RATIO);
+            expect(crop.width).toBeCloseTo(0.75, 2);
+            expect(crop.height).toBeCloseTo(1.0, 2);
+            expect(crop.x).toBeCloseTo(0.125, 2); // centered: (1 - 0.75) / 2
+            expect(crop.y).toBeCloseTo(0, 2);
+        });
+
+        it('calculates 9:8 Duet panel crop for 2:3 portrait photos', () => {
+            // In 9:8 panel (1.125), 2:3 photo (0.667) is narrower than panel
+            // At zoom 1.0, width fills 100%, height takes (2/3) / (9/8) = 16/27 ≈ 0.5926
+            const crop = calculateBurstPanelCrop(2000, 3000, 0.5, 0.5, 1.0, DUET_PANEL_ASPECT_RATIO);
+            expect(crop.width).toBeCloseTo(1.0, 2);
+            expect(crop.height).toBeCloseTo(16 / 27, 2);
+            expect(crop.x).toBeCloseTo(0, 2);
+            expect(crop.y).toBeCloseTo((1 - 16 / 27) / 2, 2);
         });
     });
 
@@ -1345,6 +1366,43 @@ describe('storyCanvas calculations', () => {
             expect(sw1).toBeLessThan(sw0);
             expect(sw2).toBeLessThan(sw1);
             expect(Math.round(sw0 / sw1)).toBe(2);
+        });
+
+        it('renders 2 panels evenly divided by hairline seam in Duet mode', async () => {
+            const img1 = createMockImage(3000, 2000);
+            const img2 = createMockImage(3000, 2000);
+            const { mockCanvas, drawCalls } = createMockContext();
+
+            await renderStoryToCanvas(
+                [img1, img2],
+                {
+                    mode: 'burst',
+                    crop: { x: 0, y: 0, width: 1, height: 1, zoom: 1, centerX: 0.5, centerY: 0.5 },
+                    padded: { style: 'frosted', position: 'center', cardScale: 0.92, cardCornerRadius: 24 },
+                    burst: {
+                        dividerStyle: 'hairline',
+                        showTimeStamps: true,
+                        panelCount: 2,
+                        timeStamps: [0.0, 0.42],
+                    },
+                    badges: {
+                        showScoreboard: false,
+                        showAttribution: false,
+                    },
+                },
+                mockCanvas
+            );
+
+            // Should have 2 drawImage calls for the two panels
+            expect(drawCalls.length).toBe(2);
+            const panel0 = drawCalls[0];
+            const panel1 = drawCalls[1];
+
+            // Panel 0 (top): dy = 0
+            expect(panel0[6]).toBe(0);
+            // Panel 1 (bottom): dy should be ~halfway down (Y = 960 at 1080x1920 with 4px gap)
+            expect(panel1[6]).toBeGreaterThan(900);
+            expect(panel1[6]).toBeLessThan(1000);
         });
     });
 

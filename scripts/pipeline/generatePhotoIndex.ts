@@ -47,7 +47,7 @@ export function detectBursts<T extends BurstCandidate>(
     let burstIndex = 1;
 
     const flushBurst = () => {
-        if (currentBurst.length >= 3) {
+        if (currentBurst.length >= 2) {
             const burstId = `${groupPrefix}-burst-${burstIndex++}`;
             const total = currentBurst.length;
             const frameSources = currentBurst.map((p) => p.original);
@@ -74,6 +74,7 @@ export function detectBursts<T extends BurstCandidate>(
                     frameDeltas,
                     frameFocusX,
                     frameFocusY,
+                    ...(total === 2 ? { isDuet: true } : {}),
                 };
             });
         }
