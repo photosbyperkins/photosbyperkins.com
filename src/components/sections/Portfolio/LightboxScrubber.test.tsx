@@ -194,4 +194,29 @@ describe('LightboxScrubber', () => {
         const burstBars = container.querySelectorAll('.portfolio__lightbox-scrubber-burst-bar');
         expect(burstBars.length).toBeGreaterThan(0);
     });
+
+    it('wraps thumbnail indices endlessly and maps wrapped photos accurately across large offsets', () => {
+        const { container } = render(
+            <LightboxScrubber {...defaultProps} maxDist={150} index={0} />
+        );
+
+        // With maxDist = 150, 301 thumbnails should be rendered
+        const thumbs = container.querySelectorAll('.portfolio__lightbox-scrubber-thumb');
+        expect(thumbs.length).toBe(301);
+
+        // Center thumbnail is active
+        expect(thumbs[150]?.className).toContain('is-active');
+
+        // Check wrapping across boundaries:
+        // offset -150: index (0 - 150) % 3 = 0 -> photo 1
+        expect(thumbs[0]?.getAttribute('aria-label')).toContain('Go to photo 1');
+        // offset 0: photo 1
+        expect(thumbs[150]?.getAttribute('aria-label')).toContain('Go to photo 1');
+        // offset 1: photo 2
+        expect(thumbs[151]?.getAttribute('aria-label')).toContain('Go to photo 2');
+        // offset 2: photo 3
+        expect(thumbs[152]?.getAttribute('aria-label')).toContain('Go to photo 3');
+        // offset 3: photo 1 (wrapped)
+        expect(thumbs[153]?.getAttribute('aria-label')).toContain('Go to photo 1');
+    });
 });

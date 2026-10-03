@@ -50,6 +50,8 @@ export default function LightboxScrubber({
     const total = images.length;
     const localDragX = useMotionValue(0);
     const [isScrubbing, setIsScrubbing] = useState(false);
+    const [scrubShift, setScrubShift] = useState(0);
+    const scrubShiftRef = useRef(0);
     const [isIndexChanging, setIsIndexChanging] = useState(false);
     const prevIndexRef = useRef(index);
 
@@ -68,6 +70,11 @@ export default function LightboxScrubber({
     const isActive = isFavorite && !isChanging;
     const showPopping = Boolean(isPopping && !isChanging);
 
+    const activeOffset = isScrubbing ? scrubShift : 0;
+    const currentDisplayIndex = isScrubbing && total > 0
+        ? (((index + scrubShift) % total) + total) % total
+        : index;
+
     return (
         <div className="portfolio__lightbox-scrubber" onClick={(e) => e.stopPropagation()}>
             {/* Sliding track — thumbnails slide under the fixed playhead */}
@@ -78,9 +85,22 @@ export default function LightboxScrubber({
                     dragElastic={0}
                     dragMomentum={false}
                     style={{ x: localDragX, display: 'flex' }}
-                    onDragStart={() => setIsScrubbing(true)}
+                    onDragStart={() => {
+                        setIsScrubbing(true);
+                        scrubShiftRef.current = 0;
+                        setScrubShift(0);
+                    }}
+                    onDrag={(_e, info) => {
+                        const shift = Math.round(-info.offset.x / 72);
+                        if (shift !== scrubShiftRef.current) {
+                            scrubShiftRef.current = shift;
+                            setScrubShift(shift);
+                        }
+                    }}
                     onDragEnd={(e, info) => {
                         setIsScrubbing(false);
+                        scrubShiftRef.current = 0;
+                        setScrubShift(0);
                         const shiftPhotos = Math.round(-info.offset.x / 72);
                         if (shiftPhotos !== 0) {
                             const newIndex = (((index + shiftPhotos) % images.length) + images.length) % images.length;
@@ -104,18 +124,21 @@ export default function LightboxScrubber({
                             const wrappedIndex = (((index + offset) % images.length) + images.length) % images.length;
                             const img = images[wrappedIndex];
                             const isImgFavorite = checkIfFavorite(img);
-                            const isActive = offset === 0;
+                            const isThumbActive = offset === activeOffset;
                             const burst = typeof img === 'object' ? img.burst : undefined;
 
                             // Determine drag-driven opacity for this thumb
-                            const thumbOpacity =
-                                offset === 0
-                                    ? thumbOpacity0
-                                    : offset === -1
-                                      ? thumbOpacityPrev
-                                      : offset === 1
-                                        ? thumbOpacityNext
-                                        : undefined;
+                            const thumbOpacity = isScrubbing
+                                ? offset === activeOffset
+                                    ? 1
+                                    : 0.5
+                                : offset === 0
+                                  ? thumbOpacity0
+                                  : offset === -1
+                                    ? thumbOpacityPrev
+                                    : offset === 1
+                                      ? thumbOpacityNext
+                                      : undefined;
 
                             const col =
                                 img && typeof img !== 'string' && img.spriteIndex != null
@@ -144,7 +167,7 @@ export default function LightboxScrubber({
                             return (
                                 <motion.div
                                     key={`${offset}`}
-                                    className={`portfolio__lightbox-scrubber-thumb${isActive ? ' is-active' : ''}${burst ? ' portfolio__lightbox-scrubber-thumb--burst' : ''}`}
+                                    className={`portfolio__lightbox-scrubber-thumb${isThumbActive ? ' is-active' : ''}${burst ? ' portfolio__lightbox-scrubber-thumb--burst' : ''}`}
                                     onClick={() => onSetIndex(wrappedIndex)}
                                     onKeyDown={(e) => {
                                         if (e.key === 'Enter' || e.key === ' ') {
@@ -211,7 +234,7 @@ export default function LightboxScrubber({
                     </motion.div>
                 </button>
                 <span className="portfolio__lightbox-scrubber-counter">
-                    {index + 1} / {total}
+                    {currentDisplayIndex + 1} / {total}
                 </span>
             </div>
         </div>

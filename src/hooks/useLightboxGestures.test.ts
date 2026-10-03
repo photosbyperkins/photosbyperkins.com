@@ -165,4 +165,22 @@ describe('useLightboxGestures', () => {
         expect(onSetIndex).not.toHaveBeenCalled();
         expect(result.current.x.get()).toBe(0);
     });
+
+    it('computes maxDist sufficiently large to cover scrubber drag constraints (>= 140)', () => {
+        const { result } = renderHook(() =>
+            useLightboxGestures({
+                images: mockImages,
+                index: 0,
+                windowWidth: 1200,
+                reducedMotion: true,
+                isFavorite: false,
+                checkIfFavorite: () => false,
+                getThumbSrc: () => undefined,
+                onSetIndex: vi.fn(),
+            })
+        );
+
+        // 10000 / 72 = 138.88, with window width buffer it should be at least 140
+        expect(result.current.maxDist).toBeGreaterThanOrEqual(140);
+    });
 });

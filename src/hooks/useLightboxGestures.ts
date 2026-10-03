@@ -55,11 +55,11 @@ export function useLightboxGestures({
     // Map the horizontal swipe down to a 72px physical tracking shift
     const dragShift = useTransform(x, [-windowWidth, 0, windowWidth], [-72, 0, 72]);
 
-    // How many slices to render (viewport width + buffer for drag overshoot)
-    const visibleSlices = Math.max(5, Math.ceil(windowWidth / 72) + 8);
-    // Ensure odd number so there's a perfectly centered item
-    const sliceCount = visibleSlices % 2 === 0 ? visibleSlices + 1 : visibleSlices;
-    const maxDist = Math.floor(sliceCount / 2);
+    // Slices needed to cover the physical drag range (±10,000px) plus viewport margins so the track
+    // never runs out of thumbnails and wraps around seamlessly during long scrubber drags.
+    const maxDragPixels = 10000 + (windowWidth || 1200) / 2;
+    const minVisibleSlices = Math.max(5, Math.ceil((windowWidth || 1200) / 72) + 8);
+    const maxDist = Math.max(Math.floor(minVisibleSlices / 2), Math.ceil(maxDragPixels / 72));
 
     // The center slice (offset 0) is at position maxDist in the rendered array.
     // Its center is at (maxDist * 72 + 36) from the track's left edge.
