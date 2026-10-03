@@ -464,8 +464,14 @@
         overflow-y: auto;
         -webkit-overflow-scrolling: touch;
         padding: 12px 14px 20px 14px;
+        display: flex;
+        flex-direction: column;
         scrollbar-width: thin;
         scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+
+        @media (max-width: 860px) {
+            padding: 10px 12px 14px 12px;
+        }
 
         html[data-theme='light'] & {
             scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
@@ -487,6 +493,14 @@
         .story-export-modal__tab-content {
             padding: 0;
             gap: 0.75rem;
+
+            &--frames {
+                height: 100%;
+                min-height: 0;
+                display: flex;
+                flex-direction: column;
+                flex: 1 1 auto;
+            }
         }
     }
 }

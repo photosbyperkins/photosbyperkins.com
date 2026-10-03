@@ -32,14 +32,17 @@ export type StoryFrameId =
 
 export type StoryFrameCategory = 'derby' | 'action' | 'retro' | 'tech' | 'cosmic';
 
+export type StoryFrameFilterCategory = StoryFrameCategory | 'all' | 'recent';
+
 export interface StoryFrameCategoryMeta {
-    id: StoryFrameCategory | 'all';
+    id: StoryFrameFilterCategory;
     label: string;
     vibe: string;
 }
 
 export const STORY_FRAME_CATEGORIES: StoryFrameCategoryMeta[] = [
     { id: 'all', label: 'All', vibe: 'All frames' },
+    { id: 'recent', label: 'Recent', vibe: 'Recently downloaded or shared frames' },
     { id: 'derby', label: 'Derby', vibe: 'Skates, California heritage & track culture' },
     { id: 'action', label: 'Action', vibe: 'Impact, lightning, flames & kinetics' },
     { id: 'retro', label: 'Retro', vibe: 'Analog film, VHS, riso & 80s nostalgia' },

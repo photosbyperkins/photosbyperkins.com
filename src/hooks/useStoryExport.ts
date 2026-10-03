@@ -10,6 +10,7 @@ export interface UseStoryExportOptions {
     year?: string;
     canShare: boolean;
     photoKey?: string;
+    onExportSuccess?: (config: StoryRenderConfig) => void;
 }
 
 export interface UseStoryExportReturn {
@@ -35,6 +36,7 @@ export function useStoryExport({
     year,
     canShare,
     photoKey,
+    onExportSuccess,
 }: UseStoryExportOptions): UseStoryExportReturn {
     const [isExporting, setIsExporting] = useState(false);
     const [isDownloaded, setIsDownloaded] = useState(false);
@@ -90,13 +92,14 @@ export function useStoryExport({
                 activeUrlsRef.current.delete(url);
             }, 1000);
             setIsDownloaded(true);
+            onExportSuccess?.(currentConfig);
         } catch (err) {
             console.error('Download error:', err);
             showToast('Failed to download image.');
         } finally {
             setIsExporting(false);
         }
-    }, [loadedImage, currentConfig, eventTitle, year, showToast]);
+    }, [loadedImage, currentConfig, eventTitle, year, showToast, onExportSuccess]);
 
     // 2. Native Share Action
     const handleNativeShare = useCallback(async () => {
@@ -112,6 +115,7 @@ export function useStoryExport({
                     title: `Story from ${eventTitle || 'Photos by Perkins'}`,
                 });
                 setIsDownloaded(true);
+                onExportSuccess?.(currentConfig);
             } else {
                 // Fallback to download if canShare files is not supported
                 await handleDownload();
@@ -124,7 +128,7 @@ export function useStoryExport({
         } finally {
             setIsExporting(false);
         }
-    }, [loadedImage, currentConfig, eventTitle, handleDownload, showToast]);
+    }, [loadedImage, currentConfig, eventTitle, handleDownload, showToast, onExportSuccess]);
 
     const handleExportAction = useCallback(async () => {
         if (canShare) {

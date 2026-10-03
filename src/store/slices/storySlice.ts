@@ -1,8 +1,8 @@
 import type { StateCreator } from 'zustand';
 import type { PaddedStyleOptions, StoryPhotoFilterId } from '../../utils/storyCanvas';
 import type {
-    StoryFrameCategory,
     StoryFrameColorChoice,
+    StoryFrameFilterCategory,
     StoryFrameId,
 } from '../../components/sections/Portfolio/storyFrames/types';
 
@@ -25,7 +25,7 @@ export interface StorySettings {
     filterId: StoryPhotoFilterId;
     filterStrength?: number;
     frameId: StoryFrameId;
-    frameCategory: StoryFrameCategory | 'all';
+    frameCategory: StoryFrameFilterCategory;
     frameColorChoice: StoryFrameColorChoice;
     frameCustomColor: string;
     badgeTheme: 'dark' | 'light';
@@ -61,14 +61,36 @@ export const DEFAULT_STORY_SETTINGS: StorySettings = {
     showScores: true,
 };
 
+export const RECENT_FRAMES_STORAGE_KEY = 'story-recent-frames';
+
+export const extractRecentFrames = (): StoryFrameId[] => {
+    if (typeof window === 'undefined') return [];
+    try {
+        const raw = localStorage.getItem(RECENT_FRAMES_STORAGE_KEY);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                return parsed;
+            }
+        }
+    } catch {
+        // ignore
+    }
+    return [];
+};
+
 export interface StorySlice {
     storySettings: StorySettings;
+    recentFrameIds: StoryFrameId[];
     setStorySettings: (settings: Partial<StorySettings>) => void;
     resetStorySettings: () => void;
+    addRecentFrame: (frameId: StoryFrameId) => void;
+    clearRecentFrames: () => void;
 }
 
 export const createStorySlice: StateCreator<StorySlice, [], [], StorySlice> = (set) => ({
     storySettings: DEFAULT_STORY_SETTINGS,
+    recentFrameIds: extractRecentFrames(),
     setStorySettings: (settings) =>
         set((state) => {
             const nextSettings = {
@@ -97,4 +119,29 @@ export const createStorySlice: StateCreator<StorySlice, [], [], StorySlice> = (s
             return { storySettings: nextSettings };
         }),
     resetStorySettings: () => set({ storySettings: DEFAULT_STORY_SETTINGS }),
+    addRecentFrame: (frameId: StoryFrameId) => {
+        if (!frameId || frameId === 'none') return;
+        set((state) => {
+            const filtered = (state.recentFrameIds || []).filter((id) => id !== frameId);
+            const next = [frameId, ...filtered].slice(0, 20);
+            if (typeof window !== 'undefined') {
+                try {
+                    localStorage.setItem(RECENT_FRAMES_STORAGE_KEY, JSON.stringify(next));
+                } catch {
+                    // ignore
+                }
+            }
+            return { recentFrameIds: next };
+        });
+    },
+    clearRecentFrames: () => {
+        if (typeof window !== 'undefined') {
+            try {
+                localStorage.removeItem(RECENT_FRAMES_STORAGE_KEY);
+            } catch {
+                // ignore
+            }
+        }
+        set({ recentFrameIds: [] });
+    },
 });

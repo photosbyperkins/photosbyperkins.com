@@ -25,6 +25,8 @@ import type {
     StoryFrameCategory,
     StoryFrameColorChoice,
     StoryFrameContext,
+    StoryFrameDefinition,
+    StoryFrameFilterCategory,
     StoryFrameId,
 } from '../components/sections/Portfolio/storyFrames/types';
 import type { EventScore, PhotoRecord } from '../types';
@@ -74,6 +76,8 @@ export function useStoryStudio({
     const storySettings = useAppStore((state) => state.storySettings);
     const setStorySettings = useAppStore((state) => state.setStorySettings);
     const resetStorySettings = useAppStore((state) => state.resetStorySettings);
+    const recentFrameIds = useAppStore((state) => state.recentFrameIds);
+    const addRecentFrame = useAppStore((state) => state.addRecentFrame);
 
     const [cardTheme, setCardTheme] = useState<'dark' | 'light'>(
         () => storySettings.badgeTheme || activeSiteTheme || 'dark'
@@ -347,7 +351,7 @@ export function useStoryStudio({
 
     // Decorative Frame States
     const [activeFrameId, setActiveFrameId] = useState<StoryFrameId>(() => storySettings.frameId || 'none');
-    const [selectedFrameCategory, setSelectedFrameCategory] = useState<StoryFrameCategory | 'all'>(
+    const [selectedFrameCategory, setSelectedFrameCategory] = useState<StoryFrameFilterCategory>(
         () => storySettings.frameCategory || 'all'
     );
     const [frameColorChoice, setFrameColorChoice] = useState<StoryFrameColorChoice>(
@@ -378,18 +382,29 @@ export function useStoryStudio({
 
     const displayedFrames = useMemo(() => {
         if (selectedFrameCategory === 'all') return availableFrames;
+        if (selectedFrameCategory === 'recent') {
+            const noneFrame = availableFrames.find((f) => f.id === 'none');
+            const recentDefs = (recentFrameIds || [])
+                .map((id) => availableFrames.find((f) => f.id === id))
+                .filter((f): f is StoryFrameDefinition => Boolean(f));
+            return noneFrame ? [noneFrame, ...recentDefs] : recentDefs;
+        }
         // Always include 'none' so the user can easily clear the frame from any category tab
         return availableFrames.filter((f) => f.id === 'none' || f.category === selectedFrameCategory);
-    }, [availableFrames, selectedFrameCategory]);
+    }, [availableFrames, selectedFrameCategory, recentFrameIds]);
 
     const categoryCounts = useMemo(() => {
         const counts: Record<string, number> = { all: availableFrames.length };
+        const availableRecentCount = (recentFrameIds || []).filter((id) =>
+            availableFrames.some((f) => f.id === id && f.id !== 'none')
+        ).length;
+        counts['recent'] = availableRecentCount;
         for (const cat of STORY_FRAME_CATEGORIES) {
-            if (cat.id === 'all') continue;
+            if (cat.id === 'all' || cat.id === 'recent') continue;
             counts[cat.id] = availableFrames.filter((f) => f.id === 'none' || f.category === cat.id).length;
         }
         return counts;
-    }, [availableFrames]);
+    }, [availableFrames, recentFrameIds]);
 
     // Fallback active frame if photo does not have EXIF
     if (activeFrameId === 'through-the-lens' && !hasExif) {
@@ -463,6 +478,11 @@ export function useStoryStudio({
             year,
             canShare,
             photoKey,
+            onExportSuccess: (cfg) => {
+                if (cfg.frameId && cfg.frameId !== 'none') {
+                    addRecentFrame(cfg.frameId);
+                }
+            },
         });
 
     const isFirstRender = useRef(true);

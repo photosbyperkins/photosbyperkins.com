@@ -428,4 +428,68 @@ describe('useStoryStudio', () => {
             expect(result.current.currentConfig.burst?.showTimeStamps).toBe(false);
         });
     });
+
+    describe('Recent frames tab', () => {
+        beforeEach(() => {
+            useAppStore.getState().clearRecentFrames();
+        });
+
+        it('displays only "none" frame and count of 0 when no frames have been exported', () => {
+            const { result } = renderHook(() => useStoryStudio(defaultProps));
+
+            expect(result.current.categoryCounts['recent']).toBe(0);
+
+            act(() => {
+                result.current.setSelectedFrameCategory('recent');
+            });
+
+            expect(result.current.selectedFrameCategory).toBe('recent');
+            expect(result.current.displayedFrames).toHaveLength(1);
+            expect(result.current.displayedFrames[0].id).toBe('none');
+        });
+
+        it('displays downloaded/shared frames in MRU order with none at index 0', () => {
+            useAppStore.getState().addRecentFrame('instant-film');
+            useAppStore.getState().addRecentFrame('sac-bear');
+
+            const { result } = renderHook(() => useStoryStudio(defaultProps));
+
+            expect(result.current.categoryCounts['recent']).toBe(2);
+
+            act(() => {
+                result.current.setSelectedFrameCategory('recent');
+            });
+
+            expect(result.current.displayedFrames.map((f) => f.id)).toEqual(['none', 'sac-bear', 'instant-film']);
+        });
+
+        it('does not record a frame to recentFrameIds merely by selecting it', () => {
+            const { result } = renderHook(() => useStoryStudio(defaultProps));
+
+            act(() => {
+                result.current.setActiveFrameId('instant-film');
+            });
+
+            expect(result.current.activeFrameId).toBe('instant-film');
+            expect(useAppStore.getState().recentFrameIds).toEqual([]);
+        });
+
+        it('filters out EXIF-dependent frames from recent tab when photo lacks EXIF', () => {
+            useAppStore.getState().addRecentFrame('through-the-lens');
+            useAppStore.getState().addRecentFrame('instant-film');
+
+            // defaultProps.photoObj has no EXIF
+            const { result } = renderHook(() => useStoryStudio(defaultProps));
+
+            expect(result.current.categoryCounts['recent']).toBe(1);
+
+            act(() => {
+                result.current.setSelectedFrameCategory('recent');
+            });
+
+            // through-the-lens should be omitted because hasExif is false
+            expect(result.current.displayedFrames.map((f) => f.id)).toEqual(['none', 'instant-film']);
+        });
+    });
 });
+

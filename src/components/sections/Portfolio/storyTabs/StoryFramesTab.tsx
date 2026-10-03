@@ -4,6 +4,7 @@ import type {
     StoryFrameColorChoice,
     StoryFrameContext,
     StoryFrameDefinition,
+    StoryFrameFilterCategory,
     StoryFrameId,
 } from '../storyFrames/types';
 import { STORY_FRAME_CATEGORIES } from '../storyFrames/types';
@@ -12,8 +13,8 @@ import { STORY_FRAMES_MAP } from '../storyFrames/frameDefinitions';
 interface StoryFramesTabProps {
     activeFrameId: StoryFrameId;
     setActiveFrameId: (id: StoryFrameId) => void;
-    selectedFrameCategory: StoryFrameCategory | 'all';
-    setSelectedFrameCategory: (cat: StoryFrameCategory | 'all') => void;
+    selectedFrameCategory: StoryFrameFilterCategory;
+    setSelectedFrameCategory: (cat: StoryFrameFilterCategory) => void;
     categoryCounts: Record<string, number>;
     displayedFrames: StoryFrameDefinition[];
     frameColorChoice: StoryFrameColorChoice;
@@ -230,6 +231,11 @@ export const StoryFramesTab: React.FC<StoryFramesTabProps> = ({
                             </button>
                         );
                     })}
+                    {selectedFrameCategory === 'recent' && displayedFrames.length <= 1 && (
+                        <div className="story-export-modal__frames-empty">
+                            <span>No recently downloaded frames yet</span>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

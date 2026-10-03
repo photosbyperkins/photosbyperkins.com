@@ -1,7 +1,15 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useStoryExport } from './useStoryExport';
 import type { StoryRenderConfig } from '../utils/storyCanvas';
+
+vi.mock('../utils/storyCanvas', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('../utils/storyCanvas')>();
+    return {
+        ...actual,
+        renderStoryToBlob: vi.fn().mockResolvedValue(new Blob(['fake-image'], { type: 'image/jpeg' })),
+    };
+});
 
 describe('useStoryExport', () => {
     const mockConfig: StoryRenderConfig = {
@@ -88,5 +96,31 @@ describe('useStoryExport', () => {
         rerender();
 
         expect(result.current.isDownloaded).toBe(false);
+    });
+
+    it('triggers onExportSuccess on successful download', async () => {
+        globalThis.URL.createObjectURL = vi.fn().mockReturnValue('blob:test-url');
+        globalThis.URL.revokeObjectURL = vi.fn();
+        const onExportSuccess = vi.fn();
+        const mockImg = document.createElement('img');
+
+        const { result } = renderHook(() =>
+            useStoryExport({
+                loadedImage: mockImg,
+                currentConfig: { ...mockConfig, frameId: 'instant-film' },
+                eventTitle: 'Championship Game',
+                year: '2026',
+                canShare: false,
+                photoKey: 'photo-1',
+                onExportSuccess,
+            })
+        );
+
+        await act(async () => {
+            await result.current.handleDownload();
+        });
+
+        expect(onExportSuccess).toHaveBeenCalledTimes(1);
+        expect(onExportSuccess).toHaveBeenCalledWith(expect.objectContaining({ frameId: 'instant-film' }));
     });
 });

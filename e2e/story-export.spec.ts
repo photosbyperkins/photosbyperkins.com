@@ -749,5 +749,70 @@ test.describe('Story Maker (9:16)', () => {
         await expect(currentFilterBadge).toHaveText('None');
         await expect(cropperImg).toHaveCSS('filter', 'none');
     });
+
+    test('should display Recent tab for frames, initially empty, and populate it only upon download/share', async ({ page }) => {
+        // Clear recent frames in localStorage before starting
+        await page.evaluate(() => {
+            localStorage.removeItem('story-recent-frames');
+        });
+
+        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
+        await photo.waitFor({ timeout: 10000 });
+        await photo.click();
+
+        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
+        await expect(lightbox).toBeVisible({ timeout: 10000 });
+
+        await page.keyboard.press('c');
+        const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
+        await expect(studioModal).toBeVisible({ timeout: 8000 });
+
+        // Switch to Frames tab
+        await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Frames")').click();
+
+        // Verify Recent category pill is present
+        const recentPill = studioModal.locator('.story-export-modal__category-pill:has-text("Recent")');
+        await expect(recentPill).toBeVisible();
+
+        // Click Recent tab
+        await recentPill.click();
+        await expect(recentPill).toHaveClass(/--active/);
+
+        // Verify "None" frame is shown and empty state is present
+        const framesGrid = studioModal.locator('.story-export-modal__frames-grid');
+        await expect(framesGrid.locator('button:has-text("None")')).toBeVisible();
+        const emptyState = framesGrid.locator('.story-export-modal__frames-empty');
+        await expect(emptyState).toBeVisible();
+        await expect(emptyState).toContainText('No recently downloaded frames yet');
+
+        // Switch to Derby category and select Grizzly
+        const derbyPill = studioModal.locator('.story-export-modal__category-pill:has-text("Derby")');
+        await derbyPill.click();
+
+        const grizzlyCard = framesGrid.locator('button:has-text("Grizzly")');
+        await expect(grizzlyCard).toBeVisible();
+        await grizzlyCard.click();
+
+        // Verify Grizzly is active, but Recent pill count is still 0 (selecting alone does not record)
+        await expect(studioModal.locator('.story-export-modal__frame-current-badge')).toHaveText('Grizzly');
+        await expect(recentPill.locator('.story-export-modal__category-count')).toHaveText('0');
+
+        // Download the story card
+        const downloadBtn = studioModal.locator('.story-export-modal__primary-action');
+        await downloadBtn.click();
+        await expect(downloadBtn).toContainText('Downloaded', { timeout: 10000 });
+
+        // Now Recent category pill count should be 1
+        await expect(recentPill.locator('.story-export-modal__category-count')).toHaveText('1');
+
+        // Switch to Recent tab
+        await recentPill.click();
+
+        // Empty state is now gone and Grizzly is shown
+        await expect(emptyState).not.toBeVisible();
+        await expect(framesGrid.locator('button:has-text("None")')).toBeVisible();
+        await expect(framesGrid.locator('button:has-text("Grizzly")')).toBeVisible();
+    });
 });
+
 

@@ -87,7 +87,36 @@ describe('useAppStore - storySettings', () => {
 
         expect(useAppStore.getState().storySettings).toEqual(DEFAULT_STORY_SETTINGS);
     });
+
+    it('manages recentFrameIds correctly (MRU order, deduplication, ignores none, caps at 20)', () => {
+        useAppStore.getState().clearRecentFrames();
+        expect(useAppStore.getState().recentFrameIds).toEqual([]);
+
+        // Ignoring 'none'
+        useAppStore.getState().addRecentFrame('none');
+        expect(useAppStore.getState().recentFrameIds).toEqual([]);
+
+        // Adding frames
+        useAppStore.getState().addRecentFrame('instant-film');
+        expect(useAppStore.getState().recentFrameIds).toEqual(['instant-film']);
+
+        useAppStore.getState().addRecentFrame('sac-bear');
+        expect(useAppStore.getState().recentFrameIds).toEqual(['sac-bear', 'instant-film']);
+
+        // Deduplication moves to front
+        useAppStore.getState().addRecentFrame('instant-film');
+        expect(useAppStore.getState().recentFrameIds).toEqual(['instant-film', 'sac-bear']);
+
+        // resetStorySettings does not erase recents
+        useAppStore.getState().resetStorySettings();
+        expect(useAppStore.getState().recentFrameIds).toEqual(['instant-film', 'sac-bear']);
+
+        // clearRecentFrames erases them
+        useAppStore.getState().clearRecentFrames();
+        expect(useAppStore.getState().recentFrameIds).toEqual([]);
+    });
 });
+
 
 describe('useAppStore - favorites batch actions', () => {
     beforeEach(() => {
