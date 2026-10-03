@@ -128,6 +128,10 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         setActiveFilterId,
         filterStrength,
         setFilterStrength,
+        selectedFilterCategory,
+        setSelectedFilterCategory,
+        filterCategoryCounts,
+        displayedFilters,
         activeFrameId,
         setActiveFrameId,
         selectedFrameCategory,
@@ -443,6 +447,10 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                     setFilterStrength={setFilterStrength}
                     previewImageUrl={withBuild(activePhotoThumb || activePhotoDisplay)}
                     setIsDownloaded={setIsDownloaded}
+                    selectedFilterCategory={selectedFilterCategory}
+                    setSelectedFilterCategory={setSelectedFilterCategory}
+                    categoryCounts={filterCategoryCounts}
+                    displayedFilters={displayedFilters}
                 />
             )}
 

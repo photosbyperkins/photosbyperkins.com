@@ -115,6 +115,34 @@ describe('useAppStore - storySettings', () => {
         useAppStore.getState().clearRecentFrames();
         expect(useAppStore.getState().recentFrameIds).toEqual([]);
     });
+
+    it('manages recentFilterIds correctly (MRU order, deduplication, ignores none, caps at 20)', () => {
+        useAppStore.getState().clearRecentFilters();
+        expect(useAppStore.getState().recentFilterIds).toEqual([]);
+
+        // Ignoring 'none'
+        useAppStore.getState().addRecentFilter('none');
+        expect(useAppStore.getState().recentFilterIds).toEqual([]);
+
+        // Adding filters
+        useAppStore.getState().addRecentFilter('warm');
+        expect(useAppStore.getState().recentFilterIds).toEqual(['warm']);
+
+        useAppStore.getState().addRecentFilter('cinematic');
+        expect(useAppStore.getState().recentFilterIds).toEqual(['cinematic', 'warm']);
+
+        // Deduplication moves to front
+        useAppStore.getState().addRecentFilter('warm');
+        expect(useAppStore.getState().recentFilterIds).toEqual(['warm', 'cinematic']);
+
+        // resetStorySettings does not erase recents
+        useAppStore.getState().resetStorySettings();
+        expect(useAppStore.getState().recentFilterIds).toEqual(['warm', 'cinematic']);
+
+        // clearRecentFilters erases them
+        useAppStore.getState().clearRecentFilters();
+        expect(useAppStore.getState().recentFilterIds).toEqual([]);
+    });
 });
 
 

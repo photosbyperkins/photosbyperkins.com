@@ -51,6 +51,7 @@ export const useAppStore = create<AppStore>()(
                 theme: state.theme,
                 storySettings: state.storySettings,
                 recentFrameIds: state.recentFrameIds,
+                recentFilterIds: state.recentFilterIds,
             }),
             merge: (persistedState, currentState) => {
                 const persisted = (persistedState as Partial<AppStore>) || {};
@@ -61,6 +62,9 @@ export const useAppStore = create<AppStore>()(
                     recentFrameIds: Array.isArray(persisted.recentFrameIds) && persisted.recentFrameIds.length > 0
                         ? persisted.recentFrameIds
                         : currentState.recentFrameIds,
+                    recentFilterIds: Array.isArray(persisted.recentFilterIds) && persisted.recentFilterIds.length > 0
+                        ? persisted.recentFilterIds
+                        : currentState.recentFilterIds,
                     storySettings: {
                         ...DEFAULT_STORY_SETTINGS,
                         ...(persisted.storySettings || {}),

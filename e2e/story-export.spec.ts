@@ -810,22 +810,22 @@ test.describe('Story Maker (9:16)', () => {
         await expect(cropperImg).toHaveCSS('filter', /url\("#?story-filter-selective-purple"\)/);
 
         // 4. Test Cinematic, Neon, Bleach, and Duotone
-        const cinematicBtn = filterSection.locator('button:has-text("Cinematic")');
+        const cinematicBtn = filterSection.locator('.story-export-modal__filter-pill:has-text("Cinematic")');
         await cinematicBtn.click();
         await expect(currentFilterBadge).toHaveText('Cinematic');
         await expect(cropperImg).toHaveCSS('filter', /url\("#?story-filter-cinematic"\)/);
 
-        const neonBtn = filterSection.locator('button:has-text("Neon")');
+        const neonBtn = filterSection.locator('.story-export-modal__filter-pill:has-text("Neon")');
         await neonBtn.click();
         await expect(currentFilterBadge).toHaveText('Neon');
         await expect(cropperImg).toHaveCSS('filter', /url\("#?story-filter-neon"\)/);
 
-        const bleachBtn = filterSection.locator('button:has-text("Bleach")');
+        const bleachBtn = filterSection.locator('.story-export-modal__filter-pill:has-text("Bleach")');
         await bleachBtn.click();
         await expect(currentFilterBadge).toHaveText('Bleach');
         await expect(cropperImg).toHaveCSS('filter', /contrast\(135%\)|contrast\(1\.35\)/);
 
-        const duotoneBtn = filterSection.locator('button:has-text("Duotone")');
+        const duotoneBtn = filterSection.locator('.story-export-modal__filter-pill:has-text("Duotone")');
         await duotoneBtn.click();
         await expect(currentFilterBadge).toHaveText('Duotone');
         await expect(cropperImg).toHaveCSS('filter', /url\("#?story-filter-duotone"\)/);
@@ -836,6 +836,75 @@ test.describe('Story Maker (9:16)', () => {
 
         // Check for download confirmation state
         await expect(downloadBtn).toContainText('Downloaded', { timeout: 10000 });
+    });
+
+    test('should display categories and Recent tab for filters, initially empty, and populate it only upon download/share', async ({ page }) => {
+        // Clear recent filters in localStorage before starting
+        await page.evaluate(() => {
+            localStorage.removeItem('story-recent-filters');
+        });
+
+        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
+        await photo.waitFor({ timeout: 10000 });
+        await photo.click();
+
+        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
+        await expect(lightbox).toBeVisible({ timeout: 10000 });
+
+        await page.keyboard.press('c');
+        const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
+        await expect(studioModal).toBeVisible({ timeout: 8000 });
+
+        // Switch to Filters tab
+        const mobileDock = studioModal.locator('.story-mobile-dock');
+        if (await mobileDock.isVisible()) {
+            await studioModal.locator('.story-mobile-dock button:has-text("Filters")').click();
+            await expect(studioModal.locator('.story-mobile-popover')).toBeVisible({ timeout: 5000 });
+        } else {
+            await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Filters")').click();
+        }
+
+        const filterSection = studioModal.locator('.story-export-modal__section--filters');
+        await expect(filterSection).toBeVisible();
+
+        // Verify Recent category pill is present
+        const recentPill = filterSection.locator('.story-export-modal__category-pill:has-text("Recent")');
+        await expect(recentPill).toBeVisible();
+
+        // Click Recent tab
+        await recentPill.click();
+        await expect(recentPill).toHaveClass(/--active/);
+
+        // Verify "None" filter is shown initially when recent is empty
+        const filtersGrid = filterSection.locator('.story-export-modal__filters-grid');
+        await expect(filtersGrid.locator('button:has-text("None")')).toBeVisible();
+
+        // Switch to Pop category and select Red Pop
+        const popPill = filterSection.locator('.story-export-modal__category-pill:has-text("Pop")');
+        await popPill.click();
+
+        const redPopCard = filtersGrid.locator('button:has-text("Red Pop")');
+        await expect(redPopCard).toBeVisible();
+        await redPopCard.click();
+
+        // Verify Red Pop is active, but Recent pill count is still 0 (selecting alone does not record)
+        await expect(filterSection.locator('.story-export-modal__filter-current-badge')).toHaveText('Red Pop');
+        await expect(recentPill.locator('.story-export-modal__category-count')).toHaveText('0');
+
+        // Download the story card
+        const downloadBtn = studioModal.locator('.story-export-modal__primary-action');
+        await downloadBtn.click();
+        await expect(downloadBtn).toContainText('Downloaded', { timeout: 10000 });
+
+        // Now Recent category pill count should be 1
+        await expect(recentPill.locator('.story-export-modal__category-count')).toHaveText('1');
+
+        // Switch to Recent tab
+        await recentPill.click();
+
+        // Red Pop is now shown alongside None
+        await expect(filtersGrid.locator('button:has-text("None")')).toBeVisible();
+        await expect(filtersGrid.locator('button:has-text("Red Pop")')).toBeVisible();
     });
 
     test('should display Recent tab for frames, initially empty, and populate it only upon download/share', async ({ page }) => {
@@ -866,12 +935,9 @@ test.describe('Story Maker (9:16)', () => {
         await recentPill.click();
         await expect(recentPill).toHaveClass(/--active/);
 
-        // Verify "None" frame is shown and empty state is present
+        // Verify "None" frame is shown initially when recent is empty
         const framesGrid = studioModal.locator('.story-export-modal__frames-grid');
         await expect(framesGrid.locator('button:has-text("None")')).toBeVisible();
-        const emptyState = framesGrid.locator('.story-export-modal__frames-empty');
-        await expect(emptyState).toBeVisible();
-        await expect(emptyState).toContainText('No recently downloaded frames yet');
 
         // Switch to Derby category and select Grizzly
         const derbyPill = studioModal.locator('.story-export-modal__category-pill:has-text("Derby")');
@@ -896,8 +962,7 @@ test.describe('Story Maker (9:16)', () => {
         // Switch to Recent tab
         await recentPill.click();
 
-        // Empty state is now gone and Grizzly is shown
-        await expect(emptyState).not.toBeVisible();
+        // Grizzly is now shown alongside None
         await expect(framesGrid.locator('button:has-text("None")')).toBeVisible();
         await expect(framesGrid.locator('button:has-text("Grizzly")')).toBeVisible();
     });

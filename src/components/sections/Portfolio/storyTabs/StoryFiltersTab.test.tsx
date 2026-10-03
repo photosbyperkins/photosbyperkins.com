@@ -148,4 +148,94 @@ describe('StoryFiltersTab', () => {
         fireEvent.click(bleachBtn);
         expect(setActiveFilterId).toHaveBeenCalledWith('bleach');
     });
+
+    it('renders category filter pills bar and filters displayed options', () => {
+        const setActiveFilterId = vi.fn();
+        const { container } = render(
+            <StoryFiltersTab
+                activeFilterId="none"
+                setActiveFilterId={setActiveFilterId}
+                filterStrength={1.0}
+                setFilterStrength={vi.fn()}
+                setIsDownloaded={vi.fn()}
+            />
+        );
+
+        // Verify category pills are rendered
+        const categoryBar = container.querySelector('.story-export-modal__category-bar');
+        expect(categoryBar).not.toBeNull();
+        expect(categoryBar?.getAttribute('role')).toBe('tablist');
+
+        const tabs = screen.getAllByRole('tab');
+        expect(tabs.length).toBe(6);
+
+        // Default active tab is 'All'
+        expect(tabs[0].textContent).toContain('All');
+        expect(tabs[0].classList.contains('story-export-modal__category-pill--active')).toBe(true);
+        expect(tabs[0].getAttribute('aria-selected')).toBe('true');
+
+        // Check category count badges
+        expect(tabs[0].textContent).toContain('22'); // All: 22
+        expect(tabs[1].textContent).toContain('0');  // Recent: 0
+        expect(tabs[2].textContent).toContain('8');  // Classic: 8
+        expect(tabs[3].textContent).toContain('8');  // Cinematic: 8
+        expect(tabs[4].textContent).toContain('6');  // Pop: 6
+        expect(tabs[5].textContent).toContain('3');  // Stylized: 3
+
+        // In 'All', 22 filter pills are displayed
+        let filterPills = container.querySelectorAll('.story-export-modal__filter-pill');
+        expect(filterPills.length).toBe(22);
+
+        // Click 'Recent' category tab
+        fireEvent.click(tabs[1]);
+        expect(tabs[1].classList.contains('story-export-modal__category-pill--active')).toBe(true);
+        filterPills = container.querySelectorAll('.story-export-modal__filter-pill');
+        expect(filterPills.length).toBe(1); // Only None
+
+        // Click 'Stylized' category tab
+        fireEvent.click(tabs[5]);
+        expect(tabs[5].classList.contains('story-export-modal__category-pill--active')).toBe(true);
+
+        // Filter pills should now only be None, Neon, and Duotone (3 items)
+        filterPills = container.querySelectorAll('.story-export-modal__filter-pill');
+        expect(filterPills.length).toBe(3);
+        expect(screen.getByRole('button', { name: /^photo filter: none$/i })).toBeDefined();
+        expect(screen.getByRole('button', { name: /^photo filter: neon$/i })).toBeDefined();
+        expect(screen.getByRole('button', { name: /^photo filter: duotone$/i })).toBeDefined();
+
+        // Click 'Pop' category tab
+        fireEvent.click(tabs[4]);
+        filterPills = container.querySelectorAll('.story-export-modal__filter-pill');
+        expect(filterPills.length).toBe(6); // None + 5 pop filters
+        expect(screen.getByRole('button', { name: /^photo filter: none$/i })).toBeDefined();
+        expect(screen.getByRole('button', { name: /^photo filter: red pop$/i })).toBeDefined();
+        expect(screen.getByRole('button', { name: /^photo filter: purple pop$/i })).toBeDefined();
+    });
+
+    it('works cleanly in controlled category mode', () => {
+        const setSelectedFilterCategory = vi.fn();
+        const { container } = render(
+            <StoryFiltersTab
+                activeFilterId="none"
+                setActiveFilterId={vi.fn()}
+                filterStrength={1.0}
+                setFilterStrength={vi.fn()}
+                setIsDownloaded={vi.fn()}
+                selectedFilterCategory="cinematic"
+                setSelectedFilterCategory={setSelectedFilterCategory}
+            />
+        );
+
+        const tabs = screen.getAllByRole('tab');
+        expect(tabs[3].classList.contains('story-export-modal__category-pill--active')).toBe(true);
+
+        // Clicking 'Classic' triggers callback
+        fireEvent.click(tabs[2]);
+        expect(setSelectedFilterCategory).toHaveBeenCalledWith('classic');
+
+        // Displayed filters show 8 items (None + 7 cinematic)
+        const filterPills = container.querySelectorAll('.story-export-modal__filter-pill');
+        expect(filterPills.length).toBe(8);
+        expect(screen.getByRole('button', { name: /^photo filter: cinematic$/i })).toBeDefined();
+    });
 });

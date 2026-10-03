@@ -146,11 +146,31 @@ export type StoryPhotoFilterId =
     | 'neon'
     | 'duotone';
 
+export type StoryPhotoFilterCategory = 'classic' | 'cinematic' | 'selective' | 'stylized';
+
+export type StoryPhotoFilterTabCategory = 'all' | 'recent' | StoryPhotoFilterCategory;
+
+export interface StoryPhotoFilterCategoryMeta {
+    id: StoryPhotoFilterTabCategory;
+    label: string;
+    description: string;
+}
+
+export const STORY_FILTER_CATEGORIES: StoryPhotoFilterCategoryMeta[] = [
+    { id: 'all', label: 'All', description: 'All photo filters' },
+    { id: 'recent', label: 'Recent', description: 'Recently downloaded or shared filters' },
+    { id: 'classic', label: 'Classic', description: 'Monochrome, vintage, and essential tone grades' },
+    { id: 'cinematic', label: 'Cinematic', description: 'Analog film stocks and cinematic color grades' },
+    { id: 'selective', label: 'Pop', description: 'Selective color pop on monochrome backgrounds' },
+    { id: 'stylized', label: 'Stylized', description: 'Neon glow and bold graphic duotones' },
+];
+
 export interface StoryPhotoFilter {
     id: StoryPhotoFilterId;
     label: string;
     description: string;
     cssFilter: string;
+    category?: StoryPhotoFilterCategory;
 }
 
 export const STORY_PHOTO_FILTERS: StoryPhotoFilter[] = [
@@ -165,126 +185,147 @@ export const STORY_PHOTO_FILTERS: StoryPhotoFilter[] = [
         label: 'B&W',
         description: 'Classic balanced monochrome',
         cssFilter: 'grayscale(100%) contrast(108%)',
+        category: 'classic',
     },
     {
         id: 'bw-contrast',
         label: 'B&W+',
         description: 'High contrast black & white with deep blacks',
         cssFilter: 'grayscale(100%) contrast(160%) brightness(95%)',
+        category: 'classic',
     },
     {
         id: 'warm',
         label: 'Vintage',
         description: 'Golden hour ambient warmth',
         cssFilter: 'sepia(28%) saturate(120%) contrast(105%) brightness(102%)',
+        category: 'classic',
     },
     {
         id: 'vivid',
         label: 'Vivid',
         description: 'Punchy saturated action colors',
         cssFilter: 'contrast(115%) saturate(140%) brightness(102%)',
+        category: 'classic',
     },
     {
         id: 'matte',
         label: 'Matte',
         description: 'Soft film faded shadows',
         cssFilter: 'contrast(88%) brightness(108%) saturate(90%)',
+        category: 'classic',
     },
     {
         id: 'noir',
         label: 'Noir',
         description: 'Dramatic deep cinematic shadows',
         cssFilter: 'contrast(130%) brightness(90%) saturate(85%)',
+        category: 'classic',
     },
     {
         id: 'sepia',
         label: 'Sepia',
         description: 'Antique warm sepia tone',
         cssFilter: 'sepia(75%) contrast(105%) brightness(98%)',
+        category: 'classic',
     },
     {
         id: 'chrome',
         label: 'Chrome',
         description: 'Vivid 90s action sports slide film with punchy contrast',
         cssFilter: 'contrast(128%) saturate(145%) brightness(98%)',
+        category: 'cinematic',
     },
     {
         id: 'bleach',
         label: 'Bleach',
         description: 'Gritty silver-rich high contrast with muted colors',
         cssFilter: 'contrast(135%) saturate(35%) brightness(102%)',
+        category: 'cinematic',
     },
     {
         id: 'portra',
         label: 'Portra',
         description: 'Soft pastel warmth and flattering skin tones',
         cssFilter: 'contrast(94%) brightness(105%) saturate(108%) sepia(18%)',
+        category: 'cinematic',
     },
     {
         id: 'cinematic',
         label: 'Cinematic',
         description: 'Hollywood split-toning with warm skin tones and teal shadows',
         cssFilter: 'url(#story-filter-cinematic-swatch)',
+        category: 'cinematic',
     },
     {
         id: 'cross-process',
         label: 'X-Pro',
         description: 'Cross-processed film with greenish shadows and golden highlights',
         cssFilter: 'contrast(125%) saturate(130%) sepia(30%) hue-rotate(50deg)',
+        category: 'cinematic',
     },
     {
         id: 'hard-flash',
         label: 'Hard Flash',
         description: 'Direct flash skate zine look with blown specular pop',
         cssFilter: 'contrast(140%) brightness(115%) saturate(110%)',
+        category: 'cinematic',
     },
     {
         id: 'midnight',
         label: 'Midnight',
         description: 'Deep cool cobalt shadows and twilight arena mood',
         cssFilter: 'contrast(115%) brightness(92%) saturate(95%) hue-rotate(190deg) sepia(22%)',
+        category: 'cinematic',
     },
     {
         id: 'selective-red',
         label: 'Red Pop',
         description: 'Isolate vibrant red tones and desaturate background',
         cssFilter: 'url(#story-filter-selective-red-swatch)',
+        category: 'selective',
     },
     {
         id: 'selective-green',
         label: 'Green Pop',
         description: 'Isolate vibrant green tones and desaturate background',
         cssFilter: 'url(#story-filter-selective-green-swatch)',
+        category: 'selective',
     },
     {
         id: 'selective-blue',
         label: 'Blue Pop',
         description: 'Isolate vibrant blue tones and desaturate background',
         cssFilter: 'url(#story-filter-selective-blue-swatch)',
+        category: 'selective',
     },
     {
         id: 'selective-yellow',
         label: 'Yellow Pop',
         description: 'Isolate vibrant yellow & gold tones and desaturate background',
         cssFilter: 'url(#story-filter-selective-yellow-swatch)',
+        category: 'selective',
     },
     {
         id: 'selective-purple',
         label: 'Purple Pop',
         description: 'Isolate vibrant purple & magenta tones and desaturate background',
         cssFilter: 'url(#story-filter-selective-purple-swatch)',
+        category: 'selective',
     },
     {
         id: 'neon',
         label: 'Neon',
         description: 'Electric magenta and cyan roller rink vibe',
         cssFilter: 'url(#story-filter-neon-swatch)',
+        category: 'stylized',
     },
     {
         id: 'duotone',
         label: 'Duotone',
         description: 'High-impact crimson and navy match poster treatment',
         cssFilter: 'url(#story-filter-duotone-swatch)',
+        category: 'stylized',
     },
 ];
 

@@ -231,11 +231,6 @@ export const StoryFramesTab: React.FC<StoryFramesTabProps> = ({
                             </button>
                         );
                     })}
-                    {selectedFrameCategory === 'recent' && displayedFrames.length <= 1 && (
-                        <div className="story-export-modal__frames-empty">
-                            <span>No recently downloaded frames yet</span>
-                        </div>
-                    )}
                 </div>
             </div>
         </div>

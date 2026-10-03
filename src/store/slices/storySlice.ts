@@ -1,5 +1,5 @@
 import type { StateCreator } from 'zustand';
-import type { PaddedStyleOptions, StoryPhotoFilterId } from '../../utils/storyCanvas';
+import type { PaddedStyleOptions, StoryPhotoFilterId, StoryPhotoFilterTabCategory } from '../../utils/storyCanvas';
 import type {
     StoryFrameColorChoice,
     StoryFrameFilterCategory,
@@ -24,6 +24,7 @@ export interface StorySettings {
     burstConfig: BurstStoryConfig;
     filterId: StoryPhotoFilterId;
     filterStrength?: number;
+    filterCategory: StoryPhotoFilterTabCategory;
     frameId: StoryFrameId;
     frameCategory: StoryFrameFilterCategory;
     frameColorChoice: StoryFrameColorChoice;
@@ -51,6 +52,7 @@ export const DEFAULT_STORY_SETTINGS: StorySettings = {
     },
     filterId: 'none',
     filterStrength: 1.0,
+    filterCategory: 'all',
     frameId: 'none',
     frameCategory: 'all',
     frameColorChoice: 'signature',
@@ -62,6 +64,7 @@ export const DEFAULT_STORY_SETTINGS: StorySettings = {
 };
 
 export const RECENT_FRAMES_STORAGE_KEY = 'story-recent-frames';
+export const RECENT_FILTERS_STORAGE_KEY = 'story-recent-filters';
 
 export const extractRecentFrames = (): StoryFrameId[] => {
     if (typeof window === 'undefined') return [];
@@ -79,18 +82,38 @@ export const extractRecentFrames = (): StoryFrameId[] => {
     return [];
 };
 
+export const extractRecentFilters = (): StoryPhotoFilterId[] => {
+    if (typeof window === 'undefined') return [];
+    try {
+        const raw = localStorage.getItem(RECENT_FILTERS_STORAGE_KEY);
+        if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                return parsed;
+            }
+        }
+    } catch {
+        // ignore
+    }
+    return [];
+};
+
 export interface StorySlice {
     storySettings: StorySettings;
     recentFrameIds: StoryFrameId[];
+    recentFilterIds: StoryPhotoFilterId[];
     setStorySettings: (settings: Partial<StorySettings>) => void;
     resetStorySettings: () => void;
     addRecentFrame: (frameId: StoryFrameId) => void;
     clearRecentFrames: () => void;
+    addRecentFilter: (filterId: StoryPhotoFilterId) => void;
+    clearRecentFilters: () => void;
 }
 
 export const createStorySlice: StateCreator<StorySlice, [], [], StorySlice> = (set) => ({
     storySettings: DEFAULT_STORY_SETTINGS,
     recentFrameIds: extractRecentFrames(),
+    recentFilterIds: extractRecentFilters(),
     setStorySettings: (settings) =>
         set((state) => {
             const nextSettings = {
@@ -143,5 +166,30 @@ export const createStorySlice: StateCreator<StorySlice, [], [], StorySlice> = (s
             }
         }
         set({ recentFrameIds: [] });
+    },
+    addRecentFilter: (filterId: StoryPhotoFilterId) => {
+        if (!filterId || filterId === 'none') return;
+        set((state) => {
+            const filtered = (state.recentFilterIds || []).filter((id) => id !== filterId);
+            const next = [filterId, ...filtered].slice(0, 20);
+            if (typeof window !== 'undefined') {
+                try {
+                    localStorage.setItem(RECENT_FILTERS_STORAGE_KEY, JSON.stringify(next));
+                } catch {
+                    // ignore
+                }
+            }
+            return { recentFilterIds: next };
+        });
+    },
+    clearRecentFilters: () => {
+        if (typeof window !== 'undefined') {
+            try {
+                localStorage.removeItem(RECENT_FILTERS_STORAGE_KEY);
+            } catch {
+                // ignore
+            }
+        }
+        set({ recentFilterIds: [] });
     },
 });

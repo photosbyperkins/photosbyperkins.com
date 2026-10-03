@@ -491,5 +491,95 @@ describe('useStoryStudio', () => {
             expect(result.current.displayedFrames.map((f) => f.id)).toEqual(['none', 'instant-film']);
         });
     });
+
+    describe('Filter categories & Recent filters tab', () => {
+        beforeEach(() => {
+            useAppStore.getState().clearRecentFilters();
+            useAppStore.getState().resetStorySettings();
+        });
+
+        it('initializes with "all" category and correct category counts', () => {
+            const { result } = renderHook(() => useStoryStudio(defaultProps));
+
+            expect(result.current.selectedFilterCategory).toBe('all');
+            expect(result.current.filterCategoryCounts['all']).toBe(22);
+            expect(result.current.filterCategoryCounts['recent']).toBe(0);
+            expect(result.current.filterCategoryCounts['classic']).toBe(8);
+            expect(result.current.filterCategoryCounts['cinematic']).toBe(8);
+            expect(result.current.filterCategoryCounts['selective']).toBe(6);
+            expect(result.current.filterCategoryCounts['stylized']).toBe(3);
+            expect(result.current.displayedFilters).toHaveLength(22);
+        });
+
+        it('displays only "none" filter and count of 0 when no filters have been exported', () => {
+            const { result } = renderHook(() => useStoryStudio(defaultProps));
+
+            expect(result.current.filterCategoryCounts['recent']).toBe(0);
+
+            act(() => {
+                result.current.setSelectedFilterCategory('recent');
+            });
+
+            expect(result.current.selectedFilterCategory).toBe('recent');
+            expect(result.current.displayedFilters).toHaveLength(1);
+            expect(result.current.displayedFilters[0].id).toBe('none');
+        });
+
+        it('displays downloaded/shared filters in MRU order with none at index 0', () => {
+            useAppStore.getState().addRecentFilter('neon');
+            useAppStore.getState().addRecentFilter('selective-red');
+
+            const { result } = renderHook(() => useStoryStudio(defaultProps));
+
+            expect(result.current.filterCategoryCounts['recent']).toBe(2);
+
+            act(() => {
+                result.current.setSelectedFilterCategory('recent');
+            });
+
+            expect(result.current.displayedFilters.map((f) => f.id)).toEqual(['none', 'selective-red', 'neon']);
+        });
+
+        it('does not record a filter to recentFilterIds merely by selecting it', () => {
+            const { result } = renderHook(() => useStoryStudio(defaultProps));
+
+            act(() => {
+                result.current.setActiveFilterId('warm');
+            });
+
+            expect(result.current.activeFilterId).toBe('warm');
+            expect(useAppStore.getState().recentFilterIds).toEqual([]);
+        });
+
+        it('filters displayed filters when switching categories and keeps "none" first', () => {
+            const { result } = renderHook(() => useStoryStudio(defaultProps));
+
+            // Stylized category
+            act(() => {
+                result.current.setSelectedFilterCategory('stylized');
+            });
+            expect(result.current.displayedFilters.map((f) => f.id)).toEqual(['none', 'neon', 'duotone']);
+
+            // Selective (Pop) category
+            act(() => {
+                result.current.setSelectedFilterCategory('selective');
+            });
+            expect(result.current.displayedFilters.map((f) => f.id)).toEqual([
+                'none',
+                'selective-red',
+                'selective-green',
+                'selective-blue',
+                'selective-yellow',
+                'selective-purple',
+            ]);
+
+            // Resetting defaults resets category to 'all'
+            act(() => {
+                result.current.resetToDefaults();
+            });
+            expect(result.current.selectedFilterCategory).toBe('all');
+            expect(result.current.displayedFilters).toHaveLength(22);
+        });
+    });
 });
 

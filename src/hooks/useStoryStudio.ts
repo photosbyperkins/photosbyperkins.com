@@ -13,13 +13,18 @@ import {
 } from '../utils/storyCanvas';
 import { STORY_FRAME_DEFINITIONS } from '../components/sections/Portfolio/storyFrames/frameDefinitions';
 import { STORY_FRAME_CATEGORIES } from '../components/sections/Portfolio/storyFrames/types';
-import type {
-    BadgeOptions,
-    NormalizedCrop,
-    PaddedStyleOptions,
-    StoryPhotoFilterId,
-    StoryPreset,
-    StoryRenderConfig,
+import {
+    STORY_FILTER_CATEGORIES,
+    STORY_PHOTO_FILTERS,
+    type BadgeOptions,
+    type NormalizedCrop,
+    type PaddedStyleOptions,
+    type StoryPhotoFilter,
+    type StoryPhotoFilterCategory,
+    type StoryPhotoFilterId,
+    type StoryPhotoFilterTabCategory,
+    type StoryPreset,
+    type StoryRenderConfig,
 } from '../utils/storyCanvas';
 import type {
     StoryFrameCategory,
@@ -78,6 +83,8 @@ export function useStoryStudio({
     const resetStorySettings = useAppStore((state) => state.resetStorySettings);
     const recentFrameIds = useAppStore((state) => state.recentFrameIds);
     const addRecentFrame = useAppStore((state) => state.addRecentFrame);
+    const recentFilterIds = useAppStore((state) => state.recentFilterIds);
+    const addRecentFilter = useAppStore((state) => state.addRecentFilter);
 
     const [cardTheme, setCardTheme] = useState<'dark' | 'light'>(
         () => storySettings.badgeTheme || activeSiteTheme || 'dark'
@@ -348,6 +355,34 @@ export function useStoryStudio({
     const [filterStrength, setFilterStrength] = useState<number>(() =>
         Math.max(0.1, Math.min(1.0, storySettings.filterStrength ?? 1.0))
     );
+    const [selectedFilterCategory, setSelectedFilterCategory] = useState<StoryPhotoFilterTabCategory>(
+        () => storySettings.filterCategory || 'all'
+    );
+
+    const displayedFilters = useMemo(() => {
+        if (selectedFilterCategory === 'all') return STORY_PHOTO_FILTERS;
+        if (selectedFilterCategory === 'recent') {
+            const noneFilter = STORY_PHOTO_FILTERS.find((f) => f.id === 'none');
+            const recentDefs = (recentFilterIds || [])
+                .map((id) => STORY_PHOTO_FILTERS.find((f) => f.id === id))
+                .filter((f): f is StoryPhotoFilter => Boolean(f));
+            return noneFilter ? [noneFilter, ...recentDefs] : recentDefs;
+        }
+        return STORY_PHOTO_FILTERS.filter((f) => f.id === 'none' || f.category === selectedFilterCategory);
+    }, [selectedFilterCategory, recentFilterIds]);
+
+    const filterCategoryCounts = useMemo(() => {
+        const counts: Record<string, number> = { all: STORY_PHOTO_FILTERS.length };
+        const availableRecentCount = (recentFilterIds || []).filter((id) =>
+            STORY_PHOTO_FILTERS.some((f) => f.id === id && f.id !== 'none')
+        ).length;
+        counts['recent'] = availableRecentCount;
+        for (const cat of STORY_FILTER_CATEGORIES) {
+            if (cat.id === 'all' || cat.id === 'recent') continue;
+            counts[cat.id] = STORY_PHOTO_FILTERS.filter((f) => f.id === 'none' || f.category === cat.id).length;
+        }
+        return counts;
+    }, [recentFilterIds]);
 
     // Decorative Frame States
     const [activeFrameId, setActiveFrameId] = useState<StoryFrameId>(() => storySettings.frameId || 'none');
@@ -482,6 +517,9 @@ export function useStoryStudio({
                 if (cfg.frameId && cfg.frameId !== 'none') {
                     addRecentFrame(cfg.frameId);
                 }
+                if (cfg.filterId && cfg.filterId !== 'none') {
+                    addRecentFilter(cfg.filterId);
+                }
             },
         });
 
@@ -505,6 +543,7 @@ export function useStoryStudio({
             },
             filterId: activeFilterId,
             filterStrength,
+            filterCategory: selectedFilterCategory,
             frameId: activeFrameId,
             frameCategory: selectedFrameCategory,
             frameColorChoice,
@@ -521,6 +560,7 @@ export function useStoryStudio({
         paddedConfig,
         activeFilterId,
         filterStrength,
+        selectedFilterCategory,
         activeFrameId,
         selectedFrameCategory,
         frameColorChoice,
@@ -545,6 +585,7 @@ export function useStoryStudio({
         setCardTheme('dark');
         setActiveFilterId('none');
         setFilterStrength(1.0);
+        setSelectedFilterCategory('all');
         setActiveFrameId('none');
         setSelectedFrameCategory('all');
         setFrameColorChoice('signature');
@@ -913,6 +954,10 @@ export function useStoryStudio({
         setActiveFilterId,
         filterStrength,
         setFilterStrength,
+        selectedFilterCategory,
+        setSelectedFilterCategory,
+        filterCategoryCounts,
+        displayedFilters,
         activeFrameId,
         setActiveFrameId,
         selectedFrameCategory,
