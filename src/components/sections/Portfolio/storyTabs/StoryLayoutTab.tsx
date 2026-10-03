@@ -91,21 +91,6 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
         }
     };
 
-    const ensurePadded = () => {
-        if (activeCrop && activeCrop.zoom >= 0.999 && onCropChange) {
-            const fitCrop = calculateNormalizedCrop(
-                naturalDimensions.width,
-                naturalDimensions.height,
-                0.5,
-                0.5,
-                fitZoom,
-                fitZoom
-            );
-            onCropChange(fitCrop);
-            setSelectedPresetId('padded-glass');
-        }
-    };
-
     const effectivePanelCount: 2 | 3 = burstPanelCount ?? panelCount ?? (burst?.total === 2 || burst?.isDuet ? 2 : 3);
     const isDuetLayout = effectivePanelCount === 2;
     const slotNames = isDuetLayout ? ['TOP', 'BTM'] : ['TOP', 'MID', 'BTM'];
@@ -1041,7 +1026,6 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                                             ...prev,
                                                             customColor: color,
                                                         }));
-                                                        ensurePadded();
                                                         setIsDownloaded(false);
                                                     }}
                                                     title={color}
@@ -1072,7 +1056,6 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                                     ...prev,
                                                     customColor: e.target.value,
                                                 }));
-                                                ensurePadded();
                                                 setIsDownloaded(false);
                                             }}
                                             className="story-export-modal__color-input"
@@ -1101,7 +1084,6 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                     }`}
                                     onClick={() => {
                                         setPaddedConfig((prev) => ({ ...prev, style: 'frosted' }));
-                                        ensurePadded();
                                         setIsDownloaded(false);
                                     }}
                                     aria-pressed={
@@ -1126,7 +1108,6 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                     }`}
                                     onClick={() => {
                                         setPaddedConfig((prev) => ({ ...prev, style: 'solid' }));
-                                        ensurePadded();
                                         setIsDownloaded(false);
                                     }}
                                     aria-pressed={paddedConfig.style === 'solid' || paddedConfig.style === 'custom'}

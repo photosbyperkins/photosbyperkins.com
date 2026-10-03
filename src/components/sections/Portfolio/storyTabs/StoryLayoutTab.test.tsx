@@ -1231,11 +1231,11 @@ describe('StoryLayoutTab - Single Photo Selector and Crop Zoom Removal', () => {
         expect(frostedBtn).not.toBeNull();
         expect(solidBtn).not.toBeNull();
 
-        // Clicking Solid updates paddedConfig and ensures crop transitions to padded when zoomed in
+        // Clicking Solid updates paddedConfig without automatically switching mode or changing crop
         fireEvent.click(solidBtn);
         expect(setPaddedConfig).toHaveBeenCalled();
-        expect(onCropChange).toHaveBeenCalled();
-        expect(setSelectedPresetId).toHaveBeenCalledWith('padded-glass');
+        expect(onCropChange).not.toHaveBeenCalled();
+        expect(setSelectedPresetId).not.toHaveBeenCalled();
     });
 
     it('wraps Solo Selected Photo section inside padded-settings for outline and frosting consistency', () => {

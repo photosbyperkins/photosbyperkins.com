@@ -813,6 +813,49 @@ test.describe('Story Maker (9:16)', () => {
         await expect(framesGrid.locator('button:has-text("None")')).toBeVisible();
         await expect(framesGrid.locator('button:has-text("Grizzly")')).toBeVisible();
     });
+
+    test('should not automatically switch to Padded mode when changing background color or frosting style', async ({ page }) => {
+        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
+        await photo.waitFor({ timeout: 10000 });
+        await photo.click();
+
+        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
+        await expect(lightbox).toBeVisible({ timeout: 10000 });
+
+        await page.keyboard.press('c');
+        const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
+        await expect(studioModal).toBeVisible({ timeout: 8000 });
+
+        // Ensure we are in Layout tab
+        const layoutTab = studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Layout")');
+        await layoutTab.click();
+
+        // Check active preset is not Padded
+        const paddedPill = studioModal.locator('.story-export-modal__preset-pill:has-text("Padded")');
+        await expect(paddedPill).not.toHaveClass(/active/);
+        await expect(studioModal.locator('.story-cropper--padded')).toHaveCount(0);
+
+        // Click "Solid" background style pill
+        const solidBtn = studioModal.locator('.story-export-modal__pill:has-text("Solid")');
+        await expect(solidBtn).toBeVisible();
+        await solidBtn.click();
+        await expect(solidBtn).toHaveClass(/active/);
+
+        // Verify it did NOT switch to Padded mode
+        await expect(paddedPill).not.toHaveClass(/active/);
+        await expect(studioModal.locator('.story-cropper--padded')).toHaveCount(0);
+
+        // Click a quick swatch color (e.g. Red)
+        const redSwatch = studioModal.locator('.story-export-modal__quick-swatch[title="#e60000"]');
+        await expect(redSwatch).toBeVisible();
+        await redSwatch.click();
+        await expect(redSwatch).toHaveClass(/is-active/);
+
+        // Verify it still did NOT switch to Padded mode
+        await expect(paddedPill).not.toHaveClass(/active/);
+        await expect(studioModal.locator('.story-cropper--padded')).toHaveCount(0);
+    });
 });
+
 
 
