@@ -1,15 +1,18 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { encodeFavorites, decodeFavoritesHash } from './favoritesUrl';
 
 describe('favoritesUrl', () => {
     describe('decodeFavoritesHash', () => {
         it('decodes legacy v1 hash correctly (basenames)', async () => {
+            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
             // Encode "photo_1.jpg,photo_2.jpg" using the old v1 format
             const basenames = ['photo_1.jpg', 'photo_2.jpg'];
             const oldHash = btoa(basenames.join(',')).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
             const decoded = await decodeFavoritesHash(oldHash);
             expect(decoded).toEqual([]);
+            expect(warnSpy).toHaveBeenCalledWith('Unsupported or legacy favorites hash format');
+            warnSpy.mockRestore();
         });
 
         it('handles empty v1 hash correctly', async () => {
@@ -18,9 +21,12 @@ describe('favoritesUrl', () => {
         });
 
         it('handles invalid legacy hash gracefully', async () => {
+            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
             // Provide a malformed base64 string
             const decoded = await decodeFavoritesHash('###invalid_base64###');
             expect(decoded).toEqual([]);
+            expect(warnSpy).toHaveBeenCalledWith('Unsupported or legacy favorites hash format');
+            warnSpy.mockRestore();
         });
 
         it('decodes v2 hash correctly (groups)', async () => {
@@ -51,10 +57,13 @@ describe('favoritesUrl', () => {
         });
 
         it('handles invalid v2 hash gracefully', async () => {
+            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
             // Provide a malformed v2 hash (not valid DEFLATE payload)
             const decoded = await decodeFavoritesHash('2.invalid_compressed_data');
             // If decompression fails, it falls back to empty array
             expect(decoded).toEqual([]);
+            expect(warnSpy).toHaveBeenCalled();
+            warnSpy.mockRestore();
         });
     });
 

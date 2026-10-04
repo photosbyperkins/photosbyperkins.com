@@ -196,11 +196,15 @@ async function decodeV2Hash(hash: string): Promise<AlbumPhotoGroup[]> {
  * Decode a favorites hash string. Only supports v2 format.
  */
 export async function decodeFavoritesHash(hash: string): Promise<AlbumPhotoGroup[]> {
+    if (!hash) {
+        return [];
+    }
+
     if (hash.startsWith(V2_PREFIX)) {
         try {
             return await decodeV2Hash(hash);
         } catch (err) {
-            console.error('Failed to decode v2 favorites hash:', err);
+            console.warn('Failed to decode v2 favorites hash:', (err as Error).message || err);
             return [];
         }
     }
@@ -208,3 +212,4 @@ export async function decodeFavoritesHash(hash: string): Promise<AlbumPhotoGroup
     console.warn('Unsupported or legacy favorites hash format');
     return [];
 }
+

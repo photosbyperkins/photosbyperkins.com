@@ -88,6 +88,7 @@ describe('useZipWorker', () => {
     });
 
     it('terminates worker on error message', () => {
+        const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
         const { result } = renderHook(() => useZipWorker());
 
         act(() => {
@@ -102,5 +103,7 @@ describe('useZipWorker', () => {
 
         expect(result.current.isZipping).toBe(false);
         expect(activeWorkerInstance?.terminate).toHaveBeenCalled();
+        expect(errorSpy).toHaveBeenCalledWith('Zip error:', 'Zip generation failed');
+        errorSpy.mockRestore();
     });
 });

@@ -141,6 +141,7 @@ describe('useEventAlbum', () => {
     });
 
     it('handles HTTP error by incrementing retry and flagging error after retries', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => {});
         vi.spyOn(globalThis, 'fetch').mockResolvedValue({
             ok: false,
             status: 500,
