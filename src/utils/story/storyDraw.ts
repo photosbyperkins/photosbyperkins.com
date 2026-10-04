@@ -536,7 +536,7 @@ export function applyStoryFilterToImageData(imageData: ImageData, filterId: Stor
                 // Ignore near-neutral pixels and very dark shadows to prevent noise
                 if (delta >= 18 && max > 30) {
                     const sat = delta / max;
-                    let h = 0;
+                    let h: number;
                     if (max === r) {
                         h = ((g - b) / delta) % 6;
                     } else if (max === g) {

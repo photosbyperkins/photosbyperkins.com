@@ -566,14 +566,35 @@ export async function renderStoryToBlob(
 ): Promise<Blob> {
     const canvas = await renderStoryToCanvas(img, config);
     return new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob(
-            (blob) => {
-                if (blob) resolve(blob);
-                else reject(new Error('Failed to generate image blob'));
-            },
-            'image/jpeg',
-            0.95
-        );
+        if (typeof canvas.toBlob !== 'function') {
+            try {
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.95);
+                const commaIdx = dataUrl.indexOf(',');
+                const byteCharacters = atob(commaIdx >= 0 ? dataUrl.slice(commaIdx + 1) : dataUrl);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) {
+                    byteNumbers[i] = byteCharacters.charCodeAt(i);
+                }
+                const byteArray = new Uint8Array(byteNumbers);
+                resolve(new Blob([byteArray], { type: 'image/jpeg' }));
+            } catch (err) {
+                reject(err);
+            }
+            return;
+        }
+
+        try {
+            canvas.toBlob(
+                (blob) => {
+                    if (blob) resolve(blob);
+                    else reject(new Error('Failed to generate image blob'));
+                },
+                'image/jpeg',
+                0.95
+            );
+        } catch (err) {
+            reject(err);
+        }
     });
 }
 

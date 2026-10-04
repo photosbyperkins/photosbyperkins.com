@@ -73,4 +73,15 @@ describe('useStoryImageLoader', () => {
 
         expect(result.current.naturalDimensions).toEqual({ width: 4000, height: 3000 });
     });
+
+    it('initializes isTainted as false', () => {
+        const { result } = renderHook(() =>
+            useStoryImageLoader({
+                photo: '/photos/2026/game.jpg',
+                isOpen: false,
+            })
+        );
+
+        expect(result.current.isTainted).toBe(false);
+    });
 });

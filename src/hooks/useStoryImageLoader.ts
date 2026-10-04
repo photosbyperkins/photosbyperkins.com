@@ -10,6 +10,16 @@ export interface UseStoryImageLoaderOptions {
     burstSources?: string[];
 }
 
+export function isCrossOriginUrl(url: string): boolean {
+    if (typeof window === 'undefined' || !url) return false;
+    try {
+        const parsed = new URL(url, window.location.href);
+        return parsed.origin !== window.location.origin;
+    } catch {
+        return false;
+    }
+}
+
 export interface UseStoryImageLoaderReturn {
     photoObj: PhotoRecord;
     originalSrc: string;
@@ -20,11 +30,16 @@ export interface UseStoryImageLoaderReturn {
     loadedBurstImages: HTMLImageElement[];
     burstLoading: boolean;
     imageError: boolean;
+    isTainted: boolean;
     naturalDimensions: { width: number; height: number };
     setNaturalDimensions: React.Dispatch<React.SetStateAction<{ width: number; height: number }>>;
 }
 
-function loadHtmlImage(url: string, withBuild: (s: string) => string): Promise<HTMLImageElement> {
+function loadHtmlImage(
+    url: string,
+    withBuild: (s: string) => string,
+    onTainted?: () => void
+): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
         const display = getPhotoDisplayUrl(url);
         const candidates = [withBuild(display), display, withBuild(url), url].filter(Boolean);
@@ -36,7 +51,12 @@ function loadHtmlImage(url: string, withBuild: (s: string) => string): Promise<H
             }
             const img = new Image();
             if (useCors) img.crossOrigin = 'anonymous';
-            img.onload = () => resolve(img);
+            img.onload = () => {
+                if (!useCors && isCrossOriginUrl(candidates[idx])) {
+                    onTainted?.();
+                }
+                resolve(img);
+            };
             img.onerror = () => {
                 if (useCors) tryLoad(idx, false);
                 else tryLoad(idx + 1, true);
@@ -78,6 +98,14 @@ export function useStoryImageLoader({
     const [loadedBurstImages, setLoadedBurstImages] = useState<HTMLImageElement[]>([]);
     const [burstLoading, setBurstLoading] = useState(() => Boolean(burstSourcesKey));
     const [imageError, setImageError] = useState(false);
+    const [isTainted, setIsTainted] = useState(false);
+    const currentSrcKey = `${isOpen ? 'open' : 'closed'}|${displaySrc}|${originalSrc}`;
+    const [prevSrcKey, setPrevSrcKey] = useState(currentSrcKey);
+
+    if (prevSrcKey !== currentSrcKey) {
+        setPrevSrcKey(currentSrcKey);
+        setIsTainted(false);
+    }
 
     if (prevBurstKey !== burstSourcesKey) {
         setPrevBurstKey(burstSourcesKey);
@@ -127,6 +155,9 @@ export function useStoryImageLoader({
                     height: img.naturalHeight || photoObj.height || 2560,
                 });
                 setImageError(false);
+                if (!useCors && isCrossOriginUrl(targetSrc)) {
+                    setIsTainted(true);
+                }
             };
 
             img.onerror = () => {
@@ -162,7 +193,11 @@ export function useStoryImageLoader({
                 if (src === originalSrc && loadedImage) {
                     return Promise.resolve(loadedImage);
                 }
-                return loadHtmlImage(src, withBuild);
+                return loadHtmlImage(src, withBuild, () => {
+                    if (!isCancelled) {
+                        setIsTainted(true);
+                    }
+                });
             })
         )
             .then((imgs) => {
@@ -191,6 +226,7 @@ export function useStoryImageLoader({
         loadedBurstImages,
         burstLoading,
         imageError,
+        isTainted,
         naturalDimensions,
         setNaturalDimensions,
     };

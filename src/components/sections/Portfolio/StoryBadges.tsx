@@ -124,9 +124,9 @@ export const StoryBadges: React.FC<StoryBadgesProps> = ({ badges, theme = 'dark'
     }, [selected]);
 
     // A badge that gets hidden can't stay selected.
-    useEffect(() => {
-        if (selected && !isActive[selected]) setSelected(null);
-    });
+    if (selected && !isActive[selected]) {
+        setSelected(null);
+    }
 
     if (!badges) return null;
 
@@ -219,7 +219,7 @@ export const StoryBadges: React.FC<StoryBadgesProps> = ({ badges, theme = 'dark'
         const [tier, col] = pos.split('-') as ['top' | 'bottom', 'left' | 'center' | 'right'];
         const cols = ['left', 'center', 'right'] as const;
         const ci = cols.indexOf(col);
-        let target: StoryBadgePosition | null = null;
+        let target: StoryBadgePosition;
 
         switch (e.key) {
             case 'ArrowLeft':

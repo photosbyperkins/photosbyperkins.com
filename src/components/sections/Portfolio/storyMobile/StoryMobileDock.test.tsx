@@ -2,10 +2,10 @@ import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { StoryMobileDock } from './StoryMobileDock';
-import { StoryLayoutTabIcon, StoryFiltersTabIcon, StoryFramesTabIcon, StoryBadgesTabIcon } from '../../../ui/icons';
+import { StoryLayoutTabIcon, StoryFiltersTabIcon, StoryFramesTabIcon, StoryBadgesTabIcon, type IconProps } from '../../../ui/icons';
 import type { StoryStudioTab } from '../../../../hooks/useStoryStudio';
 
-const TABS: Array<{ id: StoryStudioTab; label: string; icon: React.FC<any> }> = [
+const TABS: Array<{ id: StoryStudioTab; label: string; icon: React.FC<IconProps> }> = [
     { id: 'layout', label: 'Layout', icon: StoryLayoutTabIcon },
     { id: 'filters', label: 'Filters', icon: StoryFiltersTabIcon },
     { id: 'frames', label: 'Frames', icon: StoryFramesTabIcon },

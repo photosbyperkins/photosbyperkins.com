@@ -123,4 +123,26 @@ describe('useStoryExport', () => {
         expect(onExportSuccess).toHaveBeenCalledTimes(1);
         expect(onExportSuccess).toHaveBeenCalledWith(expect.objectContaining({ frameId: 'instant-film' }));
     });
+
+    it('blocks download and shows toast if isTainted is true', async () => {
+        const mockImg = document.createElement('img');
+        const { result } = renderHook(() =>
+            useStoryExport({
+                loadedImage: mockImg,
+                currentConfig: mockConfig,
+                eventTitle: 'Championship Game',
+                year: '2026',
+                canShare: false,
+                photoKey: 'photo-1',
+                isTainted: true,
+            })
+        );
+
+        await act(async () => {
+            await result.current.handleDownload();
+        });
+
+        expect(result.current.statusToast).toBe('Export unavailable: Image lacks cross-origin permissions.');
+        expect(result.current.isDownloaded).toBe(false);
+    });
 });

@@ -10,6 +10,7 @@ export interface UseStoryExportOptions {
     year?: string;
     canShare: boolean;
     photoKey?: string;
+    isTainted?: boolean;
     onExportSuccess?: (config: StoryRenderConfig) => void;
 }
 
@@ -36,19 +37,25 @@ export function useStoryExport({
     year,
     canShare,
     photoKey,
+    isTainted,
     onExportSuccess,
 }: UseStoryExportOptions): UseStoryExportReturn {
     const [isExporting, setIsExporting] = useState(false);
     const [isDownloaded, setIsDownloaded] = useState(false);
     const [statusToast, setStatusToast] = useState<string | null>(null);
     const activeUrlsRef = useRef<Set<string>>(new Set());
+    const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Clean up any remaining blob URLs on unmount to prevent memory leaks
+    // Clean up any remaining blob URLs and timers on unmount to prevent memory leaks
     useEffect(() => {
         const urls = activeUrlsRef.current;
         return () => {
             urls.forEach((url) => URL.revokeObjectURL(url));
             urls.clear();
+            if (toastTimerRef.current) {
+                clearTimeout(toastTimerRef.current);
+                toastTimerRef.current = null;
+            }
         };
     }, []);
 
@@ -59,11 +66,21 @@ export function useStoryExport({
     }
 
     const showToast = useCallback((msg: string) => {
+        if (toastTimerRef.current) {
+            clearTimeout(toastTimerRef.current);
+        }
         setStatusToast(msg);
-        setTimeout(() => setStatusToast(null), 3000);
+        toastTimerRef.current = setTimeout(() => {
+            setStatusToast(null);
+            toastTimerRef.current = null;
+        }, 3000);
     }, []);
 
     const resetExportState = useCallback(() => {
+        if (toastTimerRef.current) {
+            clearTimeout(toastTimerRef.current);
+            toastTimerRef.current = null;
+        }
         setIsDownloaded(false);
         setIsExporting(false);
         setStatusToast(null);
@@ -72,6 +89,10 @@ export function useStoryExport({
     // 1. Direct Download Action
     const handleDownload = useCallback(async () => {
         if (!loadedImage) return;
+        if (isTainted) {
+            showToast('Export unavailable: Image lacks cross-origin permissions.');
+            return;
+        }
         setIsExporting(true);
         try {
             const blob = await renderStoryToBlob(loadedImage, currentConfig);
@@ -95,15 +116,25 @@ export function useStoryExport({
             onExportSuccess?.(currentConfig);
         } catch (err) {
             console.error('Download error:', err);
-            showToast('Failed to download image.');
+            const isSecurityError =
+                (err as Error)?.name === 'SecurityError' || String(err).toLowerCase().includes('insecure');
+            showToast(
+                isSecurityError
+                    ? 'Export unavailable: Image lacks cross-origin permissions.'
+                    : 'Failed to download image.'
+            );
         } finally {
             setIsExporting(false);
         }
-    }, [loadedImage, currentConfig, eventTitle, year, showToast, onExportSuccess]);
+    }, [loadedImage, isTainted, currentConfig, eventTitle, year, showToast, onExportSuccess]);
 
     // 2. Native Share Action
     const handleNativeShare = useCallback(async () => {
         if (!loadedImage) return;
+        if (isTainted) {
+            showToast('Export unavailable: Image lacks cross-origin permissions.');
+            return;
+        }
         setIsExporting(true);
         try {
             const blob = await renderStoryToBlob(loadedImage, currentConfig);
@@ -123,12 +154,18 @@ export function useStoryExport({
         } catch (err) {
             if ((err as Error).name !== 'AbortError') {
                 console.error('Share error:', err);
-                showToast('Share failed. Use Download instead.');
+                const isSecurityError =
+                    (err as Error)?.name === 'SecurityError' || String(err).toLowerCase().includes('insecure');
+                showToast(
+                    isSecurityError
+                        ? 'Export unavailable: Image lacks cross-origin permissions.'
+                        : 'Share failed. Use Download instead.'
+                );
             }
         } finally {
             setIsExporting(false);
         }
-    }, [loadedImage, currentConfig, eventTitle, handleDownload, showToast, onExportSuccess]);
+    }, [loadedImage, isTainted, currentConfig, eventTitle, handleDownload, showToast, onExportSuccess]);
 
     const handleExportAction = useCallback(async () => {
         if (canShare) {

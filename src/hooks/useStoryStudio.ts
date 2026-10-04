@@ -7,7 +7,6 @@ import {
     calculateFitZoom,
     calculateDefaultBurstZoom,
     generateStoryPresets,
-    renderStoryToCanvas,
     BURST_PANEL_ASPECT_RATIO,
     DUET_PANEL_ASPECT_RATIO,
 } from '../utils/storyCanvas';
@@ -22,14 +21,12 @@ import {
     type NormalizedCrop,
     type PaddedStyleOptions,
     type StoryPhotoFilter,
-    type StoryPhotoFilterCategory,
     type StoryPhotoFilterId,
     type StoryPhotoFilterTabCategory,
     type StoryPreset,
     type StoryRenderConfig,
 } from '../utils/storyCanvas';
 import type {
-    StoryFrameCategory,
     StoryFrameColorChoice,
     StoryFrameContext,
     StoryFrameDefinition,
@@ -51,6 +48,7 @@ export interface UseStoryStudioOptions {
     burstLoading?: boolean;
     year: string;
     canShare: boolean;
+    isTainted?: boolean;
     onClose: () => void;
 }
 
@@ -65,6 +63,7 @@ export function useStoryStudio({
     burstLoading = false,
     year,
     canShare,
+    isTainted = false,
     onClose,
 }: UseStoryStudioOptions) {
     // Generate dynamic presets based on number of detected people
@@ -109,71 +108,6 @@ export function useStoryStudio({
     const targetPanelCount: 2 | 3 = burstPanelCount;
     const isDuet = targetPanelCount === 2;
 
-    const handleSetBurstPanelCount = useCallback(
-        (newCount: 2 | 3) => {
-            setBurstPanelCount(newCount);
-            setIsDownloaded(false);
-            if (newCount === 2) {
-                setBurstActiveStep((prev) => (prev > 1 ? 1 : prev));
-                // Switching to Duet (2 panels)
-                setBurstSelectedIndices((prev) => {
-                    const s0 = prev[0] ?? 0;
-                    let s1 = prev[2] ?? prev[1];
-                    const total = photoObj.burst?.total || 2;
-                    if (s1 === undefined || s1 === null || s1 === s0) {
-                        s1 = s0 === 0 ? (total > 1 ? 1 : 0) : 0;
-                    }
-                    return [s0, s1];
-                });
-                setBurstPanOffsets((prev) => {
-                    const defY = photoObj.focusY ?? 0.45;
-                    const defZoom = calculateDefaultBurstZoom(
-                        naturalDimensions.width,
-                        naturalDimensions.height,
-                        DUET_PANEL_ASPECT_RATIO
-                    );
-                    return [
-                        prev[0] ? { ...prev[0], zoom: prev[0].zoom ?? defZoom } : { x: 0.5, y: defY, zoom: defZoom },
-                        prev[1] ? { ...prev[1], zoom: prev[1].zoom ?? defZoom } : { x: 0.5, y: defY, zoom: defZoom },
-                    ];
-                });
-            } else {
-                // Switching to 3 panels (Triptych / Burst)
-                setBurstSelectedIndices((prev) => {
-                    const total = photoObj.burst?.total || 3;
-                    const s0 = prev[0] ?? 0;
-                    const sLast = prev[1] ?? (total > 2 ? 2 : 1);
-                    let mid: number | null = null;
-                    if (sLast > s0 + 1) {
-                        mid = Math.floor((s0 + sLast) / 2);
-                    } else if (total >= 3) {
-                        for (let i = 0; i < total; i++) {
-                            if (i !== s0 && i !== sLast) {
-                                mid = i;
-                                break;
-                            }
-                        }
-                    }
-                    return [s0, mid ?? 1, sLast];
-                });
-                setBurstPanOffsets((prev) => {
-                    const defY = photoObj.focusY ?? 0.45;
-                    const defZoom = calculateDefaultBurstZoom(
-                        naturalDimensions.width,
-                        naturalDimensions.height,
-                        BURST_PANEL_ASPECT_RATIO
-                    );
-                    return [
-                        prev[0] ? { ...prev[0], zoom: prev[0].zoom ?? defZoom } : { x: 0.5, y: defY, zoom: defZoom },
-                        prev[1] ? { ...prev[1], zoom: prev[1].zoom ?? defZoom } : { x: 0.5, y: defY, zoom: defZoom },
-                        prev[2] || { x: 0.5, y: defY, zoom: defZoom },
-                    ];
-                });
-            }
-        },
-        [photoObj.burst?.total, photoObj.focusY, naturalDimensions.width, naturalDimensions.height]
-    );
-
     const [activeMode, setActiveMode] = useState<'solo' | 'crop' | 'padded' | 'burst'>(() => {
         if (photoObj.burst) {
             if (photoObj.burst.total < 2) return 'solo';
@@ -212,11 +146,10 @@ export function useStoryStudio({
         [isMultiPhoto]
     );
 
-    useEffect(() => {
-        if (isMultiPhoto && burstShowTimeStamps) {
-            setBurstShowTimeStamps(false);
-        }
-    }, [isMultiPhoto, burstShowTimeStamps]);
+    // Multi-photo sequences never show timestamps (adjust state during render)
+    if (isMultiPhoto && burstShowTimeStamps) {
+        setBurstShowTimeStamps(false);
+    }
     const [burstSelectedIndices, setBurstSelectedIndices] = useState<(number | null)[]>(() => {
         if (photoObj.burst && photoObj.burst.total >= 2) {
             const total = photoObj.burst.total;
@@ -518,6 +451,7 @@ export function useStoryStudio({
             year,
             canShare,
             photoKey,
+            isTainted,
             onExportSuccess: (cfg) => {
                 if (cfg.frameId && cfg.frameId !== 'none') {
                     addRecentFrame(cfg.frameId);
@@ -527,6 +461,71 @@ export function useStoryStudio({
                 }
             },
         });
+
+    const handleSetBurstPanelCount = useCallback(
+        (newCount: 2 | 3) => {
+            setBurstPanelCount(newCount);
+            setIsDownloaded(false);
+            if (newCount === 2) {
+                setBurstActiveStep((prev) => (prev > 1 ? 1 : prev));
+                // Switching to Duet (2 panels)
+                setBurstSelectedIndices((prev) => {
+                    const s0 = prev[0] ?? 0;
+                    let s1 = prev[2] ?? prev[1];
+                    const total = photoObj.burst?.total || 2;
+                    if (s1 === undefined || s1 === null || s1 === s0) {
+                        s1 = s0 === 0 ? (total > 1 ? 1 : 0) : 0;
+                    }
+                    return [s0, s1];
+                });
+                setBurstPanOffsets((prev) => {
+                    const defY = photoObj.focusY ?? 0.45;
+                    const defZoom = calculateDefaultBurstZoom(
+                        naturalDimensions.width,
+                        naturalDimensions.height,
+                        DUET_PANEL_ASPECT_RATIO
+                    );
+                    return [
+                        prev[0] ? { ...prev[0], zoom: prev[0].zoom ?? defZoom } : { x: 0.5, y: defY, zoom: defZoom },
+                        prev[1] ? { ...prev[1], zoom: prev[1].zoom ?? defZoom } : { x: 0.5, y: defY, zoom: defZoom },
+                    ];
+                });
+            } else {
+                // Switching to 3 panels (Triptych / Burst)
+                setBurstSelectedIndices((prev) => {
+                    const total = photoObj.burst?.total || 3;
+                    const s0 = prev[0] ?? 0;
+                    const sLast = prev[1] ?? (total > 2 ? 2 : 1);
+                    let mid: number | null = null;
+                    if (sLast > s0 + 1) {
+                        mid = Math.floor((s0 + sLast) / 2);
+                    } else if (total >= 3) {
+                        for (let i = 0; i < total; i++) {
+                            if (i !== s0 && i !== sLast) {
+                                mid = i;
+                                break;
+                            }
+                        }
+                    }
+                    return [s0, mid ?? 1, sLast];
+                });
+                setBurstPanOffsets((prev) => {
+                    const defY = photoObj.focusY ?? 0.45;
+                    const defZoom = calculateDefaultBurstZoom(
+                        naturalDimensions.width,
+                        naturalDimensions.height,
+                        BURST_PANEL_ASPECT_RATIO
+                    );
+                    return [
+                        prev[0] ? { ...prev[0], zoom: prev[0].zoom ?? defZoom } : { x: 0.5, y: defY, zoom: defZoom },
+                        prev[1] ? { ...prev[1], zoom: prev[1].zoom ?? defZoom } : { x: 0.5, y: defY, zoom: defZoom },
+                        prev[2] || { x: 0.5, y: defY, zoom: defZoom },
+                    ];
+                });
+            }
+        },
+        [setIsDownloaded, photoObj.burst?.total, photoObj.focusY, naturalDimensions.width, naturalDimensions.height]
+    );
 
     const isFirstRender = useRef(true);
     useEffect(() => {
@@ -665,7 +664,6 @@ export function useStoryStudio({
         resetExportState,
         photoObj.burst,
         isMultiPhoto,
-        targetPanelCount,
         presets,
         naturalDimensions.width,
         naturalDimensions.height,
@@ -792,6 +790,11 @@ export function useStoryStudio({
         burstSelectedIndices,
         burstPanOffsets,
         isMultiPhoto,
+        burstPanelCount,
+        targetPanelCount,
+        photoObj.burst?.index,
+        photoObj.burst?.isDuet,
+        photoObj.burst?.total,
     ]);
 
     const handleClose = useCallback(() => {
@@ -828,7 +831,7 @@ export function useStoryStudio({
             });
             setIsDownloaded(false);
         },
-        [setIsDownloaded]
+        [setBurstPanOffsets, setIsDownloaded]
     );
 
     const handleSelectPhotoIndex = useCallback(
@@ -847,81 +850,6 @@ export function useStoryStudio({
         },
         [loadedBurstImages, naturalDimensions, presets, selectedPresetId, setIsDownloaded]
     );
-
-    // Live preview canvas ref
-    const previewCanvasRef = useRef<HTMLCanvasElement>(null);
-    const renderSeqRef = useRef(0);
-
-    // Update live preview canvas when options change
-    useEffect(() => {
-        const activeSingleImage = (loadedBurstImages && loadedBurstImages[activePhotoIndex]) || loadedImage;
-        const previewImg = activeMode === 'burst' ? activePanelImages : activeSingleImage;
-
-        if (!previewImg || !previewCanvasRef.current) return;
-
-        const currentSeq = ++renderSeqRef.current;
-        const targetCanvas = previewCanvasRef.current;
-
-        const config: StoryRenderConfig = {
-            mode: activeMode,
-            crop: activeCrop,
-            padded: paddedConfig,
-            burst: {
-                dividerStyle: burstDividerStyle,
-                showTimeStamps: isMultiPhoto ? false : burstShowTimeStamps,
-                panelCount: targetPanelCount,
-                timeStamps: isMultiPhoto ? [] : activeBurstTimeStamps,
-                panOffsets: burstPanOffsets,
-                focusYList: burstPanOffsets.map((p) => p.y),
-                isTriptych: isMultiPhoto,
-            },
-            badges: {
-                ...badges,
-                showScoreboard: false,
-                showAttribution: false,
-            },
-            resolution: '1080x1920', // fast live preview
-            cardTheme,
-            badgeTheme: cardTheme,
-            filterId: activeFilterId,
-            filterStrength,
-        };
-
-        const offscreen = document.createElement('canvas');
-        renderStoryToCanvas(previewImg, config, offscreen)
-            .then((renderedCanvas) => {
-                if (currentSeq !== renderSeqRef.current) return;
-                const ctx = targetCanvas.getContext('2d');
-                if (ctx) {
-                    targetCanvas.width = renderedCanvas.width;
-                    targetCanvas.height = renderedCanvas.height;
-                    ctx.drawImage(renderedCanvas, 0, 0);
-                }
-            })
-            .catch((err: unknown) => {
-                if (currentSeq === renderSeqRef.current) {
-                    console.error('Preview render error:', err);
-                }
-            });
-    }, [
-        loadedImage,
-        loadedBurstImages,
-        activePhotoIndex,
-        activePanelImages,
-        activeMode,
-        activeCrop,
-        paddedConfig,
-        burstDividerStyle,
-        burstShowTimeStamps,
-        targetPanelCount,
-        activeBurstTimeStamps,
-        burstPanOffsets,
-        isMultiPhoto,
-        badges,
-        cardTheme,
-        activeFilterId,
-        filterStrength,
-    ]);
 
     return {
         presets,
@@ -990,6 +918,6 @@ export function useStoryStudio({
         resetToDefaults,
         handleClose,
         handleExportAction,
-        previewCanvasRef,
+        isTainted,
     };
 }

@@ -94,6 +94,12 @@ describe('badgePlacement', () => {
             expect(clamped.x).toBe(100);
             expect(clamped.y).toBe(200);
         });
+
+        it('safely handles NaN and non-finite raw coordinates', () => {
+            const clamped = clampBadgeWithinFrame(NaN, Infinity, 200, 80, 500, 800, 16, 16);
+            expect(clamped.x).toBe(16);
+            expect(clamped.y).toBe(800 - 80 - 16);
+        });
     });
 
     describe('getOppositeTierSlot', () => {
@@ -222,6 +228,10 @@ describe('badgePlacement', () => {
 
         it('falls back to center when the badge fills the frame width', () => {
             expect(pickSlotFromDrag(6, 700, 388, 40, 400, 800, 6)).toBe('bottom-center');
+        });
+
+        it('safely handles NaN/non-finite coordinates without throwing or returning undefined', () => {
+            expect(pickSlotFromDrag(NaN, NaN, 200, 60, 400, 800, 6)).toBe('top-left');
         });
     });
 

@@ -5,13 +5,11 @@ import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useStoryImageLoader } from '../../../hooks/useStoryImageLoader';
 import { useStoryStudio, type StoryStudioTab } from '../../../hooks/useStoryStudio';
 import { parseEventTitle, getPhotoDisplayUrl } from '../../../utils/formatters';
-import { STORY_ASPECT_RATIO, type BadgeOptions } from '../../../utils/storyCanvas';
+import type { BadgeOptions } from '../../../utils/storyCanvas';
 import type { EventScore, PhotoInput } from '../../../types';
 import ModalShell from '../../ui/ModalShell';
-import { StoryBadges } from './StoryBadges';
 import { StoryCropper } from './StoryCropper';
 import { StoryBurstCropper } from './StoryBurstCropper';
-import { StoryFrameOverlay } from './storyFrames/StoryFrameOverlay';
 import { StoryMobileDock } from './storyMobile/StoryMobileDock';
 import { StoryMobilePopover } from './storyMobile/StoryMobilePopover';
 import {
@@ -79,6 +77,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         loadedBurstImages,
         burstLoading,
         imageError,
+        isTainted,
         naturalDimensions,
         setNaturalDimensions,
     } = useStoryImageLoader({ photo, isOpen, burstSources: photoRecord.burst?.frameSources });
@@ -107,7 +106,6 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         burst,
         burstPanelCount,
         setBurstPanelCount,
-        isDuet,
         burstShowTimeStamps,
         setBurstShowTimeStamps,
         burstSelectedIndices,
@@ -147,11 +145,11 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         isExporting,
         isDownloaded,
         setIsDownloaded,
+        statusToast,
         isDefaultConfig,
         resetToDefaults,
         handleClose,
         handleExportAction,
-        previewCanvasRef,
         activePhotoIndex,
         handleSelectPhotoIndex,
     } = useStoryStudio({
@@ -165,6 +163,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         burstLoading,
         year,
         canShare,
+        isTainted,
         onClose,
     });
 
@@ -274,59 +273,82 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
     }, [photoObj.burst, burstSelectedIndices, targetBurstCount]);
 
     const footer = (
-        <button
-            className={`story-export-modal__primary-action ${
-                isDownloaded ? 'is-done story-export-modal__primary-action--done' : ''
-            }`}
-            onClick={handleExportAction}
-            disabled={
-                isExporting ||
-                (activeMode === 'burst'
-                    ? burstLoading ||
-                      (loadedBurstImages?.length ?? 0) < targetBurstCount ||
-                      validBurstCount < targetBurstCount
-                    : !activeLoadedImage) ||
-                isDownloaded
-            }
-            title={
-                isDownloaded
-                    ? canShare
-                        ? 'Story Card Shared'
-                        : 'Story Card Downloaded'
-                    : activeMode === 'burst' && validBurstCount < targetBurstCount
-                      ? `Pick ${targetBurstCount - validBurstCount} more ${
-                            burst?.isTriptych ? 'photo' : 'frame'
-                        }${targetBurstCount - validBurstCount === 1 ? '' : 's'} to download`
-                      : canShare
-                        ? 'Share Story Card'
-                        : 'Download Story Card'
-            }
-            aria-label={
-                isDownloaded
-                    ? canShare
-                        ? 'Story Card Shared'
-                        : 'Story Card Downloaded'
-                    : activeMode === 'burst' && validBurstCount < targetBurstCount
-                      ? `Pick ${targetBurstCount - validBurstCount} more ${
-                            burst?.isTriptych ? 'photo' : 'frame'
-                        }${targetBurstCount - validBurstCount === 1 ? '' : 's'} to download`
-                      : canShare
-                        ? 'Share Story Card'
-                        : 'Download Story Card'
-            }
-        >
-            {isDownloaded ? (
-                <>
-                    <Check size={18} />
-                    <span>{canShare ? 'Shared' : 'Downloaded'}</span>
-                </>
-            ) : (
-                <>
-                    {canShare ? <Share2 size={18} /> : <Download size={18} />}
-                    <span>{canShare ? 'Share Story Card' : 'Download Story Card'}</span>
-                </>
+        <div className="story-export-modal__footer-container">
+            {statusToast && (
+                <div
+                    className={`story-export-modal__toast ${
+                        statusToast.toLowerCase().includes('fail') ||
+                        statusToast.toLowerCase().includes('unavailable') ||
+                        statusToast.toLowerCase().includes('lacks') ||
+                        statusToast.toLowerCase().includes('error')
+                            ? 'story-export-modal__toast--error'
+                            : ''
+                    }`}
+                    role="status"
+                    aria-live="polite"
+                >
+                    {statusToast}
+                </div>
             )}
-        </button>
+            <button
+                className={`story-export-modal__primary-action ${
+                    isDownloaded ? 'is-done story-export-modal__primary-action--done' : ''
+                }`}
+                onClick={handleExportAction}
+                disabled={
+                    isExporting ||
+                    isTainted ||
+                    (activeMode === 'burst'
+                        ? burstLoading ||
+                          (loadedBurstImages?.length ?? 0) < targetBurstCount ||
+                          validBurstCount < targetBurstCount
+                        : !activeLoadedImage) ||
+                    isDownloaded
+                }
+                title={
+                    isDownloaded
+                        ? canShare
+                            ? 'Story Card Shared'
+                            : 'Story Card Downloaded'
+                        : isTainted
+                          ? 'Export unavailable: Image lacks cross-origin permissions.'
+                          : activeMode === 'burst' && validBurstCount < targetBurstCount
+                            ? `Pick ${targetBurstCount - validBurstCount} more ${
+                                  burst?.isTriptych ? 'photo' : 'frame'
+                              }${targetBurstCount - validBurstCount === 1 ? '' : 's'} to download`
+                            : canShare
+                              ? 'Share Story Card'
+                              : 'Download Story Card'
+                }
+                aria-label={
+                    isDownloaded
+                        ? canShare
+                            ? 'Story Card Shared'
+                            : 'Story Card Downloaded'
+                        : isTainted
+                          ? 'Export unavailable: Image lacks cross-origin permissions.'
+                          : activeMode === 'burst' && validBurstCount < targetBurstCount
+                            ? `Pick ${targetBurstCount - validBurstCount} more ${
+                                  burst?.isTriptych ? 'photo' : 'frame'
+                              }${targetBurstCount - validBurstCount === 1 ? '' : 's'} to download`
+                            : canShare
+                              ? 'Share Story Card'
+                              : 'Download Story Card'
+                }
+            >
+                {isDownloaded ? (
+                    <>
+                        <Check size={18} />
+                        <span>{canShare ? 'Shared' : 'Downloaded'}</span>
+                    </>
+                ) : (
+                    <>
+                        {canShare ? <Share2 size={18} /> : <Download size={18} />}
+                        <span>{canShare ? 'Share Story Card' : 'Download Story Card'}</span>
+                    </>
+                )}
+            </button>
+        </div>
     );
 
     const headerActions = !isDefaultConfig ? (

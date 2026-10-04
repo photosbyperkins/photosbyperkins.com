@@ -139,6 +139,9 @@ describe('StoryFiltersTab', () => {
         const duotoneBtn = screen.getByRole('button', { name: /^photo filter: duotone$/i });
         const bleachBtn = screen.getByRole('button', { name: /^photo filter: bleach$/i });
 
+        fireEvent.click(cinematicBtn);
+        expect(setActiveFilterId).toHaveBeenCalledWith('cinematic');
+
         fireEvent.click(neonBtn);
         expect(setActiveFilterId).toHaveBeenCalledWith('neon');
 

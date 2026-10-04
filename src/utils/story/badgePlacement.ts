@@ -85,14 +85,16 @@ export function clampBadgeWithinFrame(
     marginX = 16,
     marginY = 16
 ): { x: number; y: number } {
+    const validRawX = Number.isNaN(rawX) ? marginX : rawX;
+    const validRawY = Number.isNaN(rawY) ? marginY : rawY;
     const minX = marginX;
     const maxX = Math.max(minX, containerW - badgeW - marginX);
     const minY = marginY;
     const maxY = Math.max(minY, containerH - badgeH - marginY);
 
     return {
-        x: Math.max(minX, Math.min(maxX, rawX)),
-        y: Math.max(minY, Math.min(maxY, rawY)),
+        x: Math.max(minX, Math.min(maxX, validRawX)),
+        y: Math.max(minY, Math.min(maxY, validRawY)),
     };
 }
 
@@ -223,11 +225,13 @@ export function pickSlotFromDrag(
     containerH: number,
     inset = 0
 ): StoryBadgePosition {
-    const tier: BadgeTier = y + badgeH / 2 < containerH / 2 ? 'top' : 'bottom';
+    const safeX = Number.isFinite(x) ? x : inset;
+    const safeY = Number.isFinite(y) ? y : inset;
+    const tier: BadgeTier = safeY + badgeH / 2 < containerH / 2 ? 'top' : 'bottom';
     const minX = inset;
     const maxX = Math.max(minX, containerW - badgeW - inset);
     const range = maxX - minX;
-    const t = range < 1 ? 0.5 : (x - minX) / range;
+    const t = range < 1 ? 0.5 : (safeX - minX) / range;
     const column: BadgeColumn = t < 1 / 3 ? 'left' : t > 2 / 3 ? 'right' : 'center';
     return `${tier}-${column}` as StoryBadgePosition;
 }

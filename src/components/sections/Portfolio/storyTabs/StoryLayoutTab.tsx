@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeftRight, TriptychReverse } from '../../../ui/icons';
 import type { NormalizedCrop, PaddedStyleOptions, StoryPreset } from '../../../../utils/storyCanvas';
@@ -94,9 +94,13 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
     const enforceOrdering = Boolean(!isMultiPhoto && burstShowTimeStamps);
 
     // Normalize slots to a tuple matching panel count
-    const slots: (number | null)[] = isDuetLayout
-        ? [burstSelectedIndices[0] ?? null, burstSelectedIndices[1] ?? null]
-        : [burstSelectedIndices[0] ?? null, burstSelectedIndices[1] ?? null, burstSelectedIndices[2] ?? null];
+    const slots: (number | null)[] = useMemo(
+        () =>
+            isDuetLayout
+                ? [burstSelectedIndices[0] ?? null, burstSelectedIndices[1] ?? null]
+                : [burstSelectedIndices[0] ?? null, burstSelectedIndices[1] ?? null, burstSelectedIndices[2] ?? null],
+        [isDuetLayout, burstSelectedIndices]
+    );
 
     const isSwapDisabled = Boolean(enforceOrdering || slots[0] === null || slots[1] === null);
 
