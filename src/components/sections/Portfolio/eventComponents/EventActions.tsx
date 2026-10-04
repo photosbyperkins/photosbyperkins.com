@@ -69,7 +69,7 @@ export const EventActions = React.memo(function EventActions({
         <div className="portfolio__event-meta">
             {date && <span className="portfolio__stat-tag">{date}</span>}
 
-            {zip && !canShare && !isFavorites && (
+            {zip && !isFavorites && (
                 <a
                     href={withBuild(zip, true)}
                     download
@@ -93,23 +93,13 @@ export const EventActions = React.memo(function EventActions({
                 </button>
             )}
 
-            {isFavorites && canShare && hasAlbumPhotos && (
-                <button
-                    className="portfolio__zip-btn"
-                    onClick={handleShareFavorites}
-                    title="Share Favorites"
-                    aria-label="Share Favorites"
-                >
-                    <Share2 size={16} />
-                </button>
-            )}
-
-            {isFavorites && !canShare && hasAlbumPhotos && (
+            {isFavorites && hasAlbumPhotos && (
                 <button
                     className="portfolio__zip-btn"
                     onClick={onDownloadFavorites}
                     disabled={isZipping}
                     title="Download Favorites as .zip"
+                    aria-label="Download Favorites as .zip"
                     style={{
                         cursor: isZipping ? 'wait' : 'pointer',
                         backgroundImage: isZipping
@@ -124,6 +114,17 @@ export const EventActions = React.memo(function EventActions({
                     }}
                 >
                     <Save size={16} />
+                </button>
+            )}
+
+            {isFavorites && canShare && hasAlbumPhotos && (
+                <button
+                    className="portfolio__zip-btn"
+                    onClick={handleShareFavorites}
+                    title="Share Favorites"
+                    aria-label="Share Favorites"
+                >
+                    <Share2 size={16} />
                 </button>
             )}
 

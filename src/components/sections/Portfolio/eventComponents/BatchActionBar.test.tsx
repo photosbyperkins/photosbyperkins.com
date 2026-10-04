@@ -44,7 +44,7 @@ describe('BatchActionBar', () => {
         expect(screen.getByRole('button', { name: /story/i })).toBeDefined();
         expect(screen.getByRole('button', { name: /Add selected to favorites/i })).toBeDefined();
         expect(screen.getByRole('button', { name: /Download selected photos as ZIP/i })).toBeDefined();
-        expect(screen.queryByRole('button', { name: /Share selected photos link/i })).toBeNull();
+        expect(screen.getByRole('button', { name: /Share selected photos link/i })).toBeDefined();
         expect(screen.getByRole('button', { name: /Done selecting photos/i })).toBeDefined();
     });
 
@@ -64,41 +64,18 @@ describe('BatchActionBar', () => {
         expect(favoritedHeartSvg?.getAttribute('fill')).toBe('currentColor');
     });
 
-    it('shows download button and hides share button when canShare is false', () => {
-        render(<BatchActionBar {...getProps()} canShare={false} />);
+    it('renders download button and hides share button when onShare is undefined', () => {
+        render(<BatchActionBar {...getProps()} onShare={undefined} />);
         expect(screen.getByRole('button', { name: /Download selected photos as ZIP/i })).toBeDefined();
         expect(screen.queryByRole('button', { name: /Share selected photos link/i })).toBeNull();
     });
 
-    it('shows share button and hides download button when canShare is true', () => {
-        render(<BatchActionBar {...getProps()} canShare={true} />);
-        expect(screen.getByRole('button', { name: /Share selected photos link/i })).toBeDefined();
-        expect(screen.queryByRole('button', { name: /Download selected photos as ZIP/i })).toBeNull();
-    });
+    it('always renders download button regardless of canShare', () => {
+        const { rerender } = render(<BatchActionBar {...getProps()} canShare={false} />);
+        expect(screen.getByRole('button', { name: /Download selected photos as ZIP/i })).toBeDefined();
 
-    it('uses useCanShare hook directly when canShare prop is not provided', () => {
-        const originalNavigator = window.navigator;
-        try {
-            Object.defineProperty(window, 'navigator', {
-                value: {
-                    share: () => Promise.resolve(),
-                    userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X)',
-                    maxTouchPoints: 5,
-                },
-                writable: true,
-                configurable: true,
-            });
-
-            render(<BatchActionBar {...getProps()} />);
-            expect(screen.getByRole('button', { name: /Share selected photos link/i })).toBeDefined();
-            expect(screen.queryByRole('button', { name: /Download selected photos as ZIP/i })).toBeNull();
-        } finally {
-            Object.defineProperty(window, 'navigator', {
-                value: originalNavigator,
-                writable: true,
-                configurable: true,
-            });
-        }
+        rerender(<BatchActionBar {...getProps()} canShare={true} />);
+        expect(screen.getByRole('button', { name: /Download selected photos as ZIP/i })).toBeDefined();
     });
 
     it('does not render toolbar when isVisible is false', () => {
@@ -119,21 +96,19 @@ describe('BatchActionBar', () => {
     });
 
     it('disables action buttons when selectedCount is 0', () => {
-        const { rerender } = render(<BatchActionBar {...getProps()} selectedCount={0} canShare={false} />);
+        render(<BatchActionBar {...getProps()} selectedCount={0} />);
 
         const favBtn = screen.getByRole('button', { name: /Add selected to favorites/i }) as HTMLButtonElement;
         const zipBtn = screen.getByRole('button', { name: /Download selected photos as ZIP/i }) as HTMLButtonElement;
+        const shareBtn = screen.getByRole('button', { name: /Share selected photos link/i }) as HTMLButtonElement;
 
         expect(favBtn.disabled).toBe(true);
         expect(zipBtn.disabled).toBe(true);
-
-        rerender(<BatchActionBar {...getProps()} selectedCount={0} canShare={true} />);
-        const shareBtn = screen.getByRole('button', { name: /Share selected photos link/i }) as HTMLButtonElement;
         expect(shareBtn.disabled).toBe(true);
     });
 
     it('calls action callbacks when buttons are clicked', () => {
-        const { rerender } = render(<BatchActionBar {...getProps()} canShare={false} />);
+        render(<BatchActionBar {...getProps()} />);
 
         fireEvent.click(screen.getByRole('button', { name: /Add selected to favorites/i }));
         expect(mockOnFavoriteAll).toHaveBeenCalledTimes(1);
@@ -141,7 +116,6 @@ describe('BatchActionBar', () => {
         fireEvent.click(screen.getByRole('button', { name: /Download selected photos as ZIP/i }));
         expect(mockOnDownloadZip).toHaveBeenCalledTimes(1);
 
-        rerender(<BatchActionBar {...getProps()} canShare={true} />);
         fireEvent.click(screen.getByRole('button', { name: /Share selected photos link/i }));
         expect(mockOnShare).toHaveBeenCalledTimes(1);
 

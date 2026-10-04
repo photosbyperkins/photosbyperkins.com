@@ -15,7 +15,7 @@ export interface BatchActionBarProps {
     onDownloadZip: () => void;
     isZipping: boolean;
     zipProgress: number;
-    onShare: () => void;
+    onShare?: () => void;
     onDone: () => void;
     onStory?: () => void;
     canShare?: boolean;
@@ -136,53 +136,55 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
                                     );
                                 })()}
 
-                            {!canShare && (
-                                <button
-                                    type="button"
-                                    className="portfolio__batch-btn portfolio__batch-btn--zip"
-                                    onClick={onDownloadZip}
-                                    disabled={selectedCount === 0 || isZipping}
-                                    title="Download selected photos as ZIP"
-                                    aria-label={
-                                        isZipping
-                                            ? `Compressing ZIP: ${zipProgress}%`
-                                            : 'Download selected photos as ZIP'
-                                    }
-                                    style={{
-                                        cursor: isZipping ? 'wait' : selectedCount === 0 ? 'not-allowed' : 'pointer',
-                                        backgroundImage: isZipping
-                                            ? 'linear-gradient(to right, var(--color-accent) 100%, transparent 100%)'
-                                            : 'none',
-                                        backgroundSize: `${isZipping ? zipProgress : 0}% 100%`,
-                                        backgroundRepeat: 'no-repeat',
-                                    }}
-                                >
-                                    <Save size={16} className="portfolio__batch-btn-icon" />
-                                    <span className="portfolio__batch-btn-text">
-                                        {isZipping ? `${zipProgress}%` : 'Download'}
-                                    </span>
-                                </button>
-                            )}
+                            <button
+                                type="button"
+                                className="portfolio__batch-btn portfolio__batch-btn--zip"
+                                onClick={onDownloadZip}
+                                disabled={selectedCount === 0 || isZipping}
+                                title="Download selected photos as ZIP"
+                                aria-label={
+                                    isZipping
+                                        ? `Compressing ZIP: ${zipProgress}%`
+                                        : 'Download selected photos as ZIP'
+                                }
+                                style={{
+                                    cursor: isZipping ? 'wait' : selectedCount === 0 ? 'not-allowed' : 'pointer',
+                                    backgroundImage: isZipping
+                                        ? 'linear-gradient(to right, var(--color-accent) 100%, transparent 100%)'
+                                        : 'none',
+                                    backgroundSize: `${isZipping ? zipProgress : 0}% 100%`,
+                                    backgroundRepeat: 'no-repeat',
+                                }}
+                            >
+                                <Save size={16} className="portfolio__batch-btn-icon" />
+                                <span className="portfolio__batch-btn-text">
+                                    {isZipping ? `${zipProgress}%` : 'Download'}
+                                </span>
+                            </button>
 
-                            {canShare && (
+                            {onShare && (
                                 <button
                                     type="button"
                                     className={`portfolio__batch-btn ${isCopied ? 'portfolio__batch-btn--copied' : ''}`}
                                     onClick={async () => {
-                                        await onShare?.();
-                                        setIsCopied(true);
-                                        setTimeout(() => setIsCopied(false), 2200);
+                                        await onShare();
+                                        if (!canShare) {
+                                            setIsCopied(true);
+                                            setTimeout(() => setIsCopied(false), 2200);
+                                        }
                                     }}
                                     disabled={selectedCount === 0}
-                                    title={isCopied ? 'Link copied to clipboard!' : 'Share selected photos link'}
-                                    aria-label={isCopied ? 'Link copied to clipboard!' : 'Share selected photos link'}
+                                    title={!canShare && isCopied ? 'Link copied to clipboard!' : 'Share selected photos link'}
+                                    aria-label={!canShare && isCopied ? 'Link copied to clipboard!' : 'Share selected photos link'}
                                 >
-                                    {isCopied ? (
+                                    {!canShare && isCopied ? (
                                         <Check size={16} className="portfolio__batch-btn-icon" />
                                     ) : (
                                         <Share2 size={16} className="portfolio__batch-btn-icon" />
                                     )}
-                                    <span className="portfolio__batch-btn-text">{isCopied ? 'Copied!' : 'Share'}</span>
+                                    <span className="portfolio__batch-btn-text">
+                                        {!canShare && isCopied ? 'Copied!' : 'Share'}
+                                    </span>
                                 </button>
                             )}
                         </div>

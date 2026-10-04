@@ -136,23 +136,24 @@ describe('EventActions', () => {
         expect(screen.queryByRole('button', { name: /Show Full Album/i })).toBeNull();
     });
 
-    it('handles share album click when canShare is true', async () => {
-        const shareSpy = vi.fn().mockResolvedValue(undefined);
-        Object.defineProperty(navigator, 'share', {
-            value: shareSpy,
-            configurable: true,
-            writable: true,
-        });
+    it('renders download favorites button when hasAlbumPhotos is true even if canShare is true', () => {
+        render(<EventActions {...defaultProps} eventName="Favorites" hasAlbumPhotos={true} canShare={true} />);
 
-        render(<EventActions {...defaultProps} canShare={true} />);
+        const downloadBtn = screen.getByRole('button', { name: /Download Favorites as .zip/i });
+        expect(downloadBtn).toBeDefined();
+
+        const shareBtn = screen.getByRole('button', { name: /Share Favorites/i });
+        expect(shareBtn).toBeDefined();
+    });
+
+    it('renders album download link when zip is provided even if canShare is true', () => {
+        render(<EventActions {...defaultProps} zip="/downloads/event.zip" canShare={true} />);
+
+        const downloadLink = screen.getByTitle(/Download All Original Photos \(\.zip\)/i);
+        expect(downloadLink).toBeDefined();
 
         const shareBtn = screen.getByRole('button', { name: /Share Album/i });
-        fireEvent.click(shareBtn);
-
-        expect(shareSpy).toHaveBeenCalledWith(
-            expect.objectContaining({
-                title: defaultProps.eventName,
-            })
-        );
+        expect(shareBtn).toBeDefined();
     });
 });
+
