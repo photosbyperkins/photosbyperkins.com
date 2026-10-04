@@ -123,13 +123,28 @@ export function resolvePhotoInput(item: FavoriteStoreItem): PhotoInput {
  */
 export function toPhotoRecord(item: FavoriteStoreItem): PhotoRecord {
     const photo = resolvePhotoInput(item);
+    const itemEventName =
+        typeof item === 'object' && item !== null && 'eventName' in item && typeof item.eventName === 'string'
+            ? item.eventName
+            : undefined;
+    const itemYear =
+        typeof item === 'object' && item !== null && 'year' in item && typeof item.year === 'string'
+            ? item.year
+            : undefined;
+
     if (typeof photo === 'string') {
         return {
             original: photo,
             thumb: photo,
+            ...(itemEventName ? { eventName: itemEventName } : {}),
+            ...(itemYear ? { year: itemYear } : {}),
         };
     }
-    return photo;
+    return {
+        ...photo,
+        ...(itemEventName && !photo.eventName ? { eventName: itemEventName } : {}),
+        ...(itemYear && !photo.year ? { year: itemYear } : {}),
+    };
 }
 
 /** Returns the original (full-res jpg) URL from any FavoriteStoreItem. */

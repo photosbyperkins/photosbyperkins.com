@@ -9,7 +9,10 @@ import {
     generateStoryPresets,
     BURST_PANEL_ASPECT_RATIO,
     DUET_PANEL_ASPECT_RATIO,
+    arePhotosFromDifferentEvents,
+    resolveBadgeCollision,
 } from '../utils/storyCanvas';
+import { parseEventTitle } from '../utils/formatters';
 import { STORY_FRAME_DEFINITIONS } from '../components/sections/Portfolio/storyFrames/frameDefinitions';
 import { STORY_FRAME_CATEGORIES } from '../components/sections/Portfolio/storyFrames/types';
 import {
@@ -42,6 +45,7 @@ export interface UseStoryStudioOptions {
     naturalDimensions: { width: number; height: number };
     setNaturalDimensions?: React.Dispatch<React.SetStateAction<{ width: number; height: number }>>;
     eventInfo: { title: string; date: string; teams: string[] };
+    eventName?: string;
     originalSrc: string;
     localScore?: EventScore;
     loadedImage: HTMLImageElement | null;
@@ -58,6 +62,7 @@ export function useStoryStudio({
     naturalDimensions,
     setNaturalDimensions,
     eventInfo,
+    eventName,
     originalSrc,
     localScore,
     loadedImage,
@@ -571,14 +576,163 @@ export function useStoryStudio({
         setActiveFrameId('none');
     }
 
+    // Determine if photos from different events are currently chosen in story maker
+    const isDifferentEventsChosen = useMemo(() => {
+        return arePhotosFromDifferentEvents({
+            mode: activeMode,
+            panelCount: targetPanelCount,
+            selectedIndices: burstSelectedIndices,
+            photo: photoObj,
+            fallbackEventName: eventName,
+        });
+    }, [activeMode, targetPanelCount, burstSelectedIndices, photoObj, eventName]);
+
+    // Active event metadata based on current layout mode and selection
+    const { targetEventName, targetYear, targetScore } = useMemo(() => {
+        if (isDifferentEventsChosen) {
+            return { targetEventName: '', targetYear: '', targetScore: undefined };
+        }
+        if (activeMode === 'burst') {
+            const slots =
+                targetPanelCount === 2
+                    ? [burstSelectedIndices[0], burstSelectedIndices[1]]
+                    : [burstSelectedIndices[0], burstSelectedIndices[1], burstSelectedIndices[2]];
+            const assigned = slots.filter((idx): idx is number => idx !== null && idx !== undefined);
+            const primaryIdx = assigned[0] ?? 0;
+            const ev =
+                photoObj.burst?.frameEvents?.[primaryIdx] ||
+                photoObj.burst?.frameEventNames?.[primaryIdx] ||
+                photoObj.eventName ||
+                eventName ||
+                '';
+            const yr = photoObj.burst?.frameYears?.[primaryIdx] || photoObj.year || year || '';
+            const sc = photoObj.burst?.frameScores?.[primaryIdx] ?? localScore;
+            return { targetEventName: ev, targetYear: yr, targetScore: sc };
+        }
+
+        // Single-photo mode: solo, crop, padded
+        const ev =
+            photoObj.burst?.frameEvents?.[activePhotoIndex] ||
+            photoObj.burst?.frameEventNames?.[activePhotoIndex] ||
+            photoObj.eventName ||
+            eventName ||
+            '';
+        const yr = photoObj.burst?.frameYears?.[activePhotoIndex] || photoObj.year || year || '';
+        const sc = photoObj.burst?.frameScores?.[activePhotoIndex] ?? localScore;
+        return { targetEventName: ev, targetYear: yr, targetScore: sc };
+    }, [
+        isDifferentEventsChosen,
+        activeMode,
+        targetPanelCount,
+        burstSelectedIndices,
+        activePhotoIndex,
+        photoObj,
+        eventName,
+        year,
+        localScore,
+    ]);
+
+    const effectiveEventInfo = useMemo(() => {
+        if (isDifferentEventsChosen) {
+            return { title: '', date: '', teams: [] };
+        }
+        if (!targetEventName) {
+            return eventInfo;
+        }
+        const { mainTitle, datePrefix, teams } = parseEventTitle(targetEventName, undefined, targetYear);
+        return {
+            title: mainTitle,
+            date: datePrefix || '',
+            teams,
+        };
+    }, [isDifferentEventsChosen, targetEventName, targetYear, eventInfo]);
+
+    // Badges resolved for preview and export (suppresses event badge when photos from different events are chosen)
+    const effectiveBadges: BadgeOptions = useMemo(() => {
+        if (isDifferentEventsChosen) {
+            return {
+                ...badges,
+                showScoreboard: false,
+                scoreboardTitle: '',
+                teams: [],
+                matchDate: '',
+                score1: null,
+                score2: null,
+                isEventAmbiguous: true,
+            };
+        }
+
+        const isScoreboardActive = Boolean(
+            badges.showScoreboard && (effectiveEventInfo.title || effectiveEventInfo.teams?.length > 0)
+        );
+        const isAttributionActive = Boolean(badges.showAttribution);
+
+        let scoreboardPosition = badges.scoreboardPosition || DEFAULT_SCOREBOARD_POSITION;
+        let attributionPosition = badges.attributionPosition || DEFAULT_ATTRIBUTION_POSITION;
+
+        if (isScoreboardActive && isAttributionActive) {
+            const resolved = resolveBadgeCollision(
+                { scoreboard: scoreboardPosition, attribution: attributionPosition },
+                'scoreboard'
+            );
+            scoreboardPosition = resolved.scoreboard;
+            attributionPosition = resolved.attribution;
+        }
+
+        return {
+            ...badges,
+            scoreboardPosition,
+            attributionPosition,
+            scoreboardTitle: effectiveEventInfo.title,
+            teams: effectiveEventInfo.teams,
+            matchDate: effectiveEventInfo.date,
+            score1: targetScore?.team1Score ?? null,
+            score2: targetScore?.team2Score ?? null,
+            isEventAmbiguous: false,
+        };
+    }, [badges, isDifferentEventsChosen, effectiveEventInfo, targetScore]);
+
+    // Ensure badges state stays non-overlapping when event badge is unsuppressed
+    useEffect(() => {
+        if (isDifferentEventsChosen) return;
+        const isScoreboardActive = Boolean(
+            badges.showScoreboard && (effectiveEventInfo.title || effectiveEventInfo.teams?.length > 0)
+        );
+        const isAttributionActive = Boolean(badges.showAttribution);
+        if (!isScoreboardActive || !isAttributionActive) return;
+
+        const sbPos = badges.scoreboardPosition || DEFAULT_SCOREBOARD_POSITION;
+        const attrPos = badges.attributionPosition || DEFAULT_ATTRIBUTION_POSITION;
+        if (sbPos.startsWith('top') === attrPos.startsWith('top')) {
+            const resolved = resolveBadgeCollision({ scoreboard: sbPos, attribution: attrPos }, 'scoreboard');
+            setBadges((prev) => ({
+                ...prev,
+                scoreboardPosition: resolved.scoreboard,
+                attributionPosition: resolved.attribution,
+            }));
+        }
+    }, [
+        isDifferentEventsChosen,
+        badges.showScoreboard,
+        badges.showAttribution,
+        badges.scoreboardPosition,
+        badges.attributionPosition,
+        effectiveEventInfo.title,
+        effectiveEventInfo.teams,
+    ]);
+
     const frameContext: StoryFrameContext = useMemo(
         () => ({
-            hasScoreboard: Boolean(badges.showScoreboard && (badges.scoreboardTitle || badges.teams?.length)),
-            hasAttribution: Boolean(badges.showAttribution),
+            hasScoreboard: Boolean(
+                effectiveBadges.showScoreboard &&
+                    !effectiveBadges.isEventAmbiguous &&
+                    (effectiveBadges.scoreboardTitle || effectiveBadges.teams?.length)
+            ),
+            hasAttribution: Boolean(effectiveBadges.showAttribution),
             layoutMode: activeMode,
             exif: photoObj.exif,
         }),
-        [badges.showScoreboard, badges.scoreboardTitle, badges.teams, badges.showAttribution, activeMode, photoObj.exif]
+        [effectiveBadges, activeMode, photoObj.exif]
     );
 
     // Export configuration
@@ -596,7 +750,7 @@ export function useStoryStudio({
                 focusYList: burstPanOffsets.map((p) => p.y),
                 isTriptych: isMultiPhoto,
             },
-            badges,
+            badges: effectiveBadges,
             resolution: '1080x1920',
             cardTheme,
             badgeTheme: cardTheme,
@@ -616,7 +770,7 @@ export function useStoryStudio({
             activeBurstTimeStamps,
             burstPanOffsets,
             isMultiPhoto,
-            badges,
+            effectiveBadges,
             cardTheme,
             activeFrameId,
             effectiveFrameColor,
@@ -1083,6 +1237,9 @@ export function useStoryStudio({
         activePanelImages,
         burstLoading,
         badges,
+        effectiveBadges,
+        effectiveEventInfo,
+        isEventBadgeSuppressed: isDifferentEventsChosen,
         setBadges,
         cardTheme,
         setCardTheme,

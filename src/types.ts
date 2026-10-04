@@ -32,6 +32,10 @@ export interface BurstMetadata {
     frameFocusY?: (number | undefined)[];
     frameWidths?: (number | undefined)[];
     frameHeights?: (number | undefined)[];
+    frameEvents?: (string | undefined)[];
+    frameEventNames?: (string | undefined)[];
+    frameYears?: (string | undefined)[];
+    frameScores?: (EventScore | undefined)[];
 }
 
 export interface PhotoRecord {

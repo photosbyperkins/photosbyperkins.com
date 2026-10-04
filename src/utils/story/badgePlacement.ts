@@ -1,4 +1,5 @@
 import type { StoryBadgePosition } from './storyConstants';
+import type { PhotoRecord } from '../../types';
 
 export interface Rect {
     left: number;
@@ -252,3 +253,83 @@ export function resolveBadgeEnable(
     if (!sameTier) return positions;
     return { ...positions, [enabling]: getOppositeTierSlot(positions[enabling]) };
 }
+
+/**
+ * Ensures that if two badges are both active, they never occupy the same tier.
+ * If they do occupy the same tier, relocates the target badge (defaulting to 'scoreboard')
+ * to the opposite tier.
+ */
+export function resolveBadgeCollision(
+    positions: { scoreboard: StoryBadgePosition; attribution: StoryBadgePosition },
+    relocate: 'scoreboard' | 'attribution' = 'scoreboard'
+): { scoreboard: StoryBadgePosition; attribution: StoryBadgePosition } {
+    const isScoreboardTop = positions.scoreboard.startsWith('top');
+    const isAttributionTop = positions.attribution.startsWith('top');
+    if (isScoreboardTop === isAttributionTop) {
+        return {
+            ...positions,
+            [relocate]: getOppositeTierSlot(positions[relocate]),
+        };
+    }
+    return positions;
+}
+
+
+export interface CheckDifferentEventsOptions {
+    mode: 'solo' | 'crop' | 'padded' | 'burst';
+    panelCount?: 2 | 3;
+    selectedIndices?: (number | null)[];
+    photo: PhotoRecord;
+    fallbackEventName?: string;
+}
+
+/**
+ * Checks whether the photos currently chosen for rendering in story maker belong to different events.
+ * When photos from different events are chosen, the event badge should be suppressed
+ * because there is ambiguity as to which event the badge belongs to.
+ */
+export function arePhotosFromDifferentEvents({
+    mode,
+    panelCount = 3,
+    selectedIndices = [0, 1, 2],
+    photo,
+    fallbackEventName,
+}: CheckDifferentEventsOptions): boolean {
+    // In single-photo modes (solo, crop, padded), only one photo is chosen, so there cannot be multiple events chosen.
+    if (mode !== 'burst') {
+        return false;
+    }
+
+    const effectiveCount = panelCount === 2 ? 2 : 3;
+    const slots = selectedIndices.slice(0, effectiveCount);
+    const assigned = slots.filter((idx): idx is number => idx !== null && idx !== undefined);
+
+    if (assigned.length < 2) {
+        return false;
+    }
+
+    const frameEvents = photo.burst?.frameEvents || photo.burst?.frameEventNames;
+    if (!frameEvents || frameEvents.length === 0) {
+        // No per-frame event data exists, so all frames belong to the same event.
+        return false;
+    }
+
+    const events = assigned.map((idx) => {
+        const ev = frameEvents[idx] ?? photo.eventName ?? fallbackEventName ?? '';
+        return ev.trim().toLowerCase();
+    });
+
+    const hasEmpty = events.some((e) => !e);
+    const uniqueEvents = new Set(events.filter(Boolean));
+
+    if (uniqueEvents.size > 1) {
+        return true;
+    }
+
+    if (uniqueEvents.size === 1 && hasEmpty) {
+        return true;
+    }
+
+    return false;
+}
+

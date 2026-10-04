@@ -128,6 +128,7 @@ export interface BadgeOptions {
     attributionDomain?: string;
     scoreboardPosition?: StoryBadgePosition;
     attributionPosition?: StoryBadgePosition;
+    isEventAmbiguous?: boolean;
 }
 
 export type StoryPhotoFilterId =

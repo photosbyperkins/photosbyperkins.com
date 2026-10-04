@@ -797,4 +797,192 @@ describe('useStoryStudio', () => {
             expect(setNaturalDimensionsMock).toHaveBeenCalledWith({ width: 3840, height: 2560 });
         });
     });
+
+    describe('Multi-Event Photo Handling & Event Badge Suppression', () => {
+        const multiEventPhoto: PhotoRecord = {
+            original: '/photos/photo1.jpg',
+            thumb: '/photos/photo1_thumb.jpg',
+            burst: {
+                id: 'burst_multi_event',
+                index: 0,
+                total: 3,
+                isTriptych: true,
+                frameSources: ['/p1.jpg', '/p2.jpg', '/p3.jpg'],
+                frameEvents: [
+                    '[2024] 10.12 Sac City vs Berkeley',
+                    '[2024] 11.05 Rose City vs Angel City',
+                    '[2024] 10.12 Sac City vs Berkeley',
+                ],
+                frameYears: ['2024', '2024', '2024'],
+                frameScores: [
+                    { team1Score: 140, team2Score: 110 },
+                    { team1Score: 200, team2Score: 180 },
+                    { team1Score: 140, team2Score: 110 },
+                ],
+            },
+        };
+
+        it('suppresses event badge in burst mode when chosen frames are from different events', () => {
+            const { result } = renderHook(() =>
+                useStoryStudio({
+                    ...defaultProps,
+                    photoObj: multiEventPhoto,
+                })
+            );
+
+            // Default mode for burst photo is 'burst' with slots [0, 1, 2]
+            expect(result.current.activeMode).toBe('burst');
+            expect(result.current.isEventBadgeSuppressed).toBe(true);
+            expect(result.current.effectiveBadges.showScoreboard).toBe(false);
+            expect(result.current.effectiveBadges.isEventAmbiguous).toBe(true);
+            expect(result.current.effectiveBadges.scoreboardTitle).toBe('');
+            expect(result.current.currentConfig.badges.showScoreboard).toBe(false);
+            expect(result.current.frameContext.hasScoreboard).toBe(false);
+        });
+
+        it('restores event badge when switching from burst to solo mode', () => {
+            const { result } = renderHook(() =>
+                useStoryStudio({
+                    ...defaultProps,
+                    photoObj: multiEventPhoto,
+                })
+            );
+
+            expect(result.current.isEventBadgeSuppressed).toBe(true);
+
+            // Switch to solo mode
+            act(() => {
+                result.current.setActiveMode('solo');
+            });
+
+            expect(result.current.activeMode).toBe('solo');
+            expect(result.current.isEventBadgeSuppressed).toBe(false);
+            expect(result.current.effectiveBadges.isEventAmbiguous).toBe(false);
+            expect(result.current.effectiveBadges.showScoreboard).toBe(true);
+            expect(result.current.effectiveBadges.scoreboardTitle).toBe('Sac City vs Berkeley');
+            expect(result.current.frameContext.hasScoreboard).toBe(true);
+            expect(result.current.currentConfig.badges.showScoreboard).toBe(true);
+
+            // Switching activePhotoIndex to frame 1 updates the event info to that frame's event
+            act(() => {
+                result.current.handleSelectPhotoIndex(1);
+            });
+
+            expect(result.current.effectiveBadges.scoreboardTitle).toBe('Rose City vs Angel City');
+            expect(result.current.effectiveBadges.score1).toBe(200);
+            expect(result.current.effectiveBadges.score2).toBe(180);
+        });
+
+        it('unsuppresses event badge in duet mode when both chosen frames share the same event', () => {
+            const { result } = renderHook(() =>
+                useStoryStudio({
+                    ...defaultProps,
+                    photoObj: multiEventPhoto,
+                })
+            );
+
+            // Switch to duet (panelCount: 2)
+            act(() => {
+                result.current.setBurstPanelCount(2);
+            });
+
+            // Duet automatically defaults slots to [0, 2], both of which are Sac City vs Berkeley
+            expect(result.current.isEventBadgeSuppressed).toBe(false);
+            expect(result.current.effectiveBadges.isEventAmbiguous).toBe(false);
+            expect(result.current.effectiveBadges.showScoreboard).toBe(true);
+            expect(result.current.effectiveBadges.scoreboardTitle).toBe('Sac City vs Berkeley');
+            expect(result.current.effectiveBadges.score1).toBe(140);
+            expect(result.current.effectiveBadges.score2).toBe(110);
+            expect(result.current.currentConfig.badges.showScoreboard).toBe(true);
+
+            // If user changes slot 1 to frame 1 (different event: frames 0 & 1), it suppresses
+            act(() => {
+                result.current.setBurstSelectedIndices([0, 1]);
+            });
+
+            expect(result.current.isEventBadgeSuppressed).toBe(true);
+            expect(result.current.effectiveBadges.showScoreboard).toBe(false);
+            expect(result.current.effectiveBadges.isEventAmbiguous).toBe(true);
+
+            // If user sets slots back to [0, 2] (same event), it unsuppresses
+            act(() => {
+                result.current.setBurstSelectedIndices([0, 2]);
+            });
+
+            expect(result.current.isEventBadgeSuppressed).toBe(false);
+            expect(result.current.effectiveBadges.showScoreboard).toBe(true);
+            expect(result.current.effectiveBadges.scoreboardTitle).toBe('Sac City vs Berkeley');
+        });
+
+        it('prevents badge overlap when attribution badge is moved to scoreboard position while suppressed, and then switched to solo mode', () => {
+            const { result } = renderHook(() =>
+                useStoryStudio({
+                    ...defaultProps,
+                    photoObj: multiEventPhoto,
+                })
+            );
+
+            // In burst mode with multi-event photos, event badge is suppressed
+            expect(result.current.isEventBadgeSuppressed).toBe(true);
+            expect(result.current.badges.scoreboardPosition).toBe('bottom-center');
+            expect(result.current.badges.attributionPosition).toBe('top-center');
+
+            // Move the attribution badge to scoreboard's location ('bottom-center')
+            act(() => {
+                result.current.setBadges((prev) => ({
+                    ...prev,
+                    attributionPosition: 'bottom-center',
+                }));
+            });
+
+            expect(result.current.badges.attributionPosition).toBe('bottom-center');
+
+            // Switch to solo mode (photos are now from the same event, badge is unsuppressed)
+            act(() => {
+                result.current.setActiveMode('solo');
+            });
+
+            expect(result.current.isEventBadgeSuppressed).toBe(false);
+            expect(result.current.effectiveBadges.showScoreboard).toBe(true);
+            expect(result.current.effectiveBadges.showAttribution).toBe(true);
+
+            // Verify they do NOT overlap! Scoreboard position was relocated to opposite top tier
+            expect(result.current.effectiveBadges.attributionPosition).toBe('bottom-center');
+            expect(result.current.effectiveBadges.scoreboardPosition).toBe('top-center');
+            expect(result.current.badges.scoreboardPosition).toBe('top-center');
+        });
+
+        it('prevents badge overlap when attribution badge is moved to scoreboard position while suppressed, and photos are reselected to same event', () => {
+            const { result } = renderHook(() =>
+                useStoryStudio({
+                    ...defaultProps,
+                    photoObj: multiEventPhoto,
+                })
+            );
+
+            expect(result.current.isEventBadgeSuppressed).toBe(true);
+
+            // Move attribution to 'bottom-center'
+            act(() => {
+                result.current.setBadges((prev) => ({
+                    ...prev,
+                    attributionPosition: 'bottom-center',
+                }));
+            });
+
+            // Reselect frames in duet mode so both frames share the same event ([0, 2])
+            act(() => {
+                result.current.setBurstPanelCount(2);
+            });
+
+            expect(result.current.isEventBadgeSuppressed).toBe(false);
+            expect(result.current.effectiveBadges.showScoreboard).toBe(true);
+            expect(result.current.effectiveBadges.showAttribution).toBe(true);
+
+            // Verify no overlap: scoreboard relocated to top-center
+            expect(result.current.effectiveBadges.attributionPosition).toBe('bottom-center');
+            expect(result.current.effectiveBadges.scoreboardPosition).toBe('top-center');
+            expect(result.current.badges.scoreboardPosition).toBe('top-center');
+        });
+    });
 });

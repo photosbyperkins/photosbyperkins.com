@@ -32,7 +32,7 @@ describe('StoryBadgesTab', () => {
         teams: ['Sac City', 'Bay Area'],
     };
 
-    const renderTab = (badges: BadgeOptions = baseBadges) => {
+    const renderTab = (badges: BadgeOptions = baseBadges, isEventAmbiguous?: boolean) => {
         const setBadges = vi.fn();
         const setCardTheme = vi.fn();
         const setIsDownloaded = vi.fn();
@@ -43,6 +43,7 @@ describe('StoryBadgesTab', () => {
                 cardTheme="dark"
                 setCardTheme={setCardTheme}
                 eventInfo={eventInfo}
+                isEventAmbiguous={isEventAmbiguous}
                 setIsDownloaded={setIsDownloaded}
             />
         );
@@ -172,5 +173,40 @@ describe('StoryBadgesTab', () => {
 
         expect(screen.queryByLabelText('Reset badge positions to default')).toBeNull();
         expect(screen.queryByLabelText('Swap Top and Bottom badges')).toBeNull();
+    });
+
+    it('suppresses event badge and renders notice when isEventAmbiguous is true', () => {
+        renderTab(baseBadges, true);
+
+        expect(
+            screen.getByText('Event badge is suppressed because chosen photos are from different events.')
+        ).toBeDefined();
+        expect(screen.queryByRole('group', { name: 'Event badge position' })).toBeNull();
+        expect(screen.queryByLabelText('Show event badge with scores')).toBeNull();
+        expect(screen.queryByLabelText('Hide event badge')).toBeNull();
+    });
+
+    it('suppresses event badge when badges.isEventAmbiguous is true', () => {
+        renderTab({ ...baseBadges, isEventAmbiguous: true });
+
+        expect(
+            screen.getByText('Event badge is suppressed because chosen photos are from different events.')
+        ).toBeDefined();
+        expect(screen.queryByRole('group', { name: 'Event badge position' })).toBeNull();
+    });
+
+    it('relocates scoreboard position to opposite tier when attribution is moved to its tier while suppressed', () => {
+        const { applyLast } = renderTab({
+            ...baseBadges,
+            isEventAmbiguous: true,
+            scoreboardPosition: 'bottom-center',
+            attributionPosition: 'top-center',
+        });
+
+        fireEvent.click(screen.getByLabelText('Position attribution at Bottom Center'));
+
+        const next = applyLast();
+        expect(next.attributionPosition).toBe('bottom-center');
+        expect(next.scoreboardPosition).toBe('top-center');
     });
 });

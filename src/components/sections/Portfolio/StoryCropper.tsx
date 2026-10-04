@@ -386,7 +386,9 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
                 {(() => {
                     const frameContext: StoryFrameContext = {
                         hasScoreboard: Boolean(
-                            badges?.showScoreboard && (badges?.scoreboardTitle || badges?.teams?.length)
+                            !badges?.isEventAmbiguous &&
+                                badges?.showScoreboard &&
+                                (badges?.scoreboardTitle || badges?.teams?.length)
                         ),
                         hasAttribution: Boolean(badges?.showAttribution),
                         layoutMode: isPadded ? 'padded' : 'solo',

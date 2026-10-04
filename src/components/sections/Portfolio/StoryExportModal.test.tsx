@@ -524,4 +524,106 @@ describe('StoryExportModal', () => {
             expect(filtersTab.getAttribute('aria-selected')).toBe('true');
         });
     });
+
+    describe('Multi-event badge suppression', () => {
+        it('suppresses event badge and displays explanatory notice when photos are from different events', () => {
+            const multiEventPhoto: PhotoRecord = {
+                ...samplePhoto,
+                burst: {
+                    id: 'multi-test',
+                    index: 0,
+                    total: 3,
+                    frameSources: ['/photos/f1.jpg', '/photos/f2.jpg', '/photos/f3.jpg'],
+                    frameEvents: ['event-1', 'event-2', 'event-1'],
+                    frameEventNames: [
+                        '[2024] 10.12 Sac City vs Berkeley',
+                        '[2024] 10.15 Sac City vs Chabot',
+                        '[2024] 10.12 Sac City vs Berkeley',
+                    ],
+                },
+            };
+
+            const { baseElement } = render(
+                <StoryExportModal
+                    isOpen={true}
+                    onClose={mockOnClose}
+                    photo={multiEventPhoto}
+                    eventName="[2024] 10.12 Sac City vs Berkeley"
+                    year="2024"
+                    index={0}
+                />
+            );
+
+            // Navigate to Badges tab
+            const badgesTab = within(baseElement).getByRole('tab', { name: /badges/i });
+            fireEvent.click(badgesTab);
+
+            // Explanatory notice should be displayed
+            expect(
+                within(baseElement).getByText('Event badge is suppressed because chosen photos are from different events.')
+            ).not.toBeNull();
+
+            // Event badge checkbox should not be rendered
+            expect(within(baseElement).queryByRole('checkbox', { name: /event/i })).toBeNull();
+
+            // Story preview does not render the scoreboard/event badge
+            expect(baseElement.querySelector('.story-badges__scoreboard')).toBeNull();
+        });
+
+        it('avoids badge overlap when attribution badge is moved to scoreboard slot during suppression and user switches to solo mode', () => {
+            const multiEventPhoto: PhotoRecord = {
+                ...samplePhoto,
+                burst: {
+                    id: 'multi-test',
+                    index: 0,
+                    total: 3,
+                    frameSources: ['/photos/f1.jpg', '/photos/f2.jpg', '/photos/f3.jpg'],
+                    frameEvents: ['event-1', 'event-2', 'event-1'],
+                    frameEventNames: [
+                        '[2024] 10.12 Sac City vs Berkeley',
+                        '[2024] 10.15 Sac City vs Chabot',
+                        '[2024] 10.12 Sac City vs Berkeley',
+                    ],
+                },
+            };
+
+            const { baseElement } = render(
+                <StoryExportModal
+                    isOpen={true}
+                    onClose={mockOnClose}
+                    photo={multiEventPhoto}
+                    eventName="[2024] 10.12 Sac City vs Berkeley"
+                    year="2024"
+                    index={0}
+                />
+            );
+
+            // 1. Navigate to Badges tab while event badge is suppressed
+            const badgesTab = within(baseElement).getByRole('tab', { name: /badges/i });
+            fireEvent.click(badgesTab);
+
+            // 2. Move attribution badge to Bottom Center (where scoreboard is positioned by default)
+            const btmCenterBtn = within(baseElement).getByLabelText('Position attribution at Bottom Center');
+            fireEvent.click(btmCenterBtn);
+
+            // 3. Switch back to Layout tab and switch to Solo mode
+            const layoutTab = within(baseElement).getByRole('tab', { name: /layout/i });
+            fireEvent.click(layoutTab);
+
+            const soloBtn = within(baseElement).getByRole('button', { name: /^solo$/i });
+            fireEvent.click(soloBtn);
+
+            // 4. In solo mode, event badge is unsuppressed. Both badges must be rendered without overlapping.
+            const scoreboardBadge = baseElement.querySelector('.story-cropper__badge--scoreboard');
+            const attributionBadge = baseElement.querySelector('.story-cropper__badge--attribution');
+
+            expect(scoreboardBadge).not.toBeNull();
+            expect(attributionBadge).not.toBeNull();
+
+            // Attribution is at bottom-center, scoreboard is relocated to top-center
+            expect(attributionBadge?.className).toContain('story-cropper__badge--pos-bottom-center');
+            expect(scoreboardBadge?.className).toContain('story-cropper__badge--pos-top-center');
+        });
+    });
 });
+

@@ -57,7 +57,9 @@ export const StoryBadges: React.FC<StoryBadgesProps> = ({ badges, theme = 'dark'
     const interactive = Boolean(onBadgesChange);
 
     const isScoreboardActive = Boolean(
-        badges?.showScoreboard && (badges.scoreboardTitle || (badges.teams && badges.teams.length > 0))
+        !badges?.isEventAmbiguous &&
+            badges?.showScoreboard &&
+            (badges.scoreboardTitle || (badges.teams && badges.teams.length > 0))
     );
     const isAttributionActive = Boolean(badges?.showAttribution);
     const isActive: Record<BadgeKey, boolean> = { scoreboard: isScoreboardActive, attribution: isAttributionActive };
@@ -67,11 +69,18 @@ export const StoryBadges: React.FC<StoryBadgesProps> = ({ badges, theme = 'dark'
         attribution: badges?.attributionPosition || DEFAULT_ATTRIBUTION_POSITION,
     };
     const otherOf = (key: BadgeKey): BadgeKey => (key === 'scoreboard' ? 'attribution' : 'scoreboard');
+    const isOtherActiveForDrop = (key: BadgeKey): boolean => {
+        const other = otherOf(key);
+        if (other === 'scoreboard') {
+            return Boolean(badges?.showScoreboard);
+        }
+        return isAttributionActive;
+    };
 
     // While dragging, render the *resolved* layout live so the other badge visibly gets out of the way.
     const displayed: Record<BadgeKey, StoryBadgePosition> =
         drag && drag.moved
-            ? resolveBadgeDrop(drag.key, drag.target, positions, isActive[otherOf(drag.key)])
+            ? resolveBadgeDrop(drag.key, drag.target, positions, isOtherActiveForDrop(drag.key))
             : positions;
 
     // ---------------------------------------------------------------------------------------
@@ -133,7 +142,7 @@ export const StoryBadges: React.FC<StoryBadgesProps> = ({ badges, theme = 'dark'
     const commit = (key: BadgeKey, slot: StoryBadgePosition, verb: 'Moved' | 'Placed') => {
         if (!onBadgesChange) return;
         const other = otherOf(key);
-        const next = resolveBadgeDrop(key, slot, positions, isActive[other]);
+        const next = resolveBadgeDrop(key, slot, positions, isOtherActiveForDrop(key));
         if (next.scoreboard === positions.scoreboard && next.attribution === positions.attribution) return;
         onBadgesChange({ ...badges, scoreboardPosition: next.scoreboard, attributionPosition: next.attribution });
         const swapped = next[other] !== positions[other];

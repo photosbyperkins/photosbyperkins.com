@@ -8,6 +8,8 @@ import {
     swapBadgePositions,
     pickSlotFromDrag,
     resolveBadgeEnable,
+    resolveBadgeCollision,
+    arePhotosFromDifferentEvents,
 } from './badgePlacement';
 
 describe('badgePlacement', () => {
@@ -255,4 +257,220 @@ describe('badgePlacement', () => {
             expect(resolveBadgeEnable('scoreboard', positions, false)).toEqual(positions);
         });
     });
+
+    describe('arePhotosFromDifferentEvents', () => {
+        const createPhoto = (frameEvents?: string[]): any => ({
+            original: '/photos/photo1.jpg',
+            thumb: '/photos/photo1_thumb.jpg',
+            burst: {
+                id: 'burst_test',
+                index: 0,
+                total: frameEvents ? frameEvents.length : 3,
+                frameSources: ['/p1.jpg', '/p2.jpg', '/p3.jpg'],
+                frameEvents,
+            },
+        });
+
+        it('returns false when mode is solo, crop, or padded even if photos are from different events', () => {
+            const photo = createPhoto(['Event A', 'Event B', 'Event C']);
+            expect(
+                arePhotosFromDifferentEvents({
+                    mode: 'solo',
+                    photo,
+                    selectedIndices: [0, 1],
+                })
+            ).toBe(false);
+            expect(
+                arePhotosFromDifferentEvents({
+                    mode: 'crop',
+                    photo,
+                    selectedIndices: [0, 1],
+                })
+            ).toBe(false);
+            expect(
+                arePhotosFromDifferentEvents({
+                    mode: 'padded',
+                    photo,
+                    selectedIndices: [0, 1],
+                })
+            ).toBe(false);
+        });
+
+        it('returns false when photo has no per-frame event metadata', () => {
+            const photo = {
+                original: '/photo.jpg',
+                thumb: '/photo.jpg',
+                eventName: 'Event A',
+                burst: {
+                    id: 'burst_single_event',
+                    index: 0,
+                    total: 3,
+                    frameSources: ['/p1.jpg', '/p2.jpg', '/p3.jpg'],
+                },
+            };
+            expect(
+                arePhotosFromDifferentEvents({
+                    mode: 'burst',
+                    panelCount: 2,
+                    selectedIndices: [0, 1],
+                    photo,
+                })
+            ).toBe(false);
+        });
+
+        it('returns false when all assigned frames in burst mode share the same event', () => {
+            const photo = createPhoto(['2024.10.22 Match A', '2024.10.22 Match A', '2024.10.22 Match A']);
+            expect(
+                arePhotosFromDifferentEvents({
+                    mode: 'burst',
+                    panelCount: 3,
+                    selectedIndices: [0, 1, 2],
+                    photo,
+                })
+            ).toBe(false);
+        });
+
+        it('returns false when case or whitespace differences exist but event names match', () => {
+            const photo = createPhoto(['Championship Bout  ', '  championship bout', 'CHAMPIONSHIP BOUT']);
+            expect(
+                arePhotosFromDifferentEvents({
+                    mode: 'burst',
+                    panelCount: 3,
+                    selectedIndices: [0, 1, 2],
+                    photo,
+                })
+            ).toBe(false);
+        });
+
+        it('returns true when assigned frames in Duet mode belong to different events', () => {
+            const photo = createPhoto(['Event Alpha', 'Event Beta']);
+            expect(
+                arePhotosFromDifferentEvents({
+                    mode: 'burst',
+                    panelCount: 2,
+                    selectedIndices: [0, 1],
+                    photo,
+                })
+            ).toBe(true);
+        });
+
+        it('returns true when assigned frames in Triptych mode belong to different events', () => {
+            const photo = createPhoto(['Event Alpha', 'Event Alpha', 'Event Beta']);
+            expect(
+                arePhotosFromDifferentEvents({
+                    mode: 'burst',
+                    panelCount: 3,
+                    selectedIndices: [0, 1, 2],
+                    photo,
+                })
+            ).toBe(true);
+        });
+
+        it('returns false when panelCount is 2 and the first two frames share an event, even if third frame differs', () => {
+            const photo = createPhoto(['Event Alpha', 'Event Alpha', 'Event Beta']);
+            expect(
+                arePhotosFromDifferentEvents({
+                    mode: 'burst',
+                    panelCount: 2,
+                    selectedIndices: [0, 1, 2],
+                    photo,
+                })
+            ).toBe(false);
+        });
+
+        it('returns true when one assigned frame has an event and another is empty or missing', () => {
+            const photo = createPhoto(['Event Alpha', '']);
+            expect(
+                arePhotosFromDifferentEvents({
+                    mode: 'burst',
+                    panelCount: 2,
+                    selectedIndices: [0, 1],
+                    photo,
+                })
+            ).toBe(true);
+        });
+
+        it('returns false when fewer than two frames are assigned in burst mode', () => {
+            const photo = createPhoto(['Event Alpha', 'Event Beta']);
+            expect(
+                arePhotosFromDifferentEvents({
+                    mode: 'burst',
+                    panelCount: 2,
+                    selectedIndices: [0, null],
+                    photo,
+                })
+            ).toBe(false);
+        });
+
+        it('supports frameEventNames alias on burst metadata', () => {
+            const photo = {
+                original: '/photo.jpg',
+                thumb: '/photo.jpg',
+                burst: {
+                    id: 'burst_alias',
+                    index: 0,
+                    total: 2,
+                    frameSources: ['/p1.jpg', '/p2.jpg'],
+                    frameEventNames: ['Event One', 'Event Two'],
+                },
+            };
+            expect(
+                arePhotosFromDifferentEvents({
+                    mode: 'burst',
+                    panelCount: 2,
+                    selectedIndices: [0, 1],
+                    photo,
+                })
+            ).toBe(true);
+        });
+    });
+
+    describe('resolveBadgeCollision', () => {
+        it('leaves positions unchanged when on different tiers', () => {
+            const positions = {
+                scoreboard: 'bottom-center' as const,
+                attribution: 'top-center' as const,
+            };
+            const result = resolveBadgeCollision(positions, 'scoreboard');
+            expect(result).toEqual(positions);
+        });
+
+        it('relocates scoreboard to opposite tier when sharing the same bottom tier', () => {
+            const positions = {
+                scoreboard: 'bottom-center' as const,
+                attribution: 'bottom-center' as const,
+            };
+            const result = resolveBadgeCollision(positions, 'scoreboard');
+            expect(result).toEqual({
+                scoreboard: 'top-center',
+                attribution: 'bottom-center',
+            });
+        });
+
+        it('relocates scoreboard to opposite tier when sharing the same top tier', () => {
+            const positions = {
+                scoreboard: 'top-center' as const,
+                attribution: 'top-right' as const,
+            };
+            const result = resolveBadgeCollision(positions, 'scoreboard');
+            expect(result).toEqual({
+                scoreboard: 'bottom-center',
+                attribution: 'top-right',
+            });
+        });
+
+        it('supports relocating attribution when specified', () => {
+            const positions = {
+                scoreboard: 'top-center' as const,
+                attribution: 'top-center' as const,
+            };
+            const result = resolveBadgeCollision(positions, 'attribution');
+            expect(result).toEqual({
+                scoreboard: 'top-center',
+                attribution: 'bottom-center',
+            });
+        });
+    });
 });
+
+

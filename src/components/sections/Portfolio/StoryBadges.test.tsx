@@ -205,4 +205,31 @@ describe('StoryBadges', () => {
         const { container } = render(<StoryBadges badges={baseBadges} theme="light" />);
         expect(container.querySelectorAll('.story-cropper__badge--light').length).toBe(2);
     });
+
+    it('relocates suppressed scoreboard badge to opposite tier when attribution is moved to its position', () => {
+        const onBadgesChange = vi.fn();
+        const suppressedBadges: BadgeOptions = {
+            ...baseBadges,
+            isEventAmbiguous: true,
+            showScoreboard: true,
+            scoreboardPosition: 'bottom-center',
+            attributionPosition: 'top-center',
+        };
+
+        render(<StoryBadges badges={suppressedBadges} onBadgesChange={onBadgesChange} />);
+
+        // Only attribution badge is active/rendered
+        expect(screen.queryByLabelText('Move event badge')).toBeNull();
+        expect(screen.getByLabelText('Move attribution badge')).toBeDefined();
+
+        // Step attribution badge down to bottom-center (where scoreboard was located)
+        fireEvent.keyDown(screen.getByLabelText('Move attribution badge'), { key: 'ArrowDown' });
+
+        expect(onBadgesChange).toHaveBeenCalledWith(
+            expect.objectContaining({
+                attributionPosition: 'bottom-center',
+                scoreboardPosition: 'top-center',
+            })
+        );
+    });
 });

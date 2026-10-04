@@ -626,4 +626,28 @@
             background var(--transition-fast),
             box-shadow var(--transition-fast);
     }
+
+    &__notice {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--color-border);
+        border-radius: 8px;
+        color: var(--color-text-muted);
+        font-size: 0.85rem;
+        line-height: 1.4;
+
+        html[data-theme='light'] & {
+            background: rgba(0, 0, 0, 0.03);
+        }
+
+        &--suppressed {
+            border-left: 3px solid var(--color-accent);
+        }
+
+        &-text {
+            display: inline-block;
+        }
+    }
 }

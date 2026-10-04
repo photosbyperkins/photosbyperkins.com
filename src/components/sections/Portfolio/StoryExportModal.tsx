@@ -116,7 +116,9 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         handleBurstPanChange,
         activeBurstTimeStamps,
         activePanelImages,
-        badges,
+        effectiveBadges,
+        effectiveEventInfo,
+        isEventBadgeSuppressed,
         setBadges,
         cardTheme,
         setCardTheme,
@@ -157,6 +159,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         naturalDimensions,
         setNaturalDimensions,
         eventInfo,
+        eventName,
         originalSrc,
         localScore,
         loadedImage,
@@ -396,7 +399,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                     showTimeStamps={burst?.isTriptych || !burst?.frameDeltas ? false : burstShowTimeStamps}
                     panOffsets={burstPanOffsets}
                     onPanChange={handleBurstPanChange}
-                    badges={badges}
+                    badges={effectiveBadges}
                     theme={cardTheme}
                     frameId={activeFrameId}
                     frameColorOverride={effectiveFrameColor}
@@ -418,7 +421,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                     naturalHeight={naturalDimensions.height}
                     crop={activeCrop}
                     paddedConfig={paddedConfig}
-                    badges={badges}
+                    badges={effectiveBadges}
                     theme={cardTheme}
                     frameId={activeFrameId}
                     frameColorOverride={effectiveFrameColor}
@@ -522,11 +525,12 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
             {/* Story Badges & Watermark Tab Content */}
             {activeStudioTab === 'badges' && (
                 <StoryBadgesTab
-                    badges={badges}
+                    badges={effectiveBadges}
                     setBadges={setBadges}
                     cardTheme={cardTheme}
                     setCardTheme={setCardTheme}
-                    eventInfo={eventInfo}
+                    eventInfo={effectiveEventInfo}
+                    isEventAmbiguous={isEventBadgeSuppressed}
                     setIsDownloaded={setIsDownloaded}
                 />
             )}

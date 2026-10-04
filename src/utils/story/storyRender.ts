@@ -277,7 +277,9 @@ export async function renderStoryToCanvas(
     if (config.frameId && config.frameId !== 'none') {
         const frameContext: StoryFrameContext = {
             hasScoreboard: Boolean(
-                config.badges.showScoreboard && (config.badges.scoreboardTitle || config.badges.teams?.length)
+                !config.badges.isEventAmbiguous &&
+                    config.badges.showScoreboard &&
+                    (config.badges.scoreboardTitle || config.badges.teams?.length)
             ),
             hasAttribution: Boolean(config.badges.showAttribution),
             layoutMode: config.mode,
@@ -292,7 +294,7 @@ export async function renderStoryToCanvas(
     const { badges } = config;
 
     // --- Scoreboard Badge (portfolio__event-header style) ---
-    if (badges.showScoreboard && (badges.scoreboardTitle || badges.teams?.length)) {
+    if (!badges.isEventAmbiguous && badges.showScoreboard && (badges.scoreboardTitle || badges.teams?.length)) {
         const cardPadH = Math.round(36 * resScale);
         const cardRadius = Math.round(24 * resScale);
 

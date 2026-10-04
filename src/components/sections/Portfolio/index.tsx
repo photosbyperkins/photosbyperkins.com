@@ -360,12 +360,37 @@ export default function Portfolio({ years }: PortfolioProps) {
             const firstItem = batchSelectedPhotos[0];
             const first = toPhotoRecord(firstItem);
             const records = batchSelectedPhotos.map((item) => toPhotoRecord(item));
-            const evtName =
-                typeof firstItem === 'object' && 'eventName' in firstItem && firstItem.eventName
-                    ? firstItem.eventName
-                    : 'Story';
-            const yearStr =
-                typeof firstItem === 'object' && 'year' in firstItem && firstItem.year ? firstItem.year : selectedTab;
+            const frameEvents = records.map((r, i) => {
+                const item = batchSelectedPhotos[i];
+                return (
+                    r.eventName ||
+                    (typeof item === 'object' && item && 'eventName' in item && typeof item.eventName === 'string'
+                        ? item.eventName
+                        : undefined) ||
+                    'Story'
+                );
+            });
+            const frameYears = records.map((r, i) => {
+                const item = batchSelectedPhotos[i];
+                return (
+                    r.year ||
+                    (typeof item === 'object' && item && 'year' in item && typeof item.year === 'string'
+                        ? item.year
+                        : undefined) ||
+                    selectedTab
+                );
+            });
+            const frameScores = frameEvents.map((ev) => {
+                const matched = ev ? yearData[ev] : undefined;
+                return (
+                    matched?.localScore ||
+                    (matched?.wftdaMatch
+                        ? { team1Score: matched.wftdaMatch.score1, team2Score: matched.wftdaMatch.score2 }
+                        : undefined)
+                );
+            });
+            const evtName = frameEvents[0] || 'Story';
+            const yearStr = frameYears[0] || selectedTab;
             const burstPhoto: PhotoRecord = {
                 original: first.original,
                 thumb: first.thumb || first.original,
@@ -385,17 +410,16 @@ export default function Portfolio({ years }: PortfolioProps) {
                     frameFocusY: records.map((r) => r.focusY),
                     frameWidths: records.map((r) => r.width),
                     frameHeights: records.map((r) => r.height),
+                    frameEvents,
+                    frameEventNames: frameEvents,
+                    frameYears,
+                    frameScores,
                 },
             };
             setDirectStoryPhoto(burstPhoto);
             setDirectStoryEventName(evtName);
             setDirectStoryYear(yearStr);
-            const matchedEvent = yearData[evtName];
-            const scorePayload =
-                matchedEvent?.localScore ||
-                (matchedEvent?.wftdaMatch
-                    ? { team1Score: matchedEvent.wftdaMatch.score1, team2Score: matchedEvent.wftdaMatch.score2 }
-                    : undefined);
+            const scorePayload = frameScores[0];
             setDirectStoryScore(scorePayload);
             setIsDirectStoryOpen(true);
         }

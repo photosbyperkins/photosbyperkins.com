@@ -226,8 +226,8 @@ const PortfolioEvent = memo(function PortfolioEvent({
         const effectiveYear = ev.originalYear || selectedYear;
         return list.map((p) => ({
             ...p,
-            eventName,
-            year: effectiveYear,
+            eventName: eventName === 'Favorites' && p.eventName ? p.eventName : eventName,
+            year: eventName === 'Favorites' && p.year ? p.year : effectiveYear,
         }));
     }, [isGridView, eventName, albumImages, featuredPhotos, ev.originalYear, selectedYear]);
 
@@ -243,10 +243,12 @@ const PortfolioEvent = memo(function PortfolioEvent({
     const handleToggleSelect = useCallback(
         (photo: PhotoRecord, index: number, isShift?: boolean) => {
             const effectiveYear = ev.originalYear || selectedYear;
+            const targetEventName = eventName === 'Favorites' && photo.eventName ? photo.eventName : eventName;
+            const targetYear = eventName === 'Favorites' && photo.year ? photo.year : effectiveYear;
             const storeItem: FavoriteStoreItem = {
                 ...photo,
-                eventName,
-                year: effectiveYear,
+                eventName: targetEventName,
+                year: targetYear,
             };
 
             if (isShift && lastSelectedIdxRef.current !== null && lastSelectedIdxRef.current !== index) {
@@ -259,8 +261,8 @@ const PortfolioEvent = memo(function PortfolioEvent({
                     if (p && p.original) {
                         rangeItems.push({
                             ...p,
-                            eventName,
-                            year: effectiveYear,
+                            eventName: eventName === 'Favorites' && p.eventName ? p.eventName : eventName,
+                            year: eventName === 'Favorites' && p.year ? p.year : effectiveYear,
                         });
                     }
                 }

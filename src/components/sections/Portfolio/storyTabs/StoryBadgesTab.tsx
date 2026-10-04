@@ -20,6 +20,7 @@ interface StoryBadgesTabProps {
         date: string;
         teams: string[];
     };
+    isEventAmbiguous?: boolean;
     setIsDownloaded: (val: boolean) => void;
 }
 
@@ -128,9 +129,13 @@ export const StoryBadgesTab: React.FC<StoryBadgesTabProps> = ({
     cardTheme,
     setCardTheme,
     eventInfo,
+    isEventAmbiguous = false,
     setIsDownloaded,
 }) => {
-    const isScoreboardAvailable = Boolean(eventInfo.title || (eventInfo.teams && eventInfo.teams.length > 0));
+    const isScoreboardSuppressed = Boolean(isEventAmbiguous || badges.isEventAmbiguous);
+    const isScoreboardAvailable = Boolean(
+        !isScoreboardSuppressed && (eventInfo.title || (eventInfo.teams && eventInfo.teams.length > 0))
+    );
     const isScoreboardActive = Boolean(badges.showScoreboard && isScoreboardAvailable);
     const isAttributionActive = Boolean(badges.showAttribution);
 
@@ -147,7 +152,7 @@ export const StoryBadgesTab: React.FC<StoryBadgesTabProps> = ({
             const isOtherActive =
                 badgeKey === 'scoreboard'
                     ? Boolean(prev.showAttribution)
-                    : Boolean(prev.showScoreboard && isScoreboardAvailable);
+                    : Boolean(prev.showScoreboard);
             return applyPositions(prev, resolveBadgeDrop(badgeKey, targetSlot, positionsOf(prev), isOtherActive));
         });
         setIsDownloaded(false);
@@ -164,7 +169,7 @@ export const StoryBadgesTab: React.FC<StoryBadgesTabProps> = ({
             const isOtherActive =
                 badgeKey === 'scoreboard'
                     ? Boolean(prev.showAttribution)
-                    : Boolean(prev.showScoreboard && isScoreboardAvailable);
+                    : Boolean(prev.showScoreboard);
             const next = applyPositions(prev, resolveBadgeEnable(badgeKey, positionsOf(prev), isOtherActive));
             return badgeKey === 'scoreboard' ? { ...next, showScoreboard: true } : { ...next, showAttribution: true };
         });
@@ -330,8 +335,19 @@ export const StoryBadgesTab: React.FC<StoryBadgesTabProps> = ({
                     </div>
 
                     {/* Event Scoreboard Badge Row */}
-                    {isScoreboardAvailable && (
-                        <div className="story-export-modal__checkbox-row">
+                    {isScoreboardSuppressed ? (
+                        <div
+                            className="story-export-modal__notice story-export-modal__notice--suppressed"
+                            role="status"
+                            aria-live="polite"
+                        >
+                            <span className="story-export-modal__notice-text">
+                                Event badge is suppressed because chosen photos are from different events.
+                            </span>
+                        </div>
+                    ) : (
+                        isScoreboardAvailable && (
+                            <div className="story-export-modal__checkbox-row">
                             <div className="story-export-modal__checkbox-main">
                                 <div
                                     className={`story-export-modal__badge-preview-item ${
@@ -528,7 +544,8 @@ export const StoryBadgesTab: React.FC<StoryBadgesTabProps> = ({
                                 onPick={(slot) => handleSetPosition('scoreboard', slot)}
                             />
                         </div>
-                    )}
+                    )
+                )}
                 </div>
             </div>
         </div>
