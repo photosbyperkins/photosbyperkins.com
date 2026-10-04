@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { BadgeOptions, StoryPhotoFilterId } from '../../../utils/storyCanvas';
 import {
     getStoryFilterCss,
@@ -78,8 +78,21 @@ const StoryBurstPanel: React.FC<StoryBurstPanelProps> = ({
     onSelectEmptyPanel,
 }) => {
     const panelRef = useRef<HTMLDivElement>(null);
+    const imgRef = useRef<HTMLImageElement>(null);
     const [imageDim, setImageDim] = useState<{ width: number; height: number }>({ width: 1920, height: 1080 });
     const [isDragging, setIsDragging] = useState(false);
+
+    // Fast-path / cached image check when src changes
+    useEffect(() => {
+        const img = imgRef.current;
+        if (img && img.complete && img.naturalWidth && img.naturalHeight) {
+            setImageDim((prev) =>
+                prev.width === img.naturalWidth && prev.height === img.naturalHeight
+                    ? prev
+                    : { width: img.naturalWidth, height: img.naturalHeight }
+            );
+        }
+    }, [src]);
 
     const dragRef = useRef<{ lastX: number; lastY: number } | null>(null);
     const isPinchingRef = useRef<boolean>(false);
@@ -313,6 +326,7 @@ const StoryBurstPanel: React.FC<StoryBurstPanelProps> = ({
                 }}
             >
                 <img
+                    ref={imgRef}
                     src={src}
                     alt={`Burst frame ${panelIdx + 1} (${slotName})`}
                     className="story-burst-cropper__image"

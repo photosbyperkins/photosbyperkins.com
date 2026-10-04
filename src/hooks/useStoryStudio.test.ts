@@ -427,6 +427,150 @@ describe('useStoryStudio', () => {
             expect(result.current.burstShowTimeStamps).toBe(false);
             expect(result.current.currentConfig.burst?.showTimeStamps).toBe(false);
         });
+
+        it('initializes burst panels with per-frame focus coordinates and zoom', () => {
+            const burstWithFocus: PhotoRecord = {
+                original: '/photos/match_1.jpg',
+                thumb: '/photos/match_1_thumb.jpg',
+                focusX: 0.5,
+                focusY: 0.45,
+                burst: {
+                    id: 'burst_focus_1',
+                    index: 0,
+                    total: 3,
+                    deltaSec: 0.42,
+                    frameSources: ['/photos/match_1.jpg', '/photos/match_2.jpg', '/photos/match_3.jpg'],
+                    frameThumbs: ['/photos/match_1_thumb.jpg', '/photos/match_2_thumb.jpg', '/photos/match_3_thumb.jpg'],
+                    frameDeltas: [0.0, 0.42, 0.84],
+                    frameFocusX: [0.3, 0.7, 0.4],
+                    frameFocusY: [0.2, 0.6, 0.8],
+                },
+            };
+
+            const { result } = renderHook(() =>
+                useStoryStudio({
+                    ...defaultProps,
+                    photoObj: burstWithFocus,
+                    originalSrc: burstWithFocus.original,
+                })
+            );
+
+            expect(result.current.burstPanOffsets).toEqual([
+                { x: 0.3, y: 0.2, zoom: 1.17 },
+                { x: 0.7, y: 0.6, zoom: 1.17 },
+                { x: 0.4, y: 0.8, zoom: 1.17 },
+            ]);
+            expect(result.current.isDefaultConfig).toBe(true);
+        });
+
+        it('snaps pan to newly selected frame focus coordinates when slots change, and preserves pans on frame swap', () => {
+            const burstWithFocus: PhotoRecord = {
+                original: '/photos/match_1.jpg',
+                thumb: '/photos/match_1_thumb.jpg',
+                focusX: 0.5,
+                focusY: 0.45,
+                burst: {
+                    id: 'burst_focus_2',
+                    index: 0,
+                    total: 4,
+                    deltaSec: 0.42,
+                    frameSources: ['/photos/match_1.jpg', '/photos/match_2.jpg', '/photos/match_3.jpg', '/photos/match_4.jpg'],
+                    frameThumbs: ['/photos/match_1_thumb.jpg', '/photos/match_2_thumb.jpg', '/photos/match_3_thumb.jpg', '/photos/match_4_thumb.jpg'],
+                    frameDeltas: [0.0, 0.42, 0.84, 1.26],
+                    frameFocusX: [0.3, 0.7, 0.4, 0.85],
+                    frameFocusY: [0.2, 0.6, 0.8, 0.15],
+                },
+            };
+
+            const { result } = renderHook(() =>
+                useStoryStudio({
+                    ...defaultProps,
+                    photoObj: burstWithFocus,
+                    originalSrc: burstWithFocus.original,
+                })
+            );
+
+            // Initial: slots [0, 1, 2]
+            expect(result.current.burstPanOffsets[0]).toEqual({ x: 0.3, y: 0.2, zoom: 1.17 });
+            expect(result.current.burstPanOffsets[1]).toEqual({ x: 0.7, y: 0.6, zoom: 1.17 });
+            expect(result.current.burstPanOffsets[2]).toEqual({ x: 0.4, y: 0.8, zoom: 1.17 });
+
+            // User manually adjusts slot 0
+            act(() => {
+                result.current.handleBurstPanChange(0, { x: 0.9, y: 0.9, zoom: 2.0 });
+            });
+            expect(result.current.burstPanOffsets[0]).toEqual({ x: 0.9, y: 0.9, zoom: 2.0 });
+
+            // Swap slot 0 and slot 1: [1, 0, 2]
+            act(() => {
+                result.current.setBurstSelectedIndices([1, 0, 2]);
+            });
+            // Slot 0 now has frame 1 (its own default focus)
+            expect(result.current.burstPanOffsets[0]).toEqual({ x: 0.7, y: 0.6, zoom: 1.17 });
+            // Slot 1 now has frame 0 (frame 0's manual pan follows it!)
+            expect(result.current.burstPanOffsets[1]).toEqual({ x: 0.9, y: 0.9, zoom: 2.0 });
+            // Slot 2 unchanged
+            expect(result.current.burstPanOffsets[2]).toEqual({ x: 0.4, y: 0.8, zoom: 1.17 });
+
+            // Now select brand new frame 3 for slot 2: [1, 0, 3]
+            act(() => {
+                result.current.setBurstSelectedIndices([1, 0, 3]);
+            });
+            // Slot 2 snaps to frame 3's focus coordinates
+            expect(result.current.burstPanOffsets[2]).toEqual({ x: 0.85, y: 0.15, zoom: 1.17 });
+        });
+
+        it('initializes Duet panels with per-frame focus coordinates and Duet default zoom, and restores them on reset', () => {
+            const duetWithFocus: PhotoRecord = {
+                original: '/photos/match_duet_1.jpg',
+                thumb: '/photos/match_duet_1_thumb.jpg',
+                focusX: 0.5,
+                focusY: 0.45,
+                burst: {
+                    id: 'burst_duet_focus',
+                    index: 0,
+                    total: 2,
+                    isDuet: true,
+                    deltaSec: 0.42,
+                    frameSources: ['/photos/match_duet_1.jpg', '/photos/match_duet_2.jpg'],
+                    frameThumbs: ['/photos/match_duet_1_thumb.jpg', '/photos/match_duet_2_thumb.jpg'],
+                    frameDeltas: [0.0, 0.42],
+                    frameFocusX: [0.25, 0.65],
+                    frameFocusY: [0.35, 0.75],
+                },
+            };
+
+            const { result } = renderHook(() =>
+                useStoryStudio({
+                    ...defaultProps,
+                    photoObj: duetWithFocus,
+                    originalSrc: duetWithFocus.original,
+                })
+            );
+
+            expect(result.current.burstPanelCount).toBe(2);
+            expect(result.current.burstPanOffsets).toEqual([
+                { x: 0.25, y: 0.35, zoom: 1.76 },
+                { x: 0.65, y: 0.75, zoom: 1.76 },
+            ]);
+            expect(result.current.isDefaultConfig).toBe(true);
+
+            // Manually edit pan
+            act(() => {
+                result.current.handleBurstPanChange(0, { x: 0.1, y: 0.1, zoom: 2.2 });
+            });
+            expect(result.current.isDefaultConfig).toBe(false);
+
+            // Reset to defaults
+            act(() => {
+                result.current.resetToDefaults();
+            });
+            expect(result.current.burstPanOffsets).toEqual([
+                { x: 0.25, y: 0.35, zoom: 1.76 },
+                { x: 0.65, y: 0.75, zoom: 1.76 },
+            ]);
+            expect(result.current.isDefaultConfig).toBe(true);
+        });
     });
 
     describe('Recent frames tab', () => {

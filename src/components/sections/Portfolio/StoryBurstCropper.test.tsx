@@ -433,4 +433,46 @@ describe('StoryBurstCropper', () => {
         expect(hint?.textContent).toContain('Drag to reposition');
         expect(hint?.textContent).toContain('double-click to zoom');
     });
+
+    it('adapts image wrapper scale synchronously when cached image dimensions are available', () => {
+        Object.defineProperty(HTMLImageElement.prototype, 'complete', {
+            configurable: true,
+            get() {
+                return true;
+            },
+        });
+        Object.defineProperty(HTMLImageElement.prototype, 'naturalWidth', {
+            configurable: true,
+            get() {
+                return 1200;
+            },
+        });
+        Object.defineProperty(HTMLImageElement.prototype, 'naturalHeight', {
+            configurable: true,
+            get() {
+                return 1800;
+            },
+        });
+
+        try {
+            const { container } = render(
+                <StoryBurstCropper
+                    images={['/photos/cached_1.jpg', '/photos/cached_2.jpg']}
+                    panOffsets={[
+                        { x: 0.5, y: 0.5, zoom: 1.0 },
+                        { x: 0.5, y: 0.5, zoom: 1.0 },
+                    ]}
+                    panelCount={2}
+                    onPanChange={mockOnPanChange}
+                />
+            );
+
+            const wrappers = container.querySelectorAll('.story-burst-cropper__image-wrapper');
+            expect(wrappers.length).toBe(2);
+        } finally {
+            delete (HTMLImageElement.prototype as unknown as Record<string, unknown>).complete;
+            delete (HTMLImageElement.prototype as unknown as Record<string, unknown>).naturalWidth;
+            delete (HTMLImageElement.prototype as unknown as Record<string, unknown>).naturalHeight;
+        }
+    });
 });
