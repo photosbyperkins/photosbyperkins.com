@@ -192,9 +192,16 @@ export default function Portfolio({ years }: PortfolioProps) {
 
         let ticking = false;
         const checkFooterOverlap = () => {
+            if (window.scrollY < 200) {
+                setIsNearFooter(false);
+                ticking = false;
+                return;
+            }
+
             const footer = document.querySelector('footer');
             if (!footer) {
                 setIsNearFooter(false);
+                ticking = false;
                 return;
             }
 
@@ -219,7 +226,7 @@ export default function Portfolio({ years }: PortfolioProps) {
             window.removeEventListener('scroll', onScroll);
             window.removeEventListener('resize', onScroll);
         };
-    }, []);
+    }, [events.length]);
 
     const prevTabRef = useRef(selectedTab);
     useEffect(() => {
