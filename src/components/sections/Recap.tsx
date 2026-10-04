@@ -1,21 +1,24 @@
 import { motion } from 'framer-motion';
-import { useState, useEffect, useMemo, useRef, memo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback, memo } from 'react';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { useAppStore } from '../../store/useAppStore';
 import { withBuild } from '../../utils/build';
-
 import { useElementSize } from '../../hooks/useElementSize';
 import { LRUCache } from '../../utils/LRUCache';
+import { fetchAlbum, getCachedAlbum } from '../../utils/albumData';
+import { getPhotoOriginalUrl, toPhotoRecord } from '../../utils/formatters';
+import { Check } from '../ui/icons';
+import type { YearData, PhotoRecord, FavoriteStoreItem } from '../../types';
 
 // Caches the expensive slices computation across remounts.
 const slicesComputeCache = new LRUCache<string, number[]>(20);
 
-interface RecapEventMeta {
+export interface RecapEventMeta {
     eventName: string;
     photoIndex: number;
 }
 
-interface RecapProps {
+export interface RecapProps {
     slug: string;
     count: number;
     events?: RecapEventMeta[];
@@ -23,7 +26,13 @@ interface RecapProps {
     isYear?: boolean;
     onRecapLoadComplete?: () => void;
     children?: React.ReactNode;
+    yearData?: YearData;
+    isSelectMode?: boolean;
+    onToggleSelect?: (photo: PhotoRecord, index: number, isShift?: boolean) => void;
+    selectedUrls?: Set<string>;
+    selectionIndexMap?: Map<string, number>;
 }
+
 interface RecapSliceItemProps {
     sliceIndex: number;
     totalSlices: number;
@@ -33,6 +42,12 @@ interface RecapSliceItemProps {
     eventIdx: number;
     reducedMotion?: boolean;
     spriteLoaded: boolean;
+    photo: PhotoRecord | null;
+    isSelectMode: boolean;
+    isSelected: boolean;
+    selectionNum?: number;
+    totalSelectedCount: number;
+    onToggleSelect: (photo: PhotoRecord, index: number, isShift?: boolean) => void;
 }
 
 const RecapSliceItem = memo(function RecapSliceItem({
@@ -44,6 +59,12 @@ const RecapSliceItem = memo(function RecapSliceItem({
     eventIdx,
     reducedMotion,
     spriteLoaded,
+    photo,
+    isSelectMode,
+    isSelected,
+    selectionNum,
+    totalSelectedCount,
+    onToggleSelect,
 }: RecapSliceItemProps) {
     const setSharedPhoto = useAppStore((state) => state.setSharedPhoto);
 
@@ -53,28 +74,47 @@ const RecapSliceItem = memo(function RecapSliceItem({
     const bgPosition = `${totalSlices > 1 ? (sliceIndex / (totalSlices - 1)) * 100 : 0}% 0`;
     const bgSize = `${totalSlices * 100}% 100%`;
 
+    const eventName = events && events[eventIdx]?.eventName ? events[eventIdx].eventName : '';
+    const showNumber = selectionNum !== undefined && totalSelectedCount <= 3;
+
+    const ariaLabel = isSelectMode
+        ? `${eventName ? eventName + ' ' : ''}photo ${sliceIndex + 1}, ${isSelected ? 'selected' : 'not selected'}`
+        : `View recap image ${sliceIndex + 1}`;
+
+    const handleAction = (isShift: boolean) => {
+        if (isSelectMode) {
+            if (photo) {
+                onToggleSelect(photo, idx, isShift);
+            }
+        } else if (isShift && photo) {
+            onToggleSelect(photo, idx, true);
+        } else {
+            if (events && events[eventIdx]) {
+                const meta = events[eventIdx];
+                setSharedPhoto({ eventName: meta.eventName, photoIndex: meta.photoIndex, preventScroll: true });
+            }
+        }
+    };
+
     return (
         <motion.div
             id={`recap-slice-${idx}`}
             layout
-            className={`recap__slice${!spriteLoaded ? ' recap__slice--skeleton' : ''}`}
-            role="button"
+            className={`recap__slice${!spriteLoaded ? ' recap__slice--skeleton' : ''}${
+                isSelectMode ? ' recap__slice--select-mode' : ''
+            }${isSelected ? ' recap__slice--selected' : ''}`}
+            role={isSelectMode ? 'checkbox' : 'button'}
+            aria-checked={isSelectMode ? isSelected : undefined}
             tabIndex={0}
-            aria-label={`View recap image ${sliceIndex + 1}`}
+            aria-label={ariaLabel}
             onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
-                    if (events && events[eventIdx]) {
-                        const meta = events[eventIdx];
-                        setSharedPhoto({ eventName: meta.eventName, photoIndex: meta.photoIndex, preventScroll: true });
-                    }
+                    handleAction(e.shiftKey);
                 }
             }}
-            onClick={() => {
-                if (events && events[eventIdx]) {
-                    const meta = events[eventIdx];
-                    setSharedPhoto({ eventName: meta.eventName, photoIndex: meta.photoIndex, preventScroll: true });
-                }
+            onClick={(e) => {
+                handleAction(e.shiftKey);
             }}
             initial={reducedMotion ? { opacity: 0 } : { rotateY: -180, opacity: 0 }}
             animate={
@@ -100,11 +140,39 @@ const RecapSliceItem = memo(function RecapSliceItem({
                         : {}
                 }
             />
+            {isSelectMode && (
+                <div
+                    className={`portfolio__grid-select-badge${
+                        isSelected ? ' portfolio__grid-select-badge--active' : ''
+                    }`}
+                    aria-hidden="true"
+                >
+                    {isSelected &&
+                        (showNumber ? (
+                            <span className="portfolio__grid-select-number">{selectionNum}</span>
+                        ) : (
+                            <Check size={14} strokeWidth={3} />
+                        ))}
+                </div>
+            )}
         </motion.div>
     );
 });
 
-export default function Recap({ slug, count, events, overlayText, isYear, onRecapLoadComplete, children }: RecapProps) {
+export default function Recap({
+    slug,
+    count,
+    events,
+    overlayText,
+    isYear,
+    onRecapLoadComplete,
+    children,
+    yearData,
+    isSelectMode: isSelectModeProp,
+    onToggleSelect: onToggleSelectProp,
+    selectedUrls: selectedUrlsProp,
+    selectionIndexMap: selectionIndexMapProp,
+}: RecapProps) {
     const sectionRef = useRef<HTMLDivElement>(null);
     const { width } = useElementSize(sectionRef);
     const visibleCount = Math.max(6, Math.min(48, Math.floor((width || 65 * 6) / 65)));
@@ -112,6 +180,113 @@ export default function Recap({ slug, count, events, overlayText, isYear, onReca
     const [spriteLoaded, setSpriteLoaded] = useState(false);
     const [prevSlug, setPrevSlug] = useState(slug);
     const reducedMotion = useReducedMotion();
+
+    const isBatchSelectMode = useAppStore((state) => state.isBatchSelectMode);
+    const batchSelectedPhotos = useAppStore((state) => state.batchSelectedPhotos);
+    const toggleBatchPhoto = useAppStore((state) => state.toggleBatchPhoto);
+    const selectBatchPhotos = useAppStore((state) => state.selectBatchPhotos);
+
+    const effectiveSelectMode = isSelectModeProp !== undefined ? isSelectModeProp : isBatchSelectMode;
+
+    const selectedUrls = useMemo(() => {
+        if (selectedUrlsProp) return selectedUrlsProp;
+        const urls = new Set<string>();
+        for (const p of batchSelectedPhotos) {
+            const u = getPhotoOriginalUrl(p);
+            if (u) urls.add(u);
+        }
+        return urls;
+    }, [selectedUrlsProp, batchSelectedPhotos]);
+
+    const selectionIndexMap = useMemo(() => {
+        if (selectionIndexMapProp) return selectionIndexMapProp;
+        const map = new Map<string, number>();
+        batchSelectedPhotos.forEach((p, idx) => {
+            const u = getPhotoOriginalUrl(p);
+            if (u) map.set(u, idx + 1);
+        });
+        return map;
+    }, [selectionIndexMapProp, batchSelectedPhotos]);
+
+    const [loadedAlbums, setLoadedAlbums] = useState<Record<string, PhotoRecord[]>>({});
+
+    useEffect(() => {
+        if (!events || !yearData) return;
+        const uniqueEvents = Array.from(new Set(events.map((e) => e.eventName)));
+        let isCancelled = false;
+
+        uniqueEvents.forEach((eventName) => {
+            const evData = yearData[eventName];
+            if (!evData || !evData.albumSlug) return;
+            const year = evData.originalYear || slug;
+            const cacheKey = `${year}/${evData.albumSlug}`;
+
+            if (evData.album && evData.album.length > 0) return;
+
+            const cached = getCachedAlbum(year, evData.albumSlug);
+            if (cached) {
+                setLoadedAlbums((prev) => (prev[cacheKey] === cached ? prev : { ...prev, [cacheKey]: cached }));
+                return;
+            }
+
+            fetchAlbum(year, evData.albumSlug)
+                .then((album) => {
+                    if (!isCancelled) {
+                        setLoadedAlbums((prev) => ({ ...prev, [cacheKey]: album }));
+                    }
+                })
+                .catch(() => {
+                    // Ignore load errors gracefully
+                });
+        });
+
+        return () => {
+            isCancelled = true;
+        };
+    }, [events, yearData, slug]);
+
+    const getSlicePhoto = useCallback(
+        (meta: RecapEventMeta | undefined): PhotoRecord | null => {
+            if (!meta) return null;
+            const { eventName, photoIndex } = meta;
+            const evData = yearData?.[eventName];
+            const year = evData?.originalYear || slug;
+            const albumSlug = evData?.albumSlug;
+
+            if (evData?.album && evData.album[photoIndex]) {
+                return toPhotoRecord({
+                    ...toPhotoRecord(evData.album[photoIndex] as FavoriteStoreItem),
+                    eventName,
+                    year,
+                });
+            }
+
+            if (albumSlug) {
+                const key = `${year}/${albumSlug}`;
+                const cached = loadedAlbums[key] || getCachedAlbum(year, albumSlug);
+                if (cached && cached[photoIndex]) {
+                    return toPhotoRecord({
+                        ...cached[photoIndex],
+                        eventName,
+                        year,
+                    });
+                }
+            }
+
+            if (albumSlug) {
+                const padIndex = String(photoIndex + 1).padStart(3, '0');
+                return {
+                    original: `/photos/${year}/${albumSlug}/photo_${padIndex}.jpg`,
+                    thumb: `/thumbnails/${year}/${albumSlug}/photo_${padIndex}.avif`,
+                    eventName,
+                    year,
+                };
+            }
+
+            return null;
+        },
+        [yearData, slug, loadedAlbums]
+    );
 
     if (slug !== prevSlug) {
         setPrevSlug(slug);
@@ -212,6 +387,43 @@ export default function Recap({ slug, count, events, overlayText, isYear, onReca
         return result;
     }, [slug, visibleCount, count, events]);
 
+    const lastSelectedIdxRef = useRef<number | null>(null);
+
+    const handleToggleSelect = useCallback(
+        (photo: PhotoRecord, index: number, isShift?: boolean) => {
+            if (onToggleSelectProp) {
+                onToggleSelectProp(photo, index, isShift);
+                return;
+            }
+
+            if (isShift && lastSelectedIdxRef.current !== null && lastSelectedIdxRef.current !== index) {
+                const start = Math.min(lastSelectedIdxRef.current, index);
+                const end = Math.max(lastSelectedIdxRef.current, index);
+                const rangeItems: FavoriteStoreItem[] = [];
+
+                for (let i = start; i <= end; i++) {
+                    const sliceNumber = slices[i];
+                    if (sliceNumber !== undefined && events) {
+                        const eventIdx = sliceNumber - 1;
+                        const meta = events[eventIdx];
+                        const p = getSlicePhoto(meta);
+                        if (p && p.original) {
+                            rangeItems.push(p);
+                        }
+                    }
+                }
+
+                const currentUrls = new Set(batchSelectedPhotos.map((p) => getPhotoOriginalUrl(p)));
+                const newItems = rangeItems.filter((item) => !currentUrls.has(getPhotoOriginalUrl(item)));
+                selectBatchPhotos([...batchSelectedPhotos, ...newItems]);
+            } else {
+                toggleBatchPhoto(photo);
+            }
+            lastSelectedIdxRef.current = index;
+        },
+        [onToggleSelectProp, slices, events, getSlicePhoto, batchSelectedPhotos, selectBatchPhotos, toggleBatchPhoto]
+    );
+
     if (slices.length === 0) {
         if (onRecapLoadComplete) onRecapLoadComplete(); // Signal completion immediately if nothing to load
         return null;
@@ -225,19 +437,36 @@ export default function Recap({ slug, count, events, overlayText, isYear, onReca
             style={{ '--total-slices': slices.length } as React.CSSProperties}
         >
             <div className="recap__grid">
-                {slices.map((sliceNumber, idx) => (
-                    <RecapSliceItem
-                        key={`sprite-${slug}-${sliceNumber}`}
-                        sliceIndex={sliceNumber - 1}
-                        totalSlices={count}
-                        idx={idx}
-                        slug={slug}
-                        events={events}
-                        eventIdx={sliceNumber - 1}
-                        spriteLoaded={spriteLoaded}
-                        reducedMotion={reducedMotion}
-                    />
-                ))}
+                {slices.map((sliceNumber, idx) => {
+                    const eventIdx = sliceNumber - 1;
+                    const meta = events ? events[eventIdx] : undefined;
+                    const photo = getSlicePhoto(meta);
+                    const isSelected = photo?.original ? selectedUrls.has(photo.original) : false;
+                    const selectionNum =
+                        isSelected && photo?.original && selectionIndexMap
+                            ? selectionIndexMap.get(photo.original)
+                            : undefined;
+
+                    return (
+                        <RecapSliceItem
+                            key={`sprite-${slug}-${sliceNumber}`}
+                            sliceIndex={sliceNumber - 1}
+                            totalSlices={count}
+                            idx={idx}
+                            slug={slug}
+                            events={events}
+                            eventIdx={eventIdx}
+                            spriteLoaded={spriteLoaded}
+                            reducedMotion={reducedMotion}
+                            photo={photo}
+                            isSelectMode={effectiveSelectMode}
+                            isSelected={isSelected}
+                            selectionNum={selectionNum}
+                            totalSelectedCount={batchSelectedPhotos.length}
+                            onToggleSelect={handleToggleSelect}
+                        />
+                    );
+                })}
                 {overlayText && (
                     <div className={`recap__overlay-text ${isYear ? 'recap__overlay-text--year' : ''}`}>
                         {overlayText}

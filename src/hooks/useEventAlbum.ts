@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { EventData } from '../types';
-import { getBuildNumber } from '../utils/build';
+import { fetchAlbum } from '../utils/albumData';
 
 interface UseEventAlbumOptions {
     ev: EventData;
@@ -27,14 +27,7 @@ export function useEventAlbum({ ev, isVisible, selectedYear, eventName, setEv }:
             setLoading(true);
         }, 0);
 
-        fetch(`/data/albums/${loadYear}/${ev.albumSlug}.json?build=${getBuildNumber()}`, {
-            signal: controller.signal,
-        })
-            .then((res) => {
-                if (res.status === 429) throw new Error('Too Many Requests');
-                if (!res.ok) throw new Error('Failed to load');
-                return res.json();
-            })
+        fetchAlbum(loadYear, ev.albumSlug, controller.signal)
             .then((albumData) => {
                 clearTimeout(timer);
                 setEv((prev) => ({ ...prev, album: albumData }));

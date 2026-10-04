@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { useEventAlbum } from './useEventAlbum';
+import { _clearAlbumCache } from '../utils/albumData';
 import type { EventData } from '../types';
 
 describe('useEventAlbum', () => {
@@ -8,6 +9,7 @@ describe('useEventAlbum', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
+        _clearAlbumCache();
     });
 
     afterEach(() => {

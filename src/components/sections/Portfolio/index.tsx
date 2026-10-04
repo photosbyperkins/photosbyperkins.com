@@ -446,6 +446,7 @@ export default function Portfolio({ years }: PortfolioProps) {
                             overlayText={selectedTab}
                             isYear={true}
                             onRecapLoadComplete={() => setIsRecapLoaded(true)}
+                            yearData={yearData}
                         >
                             {stats && (
                                 <PortfolioSeasonStrip
