@@ -136,24 +136,36 @@ describe('EventActions', () => {
         expect(screen.queryByRole('button', { name: /Show Full Album/i })).toBeNull();
     });
 
-    it('renders download favorites button when hasAlbumPhotos is true even if canShare is true', () => {
+    it('renders share favorites button and hides download favorites button when canShare is true', () => {
         render(<EventActions {...defaultProps} eventName="Favorites" hasAlbumPhotos={true} canShare={true} />);
 
-        const downloadBtn = screen.getByRole('button', { name: /Download Favorites as .zip/i });
-        expect(downloadBtn).toBeDefined();
-
+        expect(screen.queryByRole('button', { name: /Download Favorites as .zip/i })).toBeNull();
         const shareBtn = screen.getByRole('button', { name: /Share Favorites/i });
         expect(shareBtn).toBeDefined();
     });
 
-    it('renders album download link when zip is provided even if canShare is true', () => {
+    it('renders download favorites button and hides share favorites button when canShare is false', () => {
+        render(<EventActions {...defaultProps} eventName="Favorites" hasAlbumPhotos={true} canShare={false} />);
+
+        const downloadBtn = screen.getByRole('button', { name: /Download Favorites as .zip/i });
+        expect(downloadBtn).toBeDefined();
+        expect(screen.queryByRole('button', { name: /Share Favorites/i })).toBeNull();
+    });
+
+    it('renders share album button and hides download link when canShare is true', () => {
         render(<EventActions {...defaultProps} zip="/downloads/event.zip" canShare={true} />);
+
+        expect(screen.queryByTitle(/Download All Original Photos \(\.zip\)/i)).toBeNull();
+        const shareBtn = screen.getByRole('button', { name: /Share Album/i });
+        expect(shareBtn).toBeDefined();
+    });
+
+    it('renders download link and hides share album button when canShare is false', () => {
+        render(<EventActions {...defaultProps} zip="/downloads/event.zip" canShare={false} />);
 
         const downloadLink = screen.getByTitle(/Download All Original Photos \(\.zip\)/i);
         expect(downloadLink).toBeDefined();
-
-        const shareBtn = screen.getByRole('button', { name: /Share Album/i });
-        expect(shareBtn).toBeDefined();
+        expect(screen.queryByRole('button', { name: /Share Album/i })).toBeNull();
     });
 });
 

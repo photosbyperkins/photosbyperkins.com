@@ -42,7 +42,7 @@ export function useZipWorker() {
                     setTimeout(() => {
                         URL.revokeObjectURL(url);
                         activeUrlsRef.current.delete(url);
-                    }, 1000);
+                    }, 60000);
 
                     setZipProgress(100);
                     setTimeout(() => {
@@ -55,6 +55,7 @@ export function useZipWorker() {
                 } else if (e.data.type === 'error') {
                     console.error('Zip error:', e.data.error);
                     setIsZipping(false);
+                    setZipProgress(0);
                     worker.terminate();
                     zipWorkerRef.current = null;
                 }

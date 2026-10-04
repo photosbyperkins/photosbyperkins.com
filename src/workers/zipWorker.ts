@@ -32,8 +32,41 @@ self.onmessage = async (e: MessageEvent<{ urls: string[]; filename: string }>) =
             const chunk = urls.slice(i, i + BATCH_SIZE);
             const batchResults = await Promise.all(
                 chunk.map(async (url, idx) => {
-                    const response = await fetch(url);
-                    if (!response.ok) throw new Error(`Failed to fetch ${url}`);
+                    let response: Response | null = null;
+                    try {
+                        const res = await fetch(url);
+                        if (res.ok) response = res;
+                    } catch {
+                        // network error on original
+                    }
+
+                    // Fallback to AVIF format if original jpg isn't found
+                    if (!response) {
+                        const avifUrl = url.replace(/^(?:\/)?photos\//i, '/avif/').replace(/\.jpe?g$/i, '.avif');
+                        try {
+                            const res = await fetch(avifUrl);
+                            if (res.ok) response = res;
+                        } catch {
+                            // network error on avif
+                        }
+                    }
+
+                    // Fallback to WebP format
+                    if (!response) {
+                        const webpUrl = url.replace(/^(?:\/)?photos\//i, '/webp/').replace(/\.jpe?g$/i, '.webp');
+                        try {
+                            const res = await fetch(webpUrl);
+                            if (res.ok) response = res;
+                        } catch {
+                            // network error on webp
+                        }
+                    }
+
+                    if (!response) {
+                        console.warn(`[zipWorker] Skipping unresolvable photo: ${url}`);
+                        return null;
+                    }
+
                     const arrayBuffer = await response.arrayBuffer();
                     return {
                         url,
@@ -43,12 +76,16 @@ self.onmessage = async (e: MessageEvent<{ urls: string[]; filename: string }>) =
                 })
             );
 
-            for (const { url, index, uint8Array } of batchResults) {
+            for (const item of batchResults) {
+                if (!item) continue;
+                const { url, index, uint8Array } = item;
                 if (errorOccurred) throw errorOccurred;
 
                 totalBufferedBytes += uint8Array.byteLength;
                 if (totalBufferedBytes > MAX_SAFE_ZIP_BYTES) {
-                    throw new Error('Total album size exceeds browser in-memory limit (1GB). Please download individual photos or use the event archive.');
+                    throw new Error(
+                        'Total album size exceeds browser in-memory limit (1GB). Please download individual photos or use the event archive.'
+                    );
                 }
 
                 const cleanUrl = url.split('?')[0].split('#')[0];
@@ -82,6 +119,10 @@ self.onmessage = async (e: MessageEvent<{ urls: string[]; filename: string }>) =
                 completed++;
                 self.postMessage({ type: 'progress', progress: Math.round((completed / urls.length) * 95) });
             }
+        }
+
+        if (completed === 0 && urls.length > 0) {
+            throw new Error('Failed to download photos for zip compression.');
         }
 
         zip.end();

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Heart, Save, Share2, X, CheckSquare, Check, StoryCropIcon } from '../../../ui/icons';
+import { Heart, Save, Share2, X, CheckSquare, StoryCropIcon } from '../../../ui/icons';
 import { useCanShare } from '../../../../hooks/useCanShare';
 
 export interface BatchActionBarProps {
@@ -40,7 +40,6 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
 }) => {
     const isDeviceCanShare = useCanShare();
     const canShare = canShareProp ?? isDeviceCanShare;
-    const [isCopied, setIsCopied] = useState(false);
     return (
         <AnimatePresence>
             {isVisible && (
@@ -136,55 +135,47 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
                                     );
                                 })()}
 
-                            <button
-                                type="button"
-                                className="portfolio__batch-btn portfolio__batch-btn--zip"
-                                onClick={onDownloadZip}
-                                disabled={selectedCount === 0 || isZipping}
-                                title="Download selected photos as ZIP"
-                                aria-label={
-                                    isZipping
-                                        ? `Compressing ZIP: ${zipProgress}%`
-                                        : 'Download selected photos as ZIP'
-                                }
-                                style={{
-                                    cursor: isZipping ? 'wait' : selectedCount === 0 ? 'not-allowed' : 'pointer',
-                                    backgroundImage: isZipping
-                                        ? 'linear-gradient(to right, var(--color-accent) 100%, transparent 100%)'
-                                        : 'none',
-                                    backgroundSize: `${isZipping ? zipProgress : 0}% 100%`,
-                                    backgroundRepeat: 'no-repeat',
-                                }}
-                            >
-                                <Save size={16} className="portfolio__batch-btn-icon" />
-                                <span className="portfolio__batch-btn-text">
-                                    {isZipping ? `${zipProgress}%` : 'Download'}
-                                </span>
-                            </button>
-
-                            {onShare && (
+                            {!canShare && (
                                 <button
                                     type="button"
-                                    className={`portfolio__batch-btn ${isCopied ? 'portfolio__batch-btn--copied' : ''}`}
+                                    className="portfolio__batch-btn portfolio__batch-btn--zip"
+                                    onClick={onDownloadZip}
+                                    disabled={selectedCount === 0 || isZipping}
+                                    title="Download selected photos as ZIP"
+                                    aria-label={
+                                        isZipping
+                                            ? `Compressing ZIP: ${zipProgress}%`
+                                            : 'Download selected photos as ZIP'
+                                    }
+                                    style={{
+                                        cursor: isZipping ? 'wait' : selectedCount === 0 ? 'not-allowed' : 'pointer',
+                                        backgroundImage: isZipping
+                                            ? 'linear-gradient(to right, var(--color-accent) 100%, transparent 100%)'
+                                            : 'none',
+                                        backgroundSize: `${isZipping ? zipProgress : 0}% 100%`,
+                                        backgroundRepeat: 'no-repeat',
+                                    }}
+                                >
+                                    <Save size={16} className="portfolio__batch-btn-icon" />
+                                    <span className="portfolio__batch-btn-text">
+                                        {isZipping ? `${zipProgress}%` : 'Download'}
+                                    </span>
+                                </button>
+                            )}
+
+                            {canShare && onShare && (
+                                <button
+                                    type="button"
+                                    className="portfolio__batch-btn"
                                     onClick={async () => {
                                         await onShare();
-                                        if (!canShare) {
-                                            setIsCopied(true);
-                                            setTimeout(() => setIsCopied(false), 2200);
-                                        }
                                     }}
                                     disabled={selectedCount === 0}
-                                    title={!canShare && isCopied ? 'Link copied to clipboard!' : 'Share selected photos link'}
-                                    aria-label={!canShare && isCopied ? 'Link copied to clipboard!' : 'Share selected photos link'}
+                                    title="Share selected photos link"
+                                    aria-label="Share selected photos link"
                                 >
-                                    {!canShare && isCopied ? (
-                                        <Check size={16} className="portfolio__batch-btn-icon" />
-                                    ) : (
-                                        <Share2 size={16} className="portfolio__batch-btn-icon" />
-                                    )}
-                                    <span className="portfolio__batch-btn-text">
-                                        {!canShare && isCopied ? 'Copied!' : 'Share'}
-                                    </span>
+                                    <Share2 size={16} className="portfolio__batch-btn-icon" />
+                                    <span className="portfolio__batch-btn-text">Share</span>
                                 </button>
                             )}
                         </div>

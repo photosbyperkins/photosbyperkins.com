@@ -74,10 +74,12 @@ const PortfolioEvent = memo(function PortfolioEvent({
     const { isZipping, zipProgress, startZipping } = useZipWorker();
 
     const handleDownloadFavorites = async () => {
-        if (!ev.album) return;
-        const urls = albumImages
+        const sourcePhotos = albumImages.length > 0 ? albumImages : rawAlbumImages;
+        if (sourcePhotos.length === 0) return;
+        const urls = sourcePhotos
             .map((item: PhotoInput) => getPhotoOriginalUrl(item))
-            .filter((u): u is string => u !== undefined);
+            .filter((u): u is string => Boolean(u));
+        if (urls.length === 0) return;
         startZipping(urls, 'Favorites.zip');
     };
 

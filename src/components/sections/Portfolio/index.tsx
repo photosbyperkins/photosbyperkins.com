@@ -307,6 +307,7 @@ export default function Portfolio({ years }: PortfolioProps) {
     const handleBatchDownloadZip = useCallback(() => {
         if (batchSelectedPhotos.length === 0) return;
         const urls = batchSelectedPhotos.map((p) => getPhotoOriginalUrl(p)).filter((u): u is string => Boolean(u));
+        if (urls.length === 0) return;
         const zipName = `photos_selected_${selectedTab}.zip`;
         startZipping(urls, zipName);
     }, [batchSelectedPhotos, selectedTab, startZipping]);

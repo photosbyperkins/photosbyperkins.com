@@ -69,7 +69,7 @@ export const EventActions = React.memo(function EventActions({
         <div className="portfolio__event-meta">
             {date && <span className="portfolio__stat-tag">{date}</span>}
 
-            {zip && !isFavorites && (
+            {zip && !canShare && !isFavorites && (
                 <a
                     href={withBuild(zip, true)}
                     download
@@ -93,7 +93,7 @@ export const EventActions = React.memo(function EventActions({
                 </button>
             )}
 
-            {isFavorites && hasAlbumPhotos && (
+            {isFavorites && !canShare && hasAlbumPhotos && (
                 <button
                     className="portfolio__zip-btn"
                     onClick={onDownloadFavorites}
