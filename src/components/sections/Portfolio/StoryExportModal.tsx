@@ -155,6 +155,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
     } = useStoryStudio({
         photoObj,
         naturalDimensions,
+        setNaturalDimensions,
         eventInfo,
         originalSrc,
         localScore,
@@ -183,13 +184,26 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
     const activePhotoDisplay = getPhotoDisplayUrl(activePhotoSrc);
     const activeLoadedImage = (loadedBurstImages && loadedBurstImages[activePhotoIndex]) || loadedImage;
 
-    useEffect(() => {
+    const [prevActivePhotoIndex, setPrevActivePhotoIndex] = useState(activePhotoIndex);
+    if (activePhotoIndex !== prevActivePhotoIndex) {
+        setPrevActivePhotoIndex(activePhotoIndex);
         const activeImg = loadedBurstImages[activePhotoIndex];
         if (activeImg && activeImg.naturalWidth && activeImg.naturalHeight) {
             setNaturalDimensions({
                 width: activeImg.naturalWidth,
                 height: activeImg.naturalHeight,
             });
+        }
+    }
+
+    useEffect(() => {
+        const activeImg = loadedBurstImages[activePhotoIndex];
+        if (activeImg && activeImg.naturalWidth && activeImg.naturalHeight) {
+            setNaturalDimensions((prev) =>
+                prev.width === activeImg.naturalWidth && prev.height === activeImg.naturalHeight
+                    ? prev
+                    : { width: activeImg.naturalWidth, height: activeImg.naturalHeight }
+            );
         }
     }, [activePhotoIndex, loadedBurstImages, setNaturalDimensions]);
 

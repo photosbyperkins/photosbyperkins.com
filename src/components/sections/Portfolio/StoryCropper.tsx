@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback, useMemo } from 'react';
+import React, { useRef, useState, useCallback, useMemo, useEffect } from 'react';
 import type { NormalizedCrop, BadgeOptions, StoryPhotoFilterId, PaddedStyleOptions } from '../../../utils/storyCanvas';
 import {
     calculateNormalizedCrop,
@@ -52,8 +52,10 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
     const filterCss = filterId && filterId !== 'none' ? getStoryFilterCss(filterId, filterStrength ?? 1.0) : undefined;
 
     const containerRef = useRef<HTMLDivElement>(null);
+    const imgRef = useRef<HTMLImageElement>(null);
     const [isDragging, setIsDragging] = useState(false);
     const [failedSrcs, setFailedSrcs] = useState<Set<string>>(() => new Set());
+    const [loadedDims, setLoadedDims] = useState<{ width: number; height: number; src: string } | null>(null);
 
     const handleImgError = () => {
         if (imageSrc) {
@@ -63,12 +65,49 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
 
     const currentSrc = failedSrcs.has(imageSrc) && fallbackSrc ? fallbackSrc : imageSrc;
 
+    // Fast-path / cached image check when currentSrc changes
+    useEffect(() => {
+        const img = imgRef.current;
+        if (img && img.complete && img.naturalWidth && img.naturalHeight) {
+            setLoadedDims((prev) =>
+                prev?.src === currentSrc && prev.width === img.naturalWidth && prev.height === img.naturalHeight
+                    ? prev
+                    : { width: img.naturalWidth, height: img.naturalHeight, src: currentSrc }
+            );
+            onImageLoaded?.(img.naturalWidth, img.naturalHeight);
+        }
+    }, [currentSrc, onImageLoaded]);
+
+    const activeNaturalWidth = (loadedDims?.src === currentSrc && loadedDims.width) || naturalWidth;
+    const activeNaturalHeight = (loadedDims?.src === currentSrc && loadedDims.height) || naturalHeight;
+
     // Minimum zoom allowed is derived from the fitZoom calculation for this photo
     const minZoom = useMemo(() => {
-        return calculateFitZoom(naturalWidth, naturalHeight, paddedConfig?.cardScale || 0.92);
-    }, [naturalWidth, naturalHeight, paddedConfig?.cardScale]);
+        return calculateFitZoom(activeNaturalWidth, activeNaturalHeight, paddedConfig?.cardScale || 0.92);
+    }, [activeNaturalWidth, activeNaturalHeight, paddedConfig?.cardScale]);
 
-    const isPadded = crop.zoom < 0.999 || crop.width > 1.001 || crop.height > 1.001;
+    // Self-healing crop guard: If the incoming crop's aspect ratio diverges from activeNaturalWidth/activeNaturalHeight
+    // (e.g. before the image finished loading or during photo transition), re-normalize using the
+    // current natural dimensions so the preview wrapper is never stretched or compressed.
+    const effectiveCrop = useMemo(() => {
+        if (!activeNaturalWidth || !activeNaturalHeight) return crop;
+        const expectedRatio = (STORY_ASPECT_RATIO * activeNaturalHeight) / activeNaturalWidth;
+        const currentRatio = crop.width / Math.max(0.0001, crop.height);
+        // Allow floating-point rounding tolerance (2%)
+        if (Math.abs(currentRatio - expectedRatio) / expectedRatio > 0.02) {
+            return calculateNormalizedCrop(
+                activeNaturalWidth,
+                activeNaturalHeight,
+                crop.centerX ?? 0.5,
+                crop.centerY ?? 0.5,
+                crop.zoom || 1.0,
+                minZoom
+            );
+        }
+        return crop;
+    }, [crop, activeNaturalWidth, activeNaturalHeight, minZoom]);
+
+    const isPadded = effectiveCrop.zoom < 0.999 || effectiveCrop.width > 1.001 || effectiveCrop.height > 1.001;
 
     const dragStartRef = useRef<{ mouseX: number; mouseY: number; startCenterX: number; startCenterY: number } | null>(
         null
@@ -81,10 +120,10 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
     // Percentage translation in CSS is relative to the image-wrapper's own dimensions.
     // Since width and height already scale the image so crop.width/crop.height fill 100% of the viewport,
     // translating by -crop.x * 100% and -crop.y * 100% shifts the crop region precisely to (0, 0).
-    const scaleX = 1 / Math.max(0.001, crop.width);
-    const scaleY = 1 / Math.max(0.001, crop.height);
-    const translateX = -crop.x * 100;
-    const translateY = -crop.y * 100;
+    const scaleX = 1 / Math.max(0.001, effectiveCrop.width);
+    const scaleY = 1 / Math.max(0.001, effectiveCrop.height);
+    const translateX = -effectiveCrop.x * 100;
+    const translateY = -effectiveCrop.y * 100;
 
     // Handle mouse / touch drag pan
     const handlePointerDown = (e: React.PointerEvent) => {
@@ -94,8 +133,8 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
         dragStartRef.current = {
             mouseX: e.clientX,
             mouseY: e.clientY,
-            startCenterX: crop.centerX,
-            startCenterY: crop.centerY,
+            startCenterX: effectiveCrop.centerX,
+            startCenterY: effectiveCrop.centerY,
         };
     };
 
@@ -107,19 +146,19 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
         const deltaPxX = e.clientX - dragStartRef.current.mouseX;
         const deltaPxY = e.clientY - dragStartRef.current.mouseY;
 
-        // In 9:16 container, crop.width corresponds to rect.width in pixels
-        const normDeltaX = -(deltaPxX / rect.width) * crop.width;
-        const normDeltaY = -(deltaPxY / rect.height) * crop.height;
+        // In 9:16 container, effectiveCrop.width corresponds to rect.width in pixels
+        const normDeltaX = -(deltaPxX / rect.width) * effectiveCrop.width;
+        const normDeltaY = -(deltaPxY / rect.height) * effectiveCrop.height;
 
         const newCenterX = dragStartRef.current.startCenterX + normDeltaX;
         const newCenterY = dragStartRef.current.startCenterY + normDeltaY;
 
         const updated = calculateNormalizedCrop(
-            naturalWidth,
-            naturalHeight,
+            activeNaturalWidth,
+            activeNaturalHeight,
             newCenterX,
             newCenterY,
-            crop.zoom,
+            effectiveCrop.zoom,
             minZoom
         );
         onChange(updated);
@@ -146,8 +185,8 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
 
             if (newZoom !== crop.zoom) {
                 const updated = calculateNormalizedCrop(
-                    naturalWidth,
-                    naturalHeight,
+                    activeNaturalWidth,
+                    activeNaturalHeight,
                     crop.centerX,
                     crop.centerY,
                     newZoom,
@@ -156,7 +195,7 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
                 onChange(updated);
             }
         },
-        [crop, naturalWidth, naturalHeight, minZoom, onChange]
+        [crop, activeNaturalWidth, activeNaturalHeight, minZoom, onChange]
     );
 
     // Touch pinch-to-zoom support
@@ -172,8 +211,8 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
                 const newZoom = Math.max(minZoom, Math.min(3.5, crop.zoom + delta));
                 if (newZoom !== crop.zoom) {
                     const updated = calculateNormalizedCrop(
-                        naturalWidth,
-                        naturalHeight,
+                        activeNaturalWidth,
+                        activeNaturalHeight,
                         crop.centerX,
                         crop.centerY,
                         newZoom,
@@ -196,8 +235,8 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
         e.stopPropagation();
         const targetZoom = crop.zoom <= minZoom + 0.05 ? 1.0 : minZoom;
         const updated = calculateNormalizedCrop(
-            naturalWidth,
-            naturalHeight,
+            activeNaturalWidth,
+            activeNaturalHeight,
             crop.centerX,
             crop.centerY,
             targetZoom,
@@ -238,7 +277,7 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
             return;
         }
 
-        const updated = calculateNormalizedCrop(naturalWidth, naturalHeight, newCenterX, newCenterY, newZoom, minZoom);
+        const updated = calculateNormalizedCrop(activeNaturalWidth, activeNaturalHeight, newCenterX, newCenterY, newZoom, minZoom);
         onChange(updated);
     };
 
@@ -308,6 +347,7 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
                     }}
                 >
                     <img
+                        ref={imgRef}
                         src={currentSrc}
                         alt="Crop target"
                         className="story-cropper__image"
@@ -316,8 +356,13 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
                         onError={handleImgError}
                         onLoad={(e) => {
                             const img = e.currentTarget;
-                            if (img.naturalWidth && img.naturalHeight && onImageLoaded) {
-                                onImageLoaded(img.naturalWidth, img.naturalHeight);
+                            if (img.naturalWidth && img.naturalHeight) {
+                                setLoadedDims((prev) =>
+                                    prev?.src === currentSrc && prev.width === img.naturalWidth && prev.height === img.naturalHeight
+                                        ? prev
+                                        : { width: img.naturalWidth, height: img.naturalHeight, src: currentSrc }
+                                );
+                                onImageLoaded?.(img.naturalWidth, img.naturalHeight);
                             }
                         }}
                     />

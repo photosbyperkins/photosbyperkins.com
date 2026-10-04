@@ -581,4 +581,76 @@ describe('useStoryStudio', () => {
             expect(result.current.displayedFilters).toHaveLength(22);
         });
     });
+
+    describe('aspect ratio and multi-photo frame swapping', () => {
+        it('automatically synchronizes activeCrop when naturalDimensions change (e.g. image loads asynchronously)', () => {
+            const { result, rerender } = renderHook(
+                ({ dims }) =>
+                    useStoryStudio({
+                        ...defaultProps,
+                        naturalDimensions: dims,
+                    }),
+                { initialProps: { dims: { width: 3840, height: 2560 } } }
+            );
+
+            expect(result.current.activeCrop.width).toBeCloseTo(0.375, 3);
+            expect(result.current.activeCrop.height).toBeCloseTo(1.0, 3);
+
+            rerender({ dims: { width: 2560, height: 3840 } });
+
+            expect(result.current.activeCrop.width).toBeCloseTo(0.84375, 3);
+            expect(result.current.activeCrop.height).toBeCloseTo(1.0, 3);
+        });
+
+        it('synchronizes crop geometry when swapping between landscape and portrait frames in solo mode', () => {
+            const setNaturalDimensionsMock = vi.fn();
+            const multiPhoto: PhotoRecord = {
+                original: '/photos/land1.jpg',
+                thumb: '/photos/land1_thumb.jpg',
+                focusX: 0.5,
+                focusY: 0.5,
+                burst: {
+                    id: 'batch_triptych',
+                    index: 0,
+                    total: 3,
+                    isTriptych: true,
+                    frameSources: ['/photos/land1.jpg', '/photos/land2.jpg', '/photos/port3.jpg'],
+                    frameWidths: [3840, 3840, 2560],
+                    frameHeights: [2560, 2560, 3840],
+                },
+            };
+
+            const mockLandImg = { naturalWidth: 3840, naturalHeight: 2560 } as HTMLImageElement;
+            const mockPortImg = { naturalWidth: 2560, naturalHeight: 3840 } as HTMLImageElement;
+
+            const { result } = renderHook(() =>
+                useStoryStudio({
+                    ...defaultProps,
+                    photoObj: multiPhoto,
+                    naturalDimensions: { width: 3840, height: 2560 },
+                    loadedBurstImages: [mockLandImg, mockLandImg, mockPortImg],
+                    setNaturalDimensions: setNaturalDimensionsMock,
+                })
+            );
+
+            expect(result.current.activePhotoIndex).toBe(0);
+            expect(result.current.activeCrop.width).toBeCloseTo(0.375, 3);
+
+            act(() => {
+                result.current.handleSelectPhotoIndex(2);
+            });
+
+            expect(result.current.activePhotoIndex).toBe(2);
+            expect(result.current.activeCrop.width).toBeCloseTo(0.84375, 3);
+            expect(setNaturalDimensionsMock).toHaveBeenCalledWith({ width: 2560, height: 3840 });
+
+            act(() => {
+                result.current.handleSelectPhotoIndex(0);
+            });
+
+            expect(result.current.activePhotoIndex).toBe(0);
+            expect(result.current.activeCrop.width).toBeCloseTo(0.375, 3);
+            expect(setNaturalDimensionsMock).toHaveBeenCalledWith({ width: 3840, height: 2560 });
+        });
+    });
 });

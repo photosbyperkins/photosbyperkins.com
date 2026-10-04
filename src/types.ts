@@ -30,6 +30,8 @@ export interface BurstMetadata {
     panelCount?: 2 | 3;
     frameFocusX?: (number | undefined)[];
     frameFocusY?: (number | undefined)[];
+    frameWidths?: (number | undefined)[];
+    frameHeights?: (number | undefined)[];
 }
 
 export interface PhotoRecord {

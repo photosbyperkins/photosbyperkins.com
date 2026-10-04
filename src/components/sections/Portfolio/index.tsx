@@ -363,6 +363,8 @@ export default function Portfolio({ years }: PortfolioProps) {
                 thumb: first.thumb || first.original,
                 focusX: first.focusX ?? 0.5,
                 focusY: first.focusY ?? 0.45,
+                width: first.width,
+                height: first.height,
                 burst: {
                     id: records.length === 2 ? `batch_duet_${Date.now()}` : `batch_triptych_${Date.now()}`,
                     index: 0,
@@ -373,6 +375,8 @@ export default function Portfolio({ years }: PortfolioProps) {
                     frameThumbs: records.map((r) => r.thumb || r.original),
                     frameFocusX: records.map((r) => r.focusX),
                     frameFocusY: records.map((r) => r.focusY),
+                    frameWidths: records.map((r) => r.width),
+                    frameHeights: records.map((r) => r.height),
                 },
             };
             setDirectStoryPhoto(burstPhoto);

@@ -40,11 +40,12 @@ export type StoryStudioTab = 'layout' | 'filters' | 'frames' | 'badges';
 export interface UseStoryStudioOptions {
     photoObj: PhotoRecord;
     naturalDimensions: { width: number; height: number };
+    setNaturalDimensions?: React.Dispatch<React.SetStateAction<{ width: number; height: number }>>;
     eventInfo: { title: string; date: string; teams: string[] };
     originalSrc: string;
     localScore?: EventScore;
     loadedImage: HTMLImageElement | null;
-    loadedBurstImages?: HTMLImageElement[];
+    loadedBurstImages?: (HTMLImageElement | null)[];
     burstLoading?: boolean;
     year: string;
     canShare: boolean;
@@ -55,6 +56,7 @@ export interface UseStoryStudioOptions {
 export function useStoryStudio({
     photoObj,
     naturalDimensions,
+    setNaturalDimensions,
     eventInfo,
     originalSrc,
     localScore,
@@ -66,16 +68,30 @@ export function useStoryStudio({
     isTainted = false,
     onClose,
 }: UseStoryStudioOptions) {
+    const [activePhotoIndex, setActivePhotoIndex] = useState<number>(() => {
+        if (photoObj.burst && photoObj.burst.index !== undefined) {
+            return photoObj.burst.index;
+        }
+        return 0;
+    });
+
+    const activeFocusX = photoObj.burst?.frameFocusX?.[activePhotoIndex] ?? photoObj.focusX;
+    const activeFocusY = photoObj.burst?.frameFocusY?.[activePhotoIndex] ?? photoObj.focusY;
+
+    const activeImg = loadedBurstImages?.[activePhotoIndex];
+    const activeW = activeImg?.naturalWidth || photoObj.burst?.frameWidths?.[activePhotoIndex] || naturalDimensions.width;
+    const activeH = activeImg?.naturalHeight || photoObj.burst?.frameHeights?.[activePhotoIndex] || naturalDimensions.height;
+
     // Generate dynamic presets based on number of detected people
     const presets = useMemo(() => {
         return generateStoryPresets({
-            width: naturalDimensions.width,
-            height: naturalDimensions.height,
-            focusX: photoObj.focusX,
-            focusY: photoObj.focusY,
+            width: activeW,
+            height: activeH,
+            focusX: activeFocusX,
+            focusY: activeFocusY,
             faces: photoObj.faces,
         });
-    }, [naturalDimensions, photoObj.focusX, photoObj.focusY, photoObj.faces]);
+    }, [activeW, activeH, activeFocusX, activeFocusY, photoObj.faces]);
 
     // Active state from App Store
     const activeSiteTheme = useAppStore((state) => state.activeTheme);
@@ -115,13 +131,6 @@ export function useStoryStudio({
         }
         if (storySettings.mode === 'crop' || storySettings.mode === 'padded') return 'solo';
         return storySettings.mode || 'solo';
-    });
-
-    const [activePhotoIndex, setActivePhotoIndex] = useState<number>(() => {
-        if (photoObj.burst && photoObj.burst.index !== undefined) {
-            return photoObj.burst.index;
-        }
-        return 0;
     });
 
     const isMultiPhoto = Boolean(photoObj.burst?.isTriptych || !photoObj.burst?.frameDeltas);
@@ -263,12 +272,86 @@ export function useStoryStudio({
         attributionPosition: DEFAULT_ATTRIBUTION_POSITION,
     }));
 
-    const photoKey = originalSrc;
-    const [prevPhotoKey, setPrevPhotoKey] = useState(photoKey);
+    const photoKey = photoObj.burst?.frameSources?.[activePhotoIndex] || originalSrc;
+    const rootPhotoKey = photoObj.burst?.id || photoObj.original || originalSrc;
+    const [prevPhotoKey, setPrevPhotoKey] = useState(rootPhotoKey);
+    const [prevDimensions, setPrevDimensions] = useState({ width: activeW, height: activeH });
+    const [prevPhotoIndex, setPrevPhotoIndex] = useState(activePhotoIndex);
 
-    // Sync default badges when photo changes during render without cascading effects
-    if (photoKey !== prevPhotoKey) {
-        setPrevPhotoKey(photoKey);
+    // Sync activeCrop and dimensions when activePhotoIndex changes during solo frame swapping
+    if (activePhotoIndex !== prevPhotoIndex) {
+        setPrevPhotoIndex(activePhotoIndex);
+        if (activeImg?.naturalWidth && activeImg?.naturalHeight && setNaturalDimensions) {
+            setNaturalDimensions({
+                width: activeImg.naturalWidth,
+                height: activeImg.naturalHeight,
+            });
+        }
+
+        if (activeMode === 'padded') {
+            const fit = calculateFitZoom(activeW, activeH, paddedConfig.cardScale || 0.92);
+            setActiveCrop(calculateNormalizedCrop(activeW, activeH, 0.5, 0.5, fit, fit));
+        } else {
+            const matched = selectedPresetId ? presets.find((p) => p.id === selectedPresetId) : undefined;
+            const chosen = matched || presets.find((p) => p.isDefault) || presets[0];
+            if (chosen) {
+                setActiveCrop(chosen.crop);
+            } else {
+                setActiveCrop(calculateNormalizedCrop(activeW, activeH, 0.5, 0.5, 1.0));
+            }
+        }
+    }
+
+    // Sync activeCrop whenever image dimensions update (e.g. async image load resolves true aspect ratio)
+    if (
+        prevDimensions.width !== activeW ||
+        prevDimensions.height !== activeH
+    ) {
+        setPrevDimensions({ width: activeW, height: activeH });
+        if (activeMode === 'padded') {
+            const fit = calculateFitZoom(
+                activeW,
+                activeH,
+                paddedConfig.cardScale || 0.92
+            );
+            setActiveCrop(
+                calculateNormalizedCrop(
+                    activeW,
+                    activeH,
+                    0.5,
+                    0.5,
+                    fit,
+                    fit
+                )
+            );
+        } else {
+            const matchedPreset = selectedPresetId
+                ? presets.find((p) => p.id === selectedPresetId)
+                : undefined;
+            if (matchedPreset) {
+                setActiveCrop(matchedPreset.crop);
+            } else {
+                const def = presets.find((p) => p.isDefault) || presets[0];
+                if (def) {
+                    setActiveCrop(def.crop);
+                } else {
+                    setActiveCrop(
+                        calculateNormalizedCrop(
+                            activeW,
+                            activeH,
+                            activeCrop.centerX,
+                            activeCrop.centerY,
+                            activeCrop.zoom
+                        )
+                    );
+                }
+            }
+        }
+    }
+
+    // Sync default badges and reset crop when ROOT photo changes during render without cascading effects
+    if (rootPhotoKey !== prevPhotoKey) {
+        setPrevPhotoKey(rootPhotoKey);
         setBadges((prev) => ({
             ...prev,
             scoreboardTitle: eventInfo.title,
@@ -283,6 +366,41 @@ export function useStoryStudio({
             attributionLogoAccent: import.meta.env.VITE_NAV_LOGO_ACCENT || 'PERKINS',
             attributionDomain: '@photosbyperkins',
         }));
+
+        if (storySettings.mode === 'padded') {
+            const fit = calculateFitZoom(
+                naturalDimensions.width,
+                naturalDimensions.height,
+                storySettings.paddedConfig?.cardScale || 0.92
+            );
+            setActiveCrop(
+                calculateNormalizedCrop(naturalDimensions.width, naturalDimensions.height, 0.5, 0.5, fit, fit)
+            );
+            setSelectedPresetId('padded-glass');
+            setActiveMode('padded');
+        } else {
+            const matchedPreset = storySettings.presetId
+                ? presets.find((p) => p.id === storySettings.presetId)
+                : undefined;
+            const def = matchedPreset || presets.find((p) => p.isDefault) || presets[0];
+            if (def) {
+                setSelectedPresetId(def.id);
+                setActiveMode(def.mode);
+                setActiveCrop(def.crop);
+            } else {
+                setSelectedPresetId('center');
+                setActiveMode('solo');
+                setActiveCrop(
+                    calculateNormalizedCrop(
+                        naturalDimensions.width,
+                        naturalDimensions.height,
+                        photoObj.focusX ?? 0.5,
+                        photoObj.focusY ?? 0.5,
+                        storySettings.cropZoom || 1.0
+                    )
+                );
+            }
+        }
     }
 
     // Studio Tab State
@@ -839,16 +957,47 @@ export function useStoryStudio({
             setActivePhotoIndex(idx);
             setIsDownloaded(false);
             const targetImg = loadedBurstImages?.[idx];
-            const w = targetImg?.naturalWidth || naturalDimensions.width;
-            const h = targetImg?.naturalHeight || naturalDimensions.height;
-            const preset = presets.find((p) => p.id === selectedPresetId) || presets.find((p) => p.isDefault);
-            if (preset) {
-                setActiveCrop(preset.crop);
+            const w = targetImg?.naturalWidth || photoObj.burst?.frameWidths?.[idx] || naturalDimensions.width;
+            const h = targetImg?.naturalHeight || photoObj.burst?.frameHeights?.[idx] || naturalDimensions.height;
+
+            if (targetImg?.naturalWidth && targetImg?.naturalHeight && setNaturalDimensions) {
+                setNaturalDimensions({
+                    width: targetImg.naturalWidth,
+                    height: targetImg.naturalHeight,
+                });
+            }
+
+            const targetPresets = generateStoryPresets({
+                width: w,
+                height: h,
+                focusX: photoObj.burst?.frameFocusX?.[idx] ?? photoObj.focusX,
+                focusY: photoObj.burst?.frameFocusY?.[idx] ?? photoObj.focusY,
+                faces: photoObj.faces,
+            });
+
+            if (activeMode === 'padded') {
+                const fit = calculateFitZoom(w, h, paddedConfig.cardScale || 0.92);
+                setActiveCrop(calculateNormalizedCrop(w, h, 0.5, 0.5, fit, fit));
             } else {
-                setActiveCrop(calculateNormalizedCrop(w, h, 0.5, 0.5, 1.0));
+                const matched = selectedPresetId ? targetPresets.find((p) => p.id === selectedPresetId) : undefined;
+                const chosen = matched || targetPresets.find((p) => p.isDefault) || targetPresets[0];
+                if (chosen) {
+                    setActiveCrop(chosen.crop);
+                } else {
+                    setActiveCrop(calculateNormalizedCrop(w, h, 0.5, 0.5, 1.0));
+                }
             }
         },
-        [loadedBurstImages, naturalDimensions, presets, selectedPresetId, setIsDownloaded]
+        [
+            loadedBurstImages,
+            photoObj,
+            naturalDimensions,
+            setNaturalDimensions,
+            activeMode,
+            paddedConfig.cardScale,
+            selectedPresetId,
+            setIsDownloaded,
+        ]
     );
 
     return {

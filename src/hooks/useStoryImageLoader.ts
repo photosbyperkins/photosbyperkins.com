@@ -61,6 +61,12 @@ function loadHtmlImage(
                 else tryLoad(idx + 1, true);
             };
             img.src = candidates[idx];
+            if (img.complete && img.naturalWidth && img.naturalHeight) {
+                if (!useCors && isCrossOriginUrl(candidates[idx])) {
+                    onTainted?.();
+                }
+                resolve(img);
+            }
         };
         tryLoad(0, true);
     });
@@ -94,12 +100,21 @@ export function useStoryImageLoader({
     const [burstLoading, setBurstLoading] = useState(() => Boolean(burstSourcesKey));
     const [imageError, setImageError] = useState(false);
     const [isTainted, setIsTainted] = useState(false);
+    const [naturalDimensions, setNaturalDimensions] = useState<{ width: number; height: number }>(() => ({
+        width: photoObj.width || 3840,
+        height: photoObj.height || 2560,
+    }));
     const currentSrcKey = `${isOpen ? 'open' : 'closed'}|${displaySrc}|${originalSrc}`;
     const [prevSrcKey, setPrevSrcKey] = useState(currentSrcKey);
 
     if (prevSrcKey !== currentSrcKey) {
         setPrevSrcKey(currentSrcKey);
         setIsTainted(false);
+        setLoadedImage(null);
+        setNaturalDimensions({
+            width: photoObj.width || 3840,
+            height: photoObj.height || 2560,
+        });
     }
 
     if (prevBurstKey !== burstSourcesKey) {
@@ -111,11 +126,6 @@ export function useStoryImageLoader({
             setBurstLoading(false);
         }
     }
-
-    const [naturalDimensions, setNaturalDimensions] = useState<{ width: number; height: number }>(() => ({
-        width: photoObj.width || 3840,
-        height: photoObj.height || 2560,
-    }));
 
     useEffect(() => {
         if (!isOpen || !displaySrc) return;
@@ -167,6 +177,9 @@ export function useStoryImageLoader({
             };
 
             img.src = targetSrc;
+            if (img.complete && img.naturalWidth && img.naturalHeight) {
+                img.onload?.(new Event('load'));
+            }
         };
 
         tryLoad(0, true);
@@ -183,7 +196,7 @@ export function useStoryImageLoader({
 
         let isCancelled = false;
 
-        Promise.all(
+        Promise.allSettled(
             burstSources.map((src) => {
                 if (src === originalSrc && loadedImage) {
                     return Promise.resolve(loadedImage);
@@ -195,8 +208,11 @@ export function useStoryImageLoader({
                 });
             })
         )
-            .then((imgs) => {
+            .then((results) => {
                 if (isCancelled) return;
+                const imgs = results.map((r) =>
+                    r.status === 'fulfilled' ? r.value : loadedImage || null
+                ).filter((img): img is HTMLImageElement => img !== null);
                 setLoadedBurstImages(imgs);
                 setBurstLoading(false);
             })

@@ -169,4 +169,66 @@ describe('StoryCropper', () => {
         expect(mockOnChange).toHaveBeenCalled();
         expect(mockOnChange.mock.calls[0][0].zoom).toBeCloseTo(0.291, 2);
     });
+
+    it('self-heals aspect ratio without distorting image when crop aspect ratio mismatches natural dimensions', () => {
+        // Stale crop calculated for 3:2 landscape (ratio = 0.375 / 1 = 0.375)
+        const landscapeCrop: NormalizedCrop = {
+            x: 0.3125,
+            y: 0,
+            width: 0.375,
+            height: 1.0,
+            zoom: 1.0,
+            centerX: 0.5,
+            centerY: 0.5,
+        };
+
+        // Render with portrait natural dimensions (2560x3840)
+        const { container } = render(
+            <StoryCropper
+                imageSrc="https://example.com/portrait.jpg"
+                crop={landscapeCrop}
+                naturalWidth={2560}
+                naturalHeight={3840}
+                onChange={mockOnChange}
+            />
+        );
+
+        const imgWrapper = container.querySelector<HTMLElement>('.story-cropper__image-wrapper')!;
+        expect(imgWrapper).not.toBeNull();
+
+        // scaleX and scaleY are derived from effectiveCrop
+        // In 9:16 viewport, wrapper aspect ratio = (scaleX / scaleY) * (9 / 16)
+        // For 2560x3840, image aspect ratio = 2560 / 3840 = 0.6667
+        // So scaleX / scaleY must equal 0.6667 / (9 / 16) = 1.185
+        const widthVal = parseFloat(imgWrapper.style.width);
+        const heightVal = parseFloat(imgWrapper.style.height);
+        const scaleRatio = widthVal / heightVal;
+        const renderedAspect = scaleRatio * (9 / 16);
+
+        expect(renderedAspect).toBeCloseTo(2560 / 3840, 2);
+    });
+
+    it('detects loaded image dimensions and invokes onImageLoaded callback', () => {
+        const mockOnImageLoaded = vi.fn();
+        const { container } = render(
+            <StoryCropper
+                imageSrc="https://example.com/photo.jpg"
+                crop={sampleCrop}
+                naturalWidth={1920}
+                naturalHeight={1080}
+                onChange={mockOnChange}
+                onImageLoaded={mockOnImageLoaded}
+            />
+        );
+
+        const img = container.querySelector<HTMLImageElement>('.story-cropper__image')!;
+        expect(img).not.toBeNull();
+
+        Object.defineProperty(img, 'naturalWidth', { value: 2560, configurable: true });
+        Object.defineProperty(img, 'naturalHeight', { value: 3840, configurable: true });
+
+        fireEvent.load(img);
+
+        expect(mockOnImageLoaded).toHaveBeenCalledWith(2560, 3840);
+    });
 });
