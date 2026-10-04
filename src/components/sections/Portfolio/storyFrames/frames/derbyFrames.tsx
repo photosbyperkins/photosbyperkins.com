@@ -323,63 +323,162 @@ export const DERBY_FRAMES: StoryFrameDefinition[] = [
         'derby-punk',
         'Punk',
         'derby',
-        'Safety pins, battle patch zig-zag overlock stitches & edge distress',
-        ['#e11d48', '#fafafa', '#fbbf24'],
-        (override, context) => {
-            const stitch = override || '#fafafa';
-            const pinColor = override || '#fbbf24';
-            const hasAttribution = context?.hasAttribution ?? true;
-            const hasScoreboard = context?.hasScoreboard ?? true;
+        'Gritty DIY punk zine border with torn halftone paper, spray drips & ransom typography',
+        ['#facc15', '#dc2626', '#fafafa', '#18181b'],
+        (override) => {
+            const hazardYellow = override || '#facc15';
+            const crimsonRed = override && override !== '#facc15' ? override : '#dc2626';
+            const zineBlack = '#09090b';
 
-            const topPinY = hasAttribution ? 148 : 110;
-            const bottomPinY = hasScoreboard ? 1730 : 1810;
+            const drawSkullBadge = (cx: number, cy: number, r: number, angle = 0) => `
+                <g transform="translate(${cx}, ${cy}) rotate(${angle})">
+                    <!-- Pinback button drop shadow -->
+                    <circle cx="0" cy="0" r="${r}" fill="rgba(0,0,0,0.55)" transform="translate(3, 4)" />
+                    <!-- Badge rim and face -->
+                    <circle cx="0" cy="0" r="${r}" fill="${hazardYellow}" stroke="${zineBlack}" stroke-width="3" />
+                    <circle cx="0" cy="0" r="${r - 3}" stroke="rgba(255,255,255,0.4)" stroke-width="1.5" fill="none" />
 
-            const leftStitches = [];
-            const rightStitches = [];
-            for (let y = 240; y <= 1680; y += 36) {
-                leftStitches.push(`M24,${y} L36,${y + 18} L24,${y + 36}`);
-                rightStitches.push(`M1056,${y} L1044,${y + 18} L1056,${y + 36}`);
-            }
+                    <!-- Spiky crimson punk mohawk -->
+                    <path d="M -7,-${r * 0.72} L -3,-${r * 0.92} L 1,-${r * 0.68} L 5,-${r * 0.94} L 8,-${r * 0.65} L 12,-${r * 0.88} L 9,-${r * 0.45} L -7,-${r * 0.45} Z" fill="${crimsonRed}" stroke="${zineBlack}" stroke-width="1.6" stroke-linejoin="round" />
+
+                    <!-- Skull cranium -->
+                    <ellipse cx="0" cy="-${r * 0.14}" rx="${r * 0.45}" ry="${r * 0.38}" fill="#fafafa" stroke="${zineBlack}" stroke-width="2.2" />
+                    <!-- Eye sockets -->
+                    <ellipse cx="-${r * 0.18}" cy="-${r * 0.14}" rx="${r * 0.12}" ry="${r * 0.14}" fill="${zineBlack}" />
+                    <ellipse cx="${r * 0.18}" cy="-${r * 0.14}" rx="${r * 0.12}" ry="${r * 0.14}" fill="${zineBlack}" />
+                    <!-- Nose cavity -->
+                    <polygon points="0,-${r * 0.08} -${r * 0.06},0 ${r * 0.06},0" fill="${zineBlack}" />
+                    <!-- Stitched jaw / teeth -->
+                    <path d="M -${r * 0.22},${r * 0.06} L ${r * 0.22},${r * 0.06} L ${r * 0.18},${r * 0.36} L -${r * 0.18},${r * 0.36} Z" fill="#fafafa" stroke="${zineBlack}" stroke-width="1.8" />
+                    <line x1="-${r * 0.08}" y1="${r * 0.06}" x2="-${r * 0.08}" y2="${r * 0.36}" stroke="${zineBlack}" stroke-width="1.5" />
+                    <line x1="0" y1="${r * 0.06}" x2="0" y2="${r * 0.36}" stroke="${zineBlack}" stroke-width="1.5" />
+                    <line x1="${r * 0.08}" y1="${r * 0.06}" x2="${r * 0.08}" y2="${r * 0.36}" stroke="${zineBlack}" stroke-width="1.5" />
+                    <line x1="-${r * 0.18}" y1="${r * 0.21}" x2="${r * 0.18}" y2="${r * 0.21}" stroke="${zineBlack}" stroke-width="1.5" />
+
+                    <!-- Plastic button gloss highlight -->
+                    <path d="M -${r * 0.72},-${r * 0.2} A ${r * 0.75},${r * 0.75} 0 0 1 -${r * 0.2},-${r * 0.72}" stroke="rgba(255,255,255,0.75)" stroke-width="3" stroke-linecap="round" fill="none" />
+                </g>`;
 
             return `
-                <!-- Symmetrical Zigzag Overlock Stitching -->
-                <path d="${leftStitches.join(' ')}" stroke="${stitch}" stroke-width="3" fill="none" opacity="0.8" />
-                <path d="${rightStitches.join(' ')}" stroke="${stitch}" stroke-width="3" fill="none" opacity="0.8" />
+                <defs>
+                    <!-- 1970s Xerox zine halftone dot pattern -->
+                    <pattern id="punk-halftone" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                        <rect width="14" height="14" fill="#fafafa" />
+                        <circle cx="7" cy="7" r="3.2" fill="${zineBlack}" />
+                        <circle cx="0" cy="0" r="1.8" fill="${zineBlack}" />
+                        <circle cx="14" cy="0" r="1.8" fill="${zineBlack}" />
+                        <circle cx="0" cy="14" r="1.8" fill="${zineBlack}" />
+                        <circle cx="14" cy="14" r="1.8" fill="${zineBlack}" />
+                    </pattern>
 
-                <!-- Top Symmetrical Safety Pins (Flanking Badges) -->
-                <g transform="translate(90, ${topPinY}) rotate(-35)">
-                    <path d="M-10,-35 C-10,-48 26,-48 26,-35 L26,-12 C26,-4 10,-4 10,-12 Z" fill="${pinColor}" />
-                    <circle cx="8" cy="-38" r="4.5" fill="#111116" />
-                    <path d="M0,-12 L0,55 A13,13 0 1 0 16,55 L16,-30" stroke="${pinColor}" stroke-width="4.5" fill="none" stroke-linecap="round" />
+                    <!-- Derby fishnet tights diamond mesh -->
+                    <pattern id="punk-fishnet" width="18" height="18" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                        <line x1="0" y1="0" x2="18" y2="0" stroke="${zineBlack}" stroke-width="2.5" />
+                        <line x1="0" y1="0" x2="0" y2="18" stroke="${zineBlack}" stroke-width="2.5" />
+                        <circle cx="0" cy="0" r="1.8" fill="${zineBlack}" />
+                        <circle cx="18" cy="0" r="1.8" fill="${zineBlack}" />
+                        <circle cx="0" cy="18" r="1.8" fill="${zineBlack}" />
+                        <circle cx="18" cy="18" r="1.8" fill="${zineBlack}" />
+                    </pattern>
+
+                    <!-- Hazard yellow & black diagonal caution stripes -->
+                    <pattern id="punk-caution" width="40" height="40" patternUnits="userSpaceOnUse" patternTransform="rotate(-45)">
+                        <rect width="20" height="40" fill="${hazardYellow}" />
+                        <rect x="20" width="20" height="40" fill="${zineBlack}" />
+                    </pattern>
+                </defs>
+
+                <!-- ================= TOP-LEFT CORNER ================= -->
+                <!-- Torn zine paper drop shadow -->
+                <path d="M-10,-10 L280,-10 L270,45 L290,95 L260,140 L285,190 L240,245 L180,260 L140,295 L80,280 L35,320 L-10,310 Z" fill="rgba(0,0,0,0.55)" transform="translate(6, 6)" />
+                <!-- White torn paper backing with jagged fibrous edge -->
+                <path d="M-10,-10 L275,-10 L265,45 L285,95 L255,140 L280,190 L235,245 L175,260 L135,295 L75,280 L30,320 L-10,310 Z" fill="#fafafa" stroke="${zineBlack}" stroke-width="3" />
+                <!-- Halftone screenprint inset on torn scrap -->
+                <path d="M-10,-10 L245,-10 L238,40 L255,85 L230,125 L250,170 L210,220 L155,235 L120,265 L65,250 L25,285 L-10,275 Z" fill="url(#punk-halftone)" stroke="${zineBlack}" stroke-width="2" />
+
+                <!-- 1970s Jamie Reid Ransom-Note Cutout Typography Collage: P - U - N - K mounted on zine scrap -->
+                <!-- Letter Tile 'P' (Black on white) -->
+                <g transform="translate(40, 95) rotate(-7)">
+                    <rect x="-3" y="-3" width="36" height="46" fill="rgba(0,0,0,0.6)" />
+                    <polygon points="0,0 35,-2 37,43 1,42" fill="#18181b" stroke="${zineBlack}" stroke-width="2" />
+                    <text x="18" y="32" fill="#fafafa" font-family="Impact, 'Arial Black', sans-serif" font-size="33" font-weight="900" text-anchor="middle">P</text>
                 </g>
-                <g transform="translate(990, ${topPinY}) rotate(35)">
-                    <path d="M-10,-35 C-10,-48 26,-48 26,-35 L26,-12 C26,-4 10,-4 10,-12 Z" fill="${pinColor}" />
-                    <circle cx="8" cy="-38" r="4.5" fill="#111116" />
-                    <path d="M0,-12 L0,55 A13,13 0 1 0 16,55 L16,-30" stroke="${pinColor}" stroke-width="4.5" fill="none" stroke-linecap="round" />
+                <!-- Letter Tile 'U' (Black on Hazard Yellow) -->
+                <g transform="translate(84, 88) rotate(5)">
+                    <rect x="-3" y="-3" width="35" height="47" fill="rgba(0,0,0,0.6)" />
+                    <polygon points="-1,1 35,-1 33,45 0,46" fill="${hazardYellow}" stroke="${zineBlack}" stroke-width="2" />
+                    <text x="17" y="33" fill="${zineBlack}" font-family="Impact, 'Arial Black', sans-serif" font-size="33" font-weight="900" text-anchor="middle">U</text>
+                </g>
+                <!-- Letter Tile 'N' (White on Crimson Red) -->
+                <g transform="translate(126, 92) rotate(-5)">
+                    <rect x="-3" y="-3" width="36" height="46" fill="rgba(0,0,0,0.6)" />
+                    <polygon points="0,0 35,2 34,45 2,42" fill="${crimsonRed}" stroke="${zineBlack}" stroke-width="2" />
+                    <text x="18" y="32" fill="#fafafa" font-family="Impact, 'Arial Black', sans-serif" font-size="33" font-weight="900" text-anchor="middle">N</text>
+                </g>
+                <!-- Letter Tile 'K' (Black on Paper White) -->
+                <g transform="translate(168, 85) rotate(8)">
+                    <rect x="-3" y="-3" width="35" height="47" fill="rgba(0,0,0,0.6)" />
+                    <polygon points="1,-2 35,1 33,45 -1,43" fill="#fafafa" stroke="${zineBlack}" stroke-width="2" />
+                    <text x="17" y="32" fill="${zineBlack}" font-family="Impact, 'Arial Black', sans-serif" font-size="33" font-weight="900" text-anchor="middle">K</text>
                 </g>
 
-                <!-- Bottom Symmetrical Safety Pins -->
-                <g transform="translate(90, ${bottomPinY}) rotate(-145)">
-                    <path d="M-10,-35 C-10,-48 26,-48 26,-35 L26,-12 C26,-4 10,-4 10,-12 Z" fill="${pinColor}" />
-                    <circle cx="8" cy="-38" r="4.5" fill="#111116" />
-                    <path d="M0,-12 L0,55 A13,13 0 1 0 16,55 L16,-30" stroke="${pinColor}" stroke-width="4.5" fill="none" stroke-linecap="round" />
-                </g>
-                <g transform="translate(990, ${bottomPinY}) rotate(145)">
-                    <path d="M-10,-35 C-10,-48 26,-48 26,-35 L26,-12 C26,-4 10,-4 10,-12 Z" fill="${pinColor}" />
-                    <circle cx="8" cy="-38" r="4.5" fill="#111116" />
-                    <path d="M0,-12 L0,55 A13,13 0 1 0 16,55 L16,-30" stroke="${pinColor}" stroke-width="4.5" fill="none" stroke-linecap="round" />
+                <!-- ================= TOP-RIGHT CORNER ================= -->
+                <!-- Black jagged spray paint drips -->
+                <path d="M 850,-10 L 850,75 C 850,88 842,98 847,108 C 852,118 862,118 867,108 C 872,98 864,88 864,75 L 864,-10 Z" fill="${zineBlack}" />
+                <circle cx="857" cy="130" r="4.5" fill="${zineBlack}" />
+                <circle cx="857" cy="150" r="2.5" fill="${zineBlack}" />
+
+                <path d="M 940,-10 L 940,140 C 940,158 930,170 937,184 C 944,198 958,198 965,184 C 972,170 962,158 962,140 L 962,-10 Z" fill="${zineBlack}" />
+                <circle cx="951" cy="214" r="5" fill="${zineBlack}" />
+                <circle cx="951" cy="238" r="3" fill="${zineBlack}" />
+                <circle cx="951" cy="254" r="1.5" fill="${zineBlack}" />
+
+                <!-- Crimson Red spray paint drips overlapping -->
+                <path d="M 885,-10 L 885,115 C 885,130 876,142 882,154 C 888,166 900,166 906,154 C 912,142 903,130 903,115 L 903,-10 Z" fill="${crimsonRed}" />
+                <circle cx="894" cy="178" r="4.5" fill="${crimsonRed}" />
+                <circle cx="894" cy="198" r="2.5" fill="${crimsonRed}" />
+
+                <path d="M 1010,-10 L 1010,85 C 1010,98 1002,108 1007,118 C 1012,128 1024,128 1029,118 C 1034,108 1026,98 1026,85 L 1026,-10 Z" fill="${crimsonRed}" />
+                <circle cx="1018" cy="138" r="4" fill="${crimsonRed}" />
+
+                <!-- ================= RIGHT BORDER ================= -->
+                <!-- Fishnet Tights Mesh Patch -->
+                <path d="M 1085,620 L 990,640 L 1010,700 L 975,760 L 1005,820 L 980,880 L 1085,900 Z" fill="#fafafa" stroke="${zineBlack}" stroke-width="3" />
+                <path d="M 1085,630 L 1005,648 L 1020,705 L 990,758 L 1018,815 L 995,870 L 1085,888 Z" fill="url(#punk-fishnet)" />
+
+                <!-- Stencil Tally Marks (|||| /) -->
+                <g stroke="${hazardYellow}" stroke-width="4.5" stroke-linecap="round">
+                    <line x1="1025" y1="960" x2="1030" y2="1010" />
+                    <line x1="1040" y1="958" x2="1045" y2="1008" />
+                    <line x1="1055" y1="962" x2="1060" y2="1012" />
+                    <line x1="1070" y1="960" x2="1075" y2="1010" />
+                    <line x1="1015" y1="1000" x2="1080" y2="970" stroke="${crimsonRed}" stroke-width="5" />
                 </g>
 
-                <!-- Corner Cross Stitches -->
-                <g stroke="${stitch}" stroke-width="3.5" opacity="0.85">
-                    <line x1="45" y1="45" x2="65" y2="65" />
-                    <line x1="65" y1="45" x2="45" y2="65" />
-                    <line x1="1015" y1="45" x2="1035" y2="65" />
-                    <line x1="1035" y1="45" x2="1015" y2="65" />
-                    <line x1="45" y1="1855" x2="65" y2="1875" />
-                    <line x1="65" y1="1855" x2="45" y2="1875" />
-                    <line x1="1015" y1="1855" x2="1035" y2="1875" />
-                    <line x1="1035" y1="1855" x2="1015" y2="1875" />
+                <!-- ================= LEFT BORDER ================= -->
+                <!-- Long cracked concrete fissure -->
+                <path d="M -5,820 L 45,860 L 20,910 L 60,970 L 35,1030 L 55,1080 L 15,1140 L 40,1190 L -5,1230" stroke="${zineBlack}" stroke-width="2.5" fill="none" stroke-linejoin="round" />
+                <path d="M -5,820 L 45,860 L 20,910 L 60,970 L 35,1030 L 55,1080 L 15,1140 L 40,1190 L -5,1230" stroke="rgba(255,255,255,0.4)" stroke-width="1" fill="none" stroke-linejoin="round" transform="translate(1, 1)" />
+
+                <!-- ================= BOTTOM-LEFT CORNER ================= -->
+                <!-- Torn Hazard Caution Tape Strip -->
+                <g transform="translate(-15, 1720) rotate(22)">
+                    <polygon points="0,-4 240,-2 238,58 -2,56" fill="rgba(0,0,0,0.55)" />
+                    <path d="M 0,4 L 6,-1 L 12,3 L 18,-1 L 225,-1 L 232,5 L 228,52 L 234,57 L 226,54 L 14,54 L 8,58 L 0,54 Z" fill="url(#punk-caution)" stroke="${zineBlack}" stroke-width="2.5" />
+                </g>
+
+                <!-- ================= BOTTOM-RIGHT CORNER ================= -->
+                <!-- Large Torn Battle Patch with Halftone -->
+                <g>
+                    <!-- Patch drop shadow -->
+                    <path d="M 820,1925 L 800,1840 L 835,1790 L 795,1730 L 830,1670 L 880,1630 L 950,1650 L 1010,1610 L 1090,1625 L 1090,1925 Z" fill="rgba(0,0,0,0.6)" transform="translate(6, 6)" />
+                    <!-- Off-white torn canvas battle patch -->
+                    <path d="M 815,1925 L 795,1840 L 830,1790 L 790,1730 L 825,1670 L 875,1630 L 945,1650 L 1005,1610 L 1090,1625 L 1090,1925 Z" fill="#fafafa" stroke="${zineBlack}" stroke-width="3" />
+                    <!-- Halftone screenprint inset on patch -->
+                    <path d="M 845,1925 L 830,1850 L 860,1805 L 825,1750 L 855,1695 L 900,1660 L 965,1680 L 1020,1645 L 1090,1655 L 1090,1925 Z" fill="url(#punk-halftone)" stroke="${zineBlack}" stroke-width="2" />
+
+                    <!-- DIY 1-inch Pinback Button Badge with Punk Mohawk Skull pinned to battle patch -->
+                    ${drawSkullBadge(935, 1740, 35, -10)}
                 </g>
             `;
         }
