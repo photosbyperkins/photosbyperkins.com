@@ -59,12 +59,14 @@ export const useAppStore = create<AppStore>()(
                 return {
                     ...currentState,
                     ...persisted,
-                    recentFrameIds: Array.isArray(persisted.recentFrameIds) && persisted.recentFrameIds.length > 0
-                        ? persisted.recentFrameIds
-                        : currentState.recentFrameIds,
-                    recentFilterIds: Array.isArray(persisted.recentFilterIds) && persisted.recentFilterIds.length > 0
-                        ? persisted.recentFilterIds
-                        : currentState.recentFilterIds,
+                    recentFrameIds:
+                        Array.isArray(persisted.recentFrameIds) && persisted.recentFrameIds.length > 0
+                            ? persisted.recentFrameIds
+                            : currentState.recentFrameIds,
+                    recentFilterIds:
+                        Array.isArray(persisted.recentFilterIds) && persisted.recentFilterIds.length > 0
+                            ? persisted.recentFilterIds
+                            : currentState.recentFilterIds,
                     storySettings: {
                         ...DEFAULT_STORY_SETTINGS,
                         ...(persisted.storySettings || {}),

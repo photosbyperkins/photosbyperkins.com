@@ -61,4 +61,3 @@ export const StoryMobileDock: React.FC<StoryMobileDockProps> = ({ tabs, activeTa
 };
 
 export default StoryMobileDock;
-

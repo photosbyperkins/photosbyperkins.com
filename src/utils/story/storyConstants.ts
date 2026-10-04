@@ -107,6 +107,12 @@ export function isColorLight(hexOrRgb: string): boolean {
     return false;
 }
 
+export type StoryBadgePosition =
+    'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
+
+export const DEFAULT_SCOREBOARD_POSITION: StoryBadgePosition = 'bottom-center';
+export const DEFAULT_ATTRIBUTION_POSITION: StoryBadgePosition = 'top-center';
+
 export interface BadgeOptions {
     showScoreboard: boolean;
     showScores?: boolean;
@@ -120,6 +126,8 @@ export interface BadgeOptions {
     attributionLogoText?: string;
     attributionLogoAccent?: string;
     attributionDomain?: string;
+    scoreboardPosition?: StoryBadgePosition;
+    attributionPosition?: StoryBadgePosition;
 }
 
 export type StoryPhotoFilterId =

@@ -1157,8 +1157,12 @@ describe('storyCanvas calculations', () => {
             expect(getStoryFilterCss('bleach', 1.0)).toBe('contrast(135%) saturate(35%) brightness(102%)');
             expect(getStoryFilterCss('portra', 1.0)).toBe('contrast(94%) brightness(105%) saturate(108%) sepia(18%)');
             expect(getStoryFilterCss('hard-flash', 1.0)).toBe('contrast(140%) brightness(115%) saturate(110%)');
-            expect(getStoryFilterCss('midnight', 1.0)).toBe('contrast(115%) brightness(92%) saturate(95%) hue-rotate(190deg) sepia(22%)');
-            expect(getStoryFilterCss('cross-process', 1.0)).toBe('contrast(125%) saturate(130%) sepia(30%) hue-rotate(50deg)');
+            expect(getStoryFilterCss('midnight', 1.0)).toBe(
+                'contrast(115%) brightness(92%) saturate(95%) hue-rotate(190deg) sepia(22%)'
+            );
+            expect(getStoryFilterCss('cross-process', 1.0)).toBe(
+                'contrast(125%) saturate(130%) sepia(30%) hue-rotate(50deg)'
+            );
         });
     });
 
@@ -1575,8 +1579,14 @@ describe('storyCanvas calculations', () => {
             // Pixel 2: Cool blue jersey (H ~220 deg)
             const imgData = {
                 data: new Uint8ClampedArray([
-                    240, 20, 20, 255,  // Red pixel
-                    20, 50, 220, 255,  // Blue pixel
+                    240,
+                    20,
+                    20,
+                    255, // Red pixel
+                    20,
+                    50,
+                    220,
+                    255, // Blue pixel
                 ]),
                 width: 2,
                 height: 1,
@@ -1600,10 +1610,7 @@ describe('storyCanvas calculations', () => {
         it('does not isolate warm skin tones as red in selective-red', () => {
             // Typical human skin tone (H ~25-30 deg, moderate sat)
             const imgData = {
-                data: new Uint8ClampedArray([
-                    210, 145, 120, 255,
-                    0, 0, 0, 255,
-                ]),
+                data: new Uint8ClampedArray([210, 145, 120, 255, 0, 0, 0, 255]),
                 width: 2,
                 height: 1,
             } as ImageData;
@@ -1621,8 +1628,14 @@ describe('storyCanvas calculations', () => {
         it('isolates green tones and desaturates others for selective-green', () => {
             const imgData = {
                 data: new Uint8ClampedArray([
-                    20, 210, 30, 255,  // Green pixel
-                    220, 30, 30, 255,  // Red pixel
+                    20,
+                    210,
+                    30,
+                    255, // Green pixel
+                    220,
+                    30,
+                    30,
+                    255, // Red pixel
                 ]),
                 width: 2,
                 height: 1,
@@ -1641,8 +1654,14 @@ describe('storyCanvas calculations', () => {
         it('isolates blue tones and desaturates others for selective-blue', () => {
             const imgData = {
                 data: new Uint8ClampedArray([
-                    20, 50, 230, 255,  // Blue pixel
-                    230, 20, 20, 255,  // Red pixel
+                    20,
+                    50,
+                    230,
+                    255, // Blue pixel
+                    230,
+                    20,
+                    20,
+                    255, // Red pixel
                 ]),
                 width: 2,
                 height: 1,
@@ -1661,8 +1680,14 @@ describe('storyCanvas calculations', () => {
         it('retains partial color at lower filter strength', () => {
             const imgData = {
                 data: new Uint8ClampedArray([
-                    20, 50, 220, 255,  // Blue pixel
-                    0, 0, 0, 255,
+                    20,
+                    50,
+                    220,
+                    255, // Blue pixel
+                    0,
+                    0,
+                    0,
+                    255,
                 ]),
                 width: 2,
                 height: 1,
@@ -1679,8 +1704,14 @@ describe('storyCanvas calculations', () => {
         it('isolates yellow & gold tones and desaturates others for selective-yellow', () => {
             const imgData = {
                 data: new Uint8ClampedArray([
-                    225, 215, 25, 255,  // Yellow/gold pixel (H ~57 deg)
-                    25, 40, 220, 255,   // Blue pixel
+                    225,
+                    215,
+                    25,
+                    255, // Yellow/gold pixel (H ~57 deg)
+                    25,
+                    40,
+                    220,
+                    255, // Blue pixel
                 ]),
                 width: 2,
                 height: 1,
@@ -1700,8 +1731,14 @@ describe('storyCanvas calculations', () => {
         it('isolates purple & magenta tones and desaturates others for selective-purple', () => {
             const imgData = {
                 data: new Uint8ClampedArray([
-                    210, 30, 215, 255,  // Purple/magenta pixel (H ~298 deg)
-                    30, 200, 35, 255,   // Green pixel
+                    210,
+                    30,
+                    215,
+                    255, // Purple/magenta pixel (H ~298 deg)
+                    30,
+                    200,
+                    35,
+                    255, // Green pixel
                 ]),
                 width: 2,
                 height: 1,

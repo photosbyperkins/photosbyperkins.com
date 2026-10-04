@@ -16,6 +16,8 @@ import { STORY_FRAME_CATEGORIES } from '../components/sections/Portfolio/storyFr
 import {
     STORY_FILTER_CATEGORIES,
     STORY_PHOTO_FILTERS,
+    DEFAULT_SCOREBOARD_POSITION,
+    DEFAULT_ATTRIBUTION_POSITION,
     type BadgeOptions,
     type NormalizedCrop,
     type PaddedStyleOptions,
@@ -236,7 +238,8 @@ export function useStoryStudio({
     const [burstActiveStep, setBurstActiveStep] = useState<number>(() => {
         if (burstSelectedIndices[0] === null || burstSelectedIndices[0] === undefined) return 0;
         if (burstSelectedIndices[1] === null || burstSelectedIndices[1] === undefined) return 1;
-        if (targetPanelCount === 3 && (burstSelectedIndices[2] === null || burstSelectedIndices[2] === undefined)) return 2;
+        if (targetPanelCount === 3 && (burstSelectedIndices[2] === null || burstSelectedIndices[2] === undefined))
+            return 2;
         return 0;
     });
 
@@ -323,6 +326,8 @@ export function useStoryStudio({
         attributionLogoText: import.meta.env.VITE_NAV_LOGO_TEXT || 'PHOTOS BY',
         attributionLogoAccent: import.meta.env.VITE_NAV_LOGO_ACCENT || 'PERKINS',
         attributionDomain: '@photosbyperkins',
+        scoreboardPosition: DEFAULT_SCOREBOARD_POSITION,
+        attributionPosition: DEFAULT_ATTRIBUTION_POSITION,
     }));
 
     const photoKey = originalSrc;
@@ -652,6 +657,8 @@ export function useStoryStudio({
             attributionLogoText: import.meta.env.VITE_NAV_LOGO_TEXT || 'PHOTOS BY',
             attributionLogoAccent: import.meta.env.VITE_NAV_LOGO_ACCENT || 'PERKINS',
             attributionDomain: '@photosbyperkins',
+            scoreboardPosition: DEFAULT_SCOREBOARD_POSITION,
+            attributionPosition: DEFAULT_ATTRIBUTION_POSITION,
         });
     }, [
         resetStorySettings,
@@ -755,6 +762,8 @@ export function useStoryStudio({
         if (Boolean(badges.showScoreboard) !== defaultShowScoreboard) return false;
         if (Boolean(badges.showScores ?? true) !== true) return false;
         if (Boolean(badges.showAttribution) !== true) return false;
+        if (badges.scoreboardPosition && badges.scoreboardPosition !== DEFAULT_SCOREBOARD_POSITION) return false;
+        if (badges.attributionPosition && badges.attributionPosition !== DEFAULT_ATTRIBUTION_POSITION) return false;
 
         return true;
     }, [
@@ -776,6 +785,8 @@ export function useStoryStudio({
         badges.showScoreboard,
         badges.showScores,
         badges.showAttribution,
+        badges.scoreboardPosition,
+        badges.attributionPosition,
         burstDividerStyle,
         burstShowTimeStamps,
         burstSelectedIndices,

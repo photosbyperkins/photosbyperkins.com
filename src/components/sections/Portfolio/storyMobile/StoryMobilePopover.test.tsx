@@ -2,12 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
 import { StoryMobilePopover } from './StoryMobilePopover';
-import {
-    StoryLayoutTabIcon,
-    StoryFiltersTabIcon,
-    StoryFramesTabIcon,
-    StoryBadgesTabIcon,
-} from '../../../ui/icons';
+import { StoryLayoutTabIcon, StoryFiltersTabIcon, StoryFramesTabIcon, StoryBadgesTabIcon } from '../../../ui/icons';
 import type { StoryStudioTab } from '../../../../hooks/useStoryStudio';
 
 const TABS: Array<{ id: StoryStudioTab; label: string; icon: React.FC<any> }> = [
@@ -24,13 +19,7 @@ describe('StoryMobilePopover', () => {
 
     it('does not render when isOpen is false', () => {
         const { container } = render(
-            <StoryMobilePopover
-                isOpen={false}
-                onClose={vi.fn()}
-                activeTab="layout"
-                tabs={TABS}
-                onSelectTab={vi.fn()}
-            >
+            <StoryMobilePopover isOpen={false} onClose={vi.fn()} activeTab="layout" tabs={TABS} onSelectTab={vi.fn()}>
                 <div>Tab Content</div>
             </StoryMobilePopover>
         );
@@ -40,13 +29,7 @@ describe('StoryMobilePopover', () => {
 
     it('renders dialog, backdrop, handle bar, 4-tab segmented strip, and children when isOpen is true', () => {
         render(
-            <StoryMobilePopover
-                isOpen={true}
-                onClose={vi.fn()}
-                activeTab="layout"
-                tabs={TABS}
-                onSelectTab={vi.fn()}
-            >
+            <StoryMobilePopover isOpen={true} onClose={vi.fn()} activeTab="layout" tabs={TABS} onSelectTab={vi.fn()}>
                 <div data-testid="test-content">Tab Content</div>
             </StoryMobilePopover>
         );
@@ -94,13 +77,7 @@ describe('StoryMobilePopover', () => {
     it('calls onClose when close button is clicked', () => {
         const onClose = vi.fn();
         render(
-            <StoryMobilePopover
-                isOpen={true}
-                onClose={onClose}
-                activeTab="layout"
-                tabs={TABS}
-                onSelectTab={vi.fn()}
-            >
+            <StoryMobilePopover isOpen={true} onClose={onClose} activeTab="layout" tabs={TABS} onSelectTab={vi.fn()}>
                 <div>Tab Content</div>
             </StoryMobilePopover>
         );
@@ -114,13 +91,7 @@ describe('StoryMobilePopover', () => {
     it('calls onClose when backdrop scrim is clicked', () => {
         const onClose = vi.fn();
         const { baseElement } = render(
-            <StoryMobilePopover
-                isOpen={true}
-                onClose={onClose}
-                activeTab="layout"
-                tabs={TABS}
-                onSelectTab={vi.fn()}
-            >
+            <StoryMobilePopover isOpen={true} onClose={onClose} activeTab="layout" tabs={TABS} onSelectTab={vi.fn()}>
                 <div>Tab Content</div>
             </StoryMobilePopover>
         );

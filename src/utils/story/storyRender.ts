@@ -1,6 +1,15 @@
-import { STORY_WIDTH, STORY_HEIGHT, hexToRgba, isColorLight, getStoryFilterCss } from './storyConstants';
+import {
+    STORY_WIDTH,
+    STORY_HEIGHT,
+    hexToRgba,
+    isColorLight,
+    getStoryFilterCss,
+    DEFAULT_SCOREBOARD_POSITION,
+    DEFAULT_ATTRIBUTION_POSITION,
+} from './storyConstants';
 import type { StoryRenderConfig, BurstStoryOptions, StoryPhotoFilterId } from './storyConstants';
 import { calculateBurstPanelCrop } from './storyMath';
+import { resolveBadgeCoords } from './badgePlacement';
 import {
     drawRoundRect,
     drawCameraLogoIcon,
@@ -85,8 +94,7 @@ export async function renderStoryToCanvas(
             isLegacyPadded ||
             (isSolo &&
                 Boolean(
-                    config.crop &&
-                        (config.crop.zoom < 0.999 || config.crop.width > 1.001 || config.crop.height > 1.001)
+                    config.crop && (config.crop.zoom < 0.999 || config.crop.width > 1.001 || config.crop.height > 1.001)
                 ));
 
         if (!isPadded) {
@@ -113,13 +121,12 @@ export async function renderStoryToCanvas(
                 filterCss
             );
         } else {
-            const padded =
-                config.padded || {
-                    style: 'frosted',
-                    cardScale: 0.92,
-                    cardCornerRadius: 24,
-                    customColor: '#0a0a14',
-                };
+            const padded = config.padded || {
+                style: 'frosted',
+                cardScale: 0.92,
+                cardCornerRadius: 24,
+                customColor: '#0a0a14',
+            };
             const cornerRadius = (padded.cardCornerRadius || 24) * (targetW / STORY_WIDTH);
 
             // --- A. Background Rendering ---
@@ -355,12 +362,12 @@ export async function renderStoryToCanvas(
         const dividerGap = Math.round(26 * resScale);
         const dividerW = dateW > 0 ? 2 * resScale : 0;
 
-        // Total card dimensions (positioned at bottom center)
+        // Total card dimensions (dynamically positioned based on scoreboardPosition)
         const contentW = dateW + (dateW > 0 ? dividerGap * 2 + dividerW : 0) + teamsW;
         const cardW = contentW + cardPadH * 2;
         const cardH = Math.round(132 * resScale);
-        const cardX = (targetW - cardW) / 2;
-        const badgeY = targetH - cardH - Math.round(105 * resScale);
+        const sbPos = badges.scoreboardPosition || DEFAULT_SCOREBOARD_POSITION;
+        const { x: cardX, y: badgeY } = resolveBadgeCoords(sbPos, cardW, cardH, targetW, targetH, resScale);
 
         const isLight = (config.badgeTheme || config.cardTheme) === 'light';
 
@@ -471,7 +478,6 @@ export async function renderStoryToCanvas(
         const isLight = (config.badgeTheme || config.cardTheme) === 'light';
         const pillH = Math.round(86 * resScale);
         const pillR = pillH / 2;
-        const attrY = Math.round(105 * resScale);
         const iconSize = Math.round(42 * resScale);
         const gap = Math.round(16 * resScale);
         const padH = Math.round(36 * resScale);
@@ -499,7 +505,8 @@ export async function renderStoryToCanvas(
 
         const contentW = iconSize + gap + textW + accentW + (domainW > 0 ? domainW : 0);
         const pillW = contentW + padH * 2;
-        const pillX = (targetW - pillW) / 2;
+        const atPos = badges.attributionPosition || DEFAULT_ATTRIBUTION_POSITION;
+        const { x: pillX, y: attrY } = resolveBadgeCoords(atPos, pillW, pillH, targetW, targetH, resScale);
 
         // Draw pill background (frosted glass)
         ctx.save();

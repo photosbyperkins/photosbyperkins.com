@@ -215,11 +215,11 @@ export const StorySvgFilters: React.FC<StorySvgFiltersProps> = ({ filterStrength
                         type="matrix"
                         values={`${1 + 0.25 * s} 0 0 0 ${-0.05 * s}
                                 0 ${1 + 0.08 * s} 0 0 ${0.02 * s}
-                                0 0 ${1 + 0.30 * s} 0 ${0.08 * s}
+                                0 0 ${1 + 0.3 * s} 0 ${0.08 * s}
                                 0 0 0 1 0`}
                     />
                     <feComponentTransfer>
-                        <feFuncR type="linear" slope={String(1 + 0.20 * s)} intercept={String(-0.08 * s)} />
+                        <feFuncR type="linear" slope={String(1 + 0.2 * s)} intercept={String(-0.08 * s)} />
                         <feFuncG type="linear" slope="1" intercept="0" />
                         <feFuncB type="linear" slope={String(1 - 0.15 * s)} intercept={String(0.12 * s)} />
                     </feComponentTransfer>
@@ -245,15 +245,15 @@ export const StorySvgFilters: React.FC<StorySvgFiltersProps> = ({ filterStrength
                 <filter id="story-filter-neon" colorInterpolationFilters="sRGB">
                     <feColorMatrix
                         type="matrix"
-                        values={`${1 + 0.30 * s} 0 ${0.1 * s} 0 ${0.1 * s}
+                        values={`${1 + 0.3 * s} 0 ${0.1 * s} 0 ${0.1 * s}
                                 0 ${1 - 0.15 * s} 0 0 ${-0.05 * s}
-                                ${0.1 * s} 0 ${1 + 0.40 * s} 0 ${0.15 * s}
+                                ${0.1 * s} 0 ${1 + 0.4 * s} 0 ${0.15 * s}
                                 0 0 0 1 0`}
                     />
                     <feComponentTransfer>
                         <feFuncR type="linear" slope={String(1 + 0.25 * s)} intercept={String(0.05 * s)} />
                         <feFuncG type="linear" slope={String(1 - 0.15 * s)} intercept={String(-0.02 * s)} />
-                        <feFuncB type="linear" slope={String(1 + 0.30 * s)} intercept={String(0.08 * s)} />
+                        <feFuncB type="linear" slope={String(1 + 0.3 * s)} intercept={String(0.08 * s)} />
                     </feComponentTransfer>
                 </filter>
 

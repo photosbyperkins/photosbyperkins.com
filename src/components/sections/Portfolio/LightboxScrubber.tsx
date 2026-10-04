@@ -71,9 +71,7 @@ export default function LightboxScrubber({
     const showPopping = Boolean(isPopping && !isChanging);
 
     const activeOffset = isScrubbing ? scrubShift : 0;
-    const currentDisplayIndex = isScrubbing && total > 0
-        ? (((index + scrubShift) % total) + total) % total
-        : index;
+    const currentDisplayIndex = isScrubbing && total > 0 ? (((index + scrubShift) % total) + total) % total : index;
 
     return (
         <div className="portfolio__lightbox-scrubber" onClick={(e) => e.stopPropagation()}>

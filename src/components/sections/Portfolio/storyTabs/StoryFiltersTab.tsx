@@ -1,14 +1,6 @@
 import React, { useState } from 'react';
-import type {
-    StoryPhotoFilter,
-    StoryPhotoFilterId,
-    StoryPhotoFilterTabCategory,
-} from '../../../../utils/storyCanvas';
-import {
-    STORY_FILTER_CATEGORIES,
-    STORY_PHOTO_FILTERS,
-    STORY_PHOTO_FILTERS_MAP,
-} from '../../../../utils/storyCanvas';
+import type { StoryPhotoFilter, StoryPhotoFilterId, StoryPhotoFilterTabCategory } from '../../../../utils/storyCanvas';
+import { STORY_FILTER_CATEGORIES, STORY_PHOTO_FILTERS, STORY_PHOTO_FILTERS_MAP } from '../../../../utils/storyCanvas';
 
 interface StoryFiltersTabProps {
     activeFilterId: StoryPhotoFilterId;
@@ -50,15 +42,18 @@ export const StoryFiltersTab: React.FC<StoryFiltersTabProps> = ({
 
     const categoryCounts =
         controlledCounts ??
-        STORY_FILTER_CATEGORIES.reduce((acc, cat) => {
-            acc[cat.id] =
-                cat.id === 'all'
-                    ? STORY_PHOTO_FILTERS.length
-                    : cat.id === 'recent'
-                      ? 0
-                      : STORY_PHOTO_FILTERS.filter((f) => f.id === 'none' || f.category === cat.id).length;
-            return acc;
-        }, {} as Record<string, number>);
+        STORY_FILTER_CATEGORIES.reduce(
+            (acc, cat) => {
+                acc[cat.id] =
+                    cat.id === 'all'
+                        ? STORY_PHOTO_FILTERS.length
+                        : cat.id === 'recent'
+                          ? 0
+                          : STORY_PHOTO_FILTERS.filter((f) => f.id === 'none' || f.category === cat.id).length;
+                return acc;
+            },
+            {} as Record<string, number>
+        );
 
     return (
         <div className="story-export-modal__tab-content story-export-modal__tab-content--filters">

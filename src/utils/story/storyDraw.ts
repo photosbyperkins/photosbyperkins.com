@@ -550,7 +550,7 @@ export function applyStoryFilterToImageData(imageData: ImageData, filterId: Stor
                     if (target === 'red') {
                         // Tight hue window around 0 deg (rejects skin tones at H >= 16 deg)
                         const dist = Math.min(h, 360 - h);
-                        if (dist <= 10 && sat >= 0.30) {
+                        if (dist <= 10 && sat >= 0.3) {
                             match = 1;
                         } else if (dist <= 16 && sat >= 0.25) {
                             match = (1 - (dist - 10) / 6) * Math.min(1, (sat - 0.22) / 0.08);
@@ -582,7 +582,7 @@ export function applyStoryFilterToImageData(imageData: ImageData, filterId: Stor
                     } else if (target === 'purple') {
                         // Purple / Magenta: Hue centered around 295 deg (covers purple jerseys, violet, hot pink)
                         const dist = Math.abs(h - 295);
-                        if (dist <= 25 && sat >= 0.20) {
+                        if (dist <= 25 && sat >= 0.2) {
                             match = 1;
                         } else if (dist <= 40 && sat >= 0.15) {
                             match = (1 - (dist - 25) / 15) * Math.min(1, (sat - 0.12) / 0.06);
@@ -664,7 +664,7 @@ export function applyStoryFilterToImageData(imageData: ImageData, filterId: Stor
         case 'cinematic': {
             // Hollywood Teal & Orange Split Toning
             const c = 1 + 0.15 * clamped;
-            const sat = 1 + 0.20 * clamped;
+            const sat = 1 + 0.2 * clamped;
             for (let i = 0; i < len; i += 4) {
                 let r = data[i];
                 let g = data[i + 1];
@@ -694,9 +694,9 @@ export function applyStoryFilterToImageData(imageData: ImageData, filterId: Stor
 
         case 'hard-flash': {
             // Direct flash skate zine look
-            const c = 1 + 0.40 * clamped;
+            const c = 1 + 0.4 * clamped;
             const br = 1 + 0.15 * clamped;
-            const sat = 1 + 0.10 * clamped;
+            const sat = 1 + 0.1 * clamped;
             for (let i = 0; i < len; i += 4) {
                 const r = ((data[i] - 128) * c + 128) * br;
                 const g = ((data[i + 1] - 128) * c + 128) * br;
@@ -728,7 +728,7 @@ export function applyStoryFilterToImageData(imageData: ImageData, filterId: Stor
         case 'cross-process': {
             // X-Pro cross processed film
             const c = 1 + 0.25 * clamped;
-            const sat = 1 + 0.30 * clamped;
+            const sat = 1 + 0.3 * clamped;
             for (let i = 0; i < len; i += 4) {
                 let r = data[i];
                 let g = data[i + 1];
@@ -758,8 +758,8 @@ export function applyStoryFilterToImageData(imageData: ImageData, filterId: Stor
 
         case 'neon': {
             // Cyberpunk magenta & cyan drift
-            const c = 1 + 0.30 * clamped;
-            const sat = 1 + 0.50 * clamped;
+            const c = 1 + 0.3 * clamped;
+            const sat = 1 + 0.5 * clamped;
             for (let i = 0; i < len; i += 4) {
                 let r = data[i];
                 let g = data[i + 1];
@@ -840,10 +840,7 @@ export function drawImageWithStoryFilter(
 
     const isSvgFilter = Boolean(
         filterId &&
-            (filterId.startsWith('selective-') ||
-                filterId === 'cinematic' ||
-                filterId === 'neon' ||
-                filterId === 'duotone')
+        (filterId.startsWith('selective-') || filterId === 'cinematic' || filterId === 'neon' || filterId === 'duotone')
     );
 
     // Path 1: Native hardware-accelerated canvas filter (Chrome, Firefox, Edge)

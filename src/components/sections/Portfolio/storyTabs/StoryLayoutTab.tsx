@@ -68,11 +68,7 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
     onBurstPanChange,
 }) => {
     const isSoloMode = activeMode !== 'burst';
-    const fitZoom = calculateFitZoom(
-        naturalDimensions.width,
-        naturalDimensions.height,
-        paddedConfig.cardScale || 0.92
-    );
+    const fitZoom = calculateFitZoom(naturalDimensions.width, naturalDimensions.height, paddedConfig.cardScale || 0.92);
 
     const handleZoomSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newZoom = parseFloat(e.target.value);
@@ -537,7 +533,11 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                             </div>
 
                             <div className="story-export-modal__burst-selector" style={{ marginTop: 0 }}>
-                                <div className="story-export-modal__burst-strip" role="group" aria-label="Photo Selector">
+                                <div
+                                    className="story-export-modal__burst-strip"
+                                    role="group"
+                                    aria-label="Photo Selector"
+                                >
                                     {burst.frameSources.map((src, fIdx) => {
                                         const isSelected = fIdx === activePhotoIndex;
                                         const thumbUrl = burst.frameThumbs?.[fIdx] || src;
@@ -642,185 +642,184 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                             ({activeTimeDeltaText})
                                         </span>
                                     )}
-                                        {!isFrameSelectorSuppressed && (
-                                            <span
-                                                className="story-export-modal__hint-tag"
-                                                style={{
-                                                    color:
-                                                        neededFrames > 0
-                                                            ? 'var(--color-accent, #f59e0b)'
-                                                            : 'var(--color-text-dim)',
-                                                    fontWeight: neededFrames > 0 ? 700 : 500,
-                                                }}
-                                            >
-                                                {feedbackText}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="story-export-modal__slot-header-actions">
-                                        {!isMultiPhoto && (
-                                            <div
-                                                className="portfolio__segmented-toggle story-export-modal__pill-group story-export-modal__pill-group--inline"
-                                                role="group"
-                                                aria-label="Show timestamp"
-                                            >
-                                                <button
-                                                    type="button"
-                                                    className={`story-export-modal__pill ${
-                                                        burstShowTimeStamps ? 'active story-export-modal__pill--active' : ''
-                                                    }`}
-                                                    onClick={() => handleToggleTimeStamps(true)}
-                                                    aria-pressed={Boolean(burstShowTimeStamps)}
-                                                >
-                                                    {burstShowTimeStamps && (
-                                                        <motion.span
-                                                            className="portfolio__segment-pill"
-                                                            layoutId="storyBurstTimestampsPill"
-                                                            transition={{ type: 'spring', stiffness: 500, damping: 38 }}
-                                                        />
-                                                    )}
-                                                    <span>Show</span>
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className={`story-export-modal__pill ${
-                                                        !burstShowTimeStamps ? 'active story-export-modal__pill--active' : ''
-                                                    }`}
-                                                    onClick={() => handleToggleTimeStamps(false)}
-                                                    aria-pressed={!burstShowTimeStamps}
-                                                >
-                                                    {!burstShowTimeStamps && (
-                                                        <motion.span
-                                                            className="portfolio__segment-pill"
-                                                            layoutId="storyBurstTimestampsPill"
-                                                            transition={{ type: 'spring', stiffness: 500, damping: 38 }}
-                                                        />
-                                                    )}
-                                                    <span>Hide</span>
-                                                </button>
-                                            </div>
-                                        )}
-                                        {isDuetLayout && (
-                                            <button
-                                                type="button"
-                                                className={`story-export-modal__reverse-btn story-export-modal__swap-pill ${
-                                                    isSwapDisabled ? 'story-export-modal__swap-pill--disabled' : ''
-                                                }`}
-                                                onClick={handleSwapSlots}
-                                                disabled={isSwapDisabled}
-                                                title={isSwapDisabled ? undefined : 'Swap Top and Bottom photos'}
-                                                aria-label="Swap Top and Bottom photos"
-                                                aria-disabled={isSwapDisabled}
-                                                tabIndex={isSwapDisabled ? -1 : 0}
-                                            >
-                                                <ArrowLeftRight size={13} />
-                                                <span>Swap</span>
-                                            </button>
-                                        )}
-                                        {canReverseTriptych && (
-                                            <button
-                                                type="button"
-                                                className="story-export-modal__reverse-btn"
-                                                onClick={handleReverseTriptychSlots}
-                                                title="Reverse frame sequence (invert top and bottom)"
-                                                aria-label="Reverse frame sequence"
-                                            >
-                                                <TriptychReverse size={13} />
-                                                <span>Reverse</span>
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {!isFrameSelectorSuppressed && (
-                                    <div
-                                        className="story-export-modal__burst-selector"
-                                        style={{ marginTop: '0.5rem' }}
-                                    >
-                                        {/* Sequential Wizard / Triptych / Duet Segmented Step Picker */}
-                                        <div
-                                            className="portfolio__segmented-toggle story-export-modal__pill-group story-export-modal__burst-slot-group"
-                                            role="group"
-                                            aria-label={
-                                                burst.isTriptych
-                                                    ? isDuetLayout
-                                                        ? 'Duet Photo Slots'
-                                                        : 'Triptych Photo Slots'
-                                                    : isDuetLayout
-                                                      ? 'Duet Frame Slots'
-                                                      : 'Burst Wizard Steps'
-                                            }
+                                    {!isFrameSelectorSuppressed && (
+                                        <span
+                                            className="story-export-modal__hint-tag"
+                                            style={{
+                                                color:
+                                                    neededFrames > 0
+                                                        ? 'var(--color-accent, #f59e0b)'
+                                                        : 'var(--color-text-dim)',
+                                                fontWeight: neededFrames > 0 ? 700 : 500,
+                                            }}
                                         >
-                                            {(isDuetLayout ? [0, 1] : [0, 1, 2]).map((sIdx) => {
-                                                const assignedFrame = slots[sIdx];
-                                                const isStepActive = activeStep === sIdx;
-                                                const valPrefix = burst.isTriptych ? 'P' : 'F';
-                                                const valText =
-                                                    assignedFrame !== null ? `${valPrefix}${assignedFrame + 1}` : 'Empty';
-                                                return (
-                                                    <button
-                                                        key={sIdx}
-                                                        type="button"
-                                                        className={`story-export-modal__pill story-export-modal__burst-slot-pill ${
-                                                            isStepActive ? 'active story-export-modal__pill--active' : ''
-                                                        }`}
-                                                        onClick={() => handleSlotClick(sIdx)}
-                                                        aria-label={`Step ${sIdx + 1} (${slotNames[sIdx]}): ${
-                                                            assignedFrame !== null
-                                                                ? `${burst.isTriptych ? 'Photo' : 'Frame'} ${
-                                                                      assignedFrame + 1
-                                                                  }`
-                                                                : 'Empty'
-                                                        }${isStepActive ? ' (Active)' : ''}`}
-                                                        aria-pressed={isStepActive}
-                                                    >
-                                                        {isStepActive && (
-                                                            <motion.span
-                                                                className="portfolio__segment-pill"
-                                                                layoutId="storyBurstWizardStepPill"
-                                                                transition={{ type: 'spring', stiffness: 500, damping: 38 }}
-                                                            />
-                                                        )}
-                                                        <span className="story-export-modal__burst-slot-name">
-                                                            {sIdx + 1}. {slotNames[sIdx]}
-                                                        </span>
-                                                        <span className="story-export-modal__burst-slot-val">
-                                                            {valText}
-                                                        </span>
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-
-                                        {/* Active Panel Framing & Zoom Slider */}
-                                        {slots[activeStep] !== null && burstPanOffsets && (
-                                            <div className="story-export-modal__framing-header story-export-modal__framing-header--burst">
-                                                <span className="story-export-modal__sublabel">
-                                                    {slotNames[activeStep]} Framing
-                                                </span>
-                                                <div className="story-export-modal__framing-zoom">
-                                                    <span className="story-export-modal__framing-zoom-label">Zoom</span>
-                                                    <input
-                                                        type="range"
-                                                        min="1.0"
-                                                        max="3.0"
-                                                        step="0.01"
-                                                        value={burstPanOffsets[activeStep]?.zoom ?? 1.0}
-                                                        onChange={handleBurstZoomSliderChange}
-                                                        className="story-export-modal__slider story-export-modal__slider--inline"
-                                                        aria-label={`${slotNames[activeStep]} Panel Zoom`}
+                                            {feedbackText}
+                                        </span>
+                                    )}
+                                </div>
+                                <div className="story-export-modal__slot-header-actions">
+                                    {!isMultiPhoto && (
+                                        <div
+                                            className="portfolio__segmented-toggle story-export-modal__pill-group story-export-modal__pill-group--inline"
+                                            role="group"
+                                            aria-label="Show timestamp"
+                                        >
+                                            <button
+                                                type="button"
+                                                className={`story-export-modal__pill ${
+                                                    burstShowTimeStamps ? 'active story-export-modal__pill--active' : ''
+                                                }`}
+                                                onClick={() => handleToggleTimeStamps(true)}
+                                                aria-pressed={Boolean(burstShowTimeStamps)}
+                                            >
+                                                {burstShowTimeStamps && (
+                                                    <motion.span
+                                                        className="portfolio__segment-pill"
+                                                        layoutId="storyBurstTimestampsPill"
+                                                        transition={{ type: 'spring', stiffness: 500, damping: 38 }}
                                                     />
-                                                    <span className="story-export-modal__zoom-value">
-                                                        {(burstPanOffsets[activeStep]?.zoom ?? 1.0) <= 1.01
-                                                            ? '1.0x'
-                                                            : `${(burstPanOffsets[activeStep]?.zoom ?? 1.0).toFixed(2)}x`}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        )}
+                                                )}
+                                                <span>Show</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className={`story-export-modal__pill ${
+                                                    !burstShowTimeStamps
+                                                        ? 'active story-export-modal__pill--active'
+                                                        : ''
+                                                }`}
+                                                onClick={() => handleToggleTimeStamps(false)}
+                                                aria-pressed={!burstShowTimeStamps}
+                                            >
+                                                {!burstShowTimeStamps && (
+                                                    <motion.span
+                                                        className="portfolio__segment-pill"
+                                                        layoutId="storyBurstTimestampsPill"
+                                                        transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                                    />
+                                                )}
+                                                <span>Hide</span>
+                                            </button>
+                                        </div>
+                                    )}
+                                    {isDuetLayout && (
+                                        <button
+                                            type="button"
+                                            className={`story-export-modal__reverse-btn story-export-modal__swap-pill ${
+                                                isSwapDisabled ? 'story-export-modal__swap-pill--disabled' : ''
+                                            }`}
+                                            onClick={handleSwapSlots}
+                                            disabled={isSwapDisabled}
+                                            title={isSwapDisabled ? undefined : 'Swap Top and Bottom photos'}
+                                            aria-label="Swap Top and Bottom photos"
+                                            aria-disabled={isSwapDisabled}
+                                            tabIndex={isSwapDisabled ? -1 : 0}
+                                        >
+                                            <ArrowLeftRight size={13} />
+                                            <span>Swap</span>
+                                        </button>
+                                    )}
+                                    {canReverseTriptych && (
+                                        <button
+                                            type="button"
+                                            className="story-export-modal__reverse-btn"
+                                            onClick={handleReverseTriptychSlots}
+                                            title="Reverse frame sequence (invert top and bottom)"
+                                            aria-label="Reverse frame sequence"
+                                        >
+                                            <TriptychReverse size={13} />
+                                            <span>Reverse</span>
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
 
-                                        {!(totalFrames === 2 && isDuetLayout) && (
-                                            <div className="story-export-modal__burst-strip">
+                            {!isFrameSelectorSuppressed && (
+                                <div className="story-export-modal__burst-selector" style={{ marginTop: '0.5rem' }}>
+                                    {/* Sequential Wizard / Triptych / Duet Segmented Step Picker */}
+                                    <div
+                                        className="portfolio__segmented-toggle story-export-modal__pill-group story-export-modal__burst-slot-group"
+                                        role="group"
+                                        aria-label={
+                                            burst.isTriptych
+                                                ? isDuetLayout
+                                                    ? 'Duet Photo Slots'
+                                                    : 'Triptych Photo Slots'
+                                                : isDuetLayout
+                                                  ? 'Duet Frame Slots'
+                                                  : 'Burst Wizard Steps'
+                                        }
+                                    >
+                                        {(isDuetLayout ? [0, 1] : [0, 1, 2]).map((sIdx) => {
+                                            const assignedFrame = slots[sIdx];
+                                            const isStepActive = activeStep === sIdx;
+                                            const valPrefix = burst.isTriptych ? 'P' : 'F';
+                                            const valText =
+                                                assignedFrame !== null ? `${valPrefix}${assignedFrame + 1}` : 'Empty';
+                                            return (
+                                                <button
+                                                    key={sIdx}
+                                                    type="button"
+                                                    className={`story-export-modal__pill story-export-modal__burst-slot-pill ${
+                                                        isStepActive ? 'active story-export-modal__pill--active' : ''
+                                                    }`}
+                                                    onClick={() => handleSlotClick(sIdx)}
+                                                    aria-label={`Step ${sIdx + 1} (${slotNames[sIdx]}): ${
+                                                        assignedFrame !== null
+                                                            ? `${burst.isTriptych ? 'Photo' : 'Frame'} ${
+                                                                  assignedFrame + 1
+                                                              }`
+                                                            : 'Empty'
+                                                    }${isStepActive ? ' (Active)' : ''}`}
+                                                    aria-pressed={isStepActive}
+                                                >
+                                                    {isStepActive && (
+                                                        <motion.span
+                                                            className="portfolio__segment-pill"
+                                                            layoutId="storyBurstWizardStepPill"
+                                                            transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                                        />
+                                                    )}
+                                                    <span className="story-export-modal__burst-slot-name">
+                                                        {sIdx + 1}. {slotNames[sIdx]}
+                                                    </span>
+                                                    <span className="story-export-modal__burst-slot-val">
+                                                        {valText}
+                                                    </span>
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Active Panel Framing & Zoom Slider */}
+                                    {slots[activeStep] !== null && burstPanOffsets && (
+                                        <div className="story-export-modal__framing-header story-export-modal__framing-header--burst">
+                                            <span className="story-export-modal__sublabel">
+                                                {slotNames[activeStep]} Framing
+                                            </span>
+                                            <div className="story-export-modal__framing-zoom">
+                                                <span className="story-export-modal__framing-zoom-label">Zoom</span>
+                                                <input
+                                                    type="range"
+                                                    min="1.0"
+                                                    max="3.0"
+                                                    step="0.01"
+                                                    value={burstPanOffsets[activeStep]?.zoom ?? 1.0}
+                                                    onChange={handleBurstZoomSliderChange}
+                                                    className="story-export-modal__slider story-export-modal__slider--inline"
+                                                    aria-label={`${slotNames[activeStep]} Panel Zoom`}
+                                                />
+                                                <span className="story-export-modal__zoom-value">
+                                                    {(burstPanOffsets[activeStep]?.zoom ?? 1.0) <= 1.01
+                                                        ? '1.0x'
+                                                        : `${(burstPanOffsets[activeStep]?.zoom ?? 1.0).toFixed(2)}x`}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {!(totalFrames === 2 && isDuetLayout) && (
+                                        <div className="story-export-modal__burst-strip">
                                             {burst.frameSources.map((src, fIdx) => {
                                                 const assignedSlot = slots.indexOf(fIdx);
                                                 const isSelected = assignedSlot !== -1;
@@ -1086,9 +1085,7 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                         setPaddedConfig((prev) => ({ ...prev, style: 'frosted' }));
                                         setIsDownloaded(false);
                                     }}
-                                    aria-pressed={
-                                        paddedConfig.style === 'frosted' || paddedConfig.style === 'glass'
-                                    }
+                                    aria-pressed={paddedConfig.style === 'frosted' || paddedConfig.style === 'glass'}
                                 >
                                     {(paddedConfig.style === 'frosted' || paddedConfig.style === 'glass') && (
                                         <motion.span

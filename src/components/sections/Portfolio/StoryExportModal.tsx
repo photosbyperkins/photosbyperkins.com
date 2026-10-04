@@ -5,7 +5,7 @@ import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useStoryImageLoader } from '../../../hooks/useStoryImageLoader';
 import { useStoryStudio, type StoryStudioTab } from '../../../hooks/useStoryStudio';
 import { parseEventTitle, getPhotoDisplayUrl } from '../../../utils/formatters';
-import { STORY_ASPECT_RATIO } from '../../../utils/storyCanvas';
+import { STORY_ASPECT_RATIO, type BadgeOptions } from '../../../utils/storyCanvas';
 import type { EventScore, PhotoInput } from '../../../types';
 import ModalShell from '../../ui/ModalShell';
 import { StoryBadges } from './StoryBadges';
@@ -341,6 +341,14 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         </button>
     ) : undefined;
 
+    const handleBadgesChange = useCallback(
+        (updatedBadges: BadgeOptions) => {
+            setBadges(updatedBadges);
+            setIsDownloaded(false);
+        },
+        [setBadges, setIsDownloaded]
+    );
+
     const previewContent = (
         <>
             {/* Interactive Cropper when in custom crop mode */}
@@ -364,6 +372,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                     activeStep={burstActiveStep}
                     onSelectPanel={setBurstActiveStep}
                     onSelectEmptyPanel={handleSelectEmptyBurstPanel}
+                    onBadgesChange={handleBadgesChange}
                 />
             ) : (
                 <StoryCropper
@@ -390,6 +399,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                             prev.width === w && prev.height === h ? prev : { width: w, height: h }
                         )
                     }
+                    onBadgesChange={handleBadgesChange}
                 />
             )}
 

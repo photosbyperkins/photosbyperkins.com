@@ -176,11 +176,11 @@ describe('StoryFiltersTab', () => {
 
         // Check category count badges
         expect(tabs[0].textContent).toContain('22'); // All: 22
-        expect(tabs[1].textContent).toContain('0');  // Recent: 0
-        expect(tabs[2].textContent).toContain('8');  // Classic: 8
-        expect(tabs[3].textContent).toContain('8');  // Cinematic: 8
-        expect(tabs[4].textContent).toContain('6');  // Pop: 6
-        expect(tabs[5].textContent).toContain('3');  // Stylized: 3
+        expect(tabs[1].textContent).toContain('0'); // Recent: 0
+        expect(tabs[2].textContent).toContain('8'); // Classic: 8
+        expect(tabs[3].textContent).toContain('8'); // Cinematic: 8
+        expect(tabs[4].textContent).toContain('6'); // Pop: 6
+        expect(tabs[5].textContent).toContain('3'); // Stylized: 3
 
         // In 'All', 22 filter pills are displayed
         let filterPills = container.querySelectorAll('.story-export-modal__filter-pill');

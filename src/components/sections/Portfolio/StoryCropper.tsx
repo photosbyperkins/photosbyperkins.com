@@ -28,6 +28,7 @@ interface StoryCropperProps {
     filterStrength?: number;
     onChange: (crop: NormalizedCrop) => void;
     onImageLoaded?: (width: number, height: number) => void;
+    onBadgesChange?: (badges: BadgeOptions) => void;
 }
 
 export const StoryCropper: React.FC<StoryCropperProps> = ({
@@ -46,6 +47,7 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
     filterStrength,
     onChange,
     onImageLoaded,
+    onBadgesChange,
 }) => {
     const filterCss = filterId && filterId !== 'none' ? getStoryFilterCss(filterId, filterStrength ?? 1.0) : undefined;
 
@@ -236,14 +238,7 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
             return;
         }
 
-        const updated = calculateNormalizedCrop(
-            naturalWidth,
-            naturalHeight,
-            newCenterX,
-            newCenterY,
-            newZoom,
-            minZoom
-        );
+        const updated = calculateNormalizedCrop(naturalWidth, naturalHeight, newCenterX, newCenterY, newZoom, minZoom);
         onChange(updated);
     };
 
@@ -305,9 +300,7 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
 
                 {/* Scaled Image */}
                 <div
-                    className={`story-cropper__image-wrapper ${
-                        isPadded ? 'story-cropper__image-wrapper--padded' : ''
-                    }`}
+                    className={`story-cropper__image-wrapper ${isPadded ? 'story-cropper__image-wrapper--padded' : ''}`}
                     style={{
                         width: `${scaleX * 100}%`,
                         height: `${scaleY * 100}%`,
@@ -364,7 +357,12 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
                 })()}
 
                 {/* Story Badges Overlay */}
-                <StoryBadges badges={badges} theme={theme} />
+                <StoryBadges
+                    badges={badges}
+                    theme={theme}
+                    onBadgesChange={onBadgesChange}
+                    containerRef={containerRef}
+                />
             </div>
 
             <div className="story-cropper__hint">

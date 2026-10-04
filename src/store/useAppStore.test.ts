@@ -145,7 +145,6 @@ describe('useAppStore - storySettings', () => {
     });
 });
 
-
 describe('useAppStore - favorites batch actions', () => {
     beforeEach(() => {
         useAppStore.getState().clearFavorites();

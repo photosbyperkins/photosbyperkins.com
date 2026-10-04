@@ -196,9 +196,7 @@ describe('LightboxScrubber', () => {
     });
 
     it('wraps thumbnail indices endlessly and maps wrapped photos accurately across large offsets', () => {
-        const { container } = render(
-            <LightboxScrubber {...defaultProps} maxDist={150} index={0} />
-        );
+        const { container } = render(<LightboxScrubber {...defaultProps} maxDist={150} index={0} />);
 
         // With maxDist = 150, 301 thumbnails should be rendered
         const thumbs = container.querySelectorAll('.portfolio__lightbox-scrubber-thumb');

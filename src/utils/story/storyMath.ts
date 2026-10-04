@@ -119,11 +119,7 @@ export function calculateBurstPanelCrop(
  * @param imgH Source image natural height
  * @param cardScale Fraction of story width (or height) the fitted card occupies (default: 0.92)
  */
-export function calculateFitZoom(
-    imgW: number,
-    imgH: number,
-    cardScale = 0.92
-): number {
+export function calculateFitZoom(imgW: number, imgH: number, cardScale = 0.92): number {
     if (!imgW || !imgH) return 0.92;
     const imgRatio = imgW / imgH;
     const scale = Math.max(0.5, Math.min(1.0, cardScale));
@@ -338,7 +334,5 @@ export function generateStoryPresets(options: {
     }
 
     // Guaranteed sort: least zoomed in (padded) to most zoomed in, and at most 3 options
-    return presets
-        .sort((a, b) => a.crop.zoom - b.crop.zoom)
-        .slice(0, 3);
+    return presets.sort((a, b) => a.crop.zoom - b.crop.zoom).slice(0, 3);
 }

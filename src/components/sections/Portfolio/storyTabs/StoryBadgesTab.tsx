@@ -1,7 +1,13 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Moon, Sun } from '../../../ui/icons';
-import type { BadgeOptions } from '../../../../utils/storyCanvas';
+import type { BadgeOptions, StoryBadgePosition } from '../../../../utils/storyCanvas';
+import {
+    DEFAULT_SCOREBOARD_POSITION,
+    DEFAULT_ATTRIBUTION_POSITION,
+    resolveBadgeDrop,
+    resolveBadgeEnable,
+} from '../../../../utils/storyCanvas';
 import { formatTeamName } from '../../../../utils/formatters';
 
 interface StoryBadgesTabProps {
@@ -17,6 +23,105 @@ interface StoryBadgesTabProps {
     setIsDownloaded: (val: boolean) => void;
 }
 
+type BadgeKey = 'scoreboard' | 'attribution';
+type Positions = { scoreboard: StoryBadgePosition; attribution: StoryBadgePosition };
+
+const BADGE_NAME: Record<BadgeKey, string> = { scoreboard: 'Event', attribution: 'Attribution' };
+const BADGE_ARIA: Record<BadgeKey, string> = { scoreboard: 'event', attribution: 'attribution' };
+
+const TIERS = ['top', 'bottom'] as const;
+const COLUMNS = ['left', 'center', 'right'] as const;
+
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+/** 'top-left' -> 'Top Left' */
+const slotLabel = (slot: StoryBadgePosition) => slot.split('-').map(capitalize).join(' ');
+
+const positionsOf = (b: BadgeOptions): Positions => ({
+    scoreboard: b.scoreboardPosition || DEFAULT_SCOREBOARD_POSITION,
+    attribution: b.attributionPosition || DEFAULT_ATTRIBUTION_POSITION,
+});
+
+interface BadgeSlotPickerProps {
+    badgeKey: BadgeKey;
+    value: StoryBadgePosition;
+    /** Slot held by the other badge, when it's showing */
+    otherSlot: StoryBadgePosition | null;
+    disabled: boolean;
+    onPick: (slot: StoryBadgePosition) => void;
+}
+
+/**
+ * A miniature story frame: three slots along the top edge, three along the bottom.
+ * Shows where this badge sits, and where the other badge sits (picking its edge trades places).
+ */
+const BadgeSlotPicker: React.FC<BadgeSlotPickerProps> = ({ badgeKey, value, otherSlot, disabled, onPick }) => {
+    const otherKey: BadgeKey = badgeKey === 'scoreboard' ? 'attribution' : 'scoreboard';
+    const otherTier = otherSlot?.split('-')[0];
+
+    return (
+        <div
+            className={`story-export-modal__badge-position-picker ${
+                disabled ? 'story-export-modal__badge-position-picker--disabled' : ''
+            }`}
+        >
+            <div className="story-export-modal__position-meta">
+                <span className="story-export-modal__position-label">Position</span>
+                <span className="story-export-modal__position-value" aria-hidden="true">
+                    {disabled ? 'Hidden' : slotLabel(value)}
+                </span>
+            </div>
+            <div
+                className="story-export-modal__slot-frame"
+                role="group"
+                aria-label={`${BADGE_NAME[badgeKey]} badge position`}
+            >
+                {TIERS.map((tier) => (
+                    <React.Fragment key={tier}>
+                        {tier === 'bottom' && (
+                            <span className="story-export-modal__slot-frame-photo" aria-hidden="true" />
+                        )}
+                        <div className={`story-export-modal__slot-row story-export-modal__slot-row--${tier}`}>
+                            {COLUMNS.map((col) => {
+                                const slot = `${tier}-${col}` as StoryBadgePosition;
+                                const isActive = slot === value;
+                                const isOccupied = !isActive && slot === otherSlot;
+                                const swaps = !isActive && tier === otherTier;
+                                const label = slotLabel(slot);
+                                const title = isActive
+                                    ? `${label} (current)`
+                                    : swaps
+                                      ? `${label} · swaps with ${BADGE_NAME[otherKey]}`
+                                      : label;
+                                return (
+                                    <button
+                                        key={slot}
+                                        type="button"
+                                        className={[
+                                            'story-export-modal__slot-btn',
+                                            `story-export-modal__slot-btn--${col}`,
+                                            isActive ? 'story-export-modal__slot-btn--active' : '',
+                                            isOccupied ? 'story-export-modal__slot-btn--occupied' : '',
+                                        ]
+                                            .filter(Boolean)
+                                            .join(' ')}
+                                        onClick={() => onPick(slot)}
+                                        title={disabled ? undefined : title}
+                                        aria-label={`Position ${BADGE_ARIA[badgeKey]} at ${label}`}
+                                        aria-pressed={isActive}
+                                        disabled={disabled}
+                                    >
+                                        <span className="story-export-modal__slot-mark" aria-hidden="true" />
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </React.Fragment>
+                ))}
+            </div>
+        </div>
+    );
+};
+
 export const StoryBadgesTab: React.FC<StoryBadgesTabProps> = ({
     badges,
     setBadges,
@@ -25,78 +130,127 @@ export const StoryBadgesTab: React.FC<StoryBadgesTabProps> = ({
     eventInfo,
     setIsDownloaded,
 }) => {
+    const isScoreboardAvailable = Boolean(eventInfo.title || (eventInfo.teams && eventInfo.teams.length > 0));
+    const isScoreboardActive = Boolean(badges.showScoreboard && isScoreboardAvailable);
+    const isAttributionActive = Boolean(badges.showAttribution);
+
+    const { scoreboard: currentScoreboardPos, attribution: currentAttributionPos } = positionsOf(badges);
+
+    const applyPositions = (prev: BadgeOptions, next: Positions): BadgeOptions => ({
+        ...prev,
+        scoreboardPosition: next.scoreboard,
+        attributionPosition: next.attribution,
+    });
+
+    const handleSetPosition = (badgeKey: BadgeKey, targetSlot: StoryBadgePosition) => {
+        setBadges((prev) => {
+            const isOtherActive =
+                badgeKey === 'scoreboard'
+                    ? Boolean(prev.showAttribution)
+                    : Boolean(prev.showScoreboard && isScoreboardAvailable);
+            return applyPositions(prev, resolveBadgeDrop(badgeKey, targetSlot, positionsOf(prev), isOtherActive));
+        });
+        setIsDownloaded(false);
+    };
+
+    /** Toggling a badge back on must never stack it on the other badge's edge. */
+    const handleToggleBadge = (badgeKey: BadgeKey, checked: boolean) => {
+        setBadges((prev) => {
+            if (!checked) {
+                return badgeKey === 'scoreboard'
+                    ? { ...prev, showScoreboard: false }
+                    : { ...prev, showAttribution: false };
+            }
+            const isOtherActive =
+                badgeKey === 'scoreboard'
+                    ? Boolean(prev.showAttribution)
+                    : Boolean(prev.showScoreboard && isScoreboardAvailable);
+            const next = applyPositions(prev, resolveBadgeEnable(badgeKey, positionsOf(prev), isOtherActive));
+            return badgeKey === 'scoreboard' ? { ...next, showScoreboard: true } : { ...next, showAttribution: true };
+        });
+        setIsDownloaded(false);
+    };
+
+    /** Unified 3-way toggle for scoreboard badge: Scores / Event / Hide */
+    const handleSetScoreboardMode = (mode: 'scores' | 'event' | 'hide') => {
+        setBadges((prev) => {
+            if (mode === 'hide') {
+                return { ...prev, showScoreboard: false };
+            }
+            const isOtherActive = Boolean(prev.showAttribution);
+            const next = applyPositions(prev, resolveBadgeEnable('scoreboard', positionsOf(prev), isOtherActive));
+            return {
+                ...next,
+                showScoreboard: true,
+                showScores: mode === 'scores',
+            };
+        });
+        setIsDownloaded(false);
+    };
+
     return (
         <div className="story-export-modal__tab-content story-export-modal__tab-content--badges">
             <div className="story-export-modal__section story-export-modal__section--badges">
                 <div className="story-export-modal__badges-header">
                     <span className="story-export-modal__section-heading">BADGES</span>
-                    <div
-                        className="portfolio__segmented-toggle story-export-modal__theme-toggle"
-                        role="group"
-                        aria-label="Story badge theme"
-                    >
-                        <button
-                            type="button"
-                            className={`story-export-modal__theme-btn ${
-                                cardTheme === 'light' ? 'active story-export-modal__theme-btn--active' : ''
-                            }`}
-                            onClick={() => {
-                                setCardTheme('light');
-                                setIsDownloaded(false);
-                            }}
-                            aria-label="Light card theme"
-                            aria-pressed={cardTheme === 'light'}
-                            title="Light card theme"
+                    <div className="story-export-modal__badges-header-actions">
+                        <div
+                            className="portfolio__segmented-toggle story-export-modal__theme-toggle"
+                            role="group"
+                            aria-label="Story badge theme"
                         >
-                            {cardTheme === 'light' && (
-                                <motion.span
-                                    className="portfolio__segment-pill"
-                                    layoutId="storyBadgeThemePill"
-                                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
-                                />
-                            )}
-                            <Sun size={16} />
-                        </button>
-                        <button
-                            type="button"
-                            className={`story-export-modal__theme-btn ${
-                                cardTheme === 'dark' ? 'active story-export-modal__theme-btn--active' : ''
-                            }`}
-                            onClick={() => {
-                                setCardTheme('dark');
-                                setIsDownloaded(false);
-                            }}
-                            aria-label="Dark card theme"
-                            aria-pressed={cardTheme === 'dark'}
-                            title="Dark card theme"
-                        >
-                            {cardTheme === 'dark' && (
-                                <motion.span
-                                    className="portfolio__segment-pill"
-                                    layoutId="storyBadgeThemePill"
-                                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
-                                />
-                            )}
-                            <Moon size={16} />
-                        </button>
+                            <button
+                                type="button"
+                                className={`story-export-modal__theme-btn ${
+                                    cardTheme === 'light' ? 'active story-export-modal__theme-btn--active' : ''
+                                }`}
+                                onClick={() => {
+                                    setCardTheme('light');
+                                    setIsDownloaded(false);
+                                }}
+                                aria-label="Light card theme"
+                                aria-pressed={cardTheme === 'light'}
+                                title="Light card theme"
+                            >
+                                {cardTheme === 'light' && (
+                                    <motion.span
+                                        className="portfolio__segment-pill"
+                                        layoutId="storyBadgeThemePill"
+                                        transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                    />
+                                )}
+                                <Sun size={16} />
+                            </button>
+                            <button
+                                type="button"
+                                className={`story-export-modal__theme-btn ${
+                                    cardTheme === 'dark' ? 'active story-export-modal__theme-btn--active' : ''
+                                }`}
+                                onClick={() => {
+                                    setCardTheme('dark');
+                                    setIsDownloaded(false);
+                                }}
+                                aria-label="Dark card theme"
+                                aria-pressed={cardTheme === 'dark'}
+                                title="Dark card theme"
+                            >
+                                {cardTheme === 'dark' && (
+                                    <motion.span
+                                        className="portfolio__segment-pill"
+                                        layoutId="storyBadgeThemePill"
+                                        transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                    />
+                                )}
+                                <Moon size={16} />
+                            </button>
+                        </div>
                     </div>
                 </div>
 
                 <div className="story-export-modal__badges-list">
+                    {/* Attribution Badge Row */}
                     <div className="story-export-modal__checkbox-row">
-                        <label className="story-export-modal__checkbox-label">
-                            <input
-                                type="checkbox"
-                                checked={badges.showAttribution}
-                                onChange={(e) => {
-                                    setBadges((prev) => ({
-                                        ...prev,
-                                        showAttribution: e.target.checked,
-                                    }));
-                                    setIsDownloaded(false);
-                                }}
-                            />
-                            <span className="sr-only">Photographer Attribution</span>
+                        <div className="story-export-modal__checkbox-main">
                             <div
                                 className={`story-export-modal__badge-preview-item ${
                                     !badges.showAttribution ? 'story-export-modal__badge-preview-item--disabled' : ''
@@ -121,24 +275,64 @@ export const StoryBadgesTab: React.FC<StoryBadgesTabProps> = ({
                                     )}
                                 </div>
                             </div>
-                        </label>
+
+                            <div
+                                className="portfolio__segmented-toggle story-export-modal__scores-toggle"
+                                role="group"
+                                aria-label="Photographer Attribution visibility"
+                            >
+                                <button
+                                    type="button"
+                                    className={`story-export-modal__scores-btn ${
+                                        badges.showAttribution ? 'active story-export-modal__scores-btn--active' : ''
+                                    }`}
+                                    onClick={() => handleToggleBadge('attribution', true)}
+                                    aria-label="Show attribution badge"
+                                    aria-pressed={Boolean(badges.showAttribution)}
+                                >
+                                    {badges.showAttribution && (
+                                        <motion.span
+                                            className="portfolio__segment-pill"
+                                            layoutId="storyAttrTogglePill"
+                                            transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                        />
+                                    )}
+                                    <span>Show</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    className={`story-export-modal__scores-btn ${
+                                        !badges.showAttribution ? 'active story-export-modal__scores-btn--active' : ''
+                                    }`}
+                                    onClick={() => handleToggleBadge('attribution', false)}
+                                    aria-label="Hide attribution badge"
+                                    aria-pressed={!badges.showAttribution}
+                                >
+                                    {!badges.showAttribution && (
+                                        <motion.span
+                                            className="portfolio__segment-pill"
+                                            layoutId="storyAttrTogglePill"
+                                            transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                        />
+                                    )}
+                                    <span>Hide</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <BadgeSlotPicker
+                            badgeKey="attribution"
+                            value={currentAttributionPos}
+                            otherSlot={isScoreboardActive ? currentScoreboardPos : null}
+                            disabled={!isAttributionActive}
+                            onPick={(slot) => handleSetPosition('attribution', slot)}
+                        />
                     </div>
 
-                    {(eventInfo.title || (eventInfo.teams && eventInfo.teams.length > 0)) && (
+                    {/* Event Scoreboard Badge Row */}
+                    {isScoreboardAvailable && (
                         <div className="story-export-modal__checkbox-row">
-                            <label className="story-export-modal__checkbox-label">
-                                <input
-                                    type="checkbox"
-                                    checked={badges.showScoreboard}
-                                    onChange={(e) => {
-                                        setBadges((prev) => ({
-                                            ...prev,
-                                            showScoreboard: e.target.checked,
-                                        }));
-                                        setIsDownloaded(false);
-                                    }}
-                                />
-                                <span className="sr-only">Event Badge</span>
+                            <div className="story-export-modal__checkbox-main">
                                 <div
                                     className={`story-export-modal__badge-preview-item ${
                                         !badges.showScoreboard ? 'story-export-modal__badge-preview-item--disabled' : ''
@@ -205,41 +399,31 @@ export const StoryBadgesTab: React.FC<StoryBadgesTabProps> = ({
                                         </div>
                                     </div>
                                 </div>
-                            </label>
-                            {badges.teams &&
+
+                                {badges.teams &&
                                 badges.teams.length >= 2 &&
                                 badges.score1 != null &&
-                                badges.score2 != null && (
+                                badges.score2 != null ? (
                                     <div
-                                        className={`portfolio__segmented-toggle story-export-modal__scores-toggle ${
-                                            !badges.showScoreboard ? 'story-export-modal__scores-toggle--disabled' : ''
-                                        }`}
+                                        className="portfolio__segmented-toggle story-export-modal__scores-toggle"
                                         role="group"
-                                        aria-label="Toggle event scores"
+                                        aria-label="Event badge visibility and scores"
                                     >
                                         <button
                                             type="button"
                                             className={`story-export-modal__scores-btn ${
-                                                badges.showScores !== false
+                                                badges.showScoreboard && badges.showScores !== false
                                                     ? 'active story-export-modal__scores-btn--active'
                                                     : ''
                                             }`}
-                                            onClick={() => {
-                                                setBadges((prev) => ({
-                                                    ...prev,
-                                                    showScores: true,
-                                                }));
-                                                setIsDownloaded(false);
-                                            }}
-                                            aria-label="Show event scores"
-                                            aria-pressed={badges.showScores !== false}
-                                            title="Show scores"
-                                            disabled={!badges.showScoreboard}
+                                            onClick={() => handleSetScoreboardMode('scores')}
+                                            aria-label="Show event badge with scores"
+                                            aria-pressed={Boolean(badges.showScoreboard && badges.showScores !== false)}
                                         >
-                                            {badges.showScores !== false && (
+                                            {badges.showScoreboard && badges.showScores !== false && (
                                                 <motion.span
                                                     className="portfolio__segment-pill"
-                                                    layoutId="storyBadgeScoresPill"
+                                                    layoutId="storyEventTogglePill"
                                                     transition={{ type: 'spring', stiffness: 500, damping: 38 }}
                                                 />
                                             )}
@@ -248,33 +432,101 @@ export const StoryBadgesTab: React.FC<StoryBadgesTabProps> = ({
                                         <button
                                             type="button"
                                             className={`story-export-modal__scores-btn ${
-                                                badges.showScores === false
+                                                badges.showScoreboard && badges.showScores === false
                                                     ? 'active story-export-modal__scores-btn--active'
                                                     : ''
                                             }`}
-                                            onClick={() => {
-                                                setBadges((prev) => ({
-                                                    ...prev,
-                                                    showScores: false,
-                                                }));
-                                                setIsDownloaded(false);
-                                            }}
-                                            aria-label="Hide event scores"
-                                            aria-pressed={badges.showScores === false}
-                                            title="Hide scores"
-                                            disabled={!badges.showScoreboard}
+                                            onClick={() => handleSetScoreboardMode('event')}
+                                            aria-label="Show event badge without scores"
+                                            aria-pressed={Boolean(badges.showScoreboard && badges.showScores === false)}
                                         >
-                                            {badges.showScores === false && (
+                                            {badges.showScoreboard && badges.showScores === false && (
                                                 <motion.span
                                                     className="portfolio__segment-pill"
-                                                    layoutId="storyBadgeScoresPill"
+                                                    layoutId="storyEventTogglePill"
                                                     transition={{ type: 'spring', stiffness: 500, damping: 38 }}
                                                 />
                                             )}
-                                            <span>Off</span>
+                                            <span>Event</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`story-export-modal__scores-btn ${
+                                                !badges.showScoreboard
+                                                    ? 'active story-export-modal__scores-btn--active'
+                                                    : ''
+                                            }`}
+                                            onClick={() => handleSetScoreboardMode('hide')}
+                                            aria-label="Hide event badge"
+                                            aria-pressed={!badges.showScoreboard}
+                                        >
+                                            {!badges.showScoreboard && (
+                                                <motion.span
+                                                    className="portfolio__segment-pill"
+                                                    layoutId="storyEventTogglePill"
+                                                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                                />
+                                            )}
+                                            <span>Hide</span>
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <div
+                                        className="portfolio__segmented-toggle story-export-modal__scores-toggle"
+                                        role="group"
+                                        aria-label="Event badge visibility"
+                                    >
+                                        <button
+                                            type="button"
+                                            className={`story-export-modal__scores-btn ${
+                                                badges.showScoreboard
+                                                    ? 'active story-export-modal__scores-btn--active'
+                                                    : ''
+                                            }`}
+                                            onClick={() => handleToggleBadge('scoreboard', true)}
+                                            aria-label="Show event badge"
+                                            aria-pressed={Boolean(badges.showScoreboard)}
+                                        >
+                                            {badges.showScoreboard && (
+                                                <motion.span
+                                                    className="portfolio__segment-pill"
+                                                    layoutId="storyEventTogglePill"
+                                                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                                />
+                                            )}
+                                            <span>Show</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`story-export-modal__scores-btn ${
+                                                !badges.showScoreboard
+                                                    ? 'active story-export-modal__scores-btn--active'
+                                                    : ''
+                                            }`}
+                                            onClick={() => handleToggleBadge('scoreboard', false)}
+                                            aria-label="Hide event badge"
+                                            aria-pressed={!badges.showScoreboard}
+                                        >
+                                            {!badges.showScoreboard && (
+                                                <motion.span
+                                                    className="portfolio__segment-pill"
+                                                    layoutId="storyEventTogglePill"
+                                                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                                />
+                                            )}
+                                            <span>Hide</span>
                                         </button>
                                     </div>
                                 )}
+                            </div>
+
+                            <BadgeSlotPicker
+                                badgeKey="scoreboard"
+                                value={currentScoreboardPos}
+                                otherSlot={isAttributionActive ? currentAttributionPos : null}
+                                disabled={!isScoreboardActive}
+                                onPick={(slot) => handleSetPosition('scoreboard', slot)}
+                            />
                         </div>
                     )}
                 </div>

@@ -111,7 +111,10 @@ export const StoryMobilePopover: React.FC<StoryMobilePopoverProps> = ({
                                                         transition={{ type: 'spring', stiffness: 500, damping: 38 }}
                                                     />
                                                 )}
-                                                <IconComponent size={16} className="story-export-modal__studio-tab-icon" />
+                                                <IconComponent
+                                                    size={16}
+                                                    className="story-export-modal__studio-tab-icon"
+                                                />
                                                 <span className="story-export-modal__tab-label story-export-modal__studio-tab-label">
                                                     {tab.label}
                                                 </span>

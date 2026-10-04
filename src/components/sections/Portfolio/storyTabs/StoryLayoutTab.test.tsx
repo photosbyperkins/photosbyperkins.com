@@ -1248,13 +1248,7 @@ describe('StoryLayoutTab - Single Photo Selector and Crop Zoom Removal', () => {
             frameThumbs: ['/tp1.jpg', '/tp2.jpg', '/tp3.jpg'],
         };
 
-        const { container } = render(
-            <StoryLayoutTab
-                {...baseProps}
-                activeMode="solo"
-                burst={multiPhotoMeta}
-            />
-        );
+        const { container } = render(<StoryLayoutTab {...baseProps} activeMode="solo" burst={multiPhotoMeta} />);
 
         const selector = container.querySelector('.story-export-modal__burst-selector');
         expect(selector).not.toBeNull();
