@@ -2,8 +2,7 @@ import { motion } from 'framer-motion';
 import { useState, useEffect, useMemo, useRef, memo } from 'react';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { useAppStore } from '../../store/useAppStore';
-
-declare const __BUILD_NUMBER__: string;
+import { withBuild } from '../../utils/build';
 
 import { useElementSize } from '../../hooks/useElementSize';
 import { LRUCache } from '../../utils/LRUCache';
@@ -94,7 +93,7 @@ const RecapSliceItem = memo(function RecapSliceItem({
                 style={
                     spriteLoaded
                         ? {
-                              backgroundImage: `url(/recap/${slug}/sprite.webp?v=${__BUILD_NUMBER__})`,
+                              backgroundImage: `url(${withBuild(`/recap/${slug}/sprite.webp`)})`,
                               backgroundPosition: bgPosition,
                               backgroundSize: bgSize,
                           }
@@ -124,7 +123,7 @@ export default function Recap({ slug, count, events, overlayText, isYear, onReca
         const img = new Image();
         img.onload = () => setSpriteLoaded(true);
         img.onerror = () => setSpriteLoaded(true); // Fallback: still render
-        img.src = `/recap/${slug}/sprite.webp?v=${__BUILD_NUMBER__}`;
+        img.src = withBuild(`/recap/${slug}/sprite.webp`);
     }, [slug]);
 
     useEffect(() => {

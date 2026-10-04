@@ -2,8 +2,7 @@ import React from 'react';
 import { Check } from '../../../ui/icons';
 import ProgressiveImage from '../../../ui/ProgressiveImage';
 import type { PhotoRecord, EventScore } from '../../../../types';
-
-declare const __BUILD_NUMBER__: string;
+import { withBuild } from '../../../../utils/build';
 
 export interface EventGridProps {
     albumImages: PhotoRecord[];
@@ -46,7 +45,7 @@ export const EventGrid = React.memo(function EventGrid({
             {albumImages.map((photo: PhotoRecord, i) => {
                 const origUrl = photo.original;
                 const rawThumbUrl = photo.thumb || photo.original;
-                const thumbUrl = rawThumbUrl.includes('?v=') ? rawThumbUrl : `${rawThumbUrl}?v=${__BUILD_NUMBER__}`;
+                const thumbUrl = withBuild(rawThumbUrl);
 
                 const focusX = photo.focusX;
                 const focusY = photo.focusY;

@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback, Suspense, lazy } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense, lazy } from 'react';
 import { useLocation } from 'react-router-dom';
 import Nav from './components/sections/Nav';
 import Footer from './components/sections/Footer';
 import PwaStatusToast from './components/ui/PwaStatusToast';
+import { getBuildNumber } from './utils/build';
 
 const About = lazy(() => import('./components/sections/About'));
 const Portfolio = lazy(() => import('./components/sections/Portfolio'));
@@ -41,39 +42,33 @@ function ScrollToMountTarget() {
 export default function App() {
     const [indexData, setIndexData] = useState<IndexData | null>(null);
     const [fetchError, setFetchError] = useState(false);
+    const isMountedRef = useRef(true);
 
     const loadIndex = useCallback(() => {
-        setFetchError(false);
-        fetch(`/data/index.json?build=${__BUILD_NUMBER__}`)
-            .then((res) => {
-                if (!res.ok) throw new Error('Network response was not ok');
-                return res.json();
-            })
-            .then((data) => setIndexData(data))
-            .catch((err) => {
-                console.error('Failed to load photo index:', err);
-                setFetchError(true);
-            });
-    }, []);
-
-    useEffect(() => {
-        let isMounted = true;
-        fetch(`/data/index.json?build=${__BUILD_NUMBER__}`)
+        fetch(`/data/index.json?build=${getBuildNumber()}`)
             .then((res) => {
                 if (!res.ok) throw new Error('Network response was not ok');
                 return res.json();
             })
             .then((data) => {
-                if (isMounted) setIndexData(data);
+                if (isMountedRef.current) {
+                    setIndexData(data);
+                    setFetchError(false);
+                }
             })
             .catch((err) => {
                 console.error('Failed to load photo index:', err);
-                if (isMounted) setFetchError(true);
+                if (isMountedRef.current) setFetchError(true);
             });
-        return () => {
-            isMounted = false;
-        };
     }, []);
+
+    useEffect(() => {
+        isMountedRef.current = true;
+        loadIndex();
+        return () => {
+            isMountedRef.current = false;
+        };
+    }, [loadIndex]);
 
     return (
         <>
@@ -90,7 +85,10 @@ export default function App() {
                         <p style={{ marginBottom: '1rem' }}>Unable to load photo portfolio.</p>
                         <button
                             type="button"
-                            onClick={loadIndex}
+                            onClick={() => {
+                                setFetchError(false);
+                                loadIndex();
+                            }}
                             style={{
                                 padding: '0.5rem 1.25rem',
                                 cursor: 'pointer',

@@ -9,7 +9,6 @@ export async function processAndCopyPhotos(data: IndexState) {
 
     const validDestPaths = new Set<string>();
     const copyTasks: { source: string; dest: string }[] = [];
-    const processingErrors = 0;
     let filesSkipped = 0;
     let filesCopied = 0;
     let copyErrors = 0;
@@ -155,16 +154,21 @@ export async function processAndCopyPhotos(data: IndexState) {
     }
 
     // Pass 3: Transfer Public/Extra Static Assets
+    const siteLogoPath = process.env.VITE_SITE_LOGO_PATH || 'photos/sacramento_roller_derby.png';
     const extraFiles = [
         'public/favicon.svg',
         'public/favicon.png',
         'public/apple-touch-icon.png',
         'photos/profile_photo.jpg',
-        'photos/sacramento_roller_derby.png',
+        siteLogoPath,
     ];
 
     for (const relativePath of extraFiles) {
         const sourcePath = path.join(process.cwd(), relativePath);
+        if (!fs.existsSync(sourcePath)) {
+            continue;
+        }
+
         const distPath = relativePath.startsWith('public/')
             ? path.join(DIST_DIR, path.basename(relativePath))
             : path.join(DIST_DIR, relativePath);
@@ -172,17 +176,15 @@ export async function processAndCopyPhotos(data: IndexState) {
         validDestPaths.add(distPath);
 
         try {
-            if (fs.existsSync(sourcePath)) {
-                fs.mkdirSync(path.dirname(distPath), { recursive: true });
-                const shouldCopy =
-                    !fs.existsSync(distPath) || fs.statSync(sourcePath).size !== fs.statSync(distPath).size;
-                if (shouldCopy) {
-                    fs.copyFileSync(sourcePath, distPath);
-                    filesCopied++;
-                    // logger.info(`Copied extra file: ${relativePath}`);
-                } else {
-                    filesSkipped++;
-                }
+            fs.mkdirSync(path.dirname(distPath), { recursive: true });
+            const shouldCopy =
+                !fs.existsSync(distPath) || fs.statSync(sourcePath).size !== fs.statSync(distPath).size;
+            if (shouldCopy) {
+                fs.copyFileSync(sourcePath, distPath);
+                filesCopied++;
+                // logger.info(`Copied extra file: ${relativePath}`);
+            } else {
+                filesSkipped++;
             }
         } catch (err: unknown) {
             logger.error(`Failed to copy extra file ${sourcePath}:`, err instanceof Error ? err.message : String(err));
@@ -208,8 +210,8 @@ export async function processAndCopyPhotos(data: IndexState) {
     removeStaleFiles(path.join(DIST_DIR, 'webp'), validDestPaths);
 
     logger.success(`Successfully copied ${filesCopied} files to ${DIST_DIR} (skipped ${filesSkipped} unchanged)`);
-    if (processingErrors > 0 || copyErrors > 0) {
-        logger.warn(`Completed with ${processingErrors} encoding errors and ${copyErrors} copy errors.`);
+    if (copyErrors > 0) {
+        logger.warn(`Completed with ${copyErrors} copy errors.`);
     }
 }
 

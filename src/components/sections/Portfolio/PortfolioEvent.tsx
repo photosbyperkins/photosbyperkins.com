@@ -19,8 +19,7 @@ import {
     sortTeamsByScore,
 } from '../../../utils/eventTransforms';
 import type { EventData, PhotoInput, PhotoRecord, FavoriteStoreItem } from '../../../types';
-
-declare const __BUILD_NUMBER__: string;
+import { withBuild } from '../../../utils/build';
 
 interface PortfolioEventProps {
     eventName: string;
@@ -136,7 +135,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
         const first = albumImages[0];
         if (!first.thumb || first.spriteIndex == null) return;
         const dir = first.thumb.substring(0, first.thumb.lastIndexOf('/'));
-        const spriteUrl = `${dir.replace(/^\/thumbnails\//, '/scrubber/')}/sprite.webp?v=${__BUILD_NUMBER__}`;
+        const spriteUrl = withBuild(`${dir.replace(/^\/thumbnails\//, '/scrubber/')}/sprite.webp`);
 
         const schedulePreheat =
             typeof window !== 'undefined' && 'requestIdleCallback' in window

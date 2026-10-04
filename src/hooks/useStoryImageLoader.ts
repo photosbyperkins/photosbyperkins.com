@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import type { PhotoInput, PhotoRecord } from '../types';
 import { getPhotoDisplayUrl } from '../utils/formatters';
-
-declare const __BUILD_NUMBER__: string;
+import { withBuild as withBuildUtil } from '../utils/build';
 
 export interface UseStoryImageLoaderOptions {
     photo: PhotoInput;
@@ -83,13 +82,9 @@ export function useStoryImageLoader({
     const displaySrc = getPhotoDisplayUrl(originalSrc);
     const thumbSrc = photoObj.thumb || '';
 
-    const buildQuery = typeof __BUILD_NUMBER__ !== 'undefined' ? `?v=${__BUILD_NUMBER__}` : '';
     const withBuild = useCallback(
-        (url: string) => {
-            if (!url) return '';
-            return url.includes('?v=') ? url : `${url}${buildQuery}`;
-        },
-        [buildQuery]
+        (url: string) => withBuildUtil(url),
+        []
     );
 
     const burstSourcesKey = isOpen && burstSources && burstSources.length >= 2 ? burstSources.join('|') : '';

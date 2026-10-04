@@ -22,6 +22,8 @@ self.onmessage = async (e: MessageEvent<{ urls: string[]; filename: string }>) =
 
         const usedNames = new Set<string>();
         const BATCH_SIZE = 4;
+        const MAX_SAFE_ZIP_BYTES = 1024 * 1024 * 1024; // 1 GB safety cap
+        let totalBufferedBytes = 0;
         let completed = 0;
 
         for (let i = 0; i < urls.length; i += BATCH_SIZE) {
@@ -43,6 +45,11 @@ self.onmessage = async (e: MessageEvent<{ urls: string[]; filename: string }>) =
 
             for (const { url, index, uint8Array } of batchResults) {
                 if (errorOccurred) throw errorOccurred;
+
+                totalBufferedBytes += uint8Array.byteLength;
+                if (totalBufferedBytes > MAX_SAFE_ZIP_BYTES) {
+                    throw new Error('Total album size exceeds browser in-memory limit (1GB). Please download individual photos or use the event archive.');
+                }
 
                 const cleanUrl = url.split('?')[0].split('#')[0];
                 const pathParts = cleanUrl.split('/');

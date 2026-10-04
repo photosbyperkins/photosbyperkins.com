@@ -1,4 +1,3 @@
-import React from 'react';
 import { GithubIcon, FacebookIcon, InstagramIcon } from '../ui/icons';
 import { useAppStore } from '../../store/useAppStore';
 import '../../styles/_footer.scss';

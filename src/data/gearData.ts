@@ -495,7 +495,7 @@ export const GEAR_REGISTRY: Record<string, GearItem> = {
  */
 export function getGearItem(
     identifier?: string | null,
-    year?: string | null,
+    _year?: string | null,
     typeHint?: 'camera' | 'lens'
 ): GearItem | null {
     if (!identifier) return null;

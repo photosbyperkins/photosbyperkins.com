@@ -3,9 +3,8 @@ import { motion } from 'framer-motion';
 import { useAppStore } from '../../store/useAppStore';
 import ModalShell from '../ui/ModalShell';
 import { modalFadeUp } from '../ui/modalAnimation';
+import { withBuild } from '../../utils/build';
 import '../../styles/_about.scss';
-
-declare const __BUILD_NUMBER__: string;
 
 // Lightweight inline markdown renderer: **bold**, *italic*, [text](url)
 function parseInline(text: string): React.ReactNode[] {
@@ -23,11 +22,17 @@ function parseInline(text: string): React.ReactNode[] {
         } else if (match[3]) {
             nodes.push(<em key={key++}>{match[3]}</em>);
         } else if (match[4] && match[5]) {
-            nodes.push(
-                <a key={key++} href={match[5]} target="_blank" rel="noopener noreferrer">
-                    {match[4]}
-                </a>
-            );
+            const rawUrl = match[5].trim();
+            const isSafeUrl = /^(https?:\/\/|mailto:)/i.test(rawUrl);
+            if (isSafeUrl) {
+                nodes.push(
+                    <a key={key++} href={rawUrl} target="_blank" rel="noopener noreferrer">
+                        {match[4]}
+                    </a>
+                );
+            } else {
+                nodes.push(match[4]);
+            }
         }
         lastIdx = match.index + match[0].length;
     }
@@ -61,7 +66,7 @@ export default function About() {
                         <div className="about__photo-frame">
                             <img
                                 className="about__photo"
-                                src={`/photos/profile_photo.jpg?v=${__BUILD_NUMBER__}`}
+                                src={withBuild('/photos/profile_photo.jpg', true)}
                                 alt={import.meta.env.VITE_ABOUT_PHOTO_ALT || 'Photographer Profile Photo'}
                             />
                         </div>

@@ -31,6 +31,12 @@ export default tseslint.config(
         },
     },
     {
+        files: ['src/components/ui/icons.tsx'],
+        rules: {
+            'react-refresh/only-export-components': 'off',
+        },
+    },
+    {
         extends: [js.configs.recommended, ...tseslint.configs.recommended],
         files: ['scripts/**/*.{ts,js}'],
         languageOptions: {

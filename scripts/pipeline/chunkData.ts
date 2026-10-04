@@ -1,10 +1,52 @@
 // Chunk Data Pipeline
 import fs from 'fs';
 import path from 'path';
-import type { IndexState, RecapDefinitions } from './types.js';
+import type { IndexState, RecapDefinitions, EventData, Photo, PhotoObject, WftdaMatch, FaceBox } from './types.js';
 import { logger } from './logger';
 import { GEAR_REGISTRY, getGearItem } from '../../src/data/gearData.js';
 import { parseEventTitle } from '../../src/utils/formatters.js';
+
+export interface ProcessedHighlight {
+    original?: string;
+    thumb?: string;
+    focusX?: number;
+    focusY?: number;
+    faces?: FaceBox[];
+}
+
+export interface ProcessedEventData extends Omit<EventData, 'album' | 'highlights'> {
+    album: Photo[];
+    highlights?: ProcessedHighlight[];
+    photoCount?: number;
+    albumSlug?: string;
+    originalYear?: string;
+    maxExifChars?: number;
+    recapImages?: Array<Partial<PhotoObject> & { src?: string; recapScore?: number; albumIndex?: number }>;
+    wftdaMatch?: WftdaMatch | null;
+    wftdaRankings?: Record<string, unknown>;
+}
+
+export interface TeamEntry {
+    name: string;
+    events: Record<string, ProcessedEventData>;
+}
+
+export interface CustomFilterDef {
+    name?: string;
+    match?: string[];
+    notMatch?: string[];
+    wftdaOnly?: boolean;
+}
+
+export interface RecapImageItem {
+    src: string;
+    focusX?: number;
+    focusY?: number;
+    title: string;
+    date: string;
+    teams?: string[];
+    albumIndex?: number;
+}
 
 const WFTDA_FILE = path.join(process.cwd(), 'data', 'wftda-matches.json');
 const INDEX_FILE = path.join(process.cwd(), 'public', 'data', 'index.json');
@@ -21,16 +63,20 @@ export function slugify(text: string) {
         .replace(/--+/g, '-'); // Replace multiple - with single -
 }
 
-export function generateRecapImages(eventsObj: Record<string, any>) {
+export function generateRecapImages(eventsObj: Record<string, Partial<ProcessedEventData>>) {
     const eventsArray = Object.entries(eventsObj);
     const validEvents = eventsArray.filter(([eventName]) => !eventName.toLowerCase().includes('headshot')).reverse();
     
-    const images = [];
-    const seenSrcs = new Set();
+    const images: RecapImageItem[] = [];
+    const seenSrcs = new Set<string>();
 
-    const formatImage = (photoInput: any, eventName: string, ev: any) => {
+    const formatImage = (
+        photoInput: Photo | (Partial<PhotoObject> & { src?: string; albumIndex?: number }),
+        eventName: string,
+        ev: Partial<ProcessedEventData>
+    ): RecapImageItem | null => {
         const src = typeof photoInput === 'string' ? photoInput : photoInput.src || photoInput.original;
-        if (seenSrcs.has(src)) return null;
+        if (!src || seenSrcs.has(src)) return null;
         seenSrcs.add(src);
 
         const focusX = typeof photoInput === 'object' ? photoInput.focusX : undefined;
@@ -45,7 +91,7 @@ export function generateRecapImages(eventsObj: Record<string, any>) {
             title: eventName,
             date: ev.date || baseDatePrefix,
             teams: teams.length > 0 ? teams : undefined,
-            albumIndex: typeof photoInput === 'object' ? photoInput.albumIndex : undefined,
+            albumIndex: typeof photoInput === 'object' ? (photoInput as { albumIndex?: number }).albumIndex : undefined,
         };
     };
 
@@ -193,7 +239,7 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
 
     // 1. Generate Index
     const years = Object.keys(data).sort((a, b) => b.localeCompare(a));
-    const recapDefinitions: Record<string, any> = {};
+    const recapDefinitions: RecapDefinitions = {};
 
     const indexData = {
         years: years,
@@ -226,13 +272,13 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
     }
     fs.mkdirSync(GEAR_DIR, { recursive: true });
 
-    const globalTeamsList: Record<string, any> = {};
+    const globalTeamsList: Record<string, TeamEntry> = {};
     const globalGearList: Record<
         string,
         {
             item: (typeof GEAR_REGISTRY)[string];
             photoCount: number;
-            events: Record<string, any>;
+            events: Record<string, ProcessedEventData>;
         }
     > = {};
 
@@ -244,7 +290,7 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
         };
     }
 
-    let customFilters = [];
+    let customFilters: CustomFilterDef[] = [];
     const CUSTOM_FILTERS_FILE = path.join(process.cwd(), 'data', 'customTeamFilters.json');
     if (fs.existsSync(CUSTOM_FILTERS_FILE)) {
         try {
@@ -255,7 +301,7 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
         }
     }
 
-    let wftdaData: { rankings: Record<string, any>; matches: any[] } = { rankings: {}, matches: [] };
+    let wftdaData: { rankings: Record<string, unknown>; matches: WftdaMatch[] } = { rankings: {}, matches: [] };
     if (fs.existsSync(WFTDA_FILE)) {
         try {
             wftdaData = JSON.parse(fs.readFileSync(WFTDA_FILE, 'utf8'));
@@ -308,7 +354,7 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
 
     for (const year of sortedGlobalYears) {
         const yearData = data[year];
-        const processedYearData: Record<string, { recapImages?: any[]; hero?: any; highlights?: any[]; wftdaMatch?: any; wftdaRankings?: any; [key: string]: any }> = {};
+        const processedYearData: Record<string, ProcessedEventData> = {};
         const yearAlbumsDir = path.join(ALBUMS_DIR, year);
 
         if (!fs.existsSync(yearAlbumsDir)) {
@@ -360,12 +406,12 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
             fs.writeFileSync(albumFile, JSON.stringify(cleanAlbum, null, 0));
 
             let maxExifChars = 0;
-            const eventGearPhotos: Record<string, any[]> = {};
+            const eventGearPhotos: Record<string, PhotoObject[]> = {};
             for (const img of (event.album || [])) {
                 if (img && typeof img === 'object' && img.exif) {
                     if (img.exif.cameraModel) cameraCounts[img.exif.cameraModel] = (cameraCounts[img.exif.cameraModel] || 0) + 1;
                     if (img.exif.lens) lensCounts[img.exif.lens] = (lensCounts[img.exif.lens] || 0) + 1;
-                    if ((img.exif as any).gearLensId) lensIdCounts[(img.exif as any).gearLensId] = (lensIdCounts[(img.exif as any).gearLensId] || 0) + 1;
+                    if (img.exif.gearLensId) lensIdCounts[img.exif.gearLensId] = (lensIdCounts[img.exif.gearLensId] || 0) + 1;
 
                     // Match gear
                     const camItem = getGearItem(img.exif.cameraModel, year, 'camera');
@@ -373,7 +419,7 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
                         if (!eventGearPhotos[camItem.id]) eventGearPhotos[camItem.id] = [];
                         eventGearPhotos[camItem.id].push(img);
                     }
-                    const lensItem = getGearItem((img.exif as any).gearLensId || img.exif.lens, year, 'lens');
+                    const lensItem = getGearItem(img.exif.gearLensId || img.exif.lens, year, 'lens');
                     if (lensItem && globalGearList[lensItem.id]) {
                         if (!eventGearPhotos[lensItem.id]) eventGearPhotos[lensItem.id] = [];
                         eventGearPhotos[lensItem.id].push(img);
@@ -386,7 +432,7 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
                 }
             }
 
-            const evMeta = {
+            const evMeta: ProcessedEventData = {
                 ...event,
                 album: [], // Clear it to save space
                 photoCount: (event.album || []).length,
@@ -408,7 +454,7 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
                     .filter((p) => {
                         const pUrl = typeof p === 'string' ? p : p.original || p.src;
                         return origHighlights.some(
-                            (h: any) => (typeof h === 'string' ? h : h.original || h.src) === pUrl
+                            (h: Photo) => (typeof h === 'string' ? h : h.original || h.src) === pUrl
                         );
                     })
                     .slice(0, 5);
@@ -418,14 +464,14 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
                         ? gearHighlights
                         : [...photos].sort((a, b) => (b.recapScore || 0) - (a.recapScore || 0)).slice(0, 5);
 
-                const gearEvMeta = {
+                const gearEvMeta: ProcessedEventData = {
                     ...event,
                     album: [],
                     photoCount: photos.length,
                     albumSlug: slug,
                     originalYear: year,
                     ...(maxExifChars > 0 && { maxExifChars }),
-                    highlights: chosenHighlights.map((h: any) => ({
+                    highlights: chosenHighlights.map((h: Photo) => ({
                         original: typeof h === 'string' ? h : h.original || h.src,
                         thumb: typeof h === 'string' ? h : h.thumb || h.original || h.src,
                         focusX: typeof h === 'object' ? h.focusX : undefined,
@@ -464,19 +510,19 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
                 if (baseDatePrefix) {
                     const wMatch = findWFTDAMatch(year, baseDatePrefix, finalTeams);
                     if (wMatch) {
-                        (evMeta as any).wftdaMatch = wMatch;
+                        evMeta.wftdaMatch = wMatch;
                     }
                 }
 
                 // Grab ranking for teams
-                (evMeta as any).wftdaRankings = {};
+                evMeta.wftdaRankings = {};
                 finalTeams.forEach((tName) => {
                     for (const [rName, rData] of Object.entries(wftdaData.rankings || {})) {
                         if (
                             rName.toLowerCase().includes(tName.toLowerCase()) ||
                             tName.toLowerCase().includes(rName.toLowerCase())
                         ) {
-                            (evMeta as any).wftdaRankings[tName] = rData;
+                            evMeta.wftdaRankings![tName] = rData;
                         }
                     }
                 });
@@ -503,7 +549,7 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
                         globalTeamsList[teamSlug] = {
                             name: cleanName,
                             events: {},
-                        } as any;
+                        };
                     }
 
                     // Uniquely key the event by its original name plus its year to prevent cross-year collisions
@@ -512,7 +558,7 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
             }
 
             // Evaluate custom filters against the full event title
-            customFilters.forEach((filter: any) => {
+            customFilters.forEach((filter: CustomFilterDef) => {
                 const { name, match, notMatch, wftdaOnly } = filter;
                 if (!name) return; // name is required
 
@@ -520,7 +566,7 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
                 const subject = mainTitle.toLowerCase();
 
                 if (wftdaOnly) {
-                    isMatch = !!(evMeta as any).wftdaMatch;
+                    isMatch = !!evMeta.wftdaMatch;
                 } else if (match && Array.isArray(match) && match.length > 0) {
                     isMatch = match.includes('*') || match.some((m) => subject.includes(m.toLowerCase()));
                 }
@@ -534,10 +580,11 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
 
                     const customSlug = slugify(name);
                     if (!globalTeamsList[customSlug]) {
-                        const customEvMeta: any = {
+                        const customEvMeta: ProcessedEventData = {
                             ...event,
+                            album: [],
                             wftdaMatch: null,
-                            wftdaRankings: {}
+                            wftdaRankings: {},
                         };
                         globalTeamsList[customSlug] = {
                             name: name,
@@ -585,7 +632,7 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
         };
 
         const totalEvents = Object.keys(processedYearData).length;
-        const totalPhotos = Object.values(processedYearData).reduce((sum, ev: any) => sum + (ev.photoCount || 0), 0);
+        const totalPhotos = Object.values(processedYearData).reduce((sum, ev) => sum + (ev.photoCount || 0), 0);
 
         const mostUsedCamera = getMostFrequent(cameraCounts)[0] || null;
         const mostUsedLens = getMostFrequent(lensCounts)[0] || null;
@@ -616,10 +663,9 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
 
     // Write out Teams Data
     logger.step(`Writing Team Chunks...`);
-    const uniqueTeams: any[] = [];
+    const uniqueTeams: Array<{ name: string; slug: string; count: number }> = [];
     for (const [teamSlug, teamData] of Object.entries(globalTeamsList)) {
-        const anyTeamData = teamData as any;
-        uniqueTeams.push({ name: anyTeamData.name, slug: teamSlug, count: Object.keys(anyTeamData.events).length });
+        uniqueTeams.push({ name: teamData.name, slug: teamSlug, count: Object.keys(teamData.events).length });
         
         // Sort team events in reverse chronological order across all years
         const sortedTeamEvents = sortTaggedEvents(teamData.events);
@@ -638,7 +684,17 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
 
     // Write out Gear Data
     logger.step(`Writing Gear Chunks...`);
-    const uniqueGear: any[] = [];
+    const uniqueGear: Array<{
+        id: string;
+        name: string;
+        shortName?: string;
+        compactName?: string;
+        brand: string;
+        type: string;
+        photoCount: number;
+        eventCount: number;
+        searchAliases: string[];
+    }> = [];
     for (const [gearId, gearEntry] of Object.entries(globalGearList)) {
         const eventCount = Object.keys(gearEntry.events).length;
         if (eventCount === 0) continue;

@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type FuseType from 'fuse.js';
 import type { GearMeta } from '../components/sections/Portfolio/GearFilter';
-
-declare const __BUILD_NUMBER__: string;
+import { getBuildNumber } from '../utils/build';
 
 export interface TeamMeta {
     name: string;
@@ -46,7 +45,7 @@ export function usePortfolioSearch({
         if (hasFetchedTeams.current) return;
         hasFetchedTeams.current = true;
         setIsTeamIndexLoading(true);
-        fetch(`/data/teams/index.json?build=${__BUILD_NUMBER__}`)
+        fetch(`/data/teams/index.json?build=${getBuildNumber()}`)
             .then((res) => {
                 if (!res.ok) throw new Error('Failed to fetch teams index');
                 return res.json();
@@ -65,7 +64,7 @@ export function usePortfolioSearch({
         if (hasFetchedGear.current) return;
         hasFetchedGear.current = true;
         setIsGearIndexLoading(true);
-        fetch(`/data/gear/index.json?build=${__BUILD_NUMBER__}`)
+        fetch(`/data/gear/index.json?build=${getBuildNumber()}`)
             .then((res) => {
                 if (!res.ok) throw new Error('Failed to fetch gear index');
                 return res.json();

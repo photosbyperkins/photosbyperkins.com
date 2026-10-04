@@ -23,6 +23,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { encodePhotos } from './pipeline/encodePhotos.js';
+import type { IndexState } from './pipeline/types.js';
 import { initPool, stopPool } from './pipeline/ssim2Pool.js';
 import os from 'os';
 import 'dotenv/config';
@@ -116,8 +117,8 @@ function bootstrapRemote(createDirs: boolean): {
             }
         }
         console.log(`✨ Single-pass connected: quota scanned and ${webpMap.size} remote albums cataloged.\n`);
-    } catch (err: any) {
-        console.error('⚠️ Could not complete remote bootstrap scan:', err.message || err);
+    } catch (err: unknown) {
+        console.error('⚠️ Could not complete remote bootstrap scan:', err instanceof Error ? err.message : String(err));
     }
 
     return { quota, webpMap };
@@ -153,10 +154,21 @@ async function runMigration() {
     }
     const photosData = JSON.parse(fs.readFileSync(photosJsonPath, 'utf8'));
 
+    interface MigrateAvifPhotoItem {
+        thumb: string;
+        [key: string]: unknown;
+    }
+
+    interface MigrateAvifEventData {
+        album?: MigrateAvifPhotoItem[];
+        highlights?: MigrateAvifPhotoItem[];
+        [key: string]: unknown;
+    }
+
     const albumTasks: {
         year: string;
         event: string;
-        eventData: any;
+        eventData: MigrateAvifEventData;
         relDir: string;
     }[] = [];
 
@@ -220,18 +232,18 @@ async function runMigration() {
                     [task.year]: {
                         [task.event]: {
                             ...task.eventData,
-                            album: albumPhotos.map((p: any) => ({
+                            album: albumPhotos.map((p: { thumb: string; [key: string]: unknown }) => ({
                                 ...p,
                                 thumb: p.thumb.replace(/\.webp$/i, '.avif'),
                             })),
-                            highlights: (task.eventData.highlights || []).map((p: any) => ({
+                            highlights: (((task.eventData.highlights as Array<{ thumb: string; [key: string]: unknown }>) || [])).map((p) => ({
                                 ...p,
                                 thumb: p.thumb.replace(/\.webp$/i, '.avif'),
                             })),
                         },
                     },
                 };
-                await encodePhotos(encodePayload, false);
+                await encodePhotos(encodePayload as unknown as IndexState, false);
             }
 
             // Collect local AVIF files for upload
@@ -299,7 +311,7 @@ async function runMigration() {
                         execSync(rmCmd, { stdio: 'inherit', shell: 'cmd.exe' });
                     }
                     break;
-                } catch (err: any) {
+                } catch (err: unknown) {
                     if (attempt < 3) {
                         console.log(`⚠️ Connection interrupted or refused on attempt ${attempt}. Waiting 60s cooldown before retry...`);
                         await new Promise((r) => setTimeout(r, 60000));

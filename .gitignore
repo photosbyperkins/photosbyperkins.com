@@ -25,7 +25,8 @@ dist-ssr
 *.sw?
 
 # Media and generated data
-/data/
+/data/*
+!/data/customTeamFilters.json
 /build/
 public/data/
 build.json

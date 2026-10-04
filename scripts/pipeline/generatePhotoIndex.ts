@@ -20,18 +20,18 @@ import path from 'path';
 import os from 'os';
 import sharp from 'sharp';
 import exifr from 'exifr';
-import type { IndexState } from './types.js';
+import type { IndexState, FaceBox, PhotoObject } from './types.js';
 import { logger } from './logger';
 import { runWithConcurrency } from './utils.js';
 import { loadBuildCache, saveBuildCache, computeDirHash, setAlbumCache } from './cache.js';
-import type { BurstMetadata } from '../../src/types';
+import type { BurstMetadata, ExifData } from '../../src/types';
 
 export interface BurstCandidate {
     original: string;
     thumb?: string;
     width?: number;
     height?: number;
-    timestampMs?: number;
+    timestampMs?: number | null;
     cameraSerial?: string;
     focusX?: number;
     focusY?: number;
@@ -359,9 +359,31 @@ async function extractExif(absPath: string) {
     }
 }
 
+export interface FaceCacheEntry {
+    x: number;
+    y: number;
+    score?: number;
+    recapScore?: number;
+    faces?: FaceBox[];
+}
+
+export interface AlbumItemWithDims extends Partial<PhotoObject> {
+    source: string;
+    original: string;
+    thumb: string;
+    tiny?: string;
+    aspectRatio: number;
+    width: number;
+    height: number;
+    timestampMs?: number | null;
+    cameraSerial?: string;
+    exif?: ExifData;
+    burst?: BurstMetadata;
+}
+
 export function loadFacesCache(
     cachePath = path.join(process.cwd(), 'data', '.faces_cache.json')
-): Record<string, any> {
+): Record<string, FaceCacheEntry> {
     if (fs.existsSync(cachePath)) {
         try {
             return JSON.parse(fs.readFileSync(cachePath, 'utf8'));
@@ -372,7 +394,7 @@ export function loadFacesCache(
     return {};
 }
 
-export function extractFaceData(thumb: string, cache: Record<string, any>) {
+export function extractFaceData(thumb: string, cache: Record<string, FaceCacheEntry>) {
     if (!thumb || !cache) return undefined;
     const val = cache[thumb] || cache[thumb.replace(/\.avif$/, '.webp')];
     if (val && typeof val === 'object' && val.x != null && val.y != null) {
@@ -398,7 +420,7 @@ async function processEventDir(
     eventDir: string,
     year: string,
     eventSlug: string,
-    facesCache: Record<string, any> = {}
+    facesCache: Record<string, FaceCacheEntry> = {}
 ) {
     let subdirs;
     try {
@@ -530,7 +552,7 @@ async function processEventDir(
     // --- ANALYZE DIMENSIONS AND EXIF, AND SLIGHTLY REORDER ---
     // Analyze photo dimensions to reorder the end of the grid for a flatter masonry bottom.
     // We do not pollute the output JSON with aspect ratio data; we just use it during build.
-    const albumWithDims: any[] = [];
+    const albumWithDims: AlbumItemWithDims[] = [];
     let earliestTime = null;
 
     for (const item of albumArr) {
@@ -667,7 +689,7 @@ export async function generatePhotoIndex(): Promise<IndexState> {
             // Year has no subdirs – flat jpgs directly under year
             const flat = getJpgs(yearPath);
             if (flat.length > 0) {
-                const flatAlbumWithDims: any[] = [];
+                const flatAlbumWithDims: AlbumItemWithDims[] = [];
                 for (const [idx, abs] of flat
                     .sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: 'base' }))
                     .slice(0, MAX_ALBUM_PER_EVENT)
@@ -694,6 +716,7 @@ export async function generatePhotoIndex(): Promise<IndexState> {
                         source: toWebPath(abs),
                         original: `/photos/${year}/all-photos/${cleanName}`,
                         thumb: webThumb,
+                        aspectRatio: width && height ? width / height : 1,
                         width,
                         height,
                         spriteIndex: idx,

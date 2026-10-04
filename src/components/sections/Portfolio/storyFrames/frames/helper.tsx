@@ -1,4 +1,3 @@
-import React from 'react';
 import type { StoryFrameDefinition, StoryFrameId, StoryFrameCategory, StoryFrameContext } from '../types';
 
 /**

@@ -15,7 +15,7 @@ interface PhotoMeta {
     year: string;
 }
 
-interface _BurstGroup {
+export interface BurstGroup {
     albumName: string;
     year: string;
     cameraSerial: string;

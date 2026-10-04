@@ -1,7 +1,7 @@
 // Generate Social Cards Pipeline
 import fs from 'fs';
 import path from 'path';
-import sharp from 'sharp';
+import sharp, { type OverlayOptions } from 'sharp';
 import 'dotenv/config';
 import type { IndexState } from './types';
 import { logger } from './logger';
@@ -208,7 +208,7 @@ export async function generateSocialCards(data: IndexState) {
                 </svg>
             `;
 
-            const compositeLayers: any[] = [
+            const compositeLayers: OverlayOptions[] = [
                 {
                     input: Buffer.from(svgOverlay),
                     blend: 'over',

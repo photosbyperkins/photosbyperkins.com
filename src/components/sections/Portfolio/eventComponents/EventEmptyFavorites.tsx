@@ -1,4 +1,3 @@
-import React from 'react';
 import { Heart } from '../../../ui/icons';
 
 export function EventEmptyFavorites() {

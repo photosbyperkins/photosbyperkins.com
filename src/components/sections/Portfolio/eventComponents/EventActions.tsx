@@ -3,8 +3,7 @@ import { motion } from 'framer-motion';
 import { Save, Star, Share2, FullAlbumIcon } from '../../../ui/icons';
 import { useAppStore } from '../../../../store/useAppStore';
 import { buildFavoritesShareUrl } from '../../../../utils/favoritesUrl';
-
-declare const __BUILD_NUMBER__: string;
+import { withBuild } from '../../../../utils/build';
 
 export interface EventActionsProps {
     eventName: string;
@@ -72,7 +71,7 @@ export const EventActions = React.memo(function EventActions({
 
             {zip && !canShare && !isFavorites && (
                 <a
-                    href={`${zip}?v=${__BUILD_NUMBER__}`}
+                    href={withBuild(zip, true)}
                     download
                     target="_blank"
                     rel="noopener noreferrer"

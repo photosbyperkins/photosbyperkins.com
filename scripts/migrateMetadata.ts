@@ -123,10 +123,24 @@ async function runMetadataMigration() {
     }
     const photosData = JSON.parse(fs.readFileSync(photosJsonPath, 'utf8'));
 
+    interface MigratePhotoItem {
+        source?: string;
+        original?: string;
+        thumb?: string;
+        [key: string]: unknown;
+    }
+
+    interface MigrateEventData {
+        album?: MigratePhotoItem[];
+        highlights?: MigratePhotoItem[];
+        title?: string;
+        [key: string]: unknown;
+    }
+
     const albumTasks: {
         year: string;
         event: string;
-        eventData: any;
+        eventData: MigrateEventData;
         relDir: string;
     }[] = [];
 
@@ -209,7 +223,7 @@ async function runMetadataMigration() {
                             try {
                                 const metaOptions = {
                                     year: task.year,
-                                    title: task.eventData.title || task.event,
+                                    title: typeof task.eventData.title === 'string' ? task.eventData.title : task.event,
                                 };
 
                                 if (doPhotos) {
@@ -237,8 +251,8 @@ async function runMetadataMigration() {
                                         .avif({ quality: 58, effort: 4 })
                                         .toFile(destAvifPath);
                                 }
-                            } catch (err: any) {
-                                console.error(`  ⚠️ Error processing ${cleanName}:`, err.message || err);
+                            } catch (err: unknown) {
+                                console.error(`  ⚠️ Error processing ${cleanName}:`, err instanceof Error ? err.message : String(err));
                             }
                         }
                     })()
@@ -286,7 +300,7 @@ async function runMetadataMigration() {
                     execSync(cmd, { stdio: 'inherit', shell: 'cmd.exe' });
                 }
                 break;
-            } catch (err: any) {
+            } catch (err: unknown) {
                 if (attempt < 3) {
                     console.log(`  ⚠️ Connection interrupted on attempt ${attempt}. Waiting 60s cooldown...`);
                     await new Promise((r) => setTimeout(r, 60000));

@@ -29,7 +29,9 @@ interface FetchPayload {
     stats?: SeasonStats;
 }
 
-declare const __BUILD_NUMBER__: string;
+import { getBuildNumber } from '../utils/build';
+
+let requestIdCounter = 0;
 
 interface UsePortfolioDataOptions {
     selectedTab: string;
@@ -112,7 +114,7 @@ export function usePortfolioData({
             if (tabSlug === 'favorites') return;
 
             const basePath = isGearMode ? `/data/gear` : isTeamMode ? `/data/teams` : `/data/years`;
-            const requestToken = Date.now();
+            const requestToken = ++requestIdCounter;
 
             if (setData) {
                 activeRequestRef.current = requestToken;
@@ -135,7 +137,7 @@ export function usePortfolioData({
             }
 
             const fetchPart = (slug: string, accumulate: boolean, retryCount = 0) => {
-                fetch(`${basePath}/${slug}.json?build=${__BUILD_NUMBER__}`)
+                fetch(`${basePath}/${slug}.json?build=${getBuildNumber()}`)
                     .then((res) => {
                         if (!res.ok) throw new Error(`HTTP ${res.status}`);
                         return res.json();
@@ -218,7 +220,7 @@ export function usePortfolioData({
         const targetPart = pendingNextPart;
 
         const timer = setTimeout(() => {
-            fetch(`${basePath}/${targetPart}.json?build=${__BUILD_NUMBER__}`)
+            fetch(`${basePath}/${targetPart}.json?build=${getBuildNumber()}`)
                 .then((res) => {
                     if (!res.ok) throw new Error(`HTTP ${res.status}`);
                     return res.json();
@@ -227,16 +229,14 @@ export function usePortfolioData({
                     const data = json as FetchPayload;
                     if (activeRequestRef.current !== requestToken) return;
 
-                    setYearData((prev) => {
-                        const merged = { ...prev, ...data.events };
-                        const existing = yearDataCache.get(selectedTab);
-                        if (existing) {
-                            existing.events = merged;
-                            existing.nextPart = data.nextPart ?? null;
-                            yearDataCache.set(selectedTab, existing);
-                        }
-                        return merged;
-                    });
+                    const existing = yearDataCache.get(selectedTab);
+                    if (existing) {
+                        existing.events = { ...existing.events, ...data.events };
+                        existing.nextPart = data.nextPart ?? null;
+                        yearDataCache.set(selectedTab, existing);
+                    }
+
+                    setYearData((prev) => ({ ...prev, ...data.events }));
 
                     if (data.nextPart) {
                         setPendingNextPart(data.nextPart);
@@ -267,7 +267,7 @@ export function usePortfolioData({
         [getForTab, years, isGearMode]
     );
 
-    // Gently pre-fetch only the immediately preceding year after 3s of idle time
+    // Gently pre-fetch the chronologically older season (years[currentIdx + 1]) after 3s of idle time
     useEffect(() => {
         if (!isRecapLoaded || isGearMode || years.length < 2) return;
         const currentIdx = years.indexOf(selectedTab);

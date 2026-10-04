@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-
-declare const __BUILD_NUMBER__: string;
+import { withBuild } from '../../utils/build';
 
 type ProgressiveImageProps = React.ImgHTMLAttributes<HTMLImageElement> & {
     placeholder?: string | null;
@@ -65,12 +64,8 @@ export default function ProgressiveImage({
         [onLoad]
     );
 
-    const imageSrc = shouldLoad && src ? (src.includes('?v=') ? src : `${src}?v=${__BUILD_NUMBER__}`) : undefined;
-    const placeholderSrc = placeholder
-        ? placeholder.includes('?v=')
-            ? placeholder
-            : `${placeholder}?v=${__BUILD_NUMBER__}`
-        : null;
+    const imageSrc = shouldLoad && src ? withBuild(src) : undefined;
+    const placeholderSrc = placeholder ? withBuild(placeholder) : null;
 
     return (
         <div

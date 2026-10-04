@@ -87,12 +87,12 @@ export async function generateSharePages(data: IndexState) {
     ${ogImgUrl ? `<meta name="twitter:image" content="${ogImgUrl}">` : ''}
 
     <!-- JSON-LD Structured Data -->
-    <script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
+    <script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>
 
     <!-- Fallback Redirection -->
     <meta http-equiv="refresh" content="0; url=${safeTargetUrl}" />
     <script>
-        window.location.replace(${JSON.stringify(targetUrl)});
+        window.location.replace(${JSON.stringify(targetUrl).replace(/</g, '\\u003c')});
     </script>
 </head>
 <body>

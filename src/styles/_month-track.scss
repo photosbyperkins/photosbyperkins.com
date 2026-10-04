@@ -14,9 +14,9 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    background: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
+    background: transparent;
+    border: none;
+    box-shadow: none;
     transition: opacity var(--transition-normal);
     margin-left: calc(-50px - 1.5rem);
 
@@ -33,9 +33,9 @@
         padding: 0;
         width: 100%;
         position: relative;
-        background: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
+        background: transparent;
+        border: none;
+        box-shadow: none;
         pointer-events: auto;
     }
 
@@ -78,7 +78,7 @@
         height: var(--month-item-height);
         padding: 0 4px 0 5px;
         border-radius: 4px;
-        border: none !important; // Zero borders / outlines
+        border: none; // Zero borders / outlines
         outline: none;
         background: transparent;
         font-family: var(--font-condensed);
@@ -86,7 +86,7 @@
         letter-spacing: 0.04em;
         line-height: 1;
         margin: 0;
-        box-shadow: none !important; // Zero drop shadow
+        box-shadow: none; // Zero drop shadow
         transition:
             color 0.15s ease,
             background 0.15s ease;
@@ -144,7 +144,7 @@
                 border-radius: 1.5px;
                 background: var(--color-accent);
                 opacity: 0.85;
-                box-shadow: none !important;
+                box-shadow: none;
                 transition:
                     opacity 0.15s ease,
                     transform 0.15s ease;
@@ -190,8 +190,8 @@
             color: #ffffff;
             font-weight: 800;
             background: transparent;
-            border: none !important; // Outlines removed entirely as requested
-            box-shadow: none !important; // Zero glow shadow as requested
+            border: none; // Outlines removed entirely as requested
+            box-shadow: none; // Zero glow shadow as requested
             cursor: pointer;
 
             .portfolio__month-label {
@@ -209,7 +209,7 @@
                 border-radius: 1.5px;
                 background: #ffffff;
                 opacity: 1;
-                box-shadow: none !important;
+                box-shadow: none;
                 transition:
                     opacity 0.15s ease,
                     transform 0.15s ease;
@@ -339,22 +339,22 @@
         }
 
         .portfolio__month-item {
-            width: 20px !important;
-            height: var(--month-item-height) !important;
-            padding: 0 !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
+            width: 20px;
+            height: var(--month-item-height);
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             border-radius: 4px;
-            box-sizing: border-box !important;
+            box-sizing: border-box;
             position: relative;
             touch-action: pan-y;
 
             // Clickable buttons (populated months)
             &[type='button'],
             &:not(.is-empty) {
-                cursor: pointer !important;
-                pointer-events: auto !important;
+                cursor: pointer;
+                pointer-events: auto;
 
                 // Generous hit target area for mobile/touch accessibility (44x44px touch target)
                 &::after {
@@ -369,15 +369,15 @@
 
                 &:active {
                     transform: scale(0.92);
-                    background: rgba(var(--color-accent-rgb, 230, 0, 0), 0.25) !important;
+                    background: rgba(var(--color-accent-rgb, 230, 0, 0), 0.25);
                 }
 
                 @media (hover: hover) {
                     &:hover {
-                        background: rgba(var(--color-accent-rgb, 230, 0, 0), 0.12) !important;
+                        background: rgba(var(--color-accent-rgb, 230, 0, 0), 0.12);
 
                         .portfolio__month-meter-bar {
-                            opacity: 1 !important;
+                            opacity: 1;
                             transform: scaleX(1.2);
                         }
                     }
@@ -386,37 +386,37 @@
 
             // Disabled empty months
             &.is-empty {
-                cursor: default !important;
-                pointer-events: none !important;
+                cursor: default;
+                pointer-events: none;
 
                 &::after {
-                    display: none !important;
+                    display: none;
                 }
             }
 
             .portfolio__month-label {
-                display: none !important;
+                display: none;
             }
 
             .portfolio__month-meter {
-                display: flex !important;
-                align-items: center !important;
-                justify-content: center !important;
-                flex: 1 1 100% !important;
-                width: 100% !important;
-                height: 100% !important;
-                padding: 0 !important;
-                margin: 0 !important;
-                box-sizing: border-box !important;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex: 1 1 100%;
+                width: 100%;
+                height: 100%;
+                padding: 0;
+                margin: 0;
+                box-sizing: border-box;
                 pointer-events: none;
             }
 
             .portfolio__month-meter-bar {
-                display: block !important;
-                height: 2.5px !important;
-                border-radius: 1.5px !important;
-                background: var(--color-accent) !important;
-                opacity: 0.9 !important;
+                display: block;
+                height: 2.5px;
+                border-radius: 1.5px;
+                background: var(--color-accent);
+                opacity: 0.9;
                 min-width: 4px;
                 transition:
                     transform 0.15s ease,
@@ -424,35 +424,35 @@
             }
 
             .portfolio__month-empty-dash {
-                display: block !important;
-                width: 4px !important;
-                height: 1.5px !important;
-                border-radius: 1px !important;
-                background: rgba(120, 120, 128, 0.45) !important;
+                display: block;
+                width: 4px;
+                height: 1.5px;
+                border-radius: 1px;
+                background: rgba(120, 120, 128, 0.45);
             }
 
             &.is-current {
-                background: transparent !important;
+                background: transparent;
                 border-radius: 4px;
 
                 .portfolio__month-meter-bar {
-                    background: var(--color-accent) !important;
-                    height: 3px !important;
-                    width: 12px !important;
-                    opacity: 1 !important;
+                    background: var(--color-accent);
+                    height: 3px;
+                    width: 12px;
+                    opacity: 1;
 
                     html[data-theme='dark'] & {
-                        background: #ffffff !important;
+                        background: #ffffff;
                     }
                 }
             }
 
             .portfolio__month-tooltip {
-                display: none !important;
+                display: none;
             }
 
             &:focus-visible {
-                outline: 2px solid var(--color-accent) !important;
+                outline: 2px solid var(--color-accent);
                 outline-offset: 2px;
             }
         }
@@ -462,7 +462,7 @@
             margin-left: calc(-16px - 6px);
 
             .portfolio__month-item {
-                width: 16px !important;
+                width: 16px;
 
                 &[type='button'],
                 &:not(.is-empty) {
@@ -478,7 +478,7 @@
 
                 &.is-current {
                     .portfolio__month-meter-bar {
-                        width: 10px !important;
+                        width: 10px;
                     }
                 }
             }

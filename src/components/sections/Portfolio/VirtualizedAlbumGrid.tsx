@@ -2,8 +2,7 @@ import { useRef, useMemo, useCallback, useState, useEffect } from 'react';
 import { Check } from '../../ui/icons';
 import ProgressiveImage from '../../ui/ProgressiveImage';
 import type { PhotoRecord, EventScore } from '../../../types';
-
-declare const __BUILD_NUMBER__: string;
+import { withBuild } from '../../../utils/build';
 
 interface VirtualizedAlbumGridProps {
     photos: PhotoRecord[];
@@ -181,9 +180,7 @@ export default function VirtualizedAlbumGrid({
                             const globalIdx = startIndex + colIdx;
                             const origUrl = photo.original;
                             const rawThumbUrl = photo.thumb || photo.original;
-                            const thumbUrl = rawThumbUrl.includes('?v=')
-                                ? rawThumbUrl
-                                : `${rawThumbUrl}?v=${__BUILD_NUMBER__}`;
+                            const thumbUrl = withBuild(rawThumbUrl);
                             const focusX = photo.focusX;
                             const focusY = photo.focusY;
                             const isSelected = selectedUrls?.has(origUrl) ?? false;

@@ -3,12 +3,11 @@ import { forwardRef, useImperativeHandle } from 'react';
 import { useSlideZoom } from '../../../hooks/useSlideZoom';
 import { getPhotoDisplayUrl } from '../../../utils/formatters';
 import type { PhotoInput } from '../../../types';
+import { withBuild } from '../../../utils/build';
 
 export interface LightboxSlideHandle {
     toggleZoom: (clientX?: number, clientY?: number) => void;
 }
-
-declare const __BUILD_NUMBER__: string;
 
 export interface LightboxSlideProps {
     image: PhotoInput;
@@ -47,7 +46,7 @@ const LightboxSlide = forwardRef<LightboxSlideHandle, LightboxSlideProps>(functi
     return (
         <div className="portfolio__lightbox-image-container" ref={containerRef} {...containerProps}>
             <motion.img
-                src={`${displayUrl}?v=${__BUILD_NUMBER__}`}
+                src={withBuild(displayUrl)}
                 alt={alt}
                 className="portfolio__lightbox-image-full"
                 onLoad={() => {

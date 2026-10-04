@@ -17,10 +17,10 @@ describe('useReducedMotion', () => {
             onchange: null,
             addListener: vi.fn(),
             removeListener: vi.fn(),
-            addEventListener: vi.fn((event: string, handler: (e: MediaQueryListEvent) => void) => {
+            addEventListener: vi.fn((_event: string, handler: (e: MediaQueryListEvent) => void) => {
                 listeners.push(handler);
             }),
-            removeEventListener: vi.fn((event: string, handler: (e: MediaQueryListEvent) => void) => {
+            removeEventListener: vi.fn((_event: string, handler: (e: MediaQueryListEvent) => void) => {
                 listeners = listeners.filter((h) => h !== handler);
             }),
             dispatchEvent: vi.fn(),

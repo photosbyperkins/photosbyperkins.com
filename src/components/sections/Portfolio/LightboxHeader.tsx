@@ -1,8 +1,7 @@
 import { X, Download, Share2, HelpCircle, StoryCropIcon } from '../../ui/icons';
 import type { PhotoInput } from '../../../types';
 import { getPhotoDisplayUrl, formatCameraModel } from '../../../utils/formatters';
-
-declare const __BUILD_NUMBER__: string;
+import { triggerPhotoDownload } from '../../../utils/build';
 
 interface LightboxHeaderProps {
     images: PhotoInput[];
@@ -38,12 +37,7 @@ export default function LightboxHeader({
         const obj = images[index];
         if (!obj) return;
         const src = typeof obj === 'string' ? obj : obj.original;
-        const link = document.createElement('a');
-        link.href = `${src}?v=${__BUILD_NUMBER__}`;
-        link.download = src.split('/').pop() || 'photo.jpg';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        triggerPhotoDownload(src);
     };
 
     const handleShare = async (e: React.MouseEvent) => {

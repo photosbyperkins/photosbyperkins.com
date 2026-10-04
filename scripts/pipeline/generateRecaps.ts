@@ -28,7 +28,15 @@ export async function generateRecaps(definitions: RecapDefinitions): Promise<voi
 
     const validPaths = new Set<string>();
 
-    const taskData: any[] = [];
+    interface RecapSliceTask {
+        slug: string;
+        index: number;
+        src: string;
+        focusX?: number;
+        focusY?: number;
+    }
+
+    const taskData: RecapSliceTask[] = [];
 
     for (const [slug, images] of Object.entries(definitions)) {
         if (Array.isArray(images)) {

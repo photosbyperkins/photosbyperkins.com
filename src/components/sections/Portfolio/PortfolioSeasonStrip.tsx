@@ -1,4 +1,3 @@
-import React from 'react';
 import { Link } from 'react-router-dom';
 import { Heart } from '../../ui/icons';
 import { getTeamNameFormats, findEarliestEventForTeam } from '../../../utils/formatters';

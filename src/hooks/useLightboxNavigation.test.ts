@@ -162,4 +162,74 @@ describe('useLightboxNavigation', () => {
         window.dispatchEvent(new WheelEvent('wheel', { deltaY: 50 }));
         expect(onPaginate).not.toHaveBeenCalled();
     });
+
+    it('ignores keystrokes when modifier keys (ctrl, meta, alt) are held', () => {
+        renderHook(() =>
+            useLightboxNavigation({
+                onClose,
+                onPaginate,
+                isZoomed: false,
+                onOpenStoryExport,
+                onToggleFavorite,
+            })
+        );
+
+        // Ctrl+C (copy) should NOT open story export
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'c', ctrlKey: true }));
+        expect(onOpenStoryExport).not.toHaveBeenCalled();
+
+        // Meta+F (find) should NOT toggle favorite
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'f', metaKey: true }));
+        expect(onToggleFavorite).not.toHaveBeenCalled();
+
+        // Alt+ArrowRight should NOT paginate
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', altKey: true }));
+        expect(onPaginate).not.toHaveBeenCalled();
+    });
+
+    it('does not paginate on Space if a button is focused', () => {
+        renderHook(() =>
+            useLightboxNavigation({
+                onClose,
+                onPaginate,
+                isZoomed: false,
+            })
+        );
+
+        const button = document.createElement('button');
+        document.body.appendChild(button);
+        button.focus();
+
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+        expect(onPaginate).not.toHaveBeenCalled();
+
+        document.body.removeChild(button);
+    });
+
+    it('ignores keystrokes when focus is in select or contentEditable', () => {
+        renderHook(() =>
+            useLightboxNavigation({
+                onClose,
+                onPaginate,
+                isZoomed: false,
+            })
+        );
+
+        const select = document.createElement('select');
+        document.body.appendChild(select);
+        select.focus();
+
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'f' }));
+        expect(onToggleFavorite).not.toHaveBeenCalled();
+        document.body.removeChild(select);
+
+        const editable = document.createElement('div');
+        editable.contentEditable = 'true';
+        document.body.appendChild(editable);
+        editable.focus();
+
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z' }));
+        expect(onToggleZoom).not.toHaveBeenCalled();
+        document.body.removeChild(editable);
+    });
 });

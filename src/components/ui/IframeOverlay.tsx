@@ -36,6 +36,9 @@ export default function IframeOverlay() {
                         className={`iframe-overlay__iframe ${isLoading ? 'iframe-overlay__iframe--loading' : ''}`}
                         onLoad={() => setIsLoading(false)}
                         title={iframeTitle || 'External content'}
+                        sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                        referrerPolicy="strict-origin-when-cross-origin"
+                        loading="lazy"
                     />
                 )}
             </div>

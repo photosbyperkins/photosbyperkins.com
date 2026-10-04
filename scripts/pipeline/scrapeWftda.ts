@@ -9,6 +9,13 @@ import { logger } from './logger';
 const URLS_FILE = path.join(process.cwd(), 'data', 'wftda-urls.json');
 const OUTPUT_FILE = path.join(process.cwd(), 'data', 'wftda-matches.json');
 
+export interface WftdaRankingEntry {
+    rank: number;
+    played: number;
+    wins: number;
+    losses: number;
+}
+
 /**
  * Builds a stable fingerprint of all event names + years from photos.json.
  * This is content-based, so regenerating photos.json without adding events
@@ -162,12 +169,24 @@ export async function scrapeWftda(photosData?: IndexState) {
     }
 
     logger.step('Fetching global rankings...');
+    let existingData: { _eventFingerprint?: string; rankings?: Record<string, WftdaRankingEntry>; matches?: unknown[] } = {};
+    if (fs.existsSync(OUTPUT_FILE)) {
+        try {
+            existingData = JSON.parse(fs.readFileSync(OUTPUT_FILE, 'utf8'));
+        } catch {
+            existingData = {};
+        }
+    }
+
     try {
         const rRes = await fetch('https://stats.wftda.com/rankings/gur');
+        if (!rRes.ok) {
+            throw new Error(`HTTP ${rRes.status} ${rRes.statusText}`);
+        }
         const rHtml = await rRes.text();
         const trRegex = /<tr[^>]*>(.*?)<\/tr>/gs;
         let match;
-        const rankings: Record<string, any> = {};
+        const rankings: Record<string, WftdaRankingEntry> = {};
         while ((match = trRegex.exec(rHtml)) !== null) {
             const trContent = match[1];
             const posMatch = trContent.match(/<td class="rankingsTable--position[^>]*>\s*(\d+)\s*<\/td>/);
@@ -185,7 +204,13 @@ export async function scrapeWftda(photosData?: IndexState) {
             }
         }
 
-        const relevantEvents: { date: string, teams: string[] }[] = [];
+        const rankingEntriesCount = Object.keys(rankings).length;
+        if (rankingEntriesCount === 0 && existingData.rankings && Object.keys(existingData.rankings).length > 0) {
+            logger.warn('Rankings table empty in scrape; preserving previously cached rankings.');
+            Object.assign(rankings, existingData.rankings);
+        }
+
+        const relevantEvents: { date: string; teams: string[] }[] = [];
         if (photosData) {
             for (const [year, evts] of Object.entries(photosData)) {
                 for (const title of Object.keys(evts)) {
@@ -219,7 +244,10 @@ export async function scrapeWftda(photosData?: IndexState) {
                 });
             });
 
-        const fingerprint = buildEventFingerprint(photosData as IndexState);
+        // Only commit fingerprint if we succeeded in getting matches or rankings
+        const scrapeSucceeded = matchesArray.length > 0 || Object.keys(rankings).length > 0;
+        const fingerprint = scrapeSucceeded && photosData ? buildEventFingerprint(photosData) : existingData._eventFingerprint;
+
         fs.writeFileSync(
             OUTPUT_FILE,
             JSON.stringify({ _eventFingerprint: fingerprint, rankings, matches: matchesArray }, null, 2)
@@ -227,6 +255,13 @@ export async function scrapeWftda(photosData?: IndexState) {
         logger.success(`Successfully wrote WFTDA data to ${OUTPUT_FILE}`);
     } catch (err) {
         logger.error('Failed ranking fetch:', err);
+        // If an existing output file exists, do not overwrite it with bad data or lock in a bad fingerprint
+        if (!fs.existsSync(OUTPUT_FILE) && uniqueMatches.size > 0) {
+            fs.writeFileSync(
+                OUTPUT_FILE,
+                JSON.stringify({ _eventFingerprint: null, rankings: {}, matches: Array.from(uniqueMatches.values()) }, null, 2)
+            );
+        }
     }
 }
 

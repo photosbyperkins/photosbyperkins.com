@@ -82,7 +82,18 @@ async function inflate(data: Uint8Array): Promise<Uint8Array> {
     return result;
 }
 
-// ── Encoding (v2) ───────────────────────────────────────────────────
+/**
+ * Normalizes a photo filename into a compact identifier by stripping
+ * extension and leading zeros from numeric suffixes.
+ * E.g. "photo_001.jpg" → "1", "highlight_002.jpg" → "highlight_2".
+ */
+export function photoStem(filename: string): string {
+    if (!filename) return '';
+    return filename
+        .replace(/\.(jpe?g|webp|avif)$/i, '')
+        .replace(/^photo_0*(\d+)$/, (_, num: string) => num)
+        .replace(/_0*(\d+)$/, (_, num: string) => '_' + parseInt(num, 10));
+}
 
 /**
  * Encode favorites into a grouped, DEFLATE-compressed, URL-safe string.
@@ -121,13 +132,7 @@ export async function encodeFavorites(favorites: FavoriteStoreItem[]): Promise<s
         const key = `${year}/${slug}`;
 
         if (!byAlbum.has(key)) byAlbum.set(key, []);
-
-        // Strip .jpg extension and leading zeros from numeric suffix for compactness
-        // e.g. "photo_001.jpg" → "1", "highlight_002.jpg" → "highlight_2"
-        const stem = filename
-            .replace(/\.jpe?g$/i, '')
-            .replace(/^photo_0*(\d+)$/, (_, num: string) => num)
-            .replace(/_0*(\d+)$/, (_, num: string) => '_' + parseInt(num, 10));
+        const stem = photoStem(filename);
         byAlbum.get(key)!.push(stem);
     }
 

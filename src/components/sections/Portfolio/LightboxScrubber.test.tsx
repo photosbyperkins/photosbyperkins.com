@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
-import React from 'react';
 import { motionValue } from 'framer-motion';
 import LightboxScrubber from './LightboxScrubber';
 import type { PhotoInput } from '../../../types';

@@ -7,8 +7,7 @@ import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock';
 import ProgressiveImage from '../../ui/ProgressiveImage';
 import ModalShell from '../../ui/ModalShell';
 import type { PhotoInput } from '../../../types';
-
-declare const __BUILD_NUMBER__: string;
+import { withBuild } from '../../../utils/build';
 
 interface SharedFavoritesPanelProps {
     photos: PhotoInput[];
@@ -114,9 +113,7 @@ export default function SharedFavoritesPanel({ photos, onClose }: SharedFavorite
                     {photos.map((photo, i) => {
                         const origUrl = typeof photo === 'string' ? photo : photo.original;
                         const rawThumbUrl = typeof photo === 'string' ? photo : photo.thumb || photo.original;
-                        const thumbUrl = rawThumbUrl.includes('?v=')
-                            ? rawThumbUrl
-                            : `${rawThumbUrl}?v=${__BUILD_NUMBER__}`;
+                        const thumbUrl = withBuild(rawThumbUrl);
                         const focusX = typeof photo === 'string' ? undefined : photo.focusX;
                         const focusY = typeof photo === 'string' ? undefined : photo.focusY;
 

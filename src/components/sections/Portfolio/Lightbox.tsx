@@ -9,10 +9,9 @@ import LightboxHeader from './LightboxHeader';
 import LightboxScrubber from './LightboxScrubber';
 import LightboxHelp from './LightboxHelp';
 import type { PhotoInput, EventScore } from '../../../types';
+import { withBuild, triggerPhotoDownload } from '../../../utils/build';
 
 const StoryExportModal = lazy(() => import('./StoryExportModal'));
-
-declare const __BUILD_NUMBER__: string;
 
 interface LightboxProps {
     images: PhotoInput[];
@@ -80,7 +79,7 @@ export default function Lightbox({
 
     const getThumbSrc = useCallback((photo: PhotoInput) => {
         const url = typeof photo === 'string' ? photo : photo?.thumb || photo?.original;
-        return url ? `${url}?v=${__BUILD_NUMBER__}` : undefined;
+        return url ? withBuild(url) : undefined;
     }, []);
 
     // Derive scrubber sprite URL — all photos in a normal event share one sprite.
@@ -98,7 +97,7 @@ export default function Lightbox({
         });
         if (!allMatch) return null;
         const spriteDir = dir.replace(/^\/thumbnails\//, '/scrubber/');
-        return `${spriteDir}/sprite.webp?v=${__BUILD_NUMBER__}`;
+        return withBuild(`${spriteDir}/sprite.webp`);
     }, [images]);
 
     /** Return CSS background style for the ambient blur layer.
@@ -176,12 +175,7 @@ export default function Lightbox({
         const obj = images[index];
         if (!obj) return;
         const src = typeof obj === 'string' ? obj : obj.original;
-        const link = document.createElement('a');
-        link.href = `${src}?v=${__BUILD_NUMBER__}`;
-        link.download = src.split('/').pop() || 'photo.jpg';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        triggerPhotoDownload(src);
     }, [images, index]);
 
     const [isHelpOpen, setIsHelpOpen] = useState(false);
@@ -263,7 +257,7 @@ export default function Lightbox({
         const url = typeof photo === 'string' ? photo : photo.original;
         if (!url) return undefined;
         const displayUrl = getPhotoDisplayUrl(url);
-        return `${displayUrl}?v=${__BUILD_NUMBER__}`;
+        return withBuild(displayUrl);
     }, []);
 
     useImagePreloader({

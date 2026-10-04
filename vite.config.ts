@@ -67,7 +67,8 @@ function photosMiddleware(): { name: string; configureServer: (server: ViteDevSe
 
                     // Security: prevent directory traversal outside workspace
                     const resolvedPath = path.resolve(filePath);
-                    if (!resolvedPath.startsWith(path.resolve(process.cwd()))) {
+                    const rootDir = path.resolve(process.cwd());
+                    if (!resolvedPath.startsWith(rootDir + path.sep) && resolvedPath !== rootDir) {
                         res.statusCode = 403;
                         res.end('Forbidden');
                         return;
@@ -95,6 +96,9 @@ const buildJsonPath = path.resolve(import.meta.dirname, 'build.json');
 let buildNumber = '0';
 
 try {
+    if (!fs.existsSync(buildJsonPath)) {
+        fs.writeFileSync(buildJsonPath, JSON.stringify({ buildNumber: 0 }, null, 2));
+    }
     const buildData = JSON.parse(fs.readFileSync(buildJsonPath, 'utf8'));
     const isTest = Boolean(process.env.VITEST || process.env.NODE_ENV === 'test');
     const isBuildCommand = process.argv.some(arg => arg === 'build' || arg.endsWith('build.ts'));
@@ -104,9 +108,8 @@ try {
         console.log(`Build number incremented to: ${buildData.buildNumber}`);
     }
     buildNumber = (buildData.buildNumber || 0).toString();
-} catch (err) {
-    console.error('Failed to read build number:', err);
-    buildNumber = Date.now().toString(); // Fallback to timestamp if file fails
+} catch {
+    buildNumber = '0';
 }
 
 export default defineConfig(({ mode }) => {
@@ -144,7 +147,7 @@ export default defineConfig(({ mode }) => {
                 cleanupOutdatedCaches: true,
                 globPatterns: ['**/*.{js,css,ico,png,svg,html,woff,woff2}'], // Included fonts and html for complete offline capability
                 navigateFallback: '/index.html',
-                navigateFallbackDenylist: [/^\/zips\//, /^\/share\//],
+                navigateFallbackDenylist: [/^\/zips\//, /^\/share\//, /^\/photos\//, /^\/thumbnails\//, /^\/avif\//, /^\/webp\//, /^\/scrubber\//, /^\/recap\//, /^\/data\//, /^\/assets\//],
                 runtimeCaching: [
                     {
                         urlPattern: /\/data\/.*\.json(?:\?.*)?$/i,
@@ -167,6 +170,9 @@ export default defineConfig(({ mode }) => {
                                 maxEntries: 2000,
                                 maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
                             },
+                            cacheableResponse: {
+                                statuses: [0, 200],
+                            }
                         },
                     }
                 ]
@@ -223,6 +229,7 @@ export default defineConfig(({ mode }) => {
     },
     test: {
         environment: 'happy-dom',
+        isolate: false,
         exclude: ['e2e/**', 'node_modules/**']
     }
     }

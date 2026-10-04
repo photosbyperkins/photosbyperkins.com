@@ -1,4 +1,3 @@
-import React from 'react';
 import type { StoryFrameDefinition } from '../types';
 import { defineFrame, createSvgString } from './helper';
 import { SacBearGraphic } from '../sacBearOverlay';

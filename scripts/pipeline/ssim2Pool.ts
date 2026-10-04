@@ -1,6 +1,13 @@
 // SSIM2 Pool
 import { fork, ChildProcess } from 'child_process';
-type WorkerProcess = ChildProcess & { currentTask?: any };
+interface PoolTask {
+    resolve: (score: number) => void;
+    reject: (err: unknown) => void;
+    img1: string;
+    img2: string;
+}
+
+type WorkerProcess = ChildProcess & { currentTask?: PoolTask | null };
 import sharp from 'sharp';
 import fs from 'fs';
 import path from 'path';
@@ -25,7 +32,7 @@ export const S2_THRESHOLD = 75.0;
 // --- Singleton Worker Pool ---
 let workers: WorkerProcess[] = [];
 let idle: WorkerProcess[] = [];
-let queue: any[] = [];
+let queue: PoolTask[] = [];
 let poolActive = false;
 
 export function initPool(workerCount?: number) {
@@ -42,20 +49,23 @@ export function initPool(workerCount?: number) {
     });
     for (let i = 0; i < count; i++) {
         const w = fork(workerPath, [], { execArgv }) as WorkerProcess;
-        w.on('message', (msg: any) => {
+        w.on('message', (msg: { error?: string; score?: number }) => {
+            if (!w.currentTask) return;
             const { resolve, reject } = w.currentTask;
             w.currentTask = null;
             if (msg.error) reject(new Error(msg.error));
-            else resolve(msg.score);
+            else resolve(msg.score ?? 0);
             if (queue.length > 0) {
                 const next = queue.shift();
-                w.currentTask = next;
-                w.send({ img1: next.img1, img2: next.img2 });
+                if (next) {
+                    w.currentTask = next;
+                    w.send({ img1: next.img1, img2: next.img2 });
+                }
             } else {
                 idle.push(w);
             }
         });
-        w.on('error', (err: any) => { if (w.currentTask) w.currentTask.reject(err); });
+        w.on('error', (err: unknown) => { if (w.currentTask) w.currentTask.reject(err); });
         idle.push(w);
         workers.push(w);
     }

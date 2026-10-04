@@ -29,10 +29,18 @@ export function useLightboxNavigation({
         if (!isActive) return;
 
         const handleKeyDown = (e: KeyboardEvent) => {
-            // Ignore keystrokes if focused inside an input/textarea
+            // Never hijack browser or OS keyboard shortcuts (Ctrl+C, Ctrl+F, Ctrl+D, etc.)
+            if (e.ctrlKey || e.metaKey || e.altKey) {
+                return;
+            }
+
+            // Ignore keystrokes if focused inside form inputs or editable elements
+            const active = document.activeElement;
             if (
-                document.activeElement instanceof HTMLInputElement ||
-                document.activeElement instanceof HTMLTextAreaElement
+                active instanceof HTMLInputElement ||
+                active instanceof HTMLTextAreaElement ||
+                active instanceof HTMLSelectElement ||
+                (active as HTMLElement)?.isContentEditable
             ) {
                 return;
             }
@@ -43,7 +51,14 @@ export function useLightboxNavigation({
             } else if (e.key === 'ArrowLeft') {
                 e.preventDefault();
                 onPaginate(-1);
-            } else if (e.key === 'ArrowRight' || e.key === ' ') {
+            } else if (e.key === 'ArrowRight') {
+                e.preventDefault();
+                onPaginate(1);
+            } else if (e.key === ' ') {
+                // If a button is focused, allow native button activation instead of paginating
+                if (active instanceof HTMLButtonElement || active?.getAttribute('role') === 'button') {
+                    return;
+                }
                 e.preventDefault();
                 onPaginate(1);
             } else if (e.key === 'f' || e.key === 'F' || e.key === 'l' || e.key === 'L') {

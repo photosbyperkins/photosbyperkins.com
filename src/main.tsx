@@ -18,7 +18,10 @@ window.addEventListener('vite:preloadError', () => {
 
 let refreshing = false;
 if ('serviceWorker' in navigator) {
+    const hasExistingController = Boolean(navigator.serviceWorker.controller);
     navigator.serviceWorker.addEventListener('controllerchange', () => {
+        // Do not reload on first install / claim; only reload on update of existing SW
+        if (!hasExistingController) return;
         if (!refreshing) {
             refreshing = true;
             window.location.reload();

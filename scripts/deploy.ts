@@ -22,6 +22,11 @@ if (!SSH_USER || !SSH_HOST || !REMOTE_DIR) {
 const distDir = path.resolve(__dirname, '../dist');
 const stagingDir = path.resolve(__dirname, '../deploy_staging');
 
+if (!fs.existsSync(distDir) || !fs.existsSync(path.join(distDir, 'index.html'))) {
+    console.error('❌ dist/ or dist/index.html is missing. Run `npm run build` or `npm run build:client` before deploying.');
+    process.exit(1);
+}
+
 console.log('🚀 Starting deployment to Bluehost...');
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -37,9 +42,6 @@ function copyFilesToStaging(src: string, dest: string, remoteMap: Map<string, nu
         const localSize = stats.size;
         const remoteSize = remoteMap.get(relPath);
 
-        const alwaysOverwrite = ['index.html', 'sitemap.xml', 'robots.txt', '.htaccess', 'sw.js', 'manifest.webmanifest'];
-        const isServiceWorkerAsset = relPath === 'sw.js' || relPath === 'manifest.webmanifest' || /^workbox-.*\.js$/.test(relPath);
-
         // ALWAYS skip heavy media folders since they are managed via FileZilla
         if (
             relPath.startsWith('photos/') ||
@@ -53,10 +55,11 @@ function copyFilesToStaging(src: string, dest: string, remoteMap: Map<string, nu
             return;
         }
 
-        if (!alwaysOverwrite.includes(relPath) && !isServiceWorkerAsset && !relPath.startsWith('data/')) {
-            if (remoteSize !== undefined && remoteSize === localSize) {
-                return; // Skip identical assets
-            }
+        // Only skip identical sizes for content-hashed assets (e.g. in assets/)
+        // Unhashed root files, fonts, or social cards should always be uploaded if modified
+        const isHashedAsset = relPath.startsWith('assets/');
+        if (isHashedAsset && remoteSize !== undefined && remoteSize === localSize) {
+            return; // Skip identical content-hashed assets
         }
 
         fs.mkdirSync(path.dirname(dest), { recursive: true });
@@ -70,7 +73,7 @@ async function runDeploy() {
         console.log('🔍 Checking for existing files on the server to skip...');
         const remoteFilesMap = new Map();
         try {
-            const sshCmd = `ssh -o StrictHostKeyChecking=accept-new ${SSH_USER}@${SSH_HOST} "cd ${REMOTE_DIR} && find . -type f -not -path './photos/*' -not -path './thumbnails/*' -not -path './webp/*' -not -path './avif/*' -not -path './zips/*' -not -path './scrubber/*' -not -path './recap/*' -printf '%P|%s\\n' 2>/dev/null"`;
+            const sshCmd = `ssh -o StrictHostKeyChecking=accept-new "${SSH_USER}@${SSH_HOST}" "cd '${REMOTE_DIR}' && find . -type f -not -path './photos/*' -not -path './thumbnails/*' -not -path './webp/*' -not -path './avif/*' -not -path './zips/*' -not -path './scrubber/*' -not -path './recap/*' -printf '%P|%s\\n' 2>/dev/null"`;
             const output = execSync(sshCmd, { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 });
             const files = output.split('\n').filter(Boolean);
             files.forEach((line) => {
@@ -131,19 +134,19 @@ async function runDeploy() {
         console.log('🧹 Cleaning up any orphaned temporary deploy directories on the server...');
         try {
             // Force write permissions before deleting to handle read-only copied files
-            execSync(`ssh -o StrictHostKeyChecking=accept-new ${SSH_USER}@${SSH_HOST} "chmod -R u+w ${REMOTE_DIR}_deploy_tmp_* 2>/dev/null; rm -rf ${REMOTE_DIR}_deploy_tmp_*"`, { stdio: 'ignore' });
+            execSync(`ssh -o StrictHostKeyChecking=accept-new "${SSH_USER}@${SSH_HOST}" "chmod -R u+w '${REMOTE_DIR}'_deploy_tmp_* 2>/dev/null; rm -rf '${REMOTE_DIR}'_deploy_tmp_*"`, { stdio: 'ignore' });
         } catch {
             // Ignore errors if no directories exist or pattern does not match
         }
 
         // Create remote temporary directory
         console.log(`📂 Creating remote temporary directory: ${remoteTmpDir}`);
-        execSync(`ssh -o StrictHostKeyChecking=accept-new ${SSH_USER}@${SSH_HOST} "mkdir -p ${remoteTmpDir}"`, { stdio: 'inherit' });
+        execSync(`ssh -o StrictHostKeyChecking=accept-new "${SSH_USER}@${SSH_HOST}" "mkdir -p '${remoteTmpDir}'"`, { stdio: 'inherit' });
 
         // Map top level files into paths for SCP
         // We use double quotes to handle spaces in paths
         const scpArgs = itemsToCopy.map((item) => `"${path.join(stagingDir, item)}"`).join(' ');
-        const scpCommand = `scp -r -p ${scpArgs} ${SSH_USER}@${SSH_HOST}:${remoteTmpDir}`;
+        const scpCommand = `scp -r -p ${scpArgs} "${SSH_USER}@${SSH_HOST}:${remoteTmpDir}"`;
 
         // Use scp to securely copy the staging directory contents to the remote server
         console.log(`🌐 Transferring new and updated files to temporary directory on ${SSH_USER}@${SSH_HOST}...`);
@@ -170,7 +173,7 @@ async function runDeploy() {
         let mvSuccess = false;
         while (!mvSuccess) {
             try {
-                execSync(`ssh -o StrictHostKeyChecking=accept-new ${SSH_USER}@${SSH_HOST} "cp -a '${remoteTmpDir}'/. '${REMOTE_DIR}'/ && chmod -R u+w '${remoteTmpDir}' && rm -rf '${remoteTmpDir}'"`, { stdio: 'inherit' });
+                execSync(`ssh -o StrictHostKeyChecking=accept-new "${SSH_USER}@${SSH_HOST}" "cp -a '${remoteTmpDir}'/. '${REMOTE_DIR}'/ && chmod -R u+w '${remoteTmpDir}' && rm -rf '${remoteTmpDir}'"`, { stdio: 'inherit' });
                 mvSuccess = true;
             } catch (err: unknown) {
                 if (mvAttempt >= MAX_RETRIES) {
@@ -184,7 +187,7 @@ async function runDeploy() {
 
         // Fix file permissions on the remote server (755 for directories, 644 for files)
         console.log(`🔐 Setting correct file permissions on Bluehost...`);
-        const chmodCommand = `ssh -o StrictHostKeyChecking=accept-new ${SSH_USER}@${SSH_HOST} "find ${REMOTE_DIR} -path ${REMOTE_DIR}/photos -prune -o -path ${REMOTE_DIR}/webp -prune -o -path ${REMOTE_DIR}/avif -prune -o -path ${REMOTE_DIR}/thumbnails -prune -o -path ${REMOTE_DIR}/scrubber -prune -o -path ${REMOTE_DIR}/recap -prune -o -type d -exec chmod 755 {} + && find ${REMOTE_DIR} -path ${REMOTE_DIR}/photos -prune -o -path ${REMOTE_DIR}/webp -prune -o -path ${REMOTE_DIR}/avif -prune -o -path ${REMOTE_DIR}/thumbnails -prune -o -path ${REMOTE_DIR}/scrubber -prune -o -path ${REMOTE_DIR}/recap -prune -o -type f -exec chmod 644 {} +"`;
+        const chmodCommand = `ssh -o StrictHostKeyChecking=accept-new "${SSH_USER}@${SSH_HOST}" "find '${REMOTE_DIR}' -path '${REMOTE_DIR}/photos' -prune -o -path '${REMOTE_DIR}/webp' -prune -o -path '${REMOTE_DIR}/avif' -prune -o -path '${REMOTE_DIR}/thumbnails' -prune -o -path '${REMOTE_DIR}/scrubber' -prune -o -path '${REMOTE_DIR}/recap' -prune -o -type d -exec chmod 755 {} + && find '${REMOTE_DIR}' -path '${REMOTE_DIR}/photos' -prune -o -path '${REMOTE_DIR}/webp' -prune -o -path '${REMOTE_DIR}/avif' -prune -o -path '${REMOTE_DIR}/thumbnails' -prune -o -path '${REMOTE_DIR}/scrubber' -prune -o -path '${REMOTE_DIR}/recap' -prune -o -type f -exec chmod 644 {} +"`;
 
         let chmodAttempt = 1;
         let chmodSuccess = false;
@@ -254,4 +257,7 @@ async function runDeploy() {
     }
 }
 
-runDeploy();
+runDeploy().catch((err) => {
+    console.error('❌ Unhandled deployment error:', err);
+    process.exit(1);
+});

@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { EventData } from '../types';
-
-declare const __BUILD_NUMBER__: string;
+import { getBuildNumber } from '../utils/build';
 
 interface UseEventAlbumOptions {
     ev: EventData;
@@ -28,7 +27,7 @@ export function useEventAlbum({ ev, isVisible, selectedYear, eventName, setEv }:
             setLoading(true);
         }, 0);
 
-        fetch(`/data/albums/${loadYear}/${ev.albumSlug}.json?build=${__BUILD_NUMBER__}`, {
+        fetch(`/data/albums/${loadYear}/${ev.albumSlug}.json?build=${getBuildNumber()}`, {
             signal: controller.signal,
         })
             .then((res) => {

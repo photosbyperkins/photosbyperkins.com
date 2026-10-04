@@ -3,9 +3,13 @@ import { renderHook, act, waitFor } from '@testing-library/react';
 import { useSharedFavorites } from './useSharedFavorites';
 import * as favoritesUrl from '../utils/favoritesUrl';
 
-vi.mock('../utils/favoritesUrl', () => ({
-    decodeFavoritesHash: vi.fn(),
-}));
+vi.mock('../utils/favoritesUrl', async (importOriginal) => {
+    const actual = await importOriginal<typeof favoritesUrl>();
+    return {
+        ...actual,
+        decodeFavoritesHash: vi.fn(),
+    };
+});
 
 describe('useSharedFavorites', () => {
     beforeEach(() => {

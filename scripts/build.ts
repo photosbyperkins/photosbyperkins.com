@@ -20,7 +20,7 @@ function endStep(name: string) {
 
 function saveBuildStats(totalMs: number) {
     const statsPath = path.join(process.cwd(), 'data', 'build_stats.json');
-    let history: any[] = [];
+    let history: Array<Record<string, unknown>> = [];
     if (fs.existsSync(statsPath)) {
         try { history = JSON.parse(fs.readFileSync(statsPath, 'utf8')); } catch { /* ignore */ }
     }
@@ -101,11 +101,12 @@ async function main() {
     const startTime = Date.now();
 
     // ---------------------------------------------------------
-    // PHASE 1: Setup
+    // PHASE 1: Setup & Validation Gates
     // ---------------------------------------------------------
     runSync('Clean', 'npm run clean');
-    runSync('Format', 'npm run format');
-    runSync('TypeScript Check', 'npx tsc');
+    runSync('TypeScript Check', 'npm run typecheck');
+    runSync('Lint Check', 'npm run lint');
+    runSync('Unit Tests', 'npm test');
 
     // ---------------------------------------------------------
     // PHASE 2: In-Memory Pipeline (Indexing & Master Encoding)
@@ -190,4 +191,7 @@ async function main() {
     logger.done(`Build Pipeline Completed Successfully in ${duration}s!`);
 }
 
-main();
+main().catch((error) => {
+    logger.error('Fatal Build Pipeline Error', error instanceof Error ? error.stack || error.message : String(error));
+    process.exit(1);
+});

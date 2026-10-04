@@ -2,8 +2,7 @@ import React from 'react';
 import { Check } from '../../../ui/icons';
 import ProgressiveImage from '../../../ui/ProgressiveImage';
 import type { PhotoRecord, EventScore } from '../../../../types';
-
-declare const __BUILD_NUMBER__: string;
+import { withBuild } from '../../../../utils/build';
 
 export interface EventHighlightsProps {
     featuredPhotos: PhotoRecord[];
@@ -63,7 +62,7 @@ export const EventHighlights = React.memo(function EventHighlights({
                 const isLast = i === 4;
                 const origUrl = photo.original;
                 const rawThumbUrl = photo.thumb || photo.original;
-                const thumbUrl = rawThumbUrl.includes('?v=') ? rawThumbUrl : `${rawThumbUrl}?v=${__BUILD_NUMBER__}`;
+                const thumbUrl = withBuild(rawThumbUrl);
                 const albumIndex = albumIndexMap.get(origUrl) ?? -1;
 
                 const focusX = photo.focusX;

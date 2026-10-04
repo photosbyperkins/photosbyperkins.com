@@ -28,7 +28,7 @@ export async function encodePhotos(indexData: IndexState, cleanStale = true) {
     const validAvifs = new Set<string>();
     const validProcessed = new Set<string>();
 
-    const tasks: any[] = [];
+    const tasks: Array<() => Promise<void>> = [];
     let skippedCount = 0;
     const queuedSources = new Set();
 

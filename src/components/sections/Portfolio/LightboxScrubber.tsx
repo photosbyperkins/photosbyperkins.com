@@ -95,7 +95,7 @@ export default function LightboxScrubber({
                             setScrubShift(shift);
                         }
                     }}
-                    onDragEnd={(e, info) => {
+                    onDragEnd={(_e, info) => {
                         setIsScrubbing(false);
                         scrubShiftRef.current = 0;
                         setScrubShift(0);
