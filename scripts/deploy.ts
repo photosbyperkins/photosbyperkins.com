@@ -250,6 +250,33 @@ async function runDeploy() {
             }
         }
 
+        // Automatically purge Cloudflare Edge Cache if credentials are configured
+        const cfZoneId = process.env.CLOUDFLARE_ZONE_ID;
+        const cfApiToken = process.env.CLOUDFLARE_API_TOKEN;
+        if (cfZoneId && cfApiToken) {
+            console.log('☁️  Purging Cloudflare edge cache...');
+            try {
+                const cfRes = await fetch(`https://api.cloudflare.com/client/v4/zones/${cfZoneId}/purge_cache`, {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${cfApiToken}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ purge_everything: true }),
+                });
+                const cfData = (await cfRes.json()) as { success?: boolean; errors?: unknown[] };
+                if (cfData.success) {
+                    console.log('✨ Cloudflare edge cache purged successfully!');
+                } else {
+                    console.warn('⚠️ Cloudflare purge returned errors:', cfData.errors);
+                }
+            } catch (err) {
+                console.warn('⚠️ Failed to contact Cloudflare API for cache purge:', err instanceof Error ? err.message : String(err));
+            }
+        } else {
+            console.log('ℹ️  Tip: Set CLOUDFLARE_ZONE_ID and CLOUDFLARE_API_TOKEN in .env to auto-purge Cloudflare edge cache on deploy.');
+        }
+
         console.log('✅ Deployment complete!');
     } catch (error: unknown) {
         console.error('❌ Deployment failed:', error instanceof Error ? error.message : String(error));

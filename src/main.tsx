@@ -21,7 +21,11 @@ if ('serviceWorker' in navigator) {
     const hasExistingController = Boolean(navigator.serviceWorker.controller);
     navigator.serviceWorker.addEventListener('controllerchange', () => {
         // Do not reload on first install / claim; only reload on update of existing SW
-        if (!hasExistingController) return;
+        const wasPreviouslyControlled = hasExistingController || sessionStorage.getItem('sw-initialized') === 'true';
+        if (!wasPreviouslyControlled) {
+            sessionStorage.setItem('sw-initialized', 'true');
+            return;
+        }
         if (!refreshing) {
             refreshing = true;
             window.location.reload();

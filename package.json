@@ -9,6 +9,7 @@
     "build:client": "vite build",
     "typecheck": "tsc --noEmit && tsc --project tsconfig.scripts.json --noEmit",
     "pipeline": "tsx scripts/build.ts",
+    "predeploy": "npm run build:client",
     "deploy": "tsx scripts/deploy.ts",
     "clean": "tsx scripts/pipeline/cleanDist.ts",
     "lint": "eslint .",

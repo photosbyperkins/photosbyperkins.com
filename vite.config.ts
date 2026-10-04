@@ -145,10 +145,33 @@ export default defineConfig(({ mode }) => {
                 },
             workbox: {
                 cleanupOutdatedCaches: true,
-                globPatterns: ['**/*.{js,css,ico,png,svg,html,woff,woff2}'], // Included fonts and html for complete offline capability
-                navigateFallback: '/index.html',
-                navigateFallbackDenylist: [/^\/zips\//, /^\/share\//, /^\/photos\//, /^\/thumbnails\//, /^\/avif\//, /^\/webp\//, /^\/scrubber\//, /^\/recap\//, /^\/data\//, /^\/assets\//],
+                globPatterns: ['**/*.{js,css,ico,png,svg,woff,woff2}'], // Omit html so navigation is never frozen into a stale precache
+                navigateFallback: null,
                 runtimeCaching: [
+                    {
+                        urlPattern: ({ request, url }: { request: Request; url: URL }) => {
+                            if (request.mode !== 'navigate') return false;
+                            const p = url.pathname;
+                            return !p.startsWith('/zips/') &&
+                                   !p.startsWith('/share/') &&
+                                   !p.startsWith('/photos/') &&
+                                   !p.startsWith('/thumbnails/') &&
+                                   !p.startsWith('/avif/') &&
+                                   !p.startsWith('/webp/') &&
+                                   !p.startsWith('/scrubber/') &&
+                                   !p.startsWith('/recap/') &&
+                                   !p.startsWith('/data/') &&
+                                   !p.startsWith('/assets/');
+                        },
+                        handler: 'NetworkFirst',
+                        options: {
+                            cacheName: 'navigation-cache',
+                            networkTimeoutSeconds: 3,
+                            cacheableResponse: {
+                                statuses: [0, 200],
+                            },
+                        },
+                    },
                     {
                         urlPattern: /\/data\/.*\.json(?:\?.*)?$/i,
                         handler: 'NetworkFirst',

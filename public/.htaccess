@@ -38,6 +38,8 @@
     # Instruct Cloudflare & edge CDNs to bypass caching for dynamic shell and service workers
     Header always set CDN-Cache-Control "no-store"
     Header always set Cloudflare-CDN-Cache-Control "no-store"
+    # Instruct Bluehost Endurance Page Cache and reverse proxies to bypass caching
+    Header always set X-Accel-Expires "0"
   </FilesMatch>
 
   # 2. Aggressively cache Vite's hashed assets (JS, CSS) for 1 year
