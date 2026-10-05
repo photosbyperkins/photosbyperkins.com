@@ -252,6 +252,15 @@ export default defineConfig(({ mode }) => {
     },
     test: {
         environment: 'happy-dom',
+        environmentOptions: {
+            happyDOM: {
+                settings: {
+                    navigation: {
+                        disableChildFrameNavigation: true
+                    }
+                }
+            }
+        },
         isolate: false,
         exclude: ['e2e/**', 'node_modules/**']
     }
