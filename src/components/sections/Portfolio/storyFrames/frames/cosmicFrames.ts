@@ -163,63 +163,111 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
         }
     ),
     defineFrame(
+        // Id stays 'celestial-moon' so persisted story settings / recent frames keep resolving.
         'celestial-moon',
-        'Moon',
+        'Lunar',
         'cosmic',
-        'Minimalist art-deco crescent moons & gold starlight',
-        ['#facc15', '#e2e8f0'],
+        'Cratered full moon, a lunar-phase track & drifting star dust',
+        ['#e2e8f0', '#94a3b8', '#fde68a'],
         (override, context) => {
-            const gold = override || '#facc15';
             const silver = override || '#e2e8f0';
+            const slate = override || '#94a3b8';
+            const glow = override || '#fde68a';
             const hasScoreboard = context?.hasScoreboard ?? true;
             const hasAttribution = context?.hasAttribution ?? true;
 
-            const topY = hasAttribution ? 148 : 80;
-            const bottomY = hasScoreboard ? 1730 : 1820;
+            const moonY = hasAttribution ? 150 : 110;
+            const bottomY = hasScoreboard ? 1700 : 1790;
 
-            const starburst = (col: string) => `
-                <polygon points="0,-36 7,-10 36,0 7,10 0,36 -7,10 -36,0 -7,-10" fill="${col}" />
-                <polygon points="0,-18 4,-5 18,0 4,5 0,18 -4,5 -18,0 -4,-5" fill="#ffffff" />
-            `;
+            // Phase glyph. k in [-1, 1]: -1 = new, 0 = quarter, 1 = full; lit side on the right.
+            // Lit shape = right half-disc closed by an elliptical terminator of x-radius r*|k|.
+            const phase = (r: number, k: number) => {
+                const disc = `<circle cx="0" cy="0" r="${r}" fill="${slate}" fill-opacity="0.18" stroke="${silver}" stroke-width="1.5" stroke-opacity="0.55" />`;
+                if (k <= -1) return disc;
+                if (k >= 1) return `${disc}<circle cx="0" cy="0" r="${r}" fill="${silver}" />`;
+                const t = (Math.abs(k) * r).toFixed(2);
+                // Returning bottom->top: sweep 0 bulges right (crescent), sweep 1 bulges left (gibbous).
+                const back = k === 0 ? 'Z' : `A${t},${r} 0 0,${k < 0 ? 0 : 1} 0,${-r} Z`;
+                return `${disc}<path d="M0,${-r} A${r},${r} 0 0,1 0,${r} ${back}" fill="${silver}" />`;
+            };
+
+            // Waxing crescent -> full -> waning crescent (waning ones mirrored so the lit side flips).
+            const phaseTrack = [
+                { k: -1, mirror: false },
+                { k: -0.55, mirror: false },
+                { k: 0, mirror: false },
+                { k: 0.55, mirror: false },
+                { k: 1, mirror: false },
+                { k: 0.55, mirror: true },
+                { k: 0, mirror: true },
+                { k: -0.55, mirror: true },
+            ]
+                .map(({ k, mirror }, i) => {
+                    const y = 520 + i * 120;
+                    return `<g transform="translate(1022, ${y})${mirror ? ' scale(-1, 1)' : ''}">${phase(20, k)}</g>`;
+                })
+                .join('');
+
+            const twinkle = (x: number, y: number, s: number, col: string) => `
+                <g transform="translate(${x}, ${y}) scale(${s})">
+                    <path d="M0,-14 Q1.5,-1.5 14,0 Q1.5,1.5 0,14 Q-1.5,1.5 -14,0 Q-1.5,-1.5 0,-14 Z" fill="${col}" />
+                </g>`;
 
             return `
-                <!-- Top-Left Crescent Moon -->
-                <g transform="translate(80, ${topY})">
-                    <path d="M-18,-30 A34,34 0 0,0 22,30 A26,26 0 0,1 -18,-30 Z" fill="${gold}" />
-                    <line x1="36" y1="-18" x2="36" y2="34" stroke="${silver}" stroke-width="1.5" />
-                    <polygon points="36,34 33,40 36,46 39,40" fill="${gold}" />
+                <defs>
+                    <radialGradient id="lunar-surface" cx="0.62" cy="0.38" r="0.75">
+                        <stop offset="0" stop-color="#ffffff" />
+                        <stop offset="0.55" stop-color="${silver}" />
+                        <stop offset="1" stop-color="${slate}" />
+                    </radialGradient>
+                    <radialGradient id="lunar-halo" cx="0.5" cy="0.5" r="0.5">
+                        <stop offset="0.55" stop-color="${glow}" stop-opacity="0.35" />
+                        <stop offset="1" stop-color="${glow}" stop-opacity="0" />
+                    </radialGradient>
+                </defs>
+
+                <!-- Top-Left Full Moon (cropped by the edge) with halo and craters -->
+                <g transform="translate(40, ${moonY})">
+                    <circle cx="0" cy="0" r="250" fill="url(#lunar-halo)" />
+                    <circle cx="0" cy="0" r="150" fill="url(#lunar-surface)" />
+                    <g fill="${slate}" fill-opacity="0.38">
+                        <circle cx="62" cy="-48" r="26" />
+                        <circle cx="96" cy="36" r="16" />
+                        <circle cx="30" cy="70" r="34" />
+                        <circle cx="-20" cy="-92" r="14" />
+                        <circle cx="118" cy="-6" r="8" />
+                        <circle cx="70" cy="104" r="10" />
+                    </g>
+                    <g fill="none" stroke="#ffffff" stroke-opacity="0.45" stroke-width="2">
+                        <path d="M40,-62 A26,26 0 0,1 84,-30" />
+                        <path d="M6,48 A34,34 0 0,1 58,52" />
+                    </g>
+                    <circle cx="0" cy="0" r="150" fill="none" stroke="#ffffff" stroke-opacity="0.6" stroke-width="2" />
                 </g>
 
-                <!-- Top-Right Mirrored Crescent Moon -->
-                <g transform="translate(1000, ${topY}) scale(-1, 1)">
-                    <path d="M-18,-30 A34,34 0 0,0 22,30 A26,26 0 0,1 -18,-30 Z" fill="${gold}" />
-                    <line x1="36" y1="-18" x2="36" y2="34" stroke="${silver}" stroke-width="1.5" />
-                    <polygon points="36,34 33,40 36,46 39,40" fill="${gold}" />
-                </g>
+                <!-- Dashed orbit sweeping from the moon down the left flank -->
+                <path d="M210,${moonY + 40} C330,${moonY + 360} 120,${moonY + 700} 34,${moonY + 980}" stroke="${silver}" stroke-width="1.5" stroke-dasharray="3 10" stroke-linecap="round" fill="none" opacity="0.7" />
+                <circle cx="34" cy="${moonY + 980}" r="5" fill="${glow}" />
 
-                <!-- Left and Right Border Starlight Beads -->
-                <circle cx="35" cy="450" r="4" fill="${gold}" />
-                <circle cx="35" cy="750" r="3" fill="${silver}" />
-                <circle cx="35" cy="1050" r="4" fill="${gold}" />
-                <circle cx="35" cy="1350" r="3" fill="${silver}" />
-                <circle cx="1045" cy="450" r="3" fill="${silver}" />
-                <circle cx="1045" cy="750" r="4" fill="${gold}" />
-                <circle cx="1045" cy="1050" r="3" fill="${silver}" />
-                <circle cx="1045" cy="1350" r="4" fill="${gold}" />
+                <!-- Right-Edge Lunar Phase Track -->
+                <line x1="1022" y1="470" x2="1022" y2="1410" stroke="${silver}" stroke-width="1" opacity="0.35" />
+                ${phaseTrack}
 
-                <!-- Bottom Symmetrical Celestial Starbursts -->
-                <g transform="translate(90, ${bottomY})">
-                    ${starburst(gold)}
+                <!-- Star Dust -->
+                ${twinkle(300, moonY - 60, 0.9, glow)}
+                ${twinkle(960, 300, 1.2, silver)}
+                ${twinkle(70, 1250, 0.8, silver)}
+                ${twinkle(120, bottomY, 1.4, glow)}
+                ${twinkle(960, bottomY + 30, 1, silver)}
+                <g fill="${silver}">
+                    <circle cx="250" cy="${moonY + 190}" r="2.5" opacity="0.8" />
+                    <circle cx="880" cy="220" r="2" opacity="0.7" />
+                    <circle cx="1000" cy="420" r="2.5" opacity="0.8" />
+                    <circle cx="56" cy="1460" r="2" opacity="0.7" />
+                    <circle cx="200" cy="${bottomY + 70}" r="2.5" opacity="0.8" />
+                    <circle cx="900" cy="${bottomY - 40}" r="2" opacity="0.7" />
+                    <circle cx="1040" cy="1520" r="2" opacity="0.6" />
                 </g>
-                <g transform="translate(990, ${bottomY})">
-                    ${starburst(gold)}
-                </g>
-
-                <!-- 4 Art-Deco Corner Brackets -->
-                <path d="M30,140 L30,50 L120,50" stroke="${gold}" stroke-width="2" fill="none" />
-                <path d="M1050,140 L1050,50 L960,50" stroke="${gold}" stroke-width="2" fill="none" />
-                <path d="M30,1780 L30,1870 L120,1870" stroke="${gold}" stroke-width="2" fill="none" />
-                <path d="M1050,1780 L1050,1870 L960,1870" stroke="${gold}" stroke-width="2" fill="none" />
             `;
         }
     ),
