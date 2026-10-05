@@ -663,9 +663,17 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
 
     // Write out Teams Data
     logger.step(`Writing Team Chunks...`);
-    const uniqueTeams: Array<{ name: string; slug: string; count: number }> = [];
+    const uniqueTeams: Array<{ name: string; slug: string; count: number; isMeta?: boolean }> = [];
+    const customFilterSlugs = new Set(
+        customFilters.filter((f: CustomFilterDef): f is CustomFilterDef & { name: string } => !!f.name).map((f) => slugify(f.name))
+    );
     for (const [teamSlug, teamData] of Object.entries(globalTeamsList)) {
-        uniqueTeams.push({ name: teamData.name, slug: teamSlug, count: Object.keys(teamData.events).length });
+        uniqueTeams.push({
+            name: teamData.name,
+            slug: teamSlug,
+            count: Object.keys(teamData.events).length,
+            isMeta: customFilterSlugs.has(teamSlug),
+        });
         
         // Sort team events in reverse chronological order across all years
         const sortedTeamEvents = sortTaggedEvents(teamData.events);

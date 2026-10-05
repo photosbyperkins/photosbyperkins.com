@@ -7,6 +7,7 @@ export interface TeamMeta {
     name: string;
     slug: string;
     count: number;
+    isMeta?: boolean;
 }
 
 interface UsePortfolioSearchOptions {
