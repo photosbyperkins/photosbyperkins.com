@@ -797,8 +797,8 @@ describe('storyCanvas calculations', () => {
     });
 
     describe('storyFrameDefinitions', () => {
-        it('has 27 frame definitions including none and 26 thematic designs', () => {
-            expect(STORY_FRAME_DEFINITIONS).toHaveLength(27);
+        it('has 36 frame definitions including none and 35 thematic designs', () => {
+            expect(STORY_FRAME_DEFINITIONS).toHaveLength(36);
             const ids = STORY_FRAME_DEFINITIONS.map((f) => f.id);
             expect(ids).toContain('none');
             expect(ids).toContain('sac-bear');
@@ -828,10 +828,19 @@ describe('storyCanvas calculations', () => {
             expect(ids).toContain('night-vision');
             expect(ids).toContain('roller-disco');
             expect(ids).toContain('mystic-tarot');
+            expect(ids).toContain('hearts');
+            expect(ids).toContain('rainbows');
+            expect(ids).toContain('sol');
+            expect(ids).toContain('ascii-terminal');
+            expect(ids).toContain('ascii-matrix');
+            expect(ids).toContain('ascii-bbs');
+            expect(ids).toContain('ascii-kaomoji');
+            expect(ids).toContain('ascii-starfield');
+            expect(ids).toContain('ascii-skate');
         });
 
-        it('assigns valid categories across all 26 thematic frame designs', () => {
-            const validCategories = ['derby', 'action', 'retro', 'tech', 'cosmic'];
+        it('assigns valid categories across all 35 thematic frame designs', () => {
+            const validCategories = ['derby', 'action', 'retro', 'tech', 'cosmic', 'ascii'];
             for (const frame of STORY_FRAME_DEFINITIONS) {
                 if (frame.id === 'none') {
                     expect(frame.category).toBeUndefined();
@@ -982,11 +991,11 @@ describe('storyCanvas calculations', () => {
 
             const withoutExif = filterFrames(false);
             expect(withoutExif.some((f) => f.id === 'through-the-lens')).toBe(false);
-            expect(withoutExif).toHaveLength(26);
+            expect(withoutExif).toHaveLength(STORY_FRAME_DEFINITIONS.length - 1);
 
             const withExif = filterFrames(true);
             expect(withExif.some((f) => f.id === 'through-the-lens')).toBe(true);
-            expect(withExif).toHaveLength(27);
+            expect(withExif).toHaveLength(STORY_FRAME_DEFINITIONS.length);
         });
 
         it('drawStoryFrameToCanvas safely resolves for none and invalid frames', async () => {

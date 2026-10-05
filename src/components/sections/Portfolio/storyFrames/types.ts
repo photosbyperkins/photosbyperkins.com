@@ -28,9 +28,18 @@ export type StoryFrameId =
     | 'broadcast-live'
     | 'night-vision'
     | 'roller-disco'
-    | 'mystic-tarot';
+    | 'mystic-tarot'
+    | 'hearts'
+    | 'rainbows'
+    | 'sol'
+    | 'ascii-terminal'
+    | 'ascii-matrix'
+    | 'ascii-bbs'
+    | 'ascii-kaomoji'
+    | 'ascii-starfield'
+    | 'ascii-skate';
 
-export type StoryFrameCategory = 'derby' | 'action' | 'retro' | 'tech' | 'cosmic';
+export type StoryFrameCategory = 'derby' | 'action' | 'retro' | 'tech' | 'cosmic' | 'ascii';
 
 export type StoryFrameFilterCategory = StoryFrameCategory | 'all' | 'recent';
 
@@ -48,6 +57,7 @@ export const STORY_FRAME_CATEGORIES: StoryFrameCategoryMeta[] = [
     { id: 'retro', label: 'Retro', vibe: 'Analog film, VHS, riso & 80s nostalgia' },
     { id: 'tech', label: 'Tech', vibe: 'Viewfinders, live EXIF & broadcast telemetry' },
     { id: 'cosmic', label: 'Cosmic', vibe: 'Celestial, disco, stars & fantasy' },
+    { id: 'ascii', label: 'ASCII', vibe: 'Terminal glyphs, ANSI colour & text-mode art' },
 ];
 
 export type StoryFrameColorChoice = 'signature' | 'white' | 'gold' | 'red' | 'custom';

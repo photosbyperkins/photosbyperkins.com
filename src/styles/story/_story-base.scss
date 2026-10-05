@@ -702,22 +702,17 @@
     }
 
     // Category Pills Bar (Shared across Frames, Filters, etc.)
+    // Wraps onto extra rows rather than scrolling horizontally, so every category stays visible.
     &__category-bar {
         display: flex;
+        flex-wrap: wrap;
         gap: 6px;
-        overflow-x: auto;
         padding: 2px 2px 4px 2px;
         margin-bottom: 2px;
-        scrollbar-width: none;
-        -webkit-overflow-scrolling: touch;
         width: 100%;
         max-width: 100%;
         min-width: 0;
         flex: 0 0 auto;
-
-        &::-webkit-scrollbar {
-            display: none;
-        }
 
         @media (max-width: 860px) {
             padding: 2px 0 4px 0;

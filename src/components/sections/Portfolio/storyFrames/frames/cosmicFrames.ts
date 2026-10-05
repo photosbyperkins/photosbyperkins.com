@@ -422,4 +422,250 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
             `;
         }
     ),
+    defineFrame(
+        'hearts',
+        'Hearts',
+        'cosmic',
+        'Layered candy hearts, outline doodles & tiny sparkles',
+        ['#f43f5e', '#f9a8d4', '#fb7185', '#ffffff'],
+        (override, context) => {
+            const red = override || '#f43f5e';
+            const pink = override || '#f9a8d4';
+            const rose = override || '#fb7185';
+            const hasAttribution = context?.hasAttribution ?? true;
+            const hasScoreboard = context?.hasScoreboard ?? true;
+
+            const topY = hasAttribution ? 150 : 100;
+            const bottomY = hasScoreboard ? 1700 : 1790;
+
+            // Unit heart roughly 100 wide, centred on (0,0).
+            const HEART = 'M0,38 C-8,30 -50,4 -50,-20 C-50,-40 -34,-50 -20,-50 C-10,-50 -3,-44 0,-36 C3,-44 10,-50 20,-50 C34,-50 50,-40 50,-20 C50,4 8,30 0,38 Z';
+
+            const solid = (x: number, y: number, s: number, rot: number, col: string) => `
+                <g transform="translate(${x}, ${y}) rotate(${rot}) scale(${s})">
+                    <path d="${HEART}" fill="${col}" />
+                    <path d="M-34,-30 C-30,-40 -20,-42 -14,-38" stroke="#ffffff" stroke-width="5" stroke-linecap="round" fill="none" opacity="0.7" />
+                </g>`;
+
+            const outline = (x: number, y: number, s: number, rot: number, col: string) => `
+                <g transform="translate(${x}, ${y}) rotate(${rot}) scale(${s})">
+                    <path d="${HEART}" fill="none" stroke="${col}" stroke-width="${(4 / s).toFixed(2)}" />
+                </g>`;
+
+            const sparkle = (x: number, y: number, s: number, col: string) => `
+                <g transform="translate(${x}, ${y}) scale(${s})">
+                    <path d="M0,-12 Q1.5,-1.5 12,0 Q1.5,1.5 0,12 Q-1.5,1.5 -12,0 Q-1.5,-1.5 0,-12 Z" fill="${col}" />
+                </g>`;
+
+            const corner = (x: number, y: number, flip: boolean) => `
+                <g transform="translate(${x}, ${y})${flip ? ' scale(-1, 1)' : ''}">
+                    ${solid(0, 0, 1.25, -14, red)}
+                    ${solid(92, -38, 0.7, 12, pink)}
+                    ${solid(70, 62, 0.5, -6, rose)}
+                    ${outline(-6, 108, 0.55, 10, pink)}
+                    ${sparkle(140, 20, 1, '#ffffff')}
+                    ${sparkle(30, -86, 0.7, pink)}
+                </g>`;
+
+            return `
+                <!-- Top Corner Heart Clusters -->
+                ${corner(90, topY, false)}
+                ${corner(990, topY, true)}
+
+                <!-- Side Edge Drifting Hearts -->
+                ${outline(48, 640, 0.35, -12, rose)}
+                ${solid(64, 900, 0.28, 8, pink)}
+                ${outline(40, 1180, 0.3, 14, red)}
+                ${solid(1030, 760, 0.3, -10, rose)}
+                ${outline(1040, 1040, 0.35, 6, pink)}
+                ${solid(1020, 1320, 0.26, -14, red)}
+                ${sparkle(80, 780, 0.6, '#ffffff')}
+                ${sparkle(1000, 1180, 0.6, '#ffffff')}
+
+                <!-- Bottom Corner Hearts -->
+                ${solid(110, bottomY, 0.9, 10, rose)}
+                ${outline(190, bottomY + 60, 0.45, -8, red)}
+                ${solid(970, bottomY, 0.9, -10, red)}
+                ${outline(890, bottomY + 60, 0.45, 8, pink)}
+                ${sparkle(60, bottomY - 80, 0.8, pink)}
+                ${sparkle(1020, bottomY - 80, 0.8, pink)}
+            `;
+        }
+    ),
+    defineFrame(
+        'rainbows',
+        'Rainbows',
+        'cosmic',
+        'Bold striped rainbow arcs, puffy clouds & sunshine',
+        ['#ef4444', '#f97316', '#facc15', '#22c55e', '#3b82f6', '#8b5cf6'],
+        (override, context) => {
+            const bands = override
+                ? [override, override, override, override, override, override]
+                : ['#ef4444', '#f97316', '#facc15', '#22c55e', '#3b82f6', '#8b5cf6'];
+            const sun = override || '#facc15';
+            const hasAttribution = context?.hasAttribution ?? true;
+            const hasScoreboard = context?.hasScoreboard ?? true;
+
+            const topShift = hasAttribution ? 0 : -40;
+            const bottomY = hasScoreboard ? 1720 : 1800;
+
+            // Quarter-circle rainbow anchored at a corner point (cx, cy), outer radius R.
+            // With an override colour, bands alternate opacity so the stripes stay readable.
+            const arc = (cx: number, cy: number, R: number, dirX: 1 | -1, dirY: 1 | -1) => {
+                const w = 18;
+                return bands
+                    .map((col, i) => {
+                        const r = R - i * w;
+                        const sx = cx + dirX * r;
+                        const ey = cy + dirY * r;
+                        const sweep = dirX * dirY > 0 ? 0 : 1;
+                        const op = override ? (i % 2 === 0 ? 1 : 0.55) : 1;
+                        return `<path d="M${sx},${cy} A${r},${r} 0 0,${sweep} ${cx},${ey}" stroke="${col}" stroke-width="${w}" fill="none" opacity="${op}" />`;
+                    })
+                    .join('');
+            };
+
+            const cloud = (x: number, y: number, s: number) => `
+                <g transform="translate(${x}, ${y}) scale(${s})" fill="#ffffff">
+                    <ellipse cx="0" cy="12" rx="62" ry="24" />
+                    <circle cx="-30" cy="0" r="26" />
+                    <circle cx="8" cy="-14" r="34" />
+                    <circle cx="40" cy="2" r="24" />
+                </g>`;
+
+            const rays = Array.from({ length: 10 }, (_, i) => {
+                const a = (i * 36 * Math.PI) / 180;
+                const x1 = (Math.cos(a) * 40).toFixed(1);
+                const y1 = (Math.sin(a) * 40).toFixed(1);
+                const x2 = (Math.cos(a) * 56).toFixed(1);
+                const y2 = (Math.sin(a) * 56).toFixed(1);
+                return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${sun}" stroke-width="6" stroke-linecap="round" />`;
+            }).join('');
+
+            return `
+                <!-- Top-Left Corner Rainbow, clouds capping both ends -->
+                <g transform="translate(0, ${topShift})">
+                    ${arc(-20, -20, 340, 1, 1)}
+                    ${cloud(255, 20, 0.9)}
+                    ${cloud(20, 275, 0.85)}
+                </g>
+
+                <!-- Top-Right Sunshine -->
+                <g transform="translate(980, ${150 + topShift})">
+                    <circle cx="0" cy="0" r="32" fill="${sun}" />
+                    ${rays}
+                </g>
+
+                <!-- Bottom-Right Corner Rainbow, clouds capping both ends -->
+                ${arc(1100, 1940, 340, -1, -1)}
+                ${cloud(825, 1900, 0.9)}
+                ${cloud(1060, 1645, 0.85)}
+
+                <!-- Bottom-Left Cloud -->
+                ${cloud(90, bottomY, 0.6)}
+
+                <!-- Side Edge Mini Clouds -->
+                ${cloud(40, 900, 0.45)}
+                ${cloud(1040, 1150, 0.45)}
+            `;
+        }
+    ),
+    defineFrame(
+        'sol',
+        'Sol',
+        'cosmic',
+        'Big smiling sun, warm rays & sunbeam sparkles',
+        ['#facc15', '#fb923c', '#f97316', '#fda4af'],
+        (override, context) => {
+            const yellow = override || '#facc15';
+            const orange = override || '#fb923c';
+            const deep = override || '#f97316';
+            const blush = override || '#fda4af';
+            const ink = '#7c2d12';
+            const hasAttribution = context?.hasAttribution ?? true;
+            const hasScoreboard = context?.hasScoreboard ?? true;
+
+            const sunY = hasAttribution ? 190 : 150;
+            const bottomY = hasScoreboard ? 1700 : 1790;
+
+            // 16 rays alternating long/short, in two colours.
+            const rays = Array.from({ length: 16 }, (_, i) => {
+                const a = (i * 22.5 * Math.PI) / 180;
+                const long = i % 2 === 0;
+                const r0 = 150;
+                const r1 = long ? 235 : 200;
+                const hw = long ? 0.11 : 0.09;
+                const p = (r: number, da: number) => `${(Math.cos(a + da) * r).toFixed(1)},${(Math.sin(a + da) * r).toFixed(1)}`;
+                return `<polygon points="${p(r0, -hw)} ${p(r1, 0)} ${p(r0, hw)}" fill="${long ? orange : yellow}" />`;
+            }).join('');
+
+            const miniSun = (x: number, y: number, s: number) => `
+                <g transform="translate(${x}, ${y}) scale(${s})">
+                    ${Array.from({ length: 8 }, (_, i) => {
+                        const a = (i * 45 * Math.PI) / 180;
+                        return `<line x1="${(Math.cos(a) * 26).toFixed(1)}" y1="${(Math.sin(a) * 26).toFixed(1)}" x2="${(Math.cos(a) * 38).toFixed(1)}" y2="${(Math.sin(a) * 38).toFixed(1)}" stroke="${orange}" stroke-width="5" stroke-linecap="round" />`;
+                    }).join('')}
+                    <circle cx="0" cy="0" r="20" fill="${yellow}" />
+                    <path d="M-8,4 Q0,11 8,4" stroke="${ink}" stroke-width="2.5" stroke-linecap="round" fill="none" />
+                </g>`;
+
+            const sparkle = (x: number, y: number, s: number, col: string) => `
+                <g transform="translate(${x}, ${y}) scale(${s})">
+                    <path d="M0,-14 Q1.5,-1.5 14,0 Q1.5,1.5 0,14 Q-1.5,1.5 -14,0 Q-1.5,-1.5 0,-14 Z" fill="${col}" />
+                </g>`;
+
+            return `
+                <defs>
+                    <radialGradient id="sol-face" cx="0.4" cy="0.35" r="0.7">
+                        <stop offset="0" stop-color="#fef9c3" />
+                        <stop offset="0.6" stop-color="${yellow}" />
+                        <stop offset="1" stop-color="${orange}" />
+                    </radialGradient>
+                    <radialGradient id="sol-glow" cx="0.5" cy="0.5" r="0.5">
+                        <stop offset="0.5" stop-color="${yellow}" stop-opacity="0.35" />
+                        <stop offset="1" stop-color="${yellow}" stop-opacity="0" />
+                    </radialGradient>
+                </defs>
+
+                <!-- Top-Right Smiling Sun (slightly cropped by the corner) -->
+                <g transform="translate(930, ${sunY})">
+                    <circle cx="0" cy="0" r="300" fill="url(#sol-glow)" />
+                    <g transform="rotate(8)">${rays}</g>
+                    <circle cx="0" cy="0" r="140" fill="url(#sol-face)" stroke="${deep}" stroke-width="5" />
+                    <!-- Happy closed eyes -->
+                    <path d="M-62,-20 Q-44,-42 -26,-20" stroke="${ink}" stroke-width="9" stroke-linecap="round" fill="none" />
+                    <path d="M26,-20 Q44,-42 62,-20" stroke="${ink}" stroke-width="9" stroke-linecap="round" fill="none" />
+                    <!-- Rosy cheeks -->
+                    <ellipse cx="-78" cy="26" rx="24" ry="15" fill="${blush}" opacity="0.75" />
+                    <ellipse cx="78" cy="26" rx="24" ry="15" fill="${blush}" opacity="0.75" />
+                    <!-- Big smile -->
+                    <path d="M-50,30 Q0,92 50,30 Q0,58 -50,30 Z" fill="${ink}" />
+                    <path d="M-22,58 Q0,70 22,58 Q0,64 -22,58 Z" fill="#fb7185" />
+                    <!-- Face shine -->
+                    <path d="M-92,-70 Q-70,-104 -30,-112" stroke="#ffffff" stroke-width="8" stroke-linecap="round" fill="none" opacity="0.6" />
+                </g>
+
+                <!-- Side edge sparkles and light dots -->
+                ${sparkle(60, 560, 0.9, yellow)}
+                ${sparkle(44, 960, 0.6, orange)}
+                ${sparkle(64, 1320, 0.8, yellow)}
+                ${sparkle(1024, 820, 0.7, orange)}
+                ${sparkle(1036, 1180, 0.9, yellow)}
+                <g fill="${yellow}">
+                    <circle cx="38" cy="760" r="4" opacity="0.8" />
+                    <circle cx="70" cy="1140" r="3" opacity="0.7" />
+                    <circle cx="1046" cy="1000" r="4" opacity="0.8" />
+                    <circle cx="1020" cy="1420" r="3" opacity="0.7" />
+                </g>
+
+                <!-- Top-left sparkle and bottom mini suns -->
+                ${sparkle(90, hasAttribution ? 170 : 110, 1.4, yellow)}
+                ${sparkle(170, hasAttribution ? 250 : 190, 0.8, orange)}
+                ${miniSun(110, bottomY, 1.3)}
+                ${miniSun(970, bottomY, 1)}
+                ${sparkle(200, bottomY + 70, 0.9, yellow)}
+                ${sparkle(880, bottomY - 60, 0.9, orange)}
+            `;
+        }
+    ),
 ];
