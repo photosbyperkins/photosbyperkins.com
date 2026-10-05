@@ -61,13 +61,13 @@ describe('TeamFilter', () => {
 
         const links = screen.getAllByRole('link');
         expect(links).toHaveLength(5);
-        // Individual Teams section first, sorted alphabetically:
-        expect(links[0].textContent).toContain('Auburn Gold Diggers');
-        expect(links[1].textContent).toContain('Bruin Trouble');
-        // Leagues & Groups section second, sorted alphabetically:
-        expect(links[2].textContent).toContain('BAD');
-        expect(links[3].textContent).toContain('SRD');
-        expect(links[4].textContent).toContain('WFTDA Sanctioned');
+        // Leagues & Groups section first, sorted alphabetically:
+        expect(links[0].textContent).toContain('BAD');
+        expect(links[1].textContent).toContain('SRD');
+        expect(links[2].textContent).toContain('WFTDA Sanctioned');
+        // Individual Teams section second, sorted alphabetically:
+        expect(links[3].textContent).toContain('Auburn Gold Diggers');
+        expect(links[4].textContent).toContain('Bruin Trouble');
     });
 
     it('renders only Individual Teams category header when only individual teams match', () => {

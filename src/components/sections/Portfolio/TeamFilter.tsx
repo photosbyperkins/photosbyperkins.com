@@ -74,16 +74,16 @@ export default function TeamFilter({ teamSearchQuery, filteredTeams, teamIndexLo
                 <div className="portfolio__team-grid container">
                     {hasResults ? (
                         <>
-                            {individualTeams.length > 0 && (
-                                <>
-                                    <h3 className="portfolio__team-category-header">Individual Teams</h3>
-                                    {individualTeams.map(renderTeamPill)}
-                                </>
-                            )}
                             {leaguesAndGroups.length > 0 && (
                                 <>
                                     <h3 className="portfolio__team-category-header">Leagues &amp; Groups</h3>
                                     {leaguesAndGroups.map(renderTeamPill)}
+                                </>
+                            )}
+                            {individualTeams.length > 0 && (
+                                <>
+                                    <h3 className="portfolio__team-category-header">Individual Teams</h3>
+                                    {individualTeams.map(renderTeamPill)}
                                 </>
                             )}
                         </>
