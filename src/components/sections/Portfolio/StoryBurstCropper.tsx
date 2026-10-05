@@ -60,6 +60,8 @@ interface StoryBurstPanelProps {
     onPanChange: (panelIndex: number, offset: BurstPanOffset) => void;
     onSelectPanel?: (panelIndex: number) => void;
     onSelectEmptyPanel?: (panelIndex: number) => void;
+    onHoverChange?: (panelIndex: number, hovered: boolean) => void;
+    onDragChange?: (panelIndex: number, dragging: boolean) => void;
 }
 
 const StoryBurstPanel: React.FC<StoryBurstPanelProps> = ({
@@ -76,6 +78,8 @@ const StoryBurstPanel: React.FC<StoryBurstPanelProps> = ({
     onPanChange,
     onSelectPanel,
     onSelectEmptyPanel,
+    onHoverChange,
+    onDragChange,
 }) => {
     const panelRef = useRef<HTMLDivElement>(null);
     const imgRef = useRef<HTMLImageElement>(null);
@@ -119,6 +123,7 @@ const StoryBurstPanel: React.FC<StoryBurstPanelProps> = ({
         e.stopPropagation();
         (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
         setIsDragging(true);
+        onDragChange?.(panelIdx, true);
         onSelectPanel?.(panelIdx);
         dragRef.current = { lastX: e.clientX, lastY: e.clientY };
     };
@@ -152,6 +157,7 @@ const StoryBurstPanel: React.FC<StoryBurstPanelProps> = ({
         if (isDragging) {
             e.stopPropagation();
             setIsDragging(false);
+            onDragChange?.(panelIdx, false);
             try {
                 (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
             } catch {
@@ -316,6 +322,8 @@ const StoryBurstPanel: React.FC<StoryBurstPanelProps> = ({
             onTouchCancel={handleTouchEnd}
             onDoubleClick={handleDoubleClick}
             onKeyDown={handleKeyDown}
+            onPointerEnter={() => onHoverChange?.(panelIdx, true)}
+            onPointerLeave={() => onHoverChange?.(panelIdx, false)}
         >
             <div
                 className="story-burst-cropper__image-wrapper"
@@ -367,12 +375,8 @@ const StoryBurstPanel: React.FC<StoryBurstPanelProps> = ({
                 <span className="story-burst-cropper__grid-row story-burst-cropper__grid-row--2" />
             </div>
 
-            {/* Slot badge indicator */}
-            <div className="story-burst-cropper__slot-pill" aria-hidden="true">
-                <span className="story-burst-cropper__slot-name">{slotName}</span>
-                {zoom > 1.05 && <span className="story-burst-cropper__zoom-pill">{zoom.toFixed(1)}x</span>}
-                <span className="story-burst-cropper__pan-hint">Pan/Zoom</span>
-            </div>
+            {/* Slot name accessible text */}
+            <span className="sr-only">{slotName}</span>
 
             {/* Timestamp Pill */}
             {shouldShowTimeStamp && (
@@ -409,6 +413,9 @@ export const StoryBurstCropper: React.FC<StoryBurstCropperProps> = ({
     const slotNames = count === 2 ? DUET_SLOT_NAMES : DEFAULT_SLOT_NAMES;
     const panelAspect = count === 2 ? DUET_PANEL_ASPECT_RATIO : BURST_PANEL_ASPECT_RATIO;
     const panelIndices = count === 2 ? [0, 1] : [0, 1, 2];
+
+    const [draggingPanelIdx, setDraggingPanelIdx] = useState<number | null>(null);
+    const [hoveredPanelIdx, setHoveredPanelIdx] = useState<number | null>(null);
 
     const filterCss = filterId && filterId !== 'none' ? getStoryFilterCss(filterId, filterStrength ?? 1.0) : undefined;
 
@@ -450,6 +457,8 @@ export const StoryBurstCropper: React.FC<StoryBurstCropperProps> = ({
                                 onPanChange={onPanChange}
                                 onSelectPanel={onSelectPanel}
                                 onSelectEmptyPanel={onSelectEmptyPanel}
+                                onDragChange={(idx, dragging) => setDraggingPanelIdx(dragging ? idx : null)}
+                                onHoverChange={(idx, hovered) => setHoveredPanelIdx(hovered ? idx : null)}
                             />
                         );
                     })}
@@ -461,6 +470,38 @@ export const StoryBurstCropper: React.FC<StoryBurstCropperProps> = ({
                     colorOverride={frameColorOverride}
                     context={frameContext}
                 />
+
+                {/* Slot Pills Layer (rendered on top of decorative frame overlay) */}
+                <div className="story-burst-cropper__slot-pills-layer" aria-hidden="true">
+                    {panelIndices.map((panelIdx) => {
+                        const slotName = slotNames[panelIdx];
+                        const src = images[panelIdx];
+                        if (!src) {
+                            return <div key={panelIdx} className="story-burst-cropper__slot-pill-anchor" />;
+                        }
+                        const defZoom = calculateDefaultBurstZoom(1920, 1080, panelAspect);
+                        const pan = panOffsets[panelIdx] || { x: 0.5, y: 0.45, zoom: defZoom };
+                        const zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, pan.zoom ?? defZoom));
+                        const isDragging = draggingPanelIdx === panelIdx;
+                        const isHovered = hoveredPanelIdx === panelIdx;
+
+                        return (
+                            <div key={panelIdx} className="story-burst-cropper__slot-pill-anchor">
+                                <div
+                                    className={`story-burst-cropper__slot-pill${
+                                        isDragging ? ' story-burst-cropper__slot-pill--dragging' : ''
+                                    }${isHovered ? ' story-burst-cropper__slot-pill--hovered' : ''}`}
+                                >
+                                    <span className="story-burst-cropper__slot-name">{slotName}</span>
+                                    {zoom > 1.05 && (
+                                        <span className="story-burst-cropper__zoom-pill">{zoom.toFixed(1)}x</span>
+                                    )}
+                                    <span className="story-burst-cropper__pan-hint">Pan/Zoom</span>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
 
                 {/* Badges Layer */}
                 <StoryBadges badges={badges} theme={theme} onBadgesChange={onBadgesChange} />

@@ -475,4 +475,35 @@ describe('StoryBurstCropper', () => {
             delete (HTMLImageElement.prototype as unknown as Record<string, unknown>).naturalHeight;
         }
     });
+
+    it('renders slot pills in a dedicated overlay layer above the decorative frame overlay', () => {
+        const { container } = render(
+            <StoryBurstCropper
+                images={sampleImages}
+                panOffsets={defaultPanOffsets}
+                onPanChange={mockOnPanChange}
+                frameId="derby-quads"
+            />
+        );
+
+        const frameOverlay = container.querySelector('.story-frame-overlay');
+        expect(frameOverlay).not.toBeNull();
+
+        const slotPillsLayer = container.querySelector('.story-burst-cropper__slot-pills-layer');
+        expect(slotPillsLayer).not.toBeNull();
+
+        // Ensure the slot pills layer is rendered after the frame overlay in DOM order
+        const cropperChildren = Array.from(container.querySelector('.story-burst-cropper')?.children || []);
+        const frameIndex = cropperChildren.indexOf(frameOverlay!);
+        const pillsLayerIndex = cropperChildren.indexOf(slotPillsLayer!);
+
+        expect(frameIndex).toBeGreaterThan(-1);
+        expect(pillsLayerIndex).toBeGreaterThan(frameIndex);
+
+        const pills = slotPillsLayer!.querySelectorAll('.story-burst-cropper__slot-pill');
+        expect(pills.length).toBe(3);
+        expect(pills[0].textContent).toContain('TOP');
+        expect(pills[1].textContent).toContain('MID');
+        expect(pills[2].textContent).toContain('BTM');
+    });
 });
