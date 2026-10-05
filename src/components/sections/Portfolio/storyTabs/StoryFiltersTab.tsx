@@ -85,28 +85,42 @@ export const StoryFiltersTab: React.FC<StoryFiltersTabProps> = ({
                     )}
                 </div>
 
-                {/* Filter Category Pills Bar */}
-                <div className="story-export-modal__category-bar" role="tablist" aria-label="Filter categories">
-                    {STORY_FILTER_CATEGORIES.map((cat) => {
-                        const isCatActive = selectedCategory === cat.id;
-                        const count = categoryCounts[cat.id] ?? 0;
-                        return (
-                            <button
-                                key={cat.id}
-                                type="button"
-                                role="tab"
-                                aria-selected={isCatActive}
-                                className={`story-export-modal__category-pill ${
-                                    isCatActive ? 'story-export-modal__category-pill--active' : ''
-                                }`}
-                                onClick={() => setSelectedCategory(cat.id)}
-                                title={cat.description}
-                            >
-                                <span>{cat.label}</span>
-                                <span className="story-export-modal__category-count">{count}</span>
-                            </button>
-                        );
-                    })}
+                {/* Category Filter Pills: scope row (All / Recent) above the filter categories */}
+                <div
+                    className="story-export-modal__category-bar story-export-modal__category-bar--split"
+                    role="tablist"
+                    aria-label="Filter categories"
+                >
+                    {[
+                        { key: 'scope', cats: STORY_FILTER_CATEGORIES.filter((c) => c.id === 'all' || c.id === 'recent') },
+                        { key: 'themes', cats: STORY_FILTER_CATEGORIES.filter((c) => c.id !== 'all' && c.id !== 'recent') },
+                    ].map((row) => (
+                        <div
+                            key={row.key}
+                            className={`story-export-modal__category-row story-export-modal__category-row--${row.key}`}
+                        >
+                            {row.cats.map((cat) => {
+                                const isCatActive = selectedCategory === cat.id;
+                                const count = categoryCounts[cat.id] ?? 0;
+                                return (
+                                    <button
+                                        key={cat.id}
+                                        type="button"
+                                        role="tab"
+                                        aria-selected={isCatActive}
+                                        className={`story-export-modal__category-pill ${
+                                            isCatActive ? 'story-export-modal__category-pill--active' : ''
+                                        }`}
+                                        onClick={() => setSelectedCategory(cat.id)}
+                                        title={cat.description}
+                                    >
+                                        <span>{cat.label}</span>
+                                        <span className="story-export-modal__category-count">{count}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    ))}
                 </div>
 
                 <div className="story-export-modal__filters-grid">
@@ -146,6 +160,12 @@ export const StoryFiltersTab: React.FC<StoryFiltersTabProps> = ({
                         );
                     })}
                 </div>
+
+                {selectedCategory === 'recent' && (categoryCounts['recent'] ?? 0) === 0 && (
+                    <div className="story-export-modal__empty-recent-hint">
+                        Filters you download or export will appear here for quick access.
+                    </div>
+                )}
             </div>
         </div>
     );

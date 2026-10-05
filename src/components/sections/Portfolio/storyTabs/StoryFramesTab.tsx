@@ -173,28 +173,42 @@ export const StoryFramesTab: React.FC<StoryFramesTabProps> = ({
                     )}
                 </div>
 
-                {/* Category Filter Pills Bar */}
-                <div className="story-export-modal__category-bar" role="tablist" aria-label="Frame categories">
-                    {STORY_FRAME_CATEGORIES.map((cat) => {
-                        const isCatActive = selectedFrameCategory === cat.id;
-                        const count = categoryCounts[cat.id] ?? 0;
-                        return (
-                            <button
-                                key={cat.id}
-                                type="button"
-                                role="tab"
-                                aria-selected={isCatActive}
-                                className={`story-export-modal__category-pill ${
-                                    isCatActive ? 'story-export-modal__category-pill--active' : ''
-                                }`}
-                                onClick={() => setSelectedFrameCategory(cat.id)}
-                                title={cat.vibe}
-                            >
-                                <span>{cat.label}</span>
-                                <span className="story-export-modal__category-count">{count}</span>
-                            </button>
-                        );
-                    })}
+                {/* Category Filter Pills: scope row (All / Recent) above the theme categories */}
+                <div
+                    className="story-export-modal__category-bar story-export-modal__category-bar--split"
+                    role="tablist"
+                    aria-label="Frame categories"
+                >
+                    {[
+                        { key: 'scope', cats: STORY_FRAME_CATEGORIES.filter((c) => c.id === 'all' || c.id === 'recent') },
+                        { key: 'themes', cats: STORY_FRAME_CATEGORIES.filter((c) => c.id !== 'all' && c.id !== 'recent') },
+                    ].map((row) => (
+                        <div
+                            key={row.key}
+                            className={`story-export-modal__category-row story-export-modal__category-row--${row.key}`}
+                        >
+                            {row.cats.map((cat) => {
+                                const isCatActive = selectedFrameCategory === cat.id;
+                                const count = categoryCounts[cat.id] ?? 0;
+                                return (
+                                    <button
+                                        key={cat.id}
+                                        type="button"
+                                        role="tab"
+                                        aria-selected={isCatActive}
+                                        className={`story-export-modal__category-pill ${
+                                            isCatActive ? 'story-export-modal__category-pill--active' : ''
+                                        }`}
+                                        onClick={() => setSelectedFrameCategory(cat.id)}
+                                        title={cat.vibe}
+                                    >
+                                        <span>{cat.label}</span>
+                                        <span className="story-export-modal__category-count">{count}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    ))}
                 </div>
 
                 <div className="story-export-modal__frames-grid">
@@ -231,6 +245,12 @@ export const StoryFramesTab: React.FC<StoryFramesTabProps> = ({
                         );
                     })}
                 </div>
+
+                {selectedFrameCategory === 'recent' && (categoryCounts['recent'] ?? 0) === 0 && (
+                    <div className="story-export-modal__empty-recent-hint">
+                        Frames you download or export will appear here for quick access.
+                    </div>
+                )}
             </div>
         </div>
     );
