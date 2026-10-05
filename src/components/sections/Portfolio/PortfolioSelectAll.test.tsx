@@ -243,4 +243,58 @@ describe('Portfolio Select All visible photos', () => {
             expect(cb.getAttribute('aria-checked')).toBe('true');
         }
     });
+
+    it('selects all visible photos including visible recap slices when recap is present', async () => {
+        vi.stubGlobal(
+            'fetch',
+            vi.fn().mockImplementation((url: string) => {
+                if (url.includes('/data/years/2026.json')) {
+                    return Promise.resolve({
+                        ok: true,
+                        json: async () => ({
+                            events: mockYearData,
+                            recapCount: 3,
+                            recapEvents: [
+                                { eventName: '09.19 Alpha vs Beta', photoIndex: 0 },
+                                { eventName: '09.19 Alpha vs Beta', photoIndex: 1 },
+                                { eventName: '08.22 Gamma vs Delta', photoIndex: 0 },
+                            ],
+                        }),
+                    });
+                }
+                return Promise.resolve({
+                    ok: true,
+                    json: async () => [],
+                });
+            })
+        );
+
+        render(
+            <MemoryRouter initialEntries={['/portfolio/2026']}>
+                <Portfolio years={['2026']} />
+            </MemoryRouter>
+        );
+
+        await waitFor(() => {
+            expect(screen.getByText('Alpha')).toBeDefined();
+        });
+
+        // Enter batch select mode via floating dock button
+        const selectBtn = screen.getByRole('button', { name: /Select Photos/i });
+        fireEvent.click(selectBtn);
+        expect(useAppStore.getState().isBatchSelectMode).toBe(true);
+
+        // Click "Select All" in the BatchActionBar
+        const selectAllBtn = screen.getByRole('button', { name: /^Select All$/i });
+        fireEvent.click(selectAllBtn);
+
+        // All visible checkboxes (10 from events + 3 from recap = 13 total) should be checked
+        await waitFor(() => {
+            const checkboxes = screen.getAllByRole('checkbox');
+            expect(checkboxes.length).toBe(13);
+            for (const cb of checkboxes) {
+                expect(cb.getAttribute('aria-checked')).toBe('true');
+            }
+        });
+    });
 });

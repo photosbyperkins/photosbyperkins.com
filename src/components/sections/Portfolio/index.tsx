@@ -239,6 +239,19 @@ export default function Portfolio({ years }: PortfolioProps) {
     const allSelectablePhotos = useMemo(() => {
         const list: FavoriteStoreItem[] = [];
         const seen = new Set<string>();
+
+        // Include visible recap photos when recap is active
+        const recapPhotos = visiblePhotosMap['__recap__'];
+        if (recapPhotos && recapCount > 0 && !isTeamMode && !isGearRoute) {
+            for (const item of recapPhotos) {
+                const photoRecord = toPhotoRecord(item);
+                if (photoRecord.original && !seen.has(photoRecord.original)) {
+                    seen.add(photoRecord.original);
+                    list.push(item);
+                }
+            }
+        }
+
         for (const [evtName, evtData] of events) {
             const registered = visiblePhotosMap[evtName];
             const photos: FavoriteStoreItem[] =
@@ -270,7 +283,7 @@ export default function Portfolio({ years }: PortfolioProps) {
             }
         }
         return list;
-    }, [events, visiblePhotosMap, selectedTab]);
+    }, [events, visiblePhotosMap, selectedTab, recapCount, isTeamMode, isGearRoute]);
 
     const isAllSelected = useMemo(() => {
         if (allSelectablePhotos.length === 0) return false;

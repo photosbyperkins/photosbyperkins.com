@@ -185,6 +185,8 @@ export default function Recap({
     const batchSelectedPhotos = useAppStore((state) => state.batchSelectedPhotos);
     const toggleBatchPhoto = useAppStore((state) => state.toggleBatchPhoto);
     const selectBatchPhotos = useAppStore((state) => state.selectBatchPhotos);
+    const registerVisiblePhotos = useAppStore((state) => state.registerVisiblePhotos);
+    const unregisterVisiblePhotos = useAppStore((state) => state.unregisterVisiblePhotos);
 
     const effectiveSelectMode = isSelectModeProp !== undefined ? isSelectModeProp : isBatchSelectMode;
 
@@ -386,6 +388,29 @@ export default function Recap({
         slicesComputeCache.set(cacheKey, result);
         return result;
     }, [slug, visibleCount, count, events]);
+
+    const visibleRecapPhotos = useMemo(() => {
+        if (!events || slices.length === 0) return [];
+        const result: FavoriteStoreItem[] = [];
+        for (const sliceNumber of slices) {
+            const eventIdx = sliceNumber - 1;
+            const meta = events[eventIdx];
+            const p = getSlicePhoto(meta);
+            if (p && p.original) {
+                result.push(p);
+            }
+        }
+        return result;
+    }, [slices, events, getSlicePhoto]);
+
+    useEffect(() => {
+        if (visibleRecapPhotos.length > 0) {
+            registerVisiblePhotos('__recap__', visibleRecapPhotos);
+        }
+        return () => {
+            unregisterVisiblePhotos('__recap__');
+        };
+    }, [visibleRecapPhotos, registerVisiblePhotos, unregisterVisiblePhotos]);
 
     const lastSelectedIdxRef = useRef<number | null>(null);
 
