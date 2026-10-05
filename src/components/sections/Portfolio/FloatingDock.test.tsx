@@ -25,6 +25,15 @@ vi.mock('framer-motion', () => ({
                 {children}
             </aside>
         ),
+        article: ({
+            children,
+            className,
+            ...props
+        }: React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }) => (
+            <article className={className} {...props}>
+                {children}
+            </article>
+        ),
     },
     AnimatePresence: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
     useInView: () => true,
@@ -132,5 +141,28 @@ describe('Portfolio Cohesive Action Dock', () => {
 
         const selectBtn = document.querySelector('.portfolio__dock-btn--select');
         expect(selectBtn?.classList.contains('portfolio__dock-btn--has-selection')).toBe(true);
+    });
+
+    it('renders the floating dock on YOUR FAVORITES tab (/portfolio/favorites)', () => {
+        useAppStore.setState({
+            favorites: [
+                { original: '/photos/2026/fav1.jpg', thumb: '/photos/2026/fav1.jpg', eventName: 'Match 1', year: '2026' },
+            ],
+        });
+
+        render(
+            <MemoryRouter initialEntries={['/portfolio/favorites']}>
+                <Portfolio years={['2026']} />
+            </MemoryRouter>
+        );
+
+        const dock = document.querySelector('.portfolio__floating-dock');
+        expect(dock).not.toBeNull();
+
+        const searchBtn = screen.getByRole('button', { name: /Open Search/i });
+        expect(searchBtn).toBeDefined();
+
+        const selectBtn = screen.getByRole('button', { name: /Select Photos/i });
+        expect(selectBtn).toBeDefined();
     });
 });

@@ -169,7 +169,7 @@ export default function Portfolio({ years }: PortfolioProps) {
                     e.preventDefault();
                     setIsBatchSelectMode(false);
                 }
-            } else if (!isGlobalSearchOpen && !isLightboxOpen && selectedTab !== 'favorites') {
+            } else if (!isGlobalSearchOpen && !isLightboxOpen) {
                 if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
                     e.preventDefault();
                     ensureIndexesLoaded();
@@ -546,7 +546,7 @@ export default function Portfolio({ years }: PortfolioProps) {
             </Suspense>
 
             <AnimatePresence mode="wait">
-                {!isGlobalSearchOpen && !isBatchSelectMode && selectedTab !== 'favorites' && !isNearFooter && (
+                {!isGlobalSearchOpen && !isBatchSelectMode && !isNearFooter && (
                     <motion.div
                         key="portfolio-floating-dock"
                         className="portfolio__floating-dock"
