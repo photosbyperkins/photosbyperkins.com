@@ -85,6 +85,36 @@ describe('eventTransforms', () => {
             expect(featured[0].original).toBe('/photos/match_002.jpg');
             expect(featured[1].original).toBe('/photos/match_005.jpg');
         });
+
+        it('merges full album metadata including EXIF into highlight photos', () => {
+            const albumWithExif: PhotoRecord[] = [
+                {
+                    original: '/photos/match_001.jpg',
+                    thumb: '/photos/match_001_t.jpg',
+                    width: 3072,
+                    height: 2048,
+                    exif: {
+                        cameraModel: 'NIKON Z 8',
+                        lens: '135mm Plena',
+                    },
+                },
+            ];
+            const highlightWithoutExif: PhotoRecord[] = [
+                {
+                    original: '/photos/match_001.jpg',
+                    thumb: '/photos/match_001_t.jpg',
+                },
+            ];
+
+            const featured = computeFeaturedPhotos(albumWithExif, highlightWithoutExif, 1);
+            expect(featured).toHaveLength(1);
+            expect(featured[0].exif).toEqual({
+                cameraModel: 'NIKON Z 8',
+                lens: '135mm Plena',
+            });
+            expect(featured[0].width).toBe(3072);
+            expect(featured[0].height).toBe(2048);
+        });
     });
 
     describe('buildAlbumIndexMap', () => {

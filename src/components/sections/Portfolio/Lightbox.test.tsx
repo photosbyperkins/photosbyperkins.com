@@ -30,8 +30,8 @@ vi.mock('framer-motion', async (importOriginal) => {
 
 describe('Lightbox', () => {
     const mockImages: PhotoInput[] = [
-        { original: '/photos/photo_01.jpg', thumb: '/photos/photo_01_thumb.jpg', exif: 'Nikon Z8' },
-        { original: '/photos/photo_02.jpg', thumb: '/photos/photo_02_thumb.jpg', exif: 'Nikon 70-200mm' },
+        { original: '/photos/photo_01.jpg', thumb: '/photos/photo_01_thumb.jpg', exif: { cameraModel: 'Nikon Z8' } },
+        { original: '/photos/photo_02.jpg', thumb: '/photos/photo_02_thumb.jpg', exif: { lens: 'Nikon 70-200mm' } },
         { original: '/photos/photo_03.jpg', thumb: '/photos/photo_03_thumb.jpg' },
     ];
 

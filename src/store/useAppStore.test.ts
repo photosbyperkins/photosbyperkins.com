@@ -176,6 +176,29 @@ describe('useAppStore - favorites batch actions', () => {
         expect(useAppStore.getState().favorites).toHaveLength(1);
         expect(getPhotoOriginalUrl(useAppStore.getState().favorites[0])).toBe('/photos/2026/game/photo_002.jpg');
     });
+
+    it('enriches added favorites with EXIF from cached album', async () => {
+        const { setCachedAlbum, _clearAlbumCache } = await import('../utils/albumData');
+        _clearAlbumCache();
+        setCachedAlbum('2026', 'game', [
+            {
+                original: '/photos/2026/game/photo_001.jpg',
+                thumb: '/photos/2026/game/photo_001_thumb.jpg',
+                exif: {
+                    cameraModel: 'NIKON Z 8',
+                    lens: '135mm Plena',
+                },
+            },
+        ]);
+
+        useAppStore.getState().toggleFavorite(photoA);
+        const fav = useAppStore.getState().favorites[0] as import('../types').PhotoRecord;
+        expect(fav.exif).toEqual({
+            cameraModel: 'NIKON Z 8',
+            lens: '135mm Plena',
+        });
+        _clearAlbumCache();
+    });
 });
 
 describe('useAppStore - visiblePhotos registration', () => {

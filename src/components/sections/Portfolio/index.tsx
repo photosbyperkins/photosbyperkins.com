@@ -15,6 +15,7 @@ import { buildEventRows, getSeasonHighlights } from '../../../utils/portfolioTra
 import { computeFeaturedPhotos } from '../../../utils/eventTransforms';
 import { buildFavoritesShareUrl } from '../../../utils/favoritesUrl';
 import { getPhotoOriginalUrl, toPhotoRecord } from '../../../utils/formatters';
+import { getCachedAlbum } from '../../../utils/albumData';
 import { GEAR_REGISTRY } from '../../../data/gearData';
 import type { PhotoRecord, FavoriteStoreItem, EventScore } from '../../../types';
 import Recap from '../Recap';
@@ -254,24 +255,27 @@ export default function Portfolio({ years }: PortfolioProps) {
 
         for (const [evtName, evtData] of events) {
             const registered = visiblePhotosMap[evtName];
+            const year = evtData.originalYear || selectedTab;
+            const cachedAlbum = evtData.albumSlug ? getCachedAlbum(year, evtData.albumSlug) : undefined;
+            const fullAlbum = evtData.album && evtData.album.length > 0 ? evtData.album : cachedAlbum;
             const photos: FavoriteStoreItem[] =
                 registered ??
-                (evtData.album && evtData.album.length > 0
-                    ? evtData.album.map((item) => {
+                (fullAlbum && fullAlbum.length > 0
+                    ? fullAlbum.map((item) => {
                           const p = toPhotoRecord(item as FavoriteStoreItem);
                           return {
                               ...p,
                               eventName: evtName,
-                              year: evtData.originalYear || selectedTab,
+                              year,
                           };
                       })
                     : computeFeaturedPhotos(
-                          [],
+                          (fullAlbum || []).map((p) => toPhotoRecord(p as FavoriteStoreItem)),
                           (evtData.highlights || []).map((h) => toPhotoRecord(h as FavoriteStoreItem))
                       ).map((p) => ({
                           ...p,
                           eventName: evtName,
-                          year: evtData.originalYear || selectedTab,
+                          year,
                       })));
 
             for (const item of photos) {

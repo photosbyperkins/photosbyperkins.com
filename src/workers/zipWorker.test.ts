@@ -23,7 +23,7 @@ describe('zipWorker', () => {
     it('processes batch of images, reports progress, and emits done with zip blob', async () => {
         const dummyBytes = new Uint8Array([1, 2, 3, 4]);
 
-        globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {
+        globalThis.fetch = vi.fn().mockImplementation(async () => {
             return {
                 ok: true,
                 arrayBuffer: async () => dummyBytes.buffer,

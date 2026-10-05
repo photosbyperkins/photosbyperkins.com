@@ -705,6 +705,7 @@ export function useStoryStudio({
         const attrPos = badges.attributionPosition || DEFAULT_ATTRIBUTION_POSITION;
         if (sbPos.startsWith('top') === attrPos.startsWith('top')) {
             const resolved = resolveBadgeCollision({ scoreboard: sbPos, attribution: attrPos }, 'scoreboard');
+            // eslint-disable-next-line react-hooks/set-state-in-effect
             setBadges((prev) => ({
                 ...prev,
                 scoreboardPosition: resolved.scoreboard,

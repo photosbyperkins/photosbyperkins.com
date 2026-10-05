@@ -1,7 +1,8 @@
 import { X, Download, Share2, HelpCircle, StoryCropIcon } from '../../ui/icons';
 import type { PhotoInput } from '../../../types';
-import { getPhotoDisplayUrl, formatCameraModel } from '../../../utils/formatters';
+import { getPhotoDisplayUrl, formatCameraModel, resolvePhotoInput, getPhotoOriginalUrl } from '../../../utils/formatters';
 import { triggerPhotoDownload } from '../../../utils/build';
+import { getCachedAlbum } from '../../../utils/albumData';
 
 interface LightboxHeaderProps {
     images: PhotoInput[];
@@ -26,17 +27,42 @@ export default function LightboxHeader({
     onToggleHelp,
     onOpenStoryExport,
 }: LightboxHeaderProps) {
-    const currentPhoto = images[index];
-    const exif = typeof currentPhoto === 'object' ? currentPhoto.exif : null;
+    const resolvedPhoto = resolvePhotoInput(images[index]);
+    let exif = typeof resolvedPhoto === 'object' && resolvedPhoto !== null ? resolvedPhoto.exif : null;
+    if (!exif) {
+        const originalUrl = getPhotoOriginalUrl(images[index]);
+        if (originalUrl) {
+            const match = originalUrl.match(/\/photos\/(\d{4})\/([^/]+)\//);
+            if (match) {
+                const cached = getCachedAlbum(match[1], match[2]);
+                const found = cached?.find((p) => p.original === originalUrl);
+                if (found?.exif) {
+                    exif = found.exif;
+                }
+            }
+        }
+    }
 
     // Determine if any photo in the album has EXIF (so we know whether to show a placeholder)
-    const albumHasExif = images.some((img) => typeof img === 'object' && img.exif);
+    const albumHasExif = images.some((img) => {
+        const p = resolvePhotoInput(img);
+        if (typeof p === 'object' && p !== null && p.exif) return true;
+        const originalUrl = getPhotoOriginalUrl(img);
+        if (originalUrl) {
+            const match = originalUrl.match(/\/photos\/(\d{4})\/([^/]+)\//);
+            if (match) {
+                const cached = getCachedAlbum(match[1], match[2]);
+                const found = cached?.find((photo) => photo.original === originalUrl);
+                if (found?.exif) return true;
+            }
+        }
+        return false;
+    });
 
     const handleDownload = (e: React.MouseEvent) => {
         e.stopPropagation();
-        const obj = images[index];
-        if (!obj) return;
-        const src = typeof obj === 'string' ? obj : obj.original;
+        const src = getPhotoOriginalUrl(images[index]);
+        if (!src) return;
         triggerPhotoDownload(src);
     };
 
@@ -46,8 +72,8 @@ export default function LightboxHeader({
             const shareUrl = `${window.location.origin}/portfolio/${encodeURIComponent(year)}/${encodeURIComponent(eventName)}/${index}`;
 
             try {
-                const obj = images[index];
-                const originalSrc = typeof obj === 'string' ? obj : obj.original;
+                const originalSrc = getPhotoOriginalUrl(images[index]);
+                if (!originalSrc) return;
                 const displaySrc = getPhotoDisplayUrl(originalSrc);
                 const filename = displaySrc.split('/').pop() || 'photo.avif';
                 const response = await fetch(displaySrc);

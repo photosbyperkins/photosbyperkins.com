@@ -258,6 +258,49 @@ describe('usePortfolioData', () => {
         expect(result.current.yearData.Favorites.album).toHaveLength(2);
     });
 
+    it('enriches favorite photos with EXIF from cached album data', async () => {
+        const { setCachedAlbum, _clearAlbumCache } = await import('../utils/albumData');
+        _clearAlbumCache();
+        setCachedAlbum('2024', 'game', [
+            {
+                original: '/photos/2024/game/photo_001.jpg',
+                thumb: '/thumbnails/2024/game/photo_001.avif',
+                exif: {
+                    cameraModel: 'NIKON Z 8',
+                    lens: '135mm Plena',
+                },
+            },
+        ]);
+
+        const favWithoutExif: FavoriteStoreItem = {
+            eventName: '10.20 Championship',
+            year: '2024',
+            original: '/photos/2024/game/photo_001.jpg',
+            thumb: '/thumbnails/2024/game/photo_001.avif',
+        };
+
+        useAppStore.setState({
+            favorites: [favWithoutExif],
+            lightbox: { isOpen: false, index: 0, images: [], eventName: '', year: '' },
+        });
+
+        const { result } = renderHook(() =>
+            usePortfolioData({
+                selectedTab: 'favorites',
+                years,
+            })
+        );
+
+        const album = result.current.yearData.Favorites.album;
+        expect(album).toHaveLength(1);
+        const photoRecord = album[0] as import('../types').PhotoRecord;
+        expect(photoRecord.exif).toEqual({
+            cameraModel: 'NIKON Z 8',
+            lens: '135mm Plena',
+        });
+        _clearAlbumCache();
+    });
+
     it('prefetches a tab into cache in the background', async () => {
         const { result } = renderHook(() =>
             usePortfolioData({

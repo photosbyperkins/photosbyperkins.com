@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import {
-    BURST_PANEL_ASPECT_RATIO,
     DUET_PANEL_ASPECT_RATIO,
     calculateDefaultBurstZoom,
     calculateBurstPanelCrop,

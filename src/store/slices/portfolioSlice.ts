@@ -1,5 +1,6 @@
 import type { StateCreator } from 'zustand';
-import { getPhotoOriginalUrl } from '../../utils/formatters';
+import { getPhotoOriginalUrl, toPhotoRecord } from '../../utils/formatters';
+import { getCachedAlbum } from '../../utils/albumData';
 import type { PhotoInput, FavoriteStoreItem, SharedPhotoState, EventScore } from '../../types';
 
 export interface PortfolioSlice {
@@ -57,6 +58,41 @@ export const extractLegacyFavorites = (): FavoriteStoreItem[] => {
         // ignore
     }
     return [];
+};
+
+const enrichWithCachedExif = (item: FavoriteStoreItem): FavoriteStoreItem => {
+    const record = toPhotoRecord(item);
+    if (!record.exif && record.original) {
+        const match = record.original.match(/\/photos\/(\d{4})\/([^/]+)\//);
+        if (match) {
+            const cached = getCachedAlbum(match[1], match[2]);
+            const found = cached?.find((p) => p.original === record.original);
+            if (found?.exif) {
+                if (typeof item === 'object' && item !== null && 'photo' in item) {
+                    return {
+                        ...item,
+                        photo: {
+                            ...(typeof item.photo === 'string'
+                                ? { original: item.photo, thumb: item.photo }
+                                : item.photo),
+                            exif: found.exif,
+                            width: (typeof item.photo === 'object' && item.photo.width) || found.width,
+                            height: (typeof item.photo === 'object' && item.photo.height) || found.height,
+                            burst: (typeof item.photo === 'object' && item.photo.burst) || found.burst,
+                        },
+                    };
+                }
+                return {
+                    ...record,
+                    exif: found.exif,
+                    width: record.width ?? found.width,
+                    height: record.height ?? found.height,
+                    burst: record.burst ?? found.burst,
+                };
+            }
+        }
+    }
+    return item;
 };
 
 export const createPortfolioSlice: StateCreator<PortfolioSlice, [], [], PortfolioSlice> = (set) => ({
@@ -154,14 +190,16 @@ export const createPortfolioSlice: StateCreator<PortfolioSlice, [], [], Portfoli
                     favorites: state.favorites.filter((f) => getPhotoOriginalUrl(f) !== photoOriginal),
                 };
             } else {
-                return { favorites: [...state.favorites, item] };
+                return { favorites: [...state.favorites, enrichWithCachedExif(item)] };
             }
         }),
 
     addFavorites: (items) =>
         set((state) => {
             const existingUrls = new Set(state.favorites.map((f) => getPhotoOriginalUrl(f)));
-            const newItems = items.filter((item) => !existingUrls.has(getPhotoOriginalUrl(item)));
+            const newItems = items
+                .filter((item) => !existingUrls.has(getPhotoOriginalUrl(item)))
+                .map(enrichWithCachedExif);
             if (newItems.length === 0) return state;
             return { favorites: [...state.favorites, ...newItems] };
         }),

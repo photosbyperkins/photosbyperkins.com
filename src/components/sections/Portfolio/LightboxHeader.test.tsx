@@ -83,4 +83,108 @@ describe('LightboxHeader', () => {
         fireEvent.click(closeBtn);
         expect(onClose).toHaveBeenCalledTimes(1);
     });
+
+    it('displays camera model and EXIF data when photo is a wrapped FavoriteItem', () => {
+        const wrappedFavorite = {
+            photo: {
+                original: '/photos/2024/game/photo_001.jpg',
+                thumb: '/thumbnails/2024/game/photo_001.avif',
+                exif: {
+                    cameraModel: 'NIKON Z 8',
+                    lens: '135mm f/1.8 Plena',
+                    focalLength: '135mm',
+                    aperture: 'f/1.8',
+                    shutterSpeed: '1/2500s',
+                    iso: 'ISO 3200',
+                },
+            },
+            eventName: 'Championship Match',
+            year: '2024',
+        };
+
+        render(
+            <LightboxHeader
+                images={[wrappedFavorite as unknown as PhotoRecord]}
+                index={0}
+                canShare={false}
+                onClose={vi.fn()}
+            />
+        );
+
+        expect(screen.getByText('NIKON Z 8 • 135mm f/1.8 Plena')).toBeDefined();
+        expect(screen.getByText('135mm • f/1.8 • 1/2500s • ISO 3200')).toBeDefined();
+        expect(screen.queryByText('No camera data')).toBeNull();
+    });
+
+    it('resolves EXIF from cached album when current photo lacks EXIF', async () => {
+        const { setCachedAlbum, _clearAlbumCache } = await import('../../../utils/albumData');
+        _clearAlbumCache();
+        setCachedAlbum('2024', 'game', [
+            {
+                original: '/photos/2024/game/photo_001.jpg',
+                thumb: '/thumbnails/2024/game/photo_001.avif',
+                exif: {
+                    cameraModel: 'NIKON D850',
+                    lens: '300mm f/4 PF',
+                    focalLength: '300mm',
+                    aperture: 'f/4.5',
+                    shutterSpeed: '1/1250s',
+                    iso: 'ISO 6400',
+                },
+            },
+        ]);
+
+        const photoWithoutExif: PhotoRecord = {
+            original: '/photos/2024/game/photo_001.jpg',
+            thumb: '/thumbnails/2024/game/photo_001.avif',
+        };
+
+        render(
+            <LightboxHeader
+                images={[photoWithoutExif]}
+                index={0}
+                canShare={false}
+                onClose={vi.fn()}
+            />
+        );
+
+        expect(screen.getByText('NIKON D850 • 300mm f/4 PF')).toBeDefined();
+        expect(screen.getByText('300mm • f/4.5 • 1/1250s • ISO 6400')).toBeDefined();
+        expect(screen.queryByText('No camera data')).toBeNull();
+        _clearAlbumCache();
+    });
+
+    it('displays "No camera data" when album has EXIF but current photo lacks EXIF', () => {
+        const photoWithoutExif: PhotoRecord = {
+            original: '/photos/action2.jpg',
+            thumb: '/photos/action2_thumb.jpg',
+        };
+
+        render(
+            <LightboxHeader
+                images={[photoWithoutExif, standardPhoto]}
+                index={0}
+                canShare={false}
+                onClose={vi.fn()}
+            />
+        );
+
+        expect(screen.getByText('No camera data')).toBeDefined();
+    });
+
+    it('renders no EXIF container when no photo in album has EXIF', () => {
+        const photoWithoutExif1: PhotoRecord = { original: '/photos/1.jpg', thumb: '/photos/1_t.jpg' };
+        const photoWithoutExif2: PhotoRecord = { original: '/photos/2.jpg', thumb: '/photos/2_t.jpg' };
+
+        render(
+            <LightboxHeader
+                images={[photoWithoutExif1, photoWithoutExif2]}
+                index={0}
+                canShare={false}
+                onClose={vi.fn()}
+            />
+        );
+
+        expect(screen.queryByText('No camera data')).toBeNull();
+    });
 });

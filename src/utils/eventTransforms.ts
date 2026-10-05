@@ -49,11 +49,22 @@ export function computeFeaturedPhotos(
 ): PhotoRecord[] {
     let photos: PhotoRecord[] = [...highlightImages];
 
-    // Build Set of album URLs for O(n) filtering
-    const albumUrlSet = new Set(albumImages.map((ai) => ai.original));
+    const albumMap = new Map(albumImages.map((ai) => [ai.original, ai]));
 
     if (photos.length > 0 && albumImages.length > 0) {
-        photos = photos.filter((h) => albumUrlSet.has(h.original));
+        photos = photos
+            .filter((h) => albumMap.has(h.original))
+            .map((h) => {
+                const full = albumMap.get(h.original)!;
+                return {
+                    ...full,
+                    ...h,
+                    exif: full.exif || h.exif,
+                    width: full.width ?? h.width,
+                    height: full.height ?? h.height,
+                    burst: full.burst ?? h.burst,
+                };
+            });
     }
 
     if (photos.length === 0) {

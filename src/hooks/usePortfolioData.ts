@@ -1,8 +1,9 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useAppStore } from '../store/useAppStore';
-import { parseEventTitle } from '../utils/formatters';
+import { parseEventTitle, toPhotoRecord } from '../utils/formatters';
+import { fetchAlbum, getCachedAlbum } from '../utils/albumData';
 import { LRUCache } from '../utils/LRUCache';
-import type { YearData, PhotoInput, FavoriteStoreItem, SeasonStats } from '../types';
+import type { YearData, PhotoInput, FavoriteStoreItem, SeasonStats, PhotoRecord } from '../types';
 
 // Module-level cache — persists for the lifetime of the page session with LRU eviction (max 6 seasons).
 // Pre-fetched and actively-fetched year data is stored here so that
@@ -74,10 +75,49 @@ export function usePortfolioData({
     const displayFavorites = isLightboxOpen ? frozenFavorites : favorites;
 
     const isFavoritesTab = selectedTab === 'favorites';
+    const [albumEnrichVersion, setAlbumEnrichVersion] = useState(0);
+
+    useEffect(() => {
+        if (!isFavoritesTab || displayFavorites.length === 0) return;
+        const albumsToFetch = new Set<string>();
+
+        for (const item of displayFavorites) {
+            const record = toPhotoRecord(item);
+            if (!record.exif && record.original) {
+                const match = record.original.match(/\/photos\/(\d{4})\/([^/]+)\//);
+                if (match) {
+                    const year = match[1];
+                    const slug = match[2];
+                    if (!getCachedAlbum(year, slug)) {
+                        albumsToFetch.add(`${year}/${slug}`);
+                    }
+                }
+            }
+        }
+
+        if (albumsToFetch.size === 0) return;
+        let isCancelled = false;
+
+        Promise.allSettled(
+            Array.from(albumsToFetch).map((key) => {
+                const [year, slug] = key.split('/');
+                return fetchAlbum(year, slug);
+            })
+        ).then(() => {
+            if (!isCancelled) {
+                setAlbumEnrichVersion((v) => v + 1);
+            }
+        });
+
+        return () => {
+            isCancelled = true;
+        };
+    }, [isFavoritesTab, displayFavorites]);
 
     // Derive favorites yearData during render instead of cascading useEffect setState
     const favoritesYearData: YearData = useMemo((): YearData => {
         if (!isFavoritesTab) return {};
+        void albumEnrichVersion;
         const sorted = [...displayFavorites].sort((a: FavoriteStoreItem, b: FavoriteStoreItem) => {
             const getTimestamp = (item: FavoriteStoreItem) => {
                 if (!item || typeof item !== 'object' || !('eventName' in item) || !item.eventName) return 0;
@@ -92,14 +132,35 @@ export function usePortfolioData({
             return getTimestamp(b) - getTimestamp(a);
         });
 
+        const enrichPhotoRecordWithExif = (record: PhotoRecord): PhotoRecord => {
+            if (record.exif || !record.original) return record;
+            const match = record.original.match(/\/photos\/(\d{4})\/([^/]+)\//);
+            if (match) {
+                const cached = getCachedAlbum(match[1], match[2]);
+                const found = cached?.find((p) => p.original === record.original);
+                if (found?.exif) {
+                    return {
+                        ...record,
+                        exif: found.exif,
+                        width: record.width ?? found.width,
+                        height: record.height ?? found.height,
+                        burst: record.burst ?? found.burst,
+                    };
+                }
+            }
+            return record;
+        };
+
+        const enrichedAlbum: PhotoInput[] = sorted.map((item) => enrichPhotoRecordWithExif(toPhotoRecord(item)));
+
         return {
             Favorites: {
-                album: sorted as unknown as PhotoInput[],
+                album: enrichedAlbum,
                 highlights: [],
                 date: null,
             },
         };
-    }, [isFavoritesTab, displayFavorites]);
+    }, [isFavoritesTab, displayFavorites, albumEnrichVersion]);
 
     const prevTabRef = useRef(selectedTab);
     useEffect(() => {

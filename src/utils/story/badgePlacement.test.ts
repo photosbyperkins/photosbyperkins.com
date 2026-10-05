@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import type { PhotoRecord } from '../../types';
 import {
     resolveBadgeCoords,
     doRectsOverlap,
@@ -259,7 +260,7 @@ describe('badgePlacement', () => {
     });
 
     describe('arePhotosFromDifferentEvents', () => {
-        const createPhoto = (frameEvents?: string[]): any => ({
+        const createPhoto = (frameEvents?: string[]): PhotoRecord => ({
             original: '/photos/photo1.jpg',
             thumb: '/photos/photo1_thumb.jpg',
             burst: {
