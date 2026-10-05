@@ -750,34 +750,37 @@
             display: inline-flex;
             align-items: center;
             align-self: flex-start;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.12);
             border-radius: 9999px;
             padding: 2px;
             gap: 2px;
             max-width: 100%;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.25);
 
             html[data-theme='light'] & {
-                background: rgba(0, 0, 0, 0.03);
-                border-color: rgba(0, 0, 0, 0.09);
+                background: rgba(0, 0, 0, 0.035);
+                border-color: rgba(0, 0, 0, 0.1);
+                box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
             }
 
             .story-export-modal__category-pill {
                 background: transparent;
                 border: 1px solid transparent;
-                padding: 3px 9px;
+                color: var(--color-text-muted);
                 border-radius: 9999px;
 
-                @media (max-width: 860px) {
-                    padding: 2px 8px;
+                html[data-theme='light'] & {
+                    color: #555566;
                 }
 
-                &:hover {
-                    background: rgba(255, 255, 255, 0.06);
+                &:hover:not(.story-export-modal__category-pill--active) {
+                    background: rgba(255, 255, 255, 0.08);
                     color: var(--color-text);
 
                     html[data-theme='light'] & {
                         background: rgba(0, 0, 0, 0.05);
+                        color: #111118;
                     }
                 }
 
@@ -785,6 +788,14 @@
                     background: var(--color-accent);
                     border-color: var(--color-accent);
                     color: #ffffff;
+                    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35), 0 0 6px var(--color-accent-glow);
+
+                    html[data-theme='light'] & {
+                        background: var(--color-accent);
+                        border-color: var(--color-accent);
+                        color: #ffffff;
+                        box-shadow: 0 1px 3px rgba(230, 0, 0, 0.3);
+                    }
 
                     &:hover {
                         background: var(--color-accent);
@@ -792,16 +803,9 @@
                     }
                 }
             }
-
-            // Keep count badges visible in the scope row across all viewports
-            .story-export-modal__category-count {
-                @media (max-width: 1080px) {
-                    display: inline-block;
-                }
-            }
         }
 
-        // Theme pills share the row width evenly instead of leaving a ragged right edge.
+        // Theme pills wrap naturally, or scroll smoothly on narrow viewports
         &--themes {
             width: 100%;
 
@@ -810,14 +814,16 @@
                 overflow-x: auto;
                 -webkit-overflow-scrolling: touch;
                 scrollbar-width: none;
+                mask-image: linear-gradient(to right, black calc(100% - 24px), transparent 100%);
+                -webkit-mask-image: linear-gradient(to right, black calc(100% - 24px), transparent 100%);
+
                 &::-webkit-scrollbar {
                     display: none;
                 }
             }
 
             .story-export-modal__category-pill {
-                flex: 1 1 auto;
-                justify-content: center;
+                flex: 0 0 auto;
             }
         }
     }
@@ -825,12 +831,14 @@
     &__category-pill {
         display: flex;
         align-items: center;
+        justify-content: center;
         gap: 6px;
-        padding: 4px 10px;
+        min-height: 28px;
+        padding: 3px 10px;
         border-radius: 9999px;
         background: rgba(255, 255, 255, 0.06);
         border: 1px solid rgba(255, 255, 255, 0.12);
-        color: var(--color-text-dim);
+        color: var(--color-text-muted);
         font-family: var(--font-condensed);
         font-size: 0.72rem;
         font-weight: 600;
@@ -840,6 +848,15 @@
         cursor: pointer;
         transition: all var(--transition-fast);
         flex-shrink: 0;
+        box-sizing: border-box;
+        touch-action: manipulation;
+        position: relative;
+
+        html[data-theme='light'] & {
+            background: rgba(0, 0, 0, 0.04);
+            border-color: rgba(0, 0, 0, 0.1);
+            color: #555566;
+        }
 
         @media (max-width: 860px) {
             padding: 3px 8px;
@@ -848,20 +865,33 @@
         }
 
         @media (max-width: 380px) {
-            padding: 3px 5px;
-            font-size: 0.62rem;
+            padding: 3px 6px;
+            font-size: 0.64rem;
             letter-spacing: 0.02em;
         }
 
-        html[data-theme='light'] & {
-            background: rgba(0, 0, 0, 0.04);
-            border-color: rgba(0, 0, 0, 0.1);
+        // Expanded touch target for coarse pointer devices (WCAG 2.5.8 & Apple HIG)
+        @media (pointer: coarse) {
+            &::before {
+                content: '';
+                position: absolute;
+                top: -6px;
+                bottom: -6px;
+                left: 0;
+                right: 0;
+            }
         }
 
-        &:hover {
+        &:hover:not(&--active) {
             color: var(--color-text);
             background: rgba(255, 255, 255, 0.1);
             border-color: rgba(255, 255, 255, 0.2);
+
+            html[data-theme='light'] & {
+                background: rgba(0, 0, 0, 0.06);
+                border-color: rgba(0, 0, 0, 0.16);
+                color: #111118;
+            }
         }
 
         &--active {
@@ -894,16 +924,21 @@
         font-size: 0.65rem;
         padding: 1px 5px;
         border-radius: 9999px;
-        background: rgba(255, 255, 255, 0.1);
-        color: var(--color-text-dim);
+        background: rgba(255, 255, 255, 0.12);
+        color: var(--color-text-muted);
         font-weight: 700;
 
         html[data-theme='light'] & {
             background: rgba(0, 0, 0, 0.08);
+            color: #555566;
         }
 
+        // Hide count badges on themes row on smaller viewports to prevent crowding,
+        // while preserving them in the scope segmented control.
         @media (max-width: 1080px) {
-            display: none;
+            .story-export-modal__category-row--themes & {
+                display: none;
+            }
         }
     }
 

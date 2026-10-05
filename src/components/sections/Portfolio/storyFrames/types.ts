@@ -47,17 +47,18 @@ export interface StoryFrameCategoryMeta {
     id: StoryFrameFilterCategory;
     label: string;
     vibe: string;
+    group?: 'scope' | 'themes';
 }
 
 export const STORY_FRAME_CATEGORIES: StoryFrameCategoryMeta[] = [
-    { id: 'all', label: 'All', vibe: 'All frames' },
-    { id: 'recent', label: 'Recent', vibe: 'Recently downloaded or shared frames' },
-    { id: 'derby', label: 'Derby', vibe: 'Skates, California heritage & track culture' },
-    { id: 'action', label: 'Action', vibe: 'Impact, lightning, flames & kinetics' },
-    { id: 'retro', label: 'Retro', vibe: 'Analog film, VHS, riso & 80s nostalgia' },
-    { id: 'tech', label: 'Tech', vibe: 'Viewfinders, live EXIF & broadcast telemetry' },
-    { id: 'cosmic', label: 'Cosmic', vibe: 'Celestial, disco, stars & fantasy' },
-    { id: 'ascii', label: 'ASCII', vibe: 'Terminal glyphs, ANSI colour & text-mode art' },
+    { id: 'all', label: 'All', vibe: 'All frames', group: 'scope' },
+    { id: 'recent', label: 'Recent', vibe: 'Recently downloaded or shared frames', group: 'scope' },
+    { id: 'derby', label: 'Derby', vibe: 'Skates, California heritage & track culture', group: 'themes' },
+    { id: 'action', label: 'Action', vibe: 'Impact, lightning, flames & kinetics', group: 'themes' },
+    { id: 'retro', label: 'Retro', vibe: 'Analog film, VHS, riso & 80s nostalgia', group: 'themes' },
+    { id: 'tech', label: 'Tech', vibe: 'Viewfinders, live EXIF & broadcast telemetry', group: 'themes' },
+    { id: 'cosmic', label: 'Cosmic', vibe: 'Celestial, disco, stars & fantasy', group: 'themes' },
+    { id: 'ascii', label: 'ASCII', vibe: 'Terminal glyphs, ANSI colour & text-mode art', group: 'themes' },
 ];
 
 export type StoryFrameColorChoice = 'signature' | 'white' | 'gold' | 'red' | 'custom';

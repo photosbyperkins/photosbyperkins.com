@@ -9,6 +9,7 @@ import type {
 import { STORY_FRAME_CATEGORIES } from '../storyFrames/types';
 import { STORY_FRAMES_MAP } from '../storyFrames/frameDefinitions';
 import { triggerHaptic } from '../../../../utils/haptics';
+import { StoryCategoryBar } from './StoryCategoryBar';
 
 interface StoryFramesTabProps {
     activeFrameId: StoryFrameId;
@@ -176,47 +177,16 @@ export const StoryFramesTab: React.FC<StoryFramesTabProps> = ({
                 </div>
 
                 {/* Category Filter Pills: scope row (All / Recent) above the theme categories */}
-                <div
-                    className="story-export-modal__category-bar story-export-modal__category-bar--split"
-                    role="tablist"
-                    aria-label="Frame categories"
-                >
-                    {[
-                        { key: 'scope', cats: STORY_FRAME_CATEGORIES.filter((c) => c.id === 'all' || c.id === 'recent') },
-                        { key: 'themes', cats: STORY_FRAME_CATEGORIES.filter((c) => c.id !== 'all' && c.id !== 'recent') },
-                    ].map((row) => (
-                        <div
-                            key={row.key}
-                            className={`story-export-modal__category-row story-export-modal__category-row--${row.key}`}
-                        >
-                            {row.cats.map((cat) => {
-                                const isCatActive = selectedFrameCategory === cat.id;
-                                const count = categoryCounts[cat.id] ?? 0;
-                                return (
-                                    <button
-                                        key={cat.id}
-                                        type="button"
-                                        role="tab"
-                                        aria-selected={isCatActive}
-                                        className={`story-export-modal__category-pill ${
-                                            isCatActive ? 'story-export-modal__category-pill--active' : ''
-                                        }`}
-                                        onClick={() => {
-                                            triggerHaptic('tick');
-                                            setSelectedFrameCategory(cat.id);
-                                        }}
-                                        title={cat.vibe}
-                                    >
-                                        <span>{cat.label}</span>
-                                        <span className="story-export-modal__category-count">{count}</span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    ))}
-                </div>
+                <StoryCategoryBar<StoryFrameFilterCategory>
+                    categories={STORY_FRAME_CATEGORIES}
+                    selectedCategory={selectedFrameCategory}
+                    onSelectCategory={setSelectedFrameCategory}
+                    categoryCounts={categoryCounts}
+                    ariaLabel="Frame categories"
+                    controlsId="story-export-frames-grid"
+                />
 
-                <div className="story-export-modal__frames-grid">
+                <div id="story-export-frames-grid" className="story-export-modal__frames-grid">
                     {displayedFrames.map((frame) => {
                         const isSelected = activeFrameId === frame.id;
                         return (

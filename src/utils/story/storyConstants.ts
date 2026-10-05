@@ -163,15 +163,16 @@ export interface StoryPhotoFilterCategoryMeta {
     id: StoryPhotoFilterTabCategory;
     label: string;
     description: string;
+    group?: 'scope' | 'themes';
 }
 
 export const STORY_FILTER_CATEGORIES: StoryPhotoFilterCategoryMeta[] = [
-    { id: 'all', label: 'All', description: 'All photo filters' },
-    { id: 'recent', label: 'Recent', description: 'Recently downloaded or shared filters' },
-    { id: 'classic', label: 'Classic', description: 'Monochrome, vintage, and essential tone grades' },
-    { id: 'cinematic', label: 'Cinematic', description: 'Analog film stocks and cinematic color grades' },
-    { id: 'selective', label: 'Pop', description: 'Selective color pop on monochrome backgrounds' },
-    { id: 'stylized', label: 'Stylized', description: 'Neon glow and bold graphic duotones' },
+    { id: 'all', label: 'All', description: 'All photo filters', group: 'scope' },
+    { id: 'recent', label: 'Recent', description: 'Recently downloaded or shared filters', group: 'scope' },
+    { id: 'classic', label: 'Classic', description: 'Monochrome, vintage, and essential tone grades', group: 'themes' },
+    { id: 'cinematic', label: 'Cinematic', description: 'Analog film stocks and cinematic color grades', group: 'themes' },
+    { id: 'selective', label: 'Pop', description: 'Selective color pop on monochrome backgrounds', group: 'themes' },
+    { id: 'stylized', label: 'Stylized', description: 'Neon glow and bold graphic duotones', group: 'themes' },
 ];
 
 export interface StoryPhotoFilter {

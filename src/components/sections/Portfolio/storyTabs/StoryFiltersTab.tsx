@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import type { StoryPhotoFilter, StoryPhotoFilterId, StoryPhotoFilterTabCategory } from '../../../../utils/storyCanvas';
 import { STORY_FILTER_CATEGORIES, STORY_PHOTO_FILTERS, STORY_PHOTO_FILTERS_MAP } from '../../../../utils/storyCanvas';
 import { triggerHaptic, triggerScrubberHaptic } from '../../../../utils/haptics';
+import { StoryCategoryBar } from './StoryCategoryBar';
 
 interface StoryFiltersTabProps {
     activeFilterId: StoryPhotoFilterId;
@@ -88,47 +89,16 @@ export const StoryFiltersTab: React.FC<StoryFiltersTabProps> = ({
                 </div>
 
                 {/* Category Filter Pills: scope row (All / Recent) above the filter categories */}
-                <div
-                    className="story-export-modal__category-bar story-export-modal__category-bar--split"
-                    role="tablist"
-                    aria-label="Filter categories"
-                >
-                    {[
-                        { key: 'scope', cats: STORY_FILTER_CATEGORIES.filter((c) => c.id === 'all' || c.id === 'recent') },
-                        { key: 'themes', cats: STORY_FILTER_CATEGORIES.filter((c) => c.id !== 'all' && c.id !== 'recent') },
-                    ].map((row) => (
-                        <div
-                            key={row.key}
-                            className={`story-export-modal__category-row story-export-modal__category-row--${row.key}`}
-                        >
-                            {row.cats.map((cat) => {
-                                const isCatActive = selectedCategory === cat.id;
-                                const count = categoryCounts[cat.id] ?? 0;
-                                return (
-                                    <button
-                                        key={cat.id}
-                                        type="button"
-                                        role="tab"
-                                        aria-selected={isCatActive}
-                                        className={`story-export-modal__category-pill ${
-                                            isCatActive ? 'story-export-modal__category-pill--active' : ''
-                                        }`}
-                                        onClick={() => {
-                                            triggerHaptic('tick');
-                                            setSelectedCategory(cat.id);
-                                        }}
-                                        title={cat.description}
-                                    >
-                                        <span>{cat.label}</span>
-                                        <span className="story-export-modal__category-count">{count}</span>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    ))}
-                </div>
+                <StoryCategoryBar<StoryPhotoFilterTabCategory>
+                    categories={STORY_FILTER_CATEGORIES}
+                    selectedCategory={selectedCategory}
+                    onSelectCategory={setSelectedCategory}
+                    categoryCounts={categoryCounts}
+                    ariaLabel="Filter categories"
+                    controlsId="story-export-filters-grid"
+                />
 
-                <div className="story-export-modal__filters-grid">
+                <div id="story-export-filters-grid" className="story-export-modal__filters-grid">
                     {displayedFilters.map((filter) => {
                         const isSelected = activeFilterId === filter.id;
                         return (
