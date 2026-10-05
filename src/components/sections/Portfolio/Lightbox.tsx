@@ -71,6 +71,7 @@ export default function Lightbox({
 
     const checkIfFavorite = useCallback(
         (photo: PhotoInput) => {
+            if (!photo) return false;
             const src = typeof photo === 'string' ? photo : photo?.original;
             return src ? favoriteUrlsSet.has(src) : false;
         },
@@ -78,6 +79,7 @@ export default function Lightbox({
     );
 
     const getThumbSrc = useCallback((photo: PhotoInput) => {
+        if (!photo) return undefined;
         const url = typeof photo === 'string' ? photo : photo?.thumb || photo?.original;
         return url ? withBuild(url) : undefined;
     }, []);
@@ -105,6 +107,7 @@ export default function Lightbox({
      *  falls back to individual thumbnails for Favorites/mixed views. */
     const getAmbientBg = useCallback(
         (photo: PhotoInput): React.CSSProperties => {
+            if (!photo) return {};
             if (spriteUrl && typeof photo !== 'string' && photo.spriteIndex != null) {
                 const SCRUBBER_COLUMNS = 200;
                 const totalCols = Math.min(images.length, SCRUBBER_COLUMNS);

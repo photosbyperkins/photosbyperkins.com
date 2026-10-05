@@ -7,24 +7,28 @@ export default function PwaStatusToast() {
     const [showBackOnline, setShowBackOnline] = useState(false);
 
     useEffect(() => {
+        let timer: ReturnType<typeof setTimeout> | null = null;
+
         const handleOffline = () => {
+            if (timer) clearTimeout(timer);
             setIsOffline(true);
             setShowBackOnline(false);
         };
 
         const handleOnline = () => {
+            if (timer) clearTimeout(timer);
             setIsOffline(false);
             setShowBackOnline(true);
-            const timer = setTimeout(() => {
+            timer = setTimeout(() => {
                 setShowBackOnline(false);
             }, 3000);
-            return () => clearTimeout(timer);
         };
 
         window.addEventListener('offline', handleOffline);
         window.addEventListener('online', handleOnline);
 
         return () => {
+            if (timer) clearTimeout(timer);
             window.removeEventListener('offline', handleOffline);
             window.removeEventListener('online', handleOnline);
         };

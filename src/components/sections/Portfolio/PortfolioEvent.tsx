@@ -178,7 +178,12 @@ const PortfolioEvent = memo(function PortfolioEvent({
                 scrollToElement(elementId);
             }
 
-            if (sharedPhoto.photoIndex !== undefined) {
+            if (
+                sharedPhoto.photoIndex !== undefined &&
+                !isNaN(sharedPhoto.photoIndex) &&
+                albumImages.length > 0
+            ) {
+                const safeIndex = Math.max(0, Math.min(albumImages.length - 1, sharedPhoto.photoIndex));
                 const scorePayload =
                     ev.localScore ||
                     (ev.wftdaMatch
@@ -186,7 +191,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
                         : undefined);
                 openLightbox(
                     albumImages,
-                    sharedPhoto.photoIndex,
+                    safeIndex,
                     eventName,
                     selectedYear,
                     ev.maxExifChars,

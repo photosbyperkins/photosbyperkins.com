@@ -74,7 +74,8 @@ export function usePortfolioRoute({ years }: UsePortfolioRouteOptions): Portfoli
     // Deep link photo hydration
     useEffect(() => {
         if (initialYear && initialEvent && (years.includes(initialYear) || isTeamRoute || isGearRoute)) {
-            const index = initialPhoto ? parseInt(initialPhoto, 10) : undefined;
+            const rawIndex = initialPhoto ? parseInt(initialPhoto, 10) : undefined;
+            const index = rawIndex !== undefined && !isNaN(rawIndex) ? rawIndex : undefined;
             let decodedEvent = initialEvent;
             try {
                 decodedEvent = decodeURIComponent(initialEvent);

@@ -120,9 +120,9 @@ export function calculateBurstPanelCrop(
  * @param cardScale Fraction of story width (or height) the fitted card occupies (default: 0.92)
  */
 export function calculateFitZoom(imgW: number, imgH: number, cardScale = 0.92): number {
-    if (!imgW || !imgH) return 0.92;
-    const imgRatio = imgW / imgH;
     const scale = Math.max(0.5, Math.min(1.0, cardScale));
+    if (!imgW || !imgH) return scale;
+    const imgRatio = imgW / imgH;
     if (imgRatio >= STORY_ASPECT_RATIO) {
         // Image is wider than 9:16 (e.g. 3:2 landscape) -> width constrains fit
         return parseFloat(((STORY_ASPECT_RATIO / imgRatio) * scale).toFixed(3));

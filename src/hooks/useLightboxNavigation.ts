@@ -49,12 +49,15 @@ export function useLightboxNavigation({
                 e.preventDefault();
                 onClose();
             } else if (e.key === 'ArrowLeft') {
+                if (isZoomed) return;
                 e.preventDefault();
                 onPaginate(-1);
             } else if (e.key === 'ArrowRight') {
+                if (isZoomed) return;
                 e.preventDefault();
                 onPaginate(1);
             } else if (e.key === ' ') {
+                if (isZoomed) return;
                 // If a button is focused, allow native button activation instead of paginating
                 if (active instanceof HTMLButtonElement || active?.getAttribute('role') === 'button') {
                     return;
@@ -87,6 +90,7 @@ export function useLightboxNavigation({
     }, [
         onClose,
         onPaginate,
+        isZoomed,
         isActive,
         onToggleFavorite,
         onToggleZoom,

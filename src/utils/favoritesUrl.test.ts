@@ -65,6 +65,59 @@ describe('favoritesUrl', () => {
             expect(warnSpy).toHaveBeenCalled();
             warnSpy.mockRestore();
         });
+        it('handles corrupt Base64 characters in v2 hash gracefully', async () => {
+            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+            const decoded = await decodeFavoritesHash('2.@@invalid-base64-characters@@');
+            expect(decoded).toEqual([]);
+            expect(warnSpy).toHaveBeenCalled();
+            warnSpy.mockRestore();
+        });
+
+        it('ignores malformed segments without colon or empty photoIds in v2 payload', async () => {
+            // Encode a grouped string containing malformed segments like "no_colon_segment;valid/album:1,2;empty/photos:"
+            const malformedGrouped = 'no_colon_segment;valid/album:1,2;empty/photos:';
+            const raw = new TextEncoder().encode(malformedGrouped);
+            const cs = new CompressionStream('deflate-raw');
+            const writer = cs.writable.getWriter();
+            writer.write(raw).catch(() => {});
+            writer.close().catch(() => {});
+            const reader = cs.readable.getReader();
+            const chunks: Uint8Array[] = [];
+            for (;;) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                chunks.push(value);
+            }
+            const total = chunks.reduce((acc, c) => acc + c.length, 0);
+            const comp = new Uint8Array(total);
+            let offset = 0;
+            for (const c of chunks) {
+                comp.set(c, offset);
+                offset += c.length;
+            }
+
+            let binary = '';
+            for (let i = 0; i < comp.length; i++) {
+                binary += String.fromCharCode(comp[i]);
+            }
+            const b64 = btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+            const hash = `2.${b64}`;
+
+            const decoded = await decodeFavoritesHash(hash);
+            expect(decoded).toEqual([{ albumKey: 'valid/album', photoIds: ['1', '2'] }]);
+        });
+    });
+
+    describe('photoStem', () => {
+        it('strips extensions and normalizes photo and highlight numbering', async () => {
+            const { photoStem } = await import('./favoritesUrl');
+            expect(photoStem('')).toBe('');
+            expect(photoStem('photo_001.jpg')).toBe('1');
+            expect(photoStem('photo_042.webp')).toBe('42');
+            expect(photoStem('photo_100.avif')).toBe('100');
+            expect(photoStem('highlight_005.jpeg')).toBe('highlight_5');
+            expect(photoStem('custom_name.png')).toBe('custom_name.png');
+        });
     });
 
     describe('encodeFavorites', () => {

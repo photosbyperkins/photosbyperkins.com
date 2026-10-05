@@ -239,3 +239,63 @@ describe('useAppStore - visiblePhotos registration', () => {
         expect(Object.keys(useAppStore.getState().visiblePhotosMap)).toHaveLength(0);
     });
 });
+
+describe('useAppStore - persistence and migration', () => {
+    it('partializes only persistent slices and excludes ephemeral state', () => {
+        const state = useAppStore.getState();
+        const partialize = useAppStore.persist.getOptions().partialize;
+        expect(partialize).toBeDefined();
+
+        const partial = partialize!(state);
+        expect(partial).toHaveProperty('favorites');
+        expect(partial).toHaveProperty('theme');
+        expect(partial).toHaveProperty('storySettings');
+        expect(partial).toHaveProperty('recentFrameIds');
+        expect(partial).toHaveProperty('recentFilterIds');
+
+        // Ephemeral state must be excluded
+        expect(partial).not.toHaveProperty('isLightboxOpen');
+        expect(partial).not.toHaveProperty('lightboxIndex');
+        expect(partial).not.toHaveProperty('visiblePhotosMap');
+        expect(partial).not.toHaveProperty('activeModal');
+    });
+
+    it('handles corrupted or missing persistedState during merge', () => {
+        const currentState = useAppStore.getState();
+        const merge = useAppStore.persist.getOptions().merge;
+        expect(merge).toBeDefined();
+
+        // Null persisted state
+        const mergedNull = merge!(null, currentState) as typeof currentState;
+        expect(mergedNull.storySettings).toEqual(DEFAULT_STORY_SETTINGS);
+        expect(mergedNull.favorites).toEqual(currentState.favorites);
+
+        // Corrupted filterStrength (e.g. 99 or -5)
+        const corruptedState = {
+            storySettings: {
+                filterStrength: 99,
+            },
+            recentFrameIds: 'not-an-array',
+            recentFilterIds: null,
+        };
+        const mergedCorrupted = merge!(corruptedState, currentState) as typeof currentState;
+        expect(mergedCorrupted.storySettings.filterStrength).toBe(1.0);
+        expect(mergedCorrupted.recentFrameIds).toEqual(currentState.recentFrameIds);
+        expect(mergedCorrupted.recentFilterIds).toEqual(currentState.recentFilterIds);
+        expect(mergedCorrupted.storySettings.paddedConfig).toEqual(DEFAULT_STORY_SETTINGS.paddedConfig);
+    });
+
+    it('cleans up legacy keys upon rehydration', () => {
+        localStorage.setItem('portfolio-favorites', '["test"]');
+        localStorage.setItem('photo-theme-preference', 'dark');
+
+        const onRehydrate = useAppStore.persist.getOptions().onRehydrateStorage;
+        expect(onRehydrate).toBeDefined();
+
+        const listener = onRehydrate!(useAppStore.getState());
+        listener?.(useAppStore.getState(), undefined);
+
+        expect(localStorage.getItem('portfolio-favorites')).toBeNull();
+        expect(localStorage.getItem('photo-theme-preference')).toBeNull();
+    });
+});
