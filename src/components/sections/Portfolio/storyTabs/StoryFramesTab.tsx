@@ -8,6 +8,7 @@ import type {
 } from '../storyFrames/types';
 import { STORY_FRAME_CATEGORIES } from '../storyFrames/types';
 import { STORY_FRAMES_MAP } from '../storyFrames/frameDefinitions';
+import { triggerHaptic } from '../../../../utils/haptics';
 
 interface StoryFramesTabProps {
     activeFrameId: StoryFrameId;
@@ -90,6 +91,7 @@ export const StoryFramesTab: React.FC<StoryFramesTabProps> = ({
                                             } ${isSelected ? 'is-active' : ''}`}
                                             style={preset.color ? { backgroundColor: preset.color } : undefined}
                                             onClick={() => {
+                                                triggerHaptic('tick');
                                                 if (preset.id === 'signature') {
                                                     setFrameColorChoice('signature');
                                                 } else if (preset.id === 'white') {
@@ -199,7 +201,10 @@ export const StoryFramesTab: React.FC<StoryFramesTabProps> = ({
                                         className={`story-export-modal__category-pill ${
                                             isCatActive ? 'story-export-modal__category-pill--active' : ''
                                         }`}
-                                        onClick={() => setSelectedFrameCategory(cat.id)}
+                                        onClick={() => {
+                                            triggerHaptic('tick');
+                                            setSelectedFrameCategory(cat.id);
+                                        }}
                                         title={cat.vibe}
                                     >
                                         <span>{cat.label}</span>
@@ -222,6 +227,7 @@ export const StoryFramesTab: React.FC<StoryFramesTabProps> = ({
                                     isSelected ? 'story-export-modal__frame-card--active' : ''
                                 }`}
                                 onClick={() => {
+                                    triggerHaptic('tap');
                                     setActiveFrameId(frame.id);
                                     setIsDownloaded(false);
                                 }}

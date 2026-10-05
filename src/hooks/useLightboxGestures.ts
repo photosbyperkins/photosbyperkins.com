@@ -1,6 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useMotionValue, useTransform, animate, type PanInfo, type MotionValue } from 'framer-motion';
 import type { PhotoInput } from '../types';
+import { triggerHaptic } from '../utils/haptics';
 
 export interface UseLightboxGesturesOptions {
     images: PhotoInput[];
@@ -99,6 +100,7 @@ export function useLightboxGestures({
             if (isAnimating) return;
             setIsAnimating(true);
             onZoomReset?.();
+            triggerHaptic('tick');
 
             const nextIndex = (index + newDirection + images.length) % images.length;
 

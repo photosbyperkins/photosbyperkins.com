@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence, useDragControls, LayoutGroup } from 'framer-motion';
 import { X, type IconProps } from '../../../ui/icons';
 import type { StoryStudioTab } from '../../../../hooks/useStoryStudio';
+import { triggerHaptic } from '../../../../utils/haptics';
 
 interface StoryMobilePopoverProps {
     isOpen: boolean;
@@ -102,7 +103,10 @@ export const StoryMobilePopover: React.FC<StoryMobilePopoverProps> = ({
                                                         ? 'active is-active story-export-modal__tab-btn--active story-export-modal__studio-tab-btn--active'
                                                         : ''
                                                 }`}
-                                                onClick={() => onSelectTab(tab.id)}
+                                                onClick={() => {
+                                                    triggerHaptic('tick');
+                                                    onSelectTab(tab.id);
+                                                }}
                                             >
                                                 {isActive && (
                                                     <motion.span
@@ -127,7 +131,10 @@ export const StoryMobilePopover: React.FC<StoryMobilePopoverProps> = ({
                             <button
                                 type="button"
                                 className="story-mobile-popover__close-btn"
-                                onClick={onClose}
+                                onClick={() => {
+                                    triggerHaptic('tick');
+                                    onClose();
+                                }}
                                 aria-label="Close controls"
                                 title="Close controls"
                             >

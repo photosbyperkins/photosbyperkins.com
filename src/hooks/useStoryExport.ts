@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import type { StoryRenderConfig } from '../utils/storyCanvas';
 import { renderStoryToBlob } from '../utils/storyCanvas';
+import { triggerHaptic } from '../utils/haptics';
 
 export interface UseStoryExportOptions {
     loadedImage:
@@ -113,9 +114,11 @@ export function useStoryExport({
                 activeUrlsRef.current.delete(url);
             }, 1000);
             setIsDownloaded(true);
+            triggerHaptic('success');
             onExportSuccess?.(currentConfig);
         } catch (err) {
             console.error('Download error:', err);
+            triggerHaptic('warning');
             const isSecurityError =
                 (err as Error)?.name === 'SecurityError' || String(err).toLowerCase().includes('insecure');
             showToast(
@@ -146,6 +149,7 @@ export function useStoryExport({
                     title: `Story from ${eventTitle || 'Photos by Perkins'}`,
                 });
                 setIsDownloaded(true);
+                triggerHaptic('success');
                 onExportSuccess?.(currentConfig);
             } else {
                 // Fallback to download if canShare files is not supported
@@ -154,6 +158,7 @@ export function useStoryExport({
         } catch (err) {
             if ((err as Error).name !== 'AbortError') {
                 console.error('Share error:', err);
+                triggerHaptic('warning');
                 const isSecurityError =
                     (err as Error)?.name === 'SecurityError' || String(err).toLowerCase().includes('insecure');
                 showToast(

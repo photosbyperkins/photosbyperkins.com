@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { StoryPhotoFilter, StoryPhotoFilterId, StoryPhotoFilterTabCategory } from '../../../../utils/storyCanvas';
 import { STORY_FILTER_CATEGORIES, STORY_PHOTO_FILTERS, STORY_PHOTO_FILTERS_MAP } from '../../../../utils/storyCanvas';
+import { triggerHaptic, triggerScrubberHaptic } from '../../../../utils/haptics';
 
 interface StoryFiltersTabProps {
     activeFilterId: StoryPhotoFilterId;
@@ -77,6 +78,7 @@ export const StoryFiltersTab: React.FC<StoryFiltersTabProps> = ({
                                 onChange={(e) => {
                                     setFilterStrength(Math.max(0.1, Math.min(1.0, parseFloat(e.target.value))));
                                     setIsDownloaded(false);
+                                    triggerScrubberHaptic();
                                 }}
                                 className="story-export-modal__slider story-export-modal__slider--header"
                                 aria-label="Filter Strength"
@@ -111,7 +113,10 @@ export const StoryFiltersTab: React.FC<StoryFiltersTabProps> = ({
                                         className={`story-export-modal__category-pill ${
                                             isCatActive ? 'story-export-modal__category-pill--active' : ''
                                         }`}
-                                        onClick={() => setSelectedCategory(cat.id)}
+                                        onClick={() => {
+                                            triggerHaptic('tick');
+                                            setSelectedCategory(cat.id);
+                                        }}
                                         title={cat.description}
                                     >
                                         <span>{cat.label}</span>
@@ -134,6 +139,7 @@ export const StoryFiltersTab: React.FC<StoryFiltersTabProps> = ({
                                     isSelected ? 'active story-export-modal__filter-pill--active' : ''
                                 }`}
                                 onClick={() => {
+                                    triggerHaptic('tap');
                                     setActiveFilterId(filter.id);
                                     setIsDownloaded(false);
                                 }}

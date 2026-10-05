@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, Save, Share2, X, CheckSquare, StoryCropIcon } from '../../../ui/icons';
 import { useCanShare } from '../../../../hooks/useCanShare';
+import { triggerHaptic } from '../../../../utils/haptics';
 
 export interface BatchActionBarProps {
     isVisible: boolean;
@@ -66,7 +67,11 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
                             <button
                                 type="button"
                                 className="portfolio__batch-btn portfolio__batch-btn--subtle"
-                                onClick={isAllSelected ? onDeselectAll : onSelectAll}
+                                onClick={() => {
+                                    triggerHaptic('tick');
+                                    if (isAllSelected) onDeselectAll();
+                                    else onSelectAll();
+                                }}
                                 title={isAllSelected ? 'Deselect all photos' : 'Select all visible photos'}
                                 aria-label={isAllSelected ? 'Deselect All' : 'Select All'}
                             >
@@ -88,7 +93,10 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
                                 className={`portfolio__batch-btn ${
                                     isAllFavorited ? 'portfolio__batch-btn--favorited' : ''
                                 }`}
-                                onClick={onFavoriteAll}
+                                onClick={() => {
+                                    triggerHaptic('tap');
+                                    onFavoriteAll();
+                                }}
                                 disabled={selectedCount === 0}
                                 title={isAllFavorited ? 'Remove selected from favorites' : 'Add selected to favorites'}
                                 aria-label={
@@ -124,7 +132,10 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
                                             className={`portfolio__batch-btn portfolio__batch-btn--story ${
                                                 canStory ? 'portfolio__batch-btn--story-active' : ''
                                             }`}
-                                            onClick={onStory}
+                                            onClick={() => {
+                                                triggerHaptic('tap');
+                                                onStory();
+                                            }}
                                             disabled={!canStory}
                                             title={storyTooltip}
                                             aria-label={storyTooltip}
@@ -139,7 +150,10 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
                                 <button
                                     type="button"
                                     className="portfolio__batch-btn portfolio__batch-btn--zip"
-                                    onClick={onDownloadZip}
+                                    onClick={() => {
+                                        triggerHaptic('success');
+                                        onDownloadZip();
+                                    }}
                                     disabled={selectedCount === 0 || isZipping}
                                     title="Download selected photos as ZIP"
                                     aria-label={
@@ -168,6 +182,7 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
                                     type="button"
                                     className="portfolio__batch-btn"
                                     onClick={async () => {
+                                        triggerHaptic('success');
                                         await onShare();
                                     }}
                                     disabled={selectedCount === 0}
@@ -186,7 +201,10 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
                         <button
                             type="button"
                             className="portfolio__batch-btn portfolio__batch-btn--done"
-                            onClick={onDone}
+                            onClick={() => {
+                                triggerHaptic('tick');
+                                onDone();
+                            }}
                             title="Exit selection mode"
                             aria-label="Done selecting photos"
                         >

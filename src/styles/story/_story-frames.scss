@@ -210,6 +210,10 @@
                 background: rgba(230, 0, 0, 0.08);
             }
         }
+
+        &:active {
+            transform: scale(0.96);
+        }
     }
 
     &__frame-thumb {

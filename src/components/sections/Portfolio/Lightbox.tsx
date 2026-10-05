@@ -10,6 +10,7 @@ import LightboxScrubber from './LightboxScrubber';
 import LightboxHelp from './LightboxHelp';
 import type { PhotoInput, EventScore } from '../../../types';
 import { withBuild, triggerPhotoDownload } from '../../../utils/build';
+import { triggerHaptic } from '../../../utils/haptics';
 
 const StoryExportModal = lazy(() => import('./StoryExportModal'));
 
@@ -153,6 +154,7 @@ export default function Lightbox({
                 setIsPopping(false);
             }, 350);
         }
+        triggerHaptic('tap');
         toggleFavorite({
             photo,
             eventName: eventName || '',
@@ -178,6 +180,7 @@ export default function Lightbox({
         const obj = images[index];
         if (!obj) return;
         const src = typeof obj === 'string' ? obj : obj.original;
+        triggerHaptic('success');
         triggerPhotoDownload(src);
     }, [images, index]);
 

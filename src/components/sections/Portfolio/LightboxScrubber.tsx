@@ -3,6 +3,7 @@ import { motion, type MotionValue, useMotionValue, animate } from 'framer-motion
 import { flushSync } from 'react-dom';
 import { Heart } from '../../ui/icons';
 import type { PhotoInput } from '../../../types';
+import { triggerHaptic, triggerScrubberHaptic } from '../../../utils/haptics';
 
 interface LightboxScrubberProps {
     images: PhotoInput[];
@@ -93,6 +94,7 @@ export default function LightboxScrubber({
                         if (shift !== scrubShiftRef.current) {
                             scrubShiftRef.current = shift;
                             setScrubShift(shift);
+                            triggerScrubberHaptic();
                         }
                     }}
                     onDragEnd={(_e, info) => {
@@ -212,6 +214,7 @@ export default function LightboxScrubber({
                     className={`portfolio__lightbox-scrubber-heart${isActive ? ' is-active' : ''}${showPopping ? ' is-popping' : ''}`}
                     onClick={(e) => {
                         e.stopPropagation();
+                        triggerHaptic('tap');
                         toggleFavorite();
                     }}
                     aria-label="Toggle Favorite"

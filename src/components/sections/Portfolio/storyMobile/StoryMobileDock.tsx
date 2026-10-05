@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, LayoutGroup } from 'framer-motion';
 import type { StoryStudioTab } from '../../../../hooks/useStoryStudio';
 import type { IconProps } from '../../../ui/icons';
+import { triggerHaptic } from '../../../../utils/haptics';
 
 interface StoryMobileDockProps {
     tabs: Array<{ id: StoryStudioTab; label: string; icon: React.FC<IconProps> }>;
@@ -35,7 +36,10 @@ export const StoryMobileDock: React.FC<StoryMobileDockProps> = ({ tabs, activeTa
                                         ? 'active is-active story-export-modal__tab-btn--active story-export-modal__studio-tab-btn--active'
                                         : ''
                                 }`}
-                                onClick={() => onTabClick(tab.id)}
+                                onClick={() => {
+                                    triggerHaptic('tick');
+                                    onTabClick(tab.id);
+                                }}
                                 aria-label={tab.label}
                                 aria-pressed={isActive}
                                 aria-expanded={isActive}
