@@ -16,22 +16,11 @@
     "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,css,scss}\"",
     "test": "vitest run",
     "test:e2e": "npx playwright test",
-    "index": "tsx scripts/pipeline/generatePhotoIndex.ts",
-    "chunk-data": "tsx scripts/pipeline/chunkData.ts",
-    "encode": "tsx scripts/pipeline/encodePhotos.ts",
-    "recaps": "tsx scripts/pipeline/generateRecaps.ts",
     "favicon": "tsx scripts/pipeline/generateFavicon.ts",
-    "scrubber": "tsx scripts/pipeline/generateScrubber.ts",
-    "zips": "tsx scripts/pipeline/generateZips.ts",
-    "social-cards": "tsx scripts/pipeline/generateSocialCards.ts",
     "faces": "python scripts/detectFaces.py",
-    "wftda": "tsx scripts/pipeline/scrapeWftda.ts",
     "populate-scores": "tsx scripts/populateEventScores.ts",
-    "rename": "tsx scripts/renamePhotoFolders.ts",
     "fix-permissions": "tsx scripts/fixPermissions.ts",
-    "benchmark": "tsx scripts/benchmark.ts",
-    "sync-media": "tsx scripts/syncMedia.ts",
-    "migrate-metadata": "tsx scripts/migrateMetadata.ts"
+    "sync-media": "tsx scripts/syncMedia.ts"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

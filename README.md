@@ -62,7 +62,7 @@ The build pipeline intelligently parses your folder names. If it sees `vs` or `v
     "team2Score": 102
   }
   ```
-- **WFTDA Integration**: `npm run wftda` fetches global rankings and match histories from `stats.wftda.com`. If your folder's derived date and derived team names correspond to an actual WFTDA bout configured in `data/wftda-urls.json`, those official stats automatically populate on the frontend!
+- **WFTDA Integration**: Automatically fetches global rankings and match histories from `stats.wftda.com` during the build pipeline. If your folder's derived date and derived team names correspond to an actual WFTDA bout configured in `data/wftda-urls.json`, those official stats automatically populate on the frontend!
 - **Team Abbreviations**: You can automatically abbreviate long team names in the Frontend UI (e.g. "Sacramento Roller Derby" -> "SRD") by providing a JSON string dictionary in your `.env` file under the key `VITE_TEAM_ABBREVIATIONS`. 
   - *Example*: `VITE_TEAM_ABBREVIATIONS='{"Sacramento Roller Derby":"SRD"}'`
 - **About Me Blurb**: To customize the text in the "Behind the Lens" popup, define `VITE_ABOUT_ME` in your `.env`. You can use `\n\n` to automatically create new paragraphs.
@@ -123,32 +123,13 @@ To upload your media, use `npm run sync-media` to automatically synchronize new 
 
 ## 🔧 Standalone Utilities
 
-These scripts live in `scripts/` and can be run independently — they are **not** invoked by the main build pipeline. Run them with `npx tsx scripts/<name>.ts`.
-
----
-
-### `renamePhotoFolders.ts`
-
-Standardises subfolder names inside every event directory under `/photos` so the indexer can reliably find album and highlight photos.
-
-**Rules applied automatically:**
-- `Album` folders (contain "resize" or match `/^\d+\s*(final|resize)/i`) → renamed to `resized`
-- `Highlight / IG` folders (start with "ig ", "ig adults", or contain "instagram") → renamed to `instagram`
-- Multiple IG folders are **merged**: files moved into a single `instagram/` directory
-
-**Skipped entirely:** `original`, `denoise`, `sharpen`, `rescued`, `process improvements`, `reddit`, `facebook`
-
-```bash
-npx tsx scripts/renamePhotoFolders.ts
-```
-
-> Run this **before** `npm run build` after adding a new shoot.
+These scripts live in `scripts/` and can be run independently — they are **not** invoked by the main build pipeline. Run them with `npm run <script>` or `npx tsx scripts/<name>.ts`.
 
 ---
 
 ### `populateEventScores.ts`
 
-Scans all event directories under `/photos` and creates a `score.json` stub in any event folder that doesn't already have one. This is a convenience scaffold — fill in the generated stubs with the actual scores before building.
+Scans all event directories under `/photos` and creates a `score.json` stub in any event folder containing `"vs"` that doesn't already have one. This is a convenience scaffold — fill in the generated stubs with the actual scores before building.
 
 **Generated `score.json` structure:**
 ```json
@@ -156,22 +137,10 @@ Scans all event directories under `/photos` and creates a `score.json` stub in a
 ```
 
 ```bash
+npm run populate-scores
+# or
 npx tsx scripts/populateEventScores.ts
 ```
-
----
-
-### `benchmark.ts`
-
-Clears all build caches (`build/`, `dist/`, `.eslintcache`, Vite cache, face detection cache) and then runs the full `npm run build` pipeline from scratch, timing the total duration.
-
-Results are appended to `.benchmark_results.json` in the project root, allowing you to track build performance over time. Build step telemetry (per-step timings) is also written to `data/build_stats.json` during each run.
-
-```bash
-npx tsx scripts/benchmark.ts
-```
-
-> Useful after major pipeline changes to verify regressions or improvements.
 
 ---
 
@@ -190,58 +159,14 @@ npx tsx scripts/syncMedia.ts
 
 ---
 
-### `migrateToAvif.ts`
+### `fixPermissions.ts`
 
-A transactional, zero-downtime storage migration utility designed to migrate legacy WebP galleries to next-gen AVIF on quota-constrained hosting environments (such as Bluehost's 20 GB limit).
-
-#### Background & Architecture
-- **Preserves Original JPEGs & Zips**: High-res download JPEGs in `photos/` and `.zip` archives in `zips/` are strictly preserved so visitors downloading originals receive universal `.jpg` files compatible with all print labs and social apps.
-- **Album-by-Album Transactional Pipeline**: Processes one album at a time:
-  1. Auto-encodes missing local AVIF assets on-the-fly via the multi-threaded SSIMULACRA 2 master encoder.
-  2. Streams AVIF thumbnails and display assets to the remote server in a compressed tar pipe over SSH.
-  3. Verifies remote extraction success.
-  4. Immediately prunes the legacy WebP versions for that specific album on the server.
-- **Zero Remote Storage Spike**: Because each album's AVIF assets are ~35% smaller than the legacy WebPs being replaced, available disk space increases after every single album, ensuring the server's hard quota is never breached.
-- **Firewall & Rate-Limit Protection**: Employs a single-pass remote bootstrap query, pacing delays between albums, and automated 60s cooldown retries to prevent triggering shared-host SSH connection limits.
-
-#### Command-Line Options
-```bash
-# Perform a dry-run audit (calculates sizes and tests remote connectivity without modifying files)
-npx tsx scripts/migrateToAvif.ts --dry-run
-
-# Migrate a specific year
-npx tsx scripts/migrateToAvif.ts --year 2026
-
-# Migrate a single album by slug or title filter
-npx tsx scripts/migrateToAvif.ts --album "Sacramento Roller Derby"
-
-# Run full migration across all albums
-npx tsx scripts/migrateToAvif.ts
-```
-
----
-
-### `migrateMetadata.ts`
-
-A one-time migration utility implementing **Section 5.4 Embedded Copyright & IPTC Metadata Injection**. It processes your high-resolution original JPEGs and display AVIFs, injects structured EXIF (Artist, Copyright, ImageDescription), IPTC Core, XMP Rights, and Creative Commons licensing tags, and streams the updated files over SSH to overwrite remote assets in-place.
-
-#### Features & Guarantees
-- **Original Camera EXIF Preserved**: Non-destructively merges copyright and attribution tags without stripping camera make, model, lens, exposure time, aperture, or ISO.
-- **Zero Remote Storage Spike**: Overwriting existing files in-place produces essentially zero net change in remote disk space ($\approx +1.5\text{ KB}$ per image header, or $\approx +15\text{ MB}$ across 10,000 photos).
-- **Flexible Scope Control**:
-  - `--dry-run`: Scans and previews albums and photo counts without modifying files.
-  - `--type <photos|avif|all>`: Targets high-res JPEGs (`photos/`), display AVIFs (`avif/`), or both (`all`, default).
-  - `--year <year>`: Limits execution to a specific year.
-  - `--album <name>`: Limits execution to a specific album.
+SSH recovery utility to reset and normalize remote server file permissions on Bluehost (`chmod 755` on directories, `chmod 644` on files).
 
 ```bash
-# Dry run preview
-npx tsx scripts/migrateMetadata.ts --dry-run
-
-# Migrate high-resolution JPEGs for year 2026
-npx tsx scripts/migrateMetadata.ts --year 2026 --type photos
-
-# Migrate all photos and AVIFs across the entire portfolio
-npm run migrate-metadata
+npm run fix-permissions
+# or
+npx tsx scripts/fixPermissions.ts
 ```
+
 
