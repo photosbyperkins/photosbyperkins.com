@@ -1,5 +1,5 @@
 import { useInView, motion, AnimatePresence } from 'framer-motion';
-import { Search, CheckSquare } from '../../ui/icons';
+import { Search, CheckSquare, Save, Share2 } from '../../ui/icons';
 import React, { useState, useRef, useEffect, useMemo, useCallback, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
@@ -8,6 +8,7 @@ import { usePortfolioData } from '../../../hooks/usePortfolioData';
 import { usePortfolioScroll } from '../../../hooks/usePortfolioScroll';
 import { usePortfolioSearch } from '../../../hooks/usePortfolioSearch';
 import { useStickyHeader } from '../../../hooks/useStickyHeader';
+import { useCanShare } from '../../../hooks/useCanShare';
 import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock';
 import { useAppStore } from '../../../store/useAppStore';
 import { useZipWorker } from '../../../hooks/useZipWorker';
@@ -43,6 +44,7 @@ interface PortfolioProps {
 
 export default function Portfolio({ years }: PortfolioProps) {
     const location = useLocation();
+    const canShare = useCanShare();
     const { selectedTab, isGearRoute, activeRouteSlug, initialSearchOpen, initialSearchQuery } = usePortfolioRoute({
         years,
     });
@@ -358,6 +360,35 @@ export default function Portfolio({ years }: PortfolioProps) {
         }
     }, [batchSelectedPhotos]);
 
+    const handleDownloadAllFavorites = useCallback(() => {
+        if (favorites.length === 0) return;
+        const urls = favorites
+            .map((item) => getPhotoOriginalUrl(item))
+            .filter((u): u is string => Boolean(u));
+        if (urls.length === 0) return;
+        startZipping(urls, 'Favorites.zip');
+    }, [favorites, startZipping]);
+
+    const handleShareAllFavorites = useCallback(async () => {
+        if (favorites.length === 0) return;
+        try {
+            const shareUrl = await buildFavoritesShareUrl(favorites);
+            if (navigator.share) {
+                await navigator.share({
+                    title: 'My Favorite Photos',
+                    text: `Check out my ${favorites.length} favorite photos!`,
+                    url: shareUrl,
+                });
+            } else if (navigator.clipboard) {
+                await navigator.clipboard.writeText(shareUrl);
+            }
+        } catch (err) {
+            if ((err as Error).name !== 'AbortError') {
+                console.error('Share favorites failed:', err);
+            }
+        }
+    }, [favorites]);
+
 
 
     const [directStoryPhoto, setDirectStoryPhoto] = useState<PhotoRecord | null>(null);
@@ -538,6 +569,48 @@ export default function Portfolio({ years }: PortfolioProps) {
                                                 <span style={{ color: 'var(--color-accent)' }}>YOUR&nbsp;</span>
                                                 FAVORITES
                                             </h2>
+                                        </div>
+                                        <div className="portfolio__event-meta">
+                                            {!canShare && (
+                                                <button
+                                                    type="button"
+                                                    className="portfolio__zip-btn"
+                                                    onClick={handleDownloadAllFavorites}
+                                                    disabled={isZipping}
+                                                    title="Download All Original Photos (.zip)"
+                                                    aria-label="Download All Original Photos (.zip)"
+                                                    style={{
+                                                        cursor: isZipping ? 'wait' : 'pointer',
+                                                        backgroundImage: isZipping
+                                                            ? 'linear-gradient(to bottom, var(--color-accent) 100%, transparent 100%)'
+                                                            : 'none',
+                                                        backgroundSize: `100% ${isZipping ? zipProgress : 0}%`,
+                                                        backgroundRepeat: 'no-repeat',
+                                                        backgroundPosition: 'top center',
+                                                        transition:
+                                                            'background-size 0.2s ease-out, border-color 0.2s ease-out, color 0.2s ease-out',
+                                                        borderColor: isZipping ? 'var(--color-accent)' : undefined,
+                                                        color: isZipping
+                                                            ? zipProgress > 50
+                                                                ? '#fff'
+                                                                : 'var(--color-accent)'
+                                                            : undefined,
+                                                    }}
+                                                >
+                                                    <Save size={16} />
+                                                </button>
+                                            )}
+                                            {canShare && (
+                                                <button
+                                                    type="button"
+                                                    className="portfolio__zip-btn"
+                                                    onClick={handleShareAllFavorites}
+                                                    title="Share Favorites"
+                                                    aria-label="Share Favorites"
+                                                >
+                                                    <Share2 size={16} />
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 )}

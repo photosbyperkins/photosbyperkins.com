@@ -207,5 +207,60 @@ describe('EventActions', () => {
         const shareBtn = screen.getByRole('button', { name: /Share Favorites/i });
         expect(shareBtn).toBeDefined();
     });
+
+    it('triggers onShareFavorites when share button is clicked on favorites tab', () => {
+        const onShareFavorites = vi.fn();
+        render(
+            <EventActions
+                {...defaultProps}
+                eventName="2024.03.15 vs Salpointe"
+                hasAlbumPhotos={true}
+                canShare={true}
+                isFavoritesTab={true}
+                onShareFavorites={onShareFavorites}
+            />
+        );
+
+        const shareBtn = screen.getByRole('button', { name: /Share Favorites/i });
+        fireEvent.click(shareBtn);
+        expect(onShareFavorites).toHaveBeenCalledTimes(1);
+    });
+
+    it('falls back to navigator.share when onShareFavorites is not provided', async () => {
+        const mockShare = vi.fn().mockResolvedValue(undefined);
+        Object.defineProperty(navigator, 'share', {
+            value: mockShare,
+            configurable: true,
+            writable: true,
+        });
+
+        useAppStore.setState({
+            favorites: [
+                { original: '/photos/2024/game/photo_001.jpg', thumb: '/photos/2024/game/photo_001.jpg', width: 100, height: 100 },
+            ],
+        });
+
+        render(
+            <EventActions
+                {...defaultProps}
+                eventName="2024.03.15 vs Salpointe"
+                hasAlbumPhotos={true}
+                canShare={true}
+                isFavoritesTab={true}
+            />
+        );
+
+        const shareBtn = screen.getByRole('button', { name: /Share Favorites/i });
+        fireEvent.click(shareBtn);
+
+        await vi.waitFor(() => {
+            expect(mockShare).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    title: 'My Favorite Photos',
+                    text: 'Check out my 1 favorite photos!',
+                })
+            );
+        });
+    });
 });
 

@@ -14,6 +14,7 @@ export interface EventActionsProps {
     isZipping: boolean;
     zipProgress: number;
     onDownloadFavorites: () => void;
+    onShareFavorites?: () => void;
     isGridView: boolean;
     onToggleGridView: (e: React.MouseEvent) => void;
     isFavoritesTab?: boolean;
@@ -28,6 +29,7 @@ export const EventActions = React.memo(function EventActions({
     isZipping,
     zipProgress,
     onDownloadFavorites,
+    onShareFavorites,
     isGridView,
     onToggleGridView,
     isFavoritesTab,
@@ -51,14 +53,22 @@ export const EventActions = React.memo(function EventActions({
     };
 
     const handleShareFavorites = async () => {
+        if (onShareFavorites) {
+            onShareFavorites();
+            return;
+        }
         const favorites = useAppStore.getState().favorites;
         const shareUrl = await buildFavoritesShareUrl(favorites);
         try {
-            await navigator.share({
-                title: 'My Favorite Photos',
-                text: `Check out my ${favorites.length} favorite photos!`,
-                url: shareUrl,
-            });
+            if (navigator.share) {
+                await navigator.share({
+                    title: 'My Favorite Photos',
+                    text: `Check out my ${favorites.length} favorite photos!`,
+                    url: shareUrl,
+                });
+            } else if (navigator.clipboard) {
+                await navigator.clipboard.writeText(shareUrl);
+            }
         } catch (err) {
             if ((err as Error).name !== 'AbortError') {
                 console.error('Share failed:', err);

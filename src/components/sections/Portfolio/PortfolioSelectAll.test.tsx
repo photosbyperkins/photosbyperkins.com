@@ -173,6 +173,7 @@ describe('Portfolio Select All visible photos', () => {
 
         await waitFor(() => {
             expect(screen.getByText('Alpha')).toBeDefined();
+            expect(screen.getByText('Gamma')).toBeDefined();
         });
 
         // Expand Event 1 to Full Album mode

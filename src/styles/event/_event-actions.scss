@@ -1,7 +1,8 @@
 @use '../globals' as *;
 
 .portfolio {
-    &__event {
+    &__event,
+    &__favorites-header {
         .portfolio__event-meta {
             display: flex;
             align-items: center;

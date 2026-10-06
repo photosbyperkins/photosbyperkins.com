@@ -44,3 +44,7 @@ export const triggerScrubberHaptic = (): void => {
     lastScrubberHapticTime = now;
     triggerHaptic('tick');
 };
+
+export const _resetScrubberHapticThrottle = (): void => {
+    lastScrubberHapticTime = 0;
+};

@@ -1,15 +1,18 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { triggerHaptic, triggerScrubberHaptic } from './haptics';
+import { triggerHaptic, triggerScrubberHaptic, _resetScrubberHapticThrottle } from './haptics';
 
 describe('haptics utility', () => {
     const originalVibrate = navigator.vibrate;
+    const originalMatchMedia = window.matchMedia;
 
     beforeEach(() => {
         vi.restoreAllMocks();
+        _resetScrubberHapticThrottle();
     });
 
     afterEach(() => {
         vi.restoreAllMocks();
+        window.matchMedia = originalMatchMedia;
         if (originalVibrate) {
             navigator.vibrate = originalVibrate;
         } else {

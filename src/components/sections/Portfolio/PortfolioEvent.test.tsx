@@ -16,6 +16,11 @@ vi.mock('../../../hooks/useZipWorker', () => ({
     }),
 }));
 
+let mockCanShare = false;
+vi.mock('../../../hooks/useCanShare', () => ({
+    useCanShare: () => mockCanShare,
+}));
+
 const componentCache: Record<
     string,
     React.ForwardRefExoticComponent<React.HTMLAttributes<HTMLElement> & Record<string, unknown>>
@@ -71,6 +76,7 @@ vi.mock('./StoryExportModal', () => ({
 
 describe('PortfolioEvent', () => {
     beforeEach(() => {
+        mockCanShare = false;
         useAppStore.setState({
             sharedPhoto: null,
             favorites: [],
@@ -280,5 +286,51 @@ describe('PortfolioEvent', () => {
             ['/photos/2024/game/fav1.jpg', '/photos/2024/game/fav2.jpg'],
             '2024-rose-vs-gotham-favorites.zip'
         );
+    });
+
+    it('shares only favorite photos from the event when isFavoritesTab is true and canShare is true', async () => {
+        mockCanShare = true;
+        const mockShare = vi.fn().mockResolvedValue(undefined);
+        Object.defineProperty(navigator, 'share', {
+            value: mockShare,
+            configurable: true,
+            writable: true,
+        });
+
+        const eventData: EventData = {
+            album: [
+                { original: '/photos/2024/game/fav1.jpg', thumb: '/photos/2024/game/fav1.jpg', eventName: 'Rose vs Gotham', year: '2024' },
+                { original: '/photos/2024/game/fav2.jpg', thumb: '/photos/2024/game/fav2.jpg', eventName: 'Rose vs Gotham', year: '2024' },
+            ],
+            albumSlug: '2024-rose-vs-gotham',
+            highlights: [],
+            originalYear: '2024',
+        };
+
+        render(
+            <MemoryRouter>
+                <PortfolioEvent
+                    eventName="11.15 Rose City Rollers vs Gotham Girls Roller Derby"
+                    ev={eventData}
+                    evIdx={0}
+                    selectedYear="2024"
+                    inViewParent={true}
+                    isFavoritesTab={true}
+                />
+            </MemoryRouter>
+        );
+
+        const shareBtn = screen.getByRole('button', { name: /Share Favorites/i });
+        expect(shareBtn).toBeDefined();
+
+        fireEvent.click(shareBtn);
+
+        await vi.waitFor(() => {
+            expect(mockShare).toHaveBeenCalledTimes(1);
+        });
+        const shareArg = mockShare.mock.calls[0][0];
+        expect(shareArg.title).toBe('11.15 Rose City Rollers vs Gotham Girls Roller Derby Favorites');
+        expect(shareArg.text).toBe('Check out my favorite photos from 11.15 Rose City Rollers vs Gotham Girls Roller Derby!');
+        expect(shareArg.url).toContain('/portfolio/favorites#photos=');
     });
 });

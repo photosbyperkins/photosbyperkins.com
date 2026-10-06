@@ -12,6 +12,7 @@ import { EventGrid } from './eventComponents/EventGrid';
 import { EventEmptyFavorites } from './eventComponents/EventEmptyFavorites';
 import { useZipWorker } from '../../../hooks/useZipWorker';
 import { scrollToElement } from '../../../utils/scroll';
+import { buildFavoritesShareUrl } from '../../../utils/favoritesUrl';
 import {
     filterAlbumByGear,
     computeFeaturedPhotos,
@@ -110,6 +111,29 @@ const PortfolioEvent = memo(function PortfolioEvent({
         const effectiveYear = ev.originalYear || selectedYear;
         return filterAlbumByGear(rawAlbumImages, activeGearId, effectiveYear);
     }, [rawAlbumImages, activeGearId, ev.originalYear, selectedYear]);
+
+    const handleShareEventFavorites = useCallback(async () => {
+        const sourcePhotos = albumImages.length > 0 ? albumImages : rawAlbumImages;
+        if (sourcePhotos.length === 0) return;
+        try {
+            const shareUrl = await buildFavoritesShareUrl(sourcePhotos as FavoriteStoreItem[]);
+            const title = `${eventName} Favorites`;
+            const text = `Check out my favorite photos from ${eventName}!`;
+            if (navigator.share) {
+                await navigator.share({
+                    title,
+                    text,
+                    url: shareUrl,
+                });
+            } else if (navigator.clipboard) {
+                await navigator.clipboard.writeText(shareUrl);
+            }
+        } catch (err) {
+            if ((err as Error).name !== 'AbortError') {
+                console.error('Share event favorites failed:', err);
+            }
+        }
+    }, [albumImages, rawAlbumImages, eventName]);
 
     const isBatchSelectMode = useAppStore((state) => state.isBatchSelectMode);
     const batchSelectedPhotos = useAppStore((state) => state.batchSelectedPhotos);
@@ -346,6 +370,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
                         isZipping={isZipping}
                         zipProgress={zipProgress}
                         onDownloadFavorites={handleDownloadFavorites}
+                        onShareFavorites={isFavoritesTab ? handleShareEventFavorites : undefined}
                         isGridView={isGridView}
                         onToggleGridView={toggleGridView}
                         isFavoritesTab={isFavoritesTab}
