@@ -9,6 +9,7 @@ describe('haptics utility', () => {
     });
 
     afterEach(() => {
+        vi.restoreAllMocks();
         if (originalVibrate) {
             navigator.vibrate = originalVibrate;
         } else {
