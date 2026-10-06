@@ -23,6 +23,8 @@ import PortfolioEvent from './PortfolioEvent';
 import { EventEmptyFavorites } from './eventComponents/EventEmptyFavorites';
 import SharedFavoritesPanel from './SharedFavoritesPanel';
 import PortfolioMonthTrack from './PortfolioMonthTrack';
+import PortfolioYearTrack from './PortfolioYearTrack';
+import { computeViewYears } from '../../../utils/yearTrack';
 import GearInfoHeader from './GearInfoHeader';
 import PortfolioYearNav from './PortfolioYearNav';
 import PortfolioSeasonStrip from './PortfolioSeasonStrip';
@@ -143,6 +145,12 @@ export default function Portfolio({ years }: PortfolioProps) {
         () => buildEventRows(events, selectedTab, isMultiYearMode),
         [events, selectedTab, isMultiYearMode]
     );
+
+    const multiYearData = useMemo(() => {
+        if (!isMultiYearMode) return [];
+        return computeViewYears(events);
+    }, [isMultiYearMode, events]);
+
     const activeTeamMeta = isTeamMode ? teamIndex.find((t) => t.slug === selectedTab) || null : null;
 
     const navPortalTarget = typeof document !== 'undefined' ? document.getElementById('nav-extension-portal') : null;
@@ -500,8 +508,22 @@ export default function Portfolio({ years }: PortfolioProps) {
                 )}
 
                 <div className="portfolio__events-wrapper">
-                    {!isTeamMode && !isGearRoute && !isFavoritesTab && !isGlobalSearchOpen && !isLightboxOpen && (
-                        <PortfolioMonthTrack key={selectedTab} events={events} selectedYear={selectedTab} />
+                    {!isGlobalSearchOpen && !isLightboxOpen && (
+                        !isMultiYearMode ? (
+                            <PortfolioMonthTrack key={selectedTab} events={events} selectedYear={selectedTab} />
+                        ) : multiYearData.length > 1 ? (
+                            <PortfolioYearTrack
+                                key={selectedTab}
+                                events={events}
+                                title={activeTeamMeta?.name || currentGearItem?.name || (isFavoritesTab ? 'Favorites' : undefined)}
+                            />
+                        ) : multiYearData.length === 1 ? (
+                            <PortfolioMonthTrack
+                                key={`${selectedTab}-${multiYearData[0].year}`}
+                                events={events}
+                                selectedYear={multiYearData[0].year}
+                            />
+                        ) : null
                     )}
 
                     <div className="portfolio__events" ref={stickyRef}>
@@ -521,7 +543,12 @@ export default function Portfolio({ years }: PortfolioProps) {
                                 )}
                                 {eventRows.map((row) =>
                                     row.type === 'divider' ? (
-                                        <div key={`divider-${row.year}`} className="portfolio__year-divider" aria-hidden="true">
+                                        <div
+                                            key={`divider-${row.year}`}
+                                            id={`year-divider-${row.year}`}
+                                            className="portfolio__year-divider"
+                                            aria-hidden="true"
+                                        >
                                             <span>{row.year}</span>
                                         </div>
                                     ) : (

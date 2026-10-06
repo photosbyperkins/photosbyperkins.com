@@ -189,4 +189,24 @@ describe('Portfolio Cohesive Action Dock', () => {
         expect(favHeader?.textContent).toContain('YOUR');
         expect(favHeader?.textContent).toContain('FAVORITES');
     });
+
+    it('renders PortfolioYearTrack on YOUR FAVORITES tab when favorites span multiple years', () => {
+        useAppStore.setState({
+            favorites: [
+                { original: '/photos/2026/fav1.jpg', thumb: '/photos/2026/fav1.jpg', eventName: 'Match 1', year: '2026' },
+                { original: '/photos/2024/fav2.jpg', thumb: '/photos/2024/fav2.jpg', eventName: 'Match 2', year: '2024' },
+            ],
+        });
+
+        render(
+            <MemoryRouter initialEntries={['/portfolio/favorites']}>
+                <Portfolio years={['2026', '2024']} />
+            </MemoryRouter>
+        );
+
+        const yearTrack = document.querySelector('.portfolio__year-track');
+        expect(yearTrack).not.toBeNull();
+        expect(screen.getByRole('button', { name: /Jump to 2026/i })).toBeDefined();
+        expect(screen.getByRole('button', { name: /Jump to 2024/i })).toBeDefined();
+    });
 });

@@ -184,19 +184,22 @@ describe('Portfolio Select All visible photos', () => {
         fireEvent.click(selectBtn);
 
         // Event 1 has 8 album photos, Event 2 has 5 highlight photos = 13 visible photos
-        const visibleCheckboxes = screen.getAllByRole('checkbox');
-        expect(visibleCheckboxes.length).toBe(13);
+        await waitFor(() => {
+            expect(screen.getAllByRole('checkbox').length).toBe(13);
+        });
 
         // Click Select All
         const selectAllBtn = screen.getByRole('button', { name: /^Select All$/i });
         fireEvent.click(selectAllBtn);
 
         // All 13 visible thumbnails are selected
-        const updatedCheckboxes = screen.getAllByRole('checkbox');
-        expect(updatedCheckboxes.length).toBe(13);
-        for (const cb of updatedCheckboxes) {
-            expect(cb.getAttribute('aria-checked')).toBe('true');
-        }
+        await waitFor(() => {
+            const updatedCheckboxes = screen.getAllByRole('checkbox');
+            expect(updatedCheckboxes.length).toBe(13);
+            for (const cb of updatedCheckboxes) {
+                expect(cb.getAttribute('aria-checked')).toBe('true');
+            }
+        });
 
         expect(useAppStore.getState().batchSelectedPhotos.length).toBe(13);
         const countNum = document.querySelector('.portfolio__batch-count-num');
@@ -235,13 +238,13 @@ describe('Portfolio Select All visible photos', () => {
         fireEvent.click(showHighlightsBtns[0]);
 
         // Visible photos are now 5 (Event 1) + 5 (Event 2) = 10
-        const visibleCheckboxes = screen.getAllByRole('checkbox');
-        expect(visibleCheckboxes.length).toBe(10);
-
-        // All 10 visible thumbnails remain selected because they were part of the previous selection
-        for (const cb of visibleCheckboxes) {
-            expect(cb.getAttribute('aria-checked')).toBe('true');
-        }
+        await waitFor(() => {
+            const visibleCheckboxes = screen.getAllByRole('checkbox');
+            expect(visibleCheckboxes.length).toBe(10);
+            for (const cb of visibleCheckboxes) {
+                expect(cb.getAttribute('aria-checked')).toBe('true');
+            }
+        });
     });
 
     it('selects all visible photos including visible recap slices when recap is present', async () => {
