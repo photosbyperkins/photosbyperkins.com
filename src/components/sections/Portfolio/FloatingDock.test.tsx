@@ -34,6 +34,24 @@ vi.mock('framer-motion', () => ({
                 {children}
             </article>
         ),
+        span: ({
+            children,
+            className,
+            ...props
+        }: React.HTMLAttributes<HTMLSpanElement> & { children?: React.ReactNode }) => (
+            <span className={className} {...props}>
+                {children}
+            </span>
+        ),
+        button: ({
+            children,
+            className,
+            ...props
+        }: React.ButtonHTMLAttributes<HTMLButtonElement> & { children?: React.ReactNode }) => (
+            <button className={className} {...props}>
+                {children}
+            </button>
+        ),
     },
     AnimatePresence: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
     useInView: () => true,
@@ -164,5 +182,11 @@ describe('Portfolio Cohesive Action Dock', () => {
 
         const selectBtn = screen.getByRole('button', { name: /Select Photos/i });
         expect(selectBtn).toBeDefined();
+
+        // Verify "YOUR FAVORITES" header is rendered before events
+        const favHeader = document.querySelector('.portfolio__favorites-header');
+        expect(favHeader).not.toBeNull();
+        expect(favHeader?.textContent).toContain('YOUR');
+        expect(favHeader?.textContent).toContain('FAVORITES');
     });
 });

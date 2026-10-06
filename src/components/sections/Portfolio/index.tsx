@@ -20,6 +20,7 @@ import { GEAR_REGISTRY } from '../../../data/gearData';
 import type { PhotoRecord, FavoriteStoreItem, EventScore } from '../../../types';
 import Recap from '../Recap';
 import PortfolioEvent from './PortfolioEvent';
+import { EventEmptyFavorites } from './eventComponents/EventEmptyFavorites';
 import SharedFavoritesPanel from './SharedFavoritesPanel';
 import PortfolioMonthTrack from './PortfolioMonthTrack';
 import GearInfoHeader from './GearInfoHeader';
@@ -119,8 +120,9 @@ export default function Portfolio({ years }: PortfolioProps) {
 
     const events = Object.entries(yearData);
 
-    const isTeamMode = !years.includes(selectedTab) && !isGearRoute && selectedTab !== 'favorites';
-    const isMultiYearMode = (isTeamMode || isGearRoute) && selectedTab !== 'favorites';
+    const isFavoritesTab = selectedTab === 'favorites';
+    const isTeamMode = !years.includes(selectedTab) && !isGearRoute && !isFavoritesTab;
+    const isMultiYearMode = isTeamMode || isGearRoute || isFavoritesTab;
 
     const currentGearItem = useMemo(() => {
         if (!isGearRoute || !activeRouteSlug) return null;
@@ -137,7 +139,6 @@ export default function Portfolio({ years }: PortfolioProps) {
         [stats, events, selectedTab]
     );
 
-    const isFavoritesTab = selectedTab === 'favorites';
     const eventRows = useMemo(
         () => buildEventRows(events, selectedTab, isMultiYearMode),
         [events, selectedTab, isMultiYearMode]
@@ -349,6 +350,8 @@ export default function Portfolio({ years }: PortfolioProps) {
         }
     }, [batchSelectedPhotos]);
 
+
+
     const [directStoryPhoto, setDirectStoryPhoto] = useState<PhotoRecord | null>(null);
     const [directStoryEventName, setDirectStoryEventName] = useState<string>('');
     const [directStoryYear, setDirectStoryYear] = useState<string>('');
@@ -502,23 +505,44 @@ export default function Portfolio({ years }: PortfolioProps) {
                     )}
 
                     <div className="portfolio__events" ref={stickyRef}>
-                        {eventRows.map((row) =>
-                            row.type === 'divider' ? (
-                                <div key={`divider-${row.year}`} className="portfolio__year-divider" aria-hidden="true">
-                                    <span>{row.year}</span>
-                                </div>
-                            ) : (
-                                <PortfolioEvent
-                                    key={`${selectedTab}-${row.eventName}`}
-                                    eventName={row.eventName}
-                                    ev={row.ev}
-                                    evIdx={row.evIdx}
-                                    selectedYear={selectedTab}
-                                    inViewParent={inView}
-                                    activeTeamName={activeTeamMeta?.name}
-                                    activeGearId={isGearRoute ? activeRouteSlug : undefined}
-                                />
-                            )
+                        {isFavoritesTab && favorites.length === 0 ? (
+                            <EventEmptyFavorites />
+                        ) : (
+                            <>
+                                {isFavoritesTab && (
+                                    <div className="portfolio__favorites-header">
+                                        <div className="portfolio__event-teams">
+                                            <h2>
+                                                <span style={{ color: 'var(--color-accent)' }}>YOUR&nbsp;</span>
+                                                FAVORITES
+                                            </h2>
+                                        </div>
+                                    </div>
+                                )}
+                                {eventRows.map((row) =>
+                                    row.type === 'divider' ? (
+                                        <div key={`divider-${row.year}`} className="portfolio__year-divider" aria-hidden="true">
+                                            <span>{row.year}</span>
+                                        </div>
+                                    ) : (
+                                        <PortfolioEvent
+                                            key={`${selectedTab}-${row.eventName}`}
+                                            eventName={row.eventName}
+                                            ev={row.ev}
+                                            evIdx={row.evIdx}
+                                            selectedYear={
+                                                isMultiYearMode && row.ev.originalYear
+                                                    ? row.ev.originalYear
+                                                    : selectedTab
+                                            }
+                                            inViewParent={inView}
+                                            activeTeamName={activeTeamMeta?.name}
+                                            activeGearId={isGearRoute ? activeRouteSlug : undefined}
+                                            isFavoritesTab={isFavoritesTab}
+                                        />
+                                    )
+                                )}
+                            </>
                         )}
                     </div>
                 </div>

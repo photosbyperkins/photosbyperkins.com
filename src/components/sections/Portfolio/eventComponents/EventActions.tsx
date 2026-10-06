@@ -7,7 +7,6 @@ import { withBuild } from '../../../../utils/build';
 
 export interface EventActionsProps {
     eventName: string;
-    date?: string | null;
     zip?: string;
     canShare: boolean;
     selectedYear: string;
@@ -17,11 +16,11 @@ export interface EventActionsProps {
     onDownloadFavorites: () => void;
     isGridView: boolean;
     onToggleGridView: (e: React.MouseEvent) => void;
+    isFavoritesTab?: boolean;
 }
 
 export const EventActions = React.memo(function EventActions({
     eventName,
-    date,
     zip,
     canShare,
     selectedYear,
@@ -31,8 +30,10 @@ export const EventActions = React.memo(function EventActions({
     onDownloadFavorites,
     isGridView,
     onToggleGridView,
+    isFavoritesTab,
 }: EventActionsProps) {
     const isFavorites = eventName === 'Favorites';
+    const isFavoritesMode = isFavorites || Boolean(isFavoritesTab);
 
     const handleShareAlbum = async () => {
         const shareUrl = `${window.location.origin}/portfolio/${encodeURIComponent(selectedYear)}/${encodeURIComponent(eventName)}`;
@@ -67,9 +68,7 @@ export const EventActions = React.memo(function EventActions({
 
     return (
         <div className="portfolio__event-meta">
-            {date && <span className="portfolio__stat-tag">{date}</span>}
-
-            {zip && !canShare && !isFavorites && (
+            {zip && !canShare && !isFavoritesMode && (
                 <a
                     href={withBuild(zip, true)}
                     download
@@ -82,7 +81,7 @@ export const EventActions = React.memo(function EventActions({
                 </a>
             )}
 
-            {canShare && !isFavorites && (
+            {canShare && !isFavoritesMode && (
                 <button
                     className="portfolio__zip-btn"
                     onClick={handleShareAlbum}
@@ -93,13 +92,13 @@ export const EventActions = React.memo(function EventActions({
                 </button>
             )}
 
-            {isFavorites && !canShare && hasAlbumPhotos && (
+            {isFavoritesMode && !canShare && hasAlbumPhotos && (
                 <button
                     className="portfolio__zip-btn"
                     onClick={onDownloadFavorites}
                     disabled={isZipping}
-                    title="Download Favorites as .zip"
-                    aria-label="Download Favorites as .zip"
+                    title={isFavoritesTab ? "Download All Original Photos (.zip)" : "Download Favorites as .zip"}
+                    aria-label={isFavoritesTab ? "Download All Original Photos (.zip)" : "Download Favorites as .zip"}
                     style={{
                         cursor: isZipping ? 'wait' : 'pointer',
                         backgroundImage: isZipping
@@ -117,7 +116,7 @@ export const EventActions = React.memo(function EventActions({
                 </button>
             )}
 
-            {isFavorites && canShare && hasAlbumPhotos && (
+            {isFavoritesMode && canShare && hasAlbumPhotos && (
                 <button
                     className="portfolio__zip-btn"
                     onClick={handleShareFavorites}

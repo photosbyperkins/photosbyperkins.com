@@ -29,6 +29,7 @@ interface PortfolioEventProps {
     inViewParent: boolean;
     activeTeamName?: string;
     activeGearId?: string;
+    isFavoritesTab?: boolean;
 }
 
 const PortfolioEvent = memo(function PortfolioEvent({
@@ -39,6 +40,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
     inViewParent,
     activeTeamName,
     activeGearId,
+    isFavoritesTab,
 }: PortfolioEventProps) {
     const canShare = useCanShare();
     const openLightbox = useAppStore((state) => state.openLightbox);
@@ -63,13 +65,12 @@ const PortfolioEvent = memo(function PortfolioEvent({
     }, []);
 
     const isSharedEvent = sharedPhoto?.eventName === eventName;
-    const isVisible = inView || (evIdx < 2 && inViewParent) || isSharedEvent || eventName === 'Favorites';
+    const isVisible =
+        inView || (evIdx < 2 && inViewParent) || Boolean(isSharedEvent) || eventName === 'Favorites';
 
     useEffect(() => {
-        if (eventName === 'Favorites') {
-            setEv(initialEv);
-        }
-    }, [initialEv, eventName]);
+        setEv(initialEv);
+    }, [initialEv]);
 
     const { isZipping, zipProgress, startZipping } = useZipWorker();
 
@@ -80,7 +81,12 @@ const PortfolioEvent = memo(function PortfolioEvent({
             .map((item: PhotoInput) => getPhotoOriginalUrl(item))
             .filter((u): u is string => Boolean(u));
         if (urls.length === 0) return;
-        startZipping(urls, 'Favorites.zip');
+        const zipName = ev.albumSlug
+            ? `${ev.albumSlug}-favorites.zip`
+            : eventName !== 'Favorites'
+                ? `${eventName.replace(/[^a-zA-Z0-9_-]/g, '_')}-favorites.zip`
+                : 'Favorites.zip';
+        startZipping(urls, zipName);
     };
 
     useEffect(() => {
@@ -223,18 +229,21 @@ const PortfolioEvent = memo(function PortfolioEvent({
     }, [albumImages]);
 
     const featuredPhotos: PhotoRecord[] = useMemo(() => {
+        if (isFavoritesTab) {
+            return albumImages;
+        }
         return computeFeaturedPhotos(albumImages, highlightImages);
-    }, [albumImages, highlightImages]);
+    }, [albumImages, highlightImages, isFavoritesTab]);
 
     const visiblePhotos: FavoriteStoreItem[] = useMemo(() => {
-        const list = isGridView || eventName === 'Favorites' ? albumImages : featuredPhotos;
+        const list = isGridView || eventName === 'Favorites' || isFavoritesTab ? albumImages : featuredPhotos;
         const effectiveYear = ev.originalYear || selectedYear;
         return list.map((p) => ({
             ...p,
-            eventName: eventName === 'Favorites' && p.eventName ? p.eventName : eventName,
-            year: eventName === 'Favorites' && p.year ? p.year : effectiveYear,
+            eventName: p.eventName || eventName,
+            year: p.year || effectiveYear,
         }));
-    }, [isGridView, eventName, albumImages, featuredPhotos, ev.originalYear, selectedYear]);
+    }, [isGridView, eventName, isFavoritesTab, albumImages, featuredPhotos, ev.originalYear, selectedYear]);
 
     useEffect(() => {
         registerVisiblePhotos(eventName, visiblePhotos);
@@ -248,8 +257,8 @@ const PortfolioEvent = memo(function PortfolioEvent({
     const handleToggleSelect = useCallback(
         (photo: PhotoRecord, index: number, isShift?: boolean) => {
             const effectiveYear = ev.originalYear || selectedYear;
-            const targetEventName = eventName === 'Favorites' && photo.eventName ? photo.eventName : eventName;
-            const targetYear = eventName === 'Favorites' && photo.year ? photo.year : effectiveYear;
+            const targetEventName = photo.eventName || eventName;
+            const targetYear = photo.year || effectiveYear;
             const storeItem: FavoriteStoreItem = {
                 ...photo,
                 eventName: targetEventName,
@@ -266,8 +275,8 @@ const PortfolioEvent = memo(function PortfolioEvent({
                     if (p && p.original) {
                         rangeItems.push({
                             ...p,
-                            eventName: eventName === 'Favorites' && p.eventName ? p.eventName : eventName,
-                            year: eventName === 'Favorites' && p.year ? p.year : effectiveYear,
+                            eventName: p.eventName || eventName,
+                            year: p.year || effectiveYear,
                         });
                     }
                 }
@@ -324,23 +333,25 @@ const PortfolioEvent = memo(function PortfolioEvent({
             animate={isVisible ? { opacity: 1, y: 0 } : {}}
             transition={{ duration: 0.4 }}
         >
-            <div className="portfolio__event-header">
-                {titleBlock}
+            {eventName !== 'Favorites' && (
+                <div className="portfolio__event-header">
+                    {titleBlock}
 
-                <EventActions
-                    eventName={eventName}
-                    date={ev.date}
-                    zip={ev.zip}
-                    canShare={canShare}
-                    selectedYear={selectedYear}
-                    hasAlbumPhotos={Boolean(ev.album && ev.album.length > 0)}
-                    isZipping={isZipping}
-                    zipProgress={zipProgress}
-                    onDownloadFavorites={handleDownloadFavorites}
-                    isGridView={isGridView}
-                    onToggleGridView={toggleGridView}
-                />
-            </div>
+                    <EventActions
+                        eventName={eventName}
+                        zip={ev.zip}
+                        canShare={canShare}
+                        selectedYear={selectedYear}
+                        hasAlbumPhotos={Boolean(ev.album && ev.album.length > 0)}
+                        isZipping={isZipping}
+                        zipProgress={zipProgress}
+                        onDownloadFavorites={handleDownloadFavorites}
+                        isGridView={isGridView}
+                        onToggleGridView={toggleGridView}
+                        isFavoritesTab={isFavoritesTab}
+                    />
+                </div>
+            )}
             {ev.description && <p className="portfolio__event-desc">{ev.description}</p>}
 
             {isVisible ? (

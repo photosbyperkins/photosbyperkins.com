@@ -167,5 +167,45 @@ describe('EventActions', () => {
         expect(downloadLink).toBeDefined();
         expect(screen.queryByRole('button', { name: /Share Album/i })).toBeNull();
     });
+
+    it('renders download button titled "Download All Original Photos (.zip)" on favorites tab when canShare is false', () => {
+        const onDownloadFavorites = vi.fn();
+        render(
+            <EventActions
+                {...defaultProps}
+                eventName="2024.03.15 vs Salpointe"
+                hasAlbumPhotos={true}
+                canShare={false}
+                isFavoritesTab={true}
+                onDownloadFavorites={onDownloadFavorites}
+            />
+        );
+
+        // Should NOT render static <a download> link
+        expect(screen.queryByRole('link')).toBeNull();
+
+        // Should render <button> with "Download All Original Photos (.zip)"
+        const downloadBtn = screen.getByRole('button', { name: /Download All Original Photos \(\.zip\)/i });
+        expect(downloadBtn).toBeDefined();
+
+        fireEvent.click(downloadBtn);
+        expect(onDownloadFavorites).toHaveBeenCalledTimes(1);
+    });
+
+    it('renders share favorites button on favorites tab when canShare is true', () => {
+        render(
+            <EventActions
+                {...defaultProps}
+                eventName="2024.03.15 vs Salpointe"
+                hasAlbumPhotos={true}
+                canShare={true}
+                isFavoritesTab={true}
+            />
+        );
+
+        expect(screen.queryByTitle(/Download All Original Photos \(\.zip\)/i)).toBeNull();
+        const shareBtn = screen.getByRole('button', { name: /Share Favorites/i });
+        expect(shareBtn).toBeDefined();
+    });
 });
 

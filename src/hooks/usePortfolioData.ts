@@ -76,7 +76,9 @@ export function usePortfolioData({
 
     const isFavoritesTab = selectedTab === 'favorites';
     const [albumEnrichVersion, setAlbumEnrichVersion] = useState(0);
+    const [yearDataEnrichVersion, setYearDataEnrichVersion] = useState(0);
 
+    // Fetch uncached albums for EXIF enrichment
     useEffect(() => {
         if (!isFavoritesTab || displayFavorites.length === 0) return;
         const albumsToFetch = new Set<string>();
@@ -114,23 +116,64 @@ export function usePortfolioData({
         };
     }, [isFavoritesTab, displayFavorites]);
 
-    // Derive favorites yearData during render instead of cascading useEffect setState
+    // Ensure year data is loaded for any years present in favorites so events have complete metadata (scores, zip, etc.)
+    useEffect(() => {
+        if (!isFavoritesTab || displayFavorites.length === 0) return;
+        const yearsToFetch = new Set<string>();
+
+        for (const item of displayFavorites) {
+            const record = toPhotoRecord(item);
+            let year =
+                record.year ||
+                (typeof item === 'object' && item && 'year' in item ? (item.year as string) : undefined);
+            if (!year && record.original) {
+                const match = record.original.match(/\/photos\/(\d{4})\//);
+                if (match) year = match[1];
+            }
+            if (year && years.includes(year) && !yearDataCache.has(year)) {
+                yearsToFetch.add(year);
+            }
+        }
+
+        if (yearsToFetch.size === 0) return;
+        let isCancelled = false;
+
+        Promise.allSettled(
+            Array.from(yearsToFetch).map((y) =>
+                fetch(`/data/years/${y}.json?build=${getBuildNumber()}`)
+                    .then((res) => {
+                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                        return res.json();
+                    })
+                    .then((json) => {
+                        const payload = json as FetchPayload;
+                        if (!yearDataCache.has(y)) {
+                            yearDataCache.set(y, {
+                                events: payload.events,
+                                recapCount: payload.recapCount || 0,
+                                recapEvents: payload.recapEvents || [],
+                                nextPart: payload.nextPart ?? null,
+                                stats: payload.stats,
+                            });
+                        }
+                    })
+            )
+        ).then(() => {
+            if (!isCancelled) {
+                setYearDataEnrichVersion((v) => v + 1);
+            }
+        });
+
+        return () => {
+            isCancelled = true;
+        };
+    }, [isFavoritesTab, displayFavorites, years]);
+
+    // Derive favorites yearData during render: always organized by event and year reverse-chronologically
     const favoritesYearData: YearData = useMemo((): YearData => {
         if (!isFavoritesTab) return {};
         void albumEnrichVersion;
-        const sorted = [...displayFavorites].sort((a: FavoriteStoreItem, b: FavoriteStoreItem) => {
-            const getTimestamp = (item: FavoriteStoreItem) => {
-                if (!item || typeof item !== 'object' || !('eventName' in item) || !item.eventName) return 0;
-                const { baseDatePrefix, parsedYear } = parseEventTitle(item.eventName, item.year);
-                const year = parsedYear || item.year || '2000';
-                if (baseDatePrefix) {
-                    const [month, day] = baseDatePrefix.split('.');
-                    return new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).getTime();
-                }
-                return new Date(parseInt(year), 0, 1).getTime();
-            };
-            return getTimestamp(b) - getTimestamp(a);
-        });
+        void yearDataEnrichVersion;
 
         const enrichPhotoRecordWithExif = (record: PhotoRecord): PhotoRecord => {
             if (record.exif || !record.original) return record;
@@ -151,16 +194,139 @@ export function usePortfolioData({
             return record;
         };
 
-        const enrichedAlbum: PhotoInput[] = sorted.map((item) => enrichPhotoRecordWithExif(toPhotoRecord(item)));
+        const getFavoriteEventInfo = (item: FavoriteStoreItem, record: PhotoRecord) => {
+            let year =
+                record.year ||
+                (typeof item === 'object' && item && 'year' in item ? (item.year as string) : undefined);
+            let eventName =
+                record.eventName ||
+                (typeof item === 'object' && item && 'eventName' in item
+                    ? (item.eventName as string)
+                    : undefined);
 
-        return {
-            Favorites: {
-                album: enrichedAlbum,
-                highlights: [],
-                date: null,
-            },
+            let slugFromOriginal: string | undefined;
+            if (record.original) {
+                const match = record.original.match(/\/photos\/(\d{4})\/([^/]+)\//);
+                if (match) {
+                    if (!year) year = match[1];
+                    slugFromOriginal = match[2];
+                    if (!eventName || eventName === 'Favorites') {
+                        eventName = match[2];
+                    }
+                }
+            }
+
+            if (year && slugFromOriginal) {
+                const eventsInYear = yearDataCache.get(year)?.events;
+                if (eventsInYear) {
+                    const matched = Object.entries(eventsInYear).find(
+                        ([, ev]) => ev.albumSlug === slugFromOriginal
+                    );
+                    if (matched) {
+                        eventName = matched[0];
+                    }
+                }
+            }
+
+            if (eventName && (!year || year === 'favorites')) {
+                const parsed = parseEventTitle(eventName, year);
+                if (parsed.parsedYear) {
+                    year = parsed.parsedYear;
+                }
+            }
+
+            return {
+                eventName: eventName || 'Other Favorites',
+                year: year || 'Other',
+                albumSlug: slugFromOriginal,
+            };
         };
-    }, [isFavoritesTab, displayFavorites, albumEnrichVersion]);
+
+        interface EventGroup {
+            eventName: string;
+            year: string;
+            photos: PhotoInput[];
+            timestamp: number;
+            albumSlug?: string;
+        }
+
+        const groupsMap = new Map<string, EventGroup>();
+
+        for (const item of displayFavorites) {
+            const record = enrichPhotoRecordWithExif(toPhotoRecord(item));
+            const { eventName, year, albumSlug } = getFavoriteEventInfo(item, record);
+            const key = `${year}___${eventName}`;
+
+            let group = groupsMap.get(key);
+            if (!group) {
+                const { baseDatePrefix, parsedYear } = parseEventTitle(eventName, year);
+                const effectiveYear = parsedYear || year || '2000';
+                let timestamp = 0;
+                if (baseDatePrefix) {
+                    const [month, day] = baseDatePrefix.split('.');
+                    const parsedMonth = parseInt(month, 10);
+                    const parsedDay = parseInt(day, 10);
+                    const numYear = parseInt(effectiveYear, 10);
+                    if (!isNaN(parsedMonth) && !isNaN(parsedDay) && !isNaN(numYear)) {
+                        timestamp = new Date(numYear, parsedMonth - 1, parsedDay).getTime();
+                    }
+                }
+                if (!timestamp) {
+                    const numYear = parseInt(effectiveYear, 10);
+                    timestamp = isNaN(numYear) ? 0 : new Date(numYear, 0, 1).getTime();
+                }
+
+                group = {
+                    eventName,
+                    year: effectiveYear,
+                    photos: [],
+                    timestamp,
+                    albumSlug,
+                };
+                groupsMap.set(key, group);
+            }
+            group.photos.push(record);
+        }
+
+        const sortedGroups = Array.from(groupsMap.values()).sort((a, b) => b.timestamp - a.timestamp);
+
+        const byEventData: YearData = {};
+        for (const group of sortedGroups) {
+            let key = group.eventName;
+            if (byEventData[key]) {
+                key = `${group.eventName} (${group.year})`;
+            }
+            const eventsInYear = yearDataCache.get(group.year)?.events;
+            let cachedEvent = eventsInYear ? eventsInYear[group.eventName] : undefined;
+            if (!cachedEvent && eventsInYear) {
+                const cleanName = group.eventName.replace(/^\[\d{4}\]\s*/, '');
+                cachedEvent = eventsInYear[cleanName] || eventsInYear[`[${group.year}] ${cleanName}`];
+                if (!cachedEvent && group.albumSlug) {
+                    const found = Object.values(eventsInYear).find((ev) => ev.albumSlug === group.albumSlug);
+                    if (found) cachedEvent = found;
+                }
+            }
+
+            const albumSlug = group.albumSlug || cachedEvent?.albumSlug;
+            const zip = cachedEvent?.zip || (albumSlug ? `/photos/${group.year}/${albumSlug}.zip` : undefined);
+
+            byEventData[key] = {
+                album: group.photos,
+                highlights: cachedEvent?.highlights || [],
+                originalYear: group.year,
+                date: cachedEvent?.date ?? null,
+                localScore: cachedEvent?.localScore,
+                wftdaMatch: cachedEvent?.wftdaMatch,
+                description: cachedEvent?.description ?? null,
+                maxExifChars: cachedEvent?.maxExifChars,
+                photoCount: group.photos.length,
+                albumSlug,
+                zip,
+            };
+        }
+
+        return byEventData;
+    }, [isFavoritesTab, displayFavorites, albumEnrichVersion, yearDataEnrichVersion]);
 
     const prevTabRef = useRef(selectedTab);
     useEffect(() => {

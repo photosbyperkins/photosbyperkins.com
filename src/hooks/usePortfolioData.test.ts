@@ -169,7 +169,7 @@ describe('usePortfolioData', () => {
         expect(fetchUrls.some((url) => url.includes('/data/gear/sony-a9iii.json'))).toBe(true);
     });
 
-    it('synthesizes virtual sorted favorites event without network calls', () => {
+    it('groups favorites by event and year reverse-chronologically', () => {
         const fav1: FavoriteStoreItem = {
             eventName: '03.01 Early Game',
             year: '2026',
@@ -192,13 +192,80 @@ describe('usePortfolioData', () => {
             })
         );
 
-        expect(result.current.yearData.Favorites).toBeDefined();
+        expect(result.current.yearData.Favorites).toBeUndefined();
+        const eventKeys = Object.keys(result.current.yearData);
         // Sorted reverse chronologically: Late Game should be before Early Game
-        const album = result.current.yearData.Favorites.album;
-        expect(album).toHaveLength(2);
-        expect((album[0] as unknown as { eventName: string }).eventName).toBe('10.20 Late Game');
-        expect((album[1] as unknown as { eventName: string }).eventName).toBe('03.01 Early Game');
-        expect(globalThis.fetch).not.toHaveBeenCalled();
+        expect(eventKeys).toEqual(['10.20 Late Game', '03.01 Early Game']);
+        expect(result.current.yearData['10.20 Late Game'].album).toHaveLength(1);
+        expect(result.current.yearData['03.01 Early Game'].album).toHaveLength(1);
+    });
+
+    it('groups favorites by event and year reverse-chronologically across multiple years', () => {
+        const fav1: FavoriteStoreItem = {
+            eventName: '08.10 Arch Rival vs Victorian',
+            year: '2024',
+            original: '/photos/2024/arch.jpg',
+            thumb: '/photos/2024/arch_thumb.jpg',
+        };
+        const fav2: FavoriteStoreItem = {
+            eventName: '11.15 Rose vs Gotham',
+            year: '2024',
+            original: '/photos/2024/rose.jpg',
+            thumb: '/photos/2024/rose_thumb.jpg',
+        };
+        const fav3: FavoriteStoreItem = {
+            eventName: '09.20 Playoffs Day 1',
+            year: '2023',
+            original: '/photos/2023/playoffs.jpg',
+            thumb: '/photos/2023/playoffs_thumb.jpg',
+        };
+
+        useAppStore.setState({
+            favorites: [fav1, fav2, fav3],
+        });
+
+        const { result } = renderHook(() =>
+            usePortfolioData({
+                selectedTab: 'favorites',
+                years,
+            })
+        );
+
+        expect(result.current.yearData.Favorites).toBeUndefined();
+        const eventKeys = Object.keys(result.current.yearData);
+        expect(eventKeys).toHaveLength(3);
+        // Reverse-chronological order: 2024.11.15, then 2024.08.10, then 2023.09.20
+        expect(eventKeys[0]).toBe('11.15 Rose vs Gotham');
+        expect(result.current.yearData['11.15 Rose vs Gotham'].originalYear).toBe('2024');
+        expect(result.current.yearData['11.15 Rose vs Gotham'].album).toHaveLength(1);
+
+        expect(eventKeys[1]).toBe('08.10 Arch Rival vs Victorian');
+        expect(result.current.yearData['08.10 Arch Rival vs Victorian'].originalYear).toBe('2024');
+
+        expect(eventKeys[2]).toBe('09.20 Playoffs Day 1');
+        expect(result.current.yearData['09.20 Playoffs Day 1'].originalYear).toBe('2023');
+    });
+
+    it('falls back to parsing year and slug from original url when explicit event metadata is absent', () => {
+        const fav: FavoriteStoreItem = {
+            original: '/photos/2025/2025.04.12-champs/photo1.jpg',
+            thumb: '/thumbnails/2025/2025.04.12-champs/photo1.webp',
+        };
+
+        useAppStore.setState({
+            favorites: [fav],
+        });
+
+        const { result } = renderHook(() =>
+            usePortfolioData({
+                selectedTab: 'favorites',
+                years,
+            })
+        );
+
+        expect(result.current.yearData['2025.04.12-champs']).toBeDefined();
+        expect(result.current.yearData['2025.04.12-champs'].originalYear).toBe('2025');
+        expect(result.current.yearData['2025.04.12-champs'].album).toHaveLength(1);
     });
 
     it('freezes favorites data when lightbox is open and updates when closed', () => {
@@ -221,7 +288,7 @@ describe('usePortfolioData', () => {
             })
         );
 
-        expect(result.current.yearData.Favorites.album).toHaveLength(1);
+        expect(result.current.yearData['03.01 Early Game']?.album).toHaveLength(1);
 
         // Open lightbox
         act(() => {
@@ -245,7 +312,8 @@ describe('usePortfolioData', () => {
         });
 
         // Background list should still be frozen at 1 item!
-        expect(result.current.yearData.Favorites.album).toHaveLength(1);
+        expect(Object.keys(result.current.yearData)).toHaveLength(1);
+        expect(result.current.yearData['04.01 Middle Game']).toBeUndefined();
 
         // Close lightbox
         act(() => {
@@ -255,7 +323,8 @@ describe('usePortfolioData', () => {
         });
 
         // Now unfrozen, displays 2 items
-        expect(result.current.yearData.Favorites.album).toHaveLength(2);
+        expect(Object.keys(result.current.yearData)).toHaveLength(2);
+        expect(result.current.yearData['04.01 Middle Game']).toBeDefined();
     });
 
     it('enriches favorite photos with EXIF from cached album data', async () => {
@@ -291,7 +360,7 @@ describe('usePortfolioData', () => {
             })
         );
 
-        const album = result.current.yearData.Favorites.album;
+        const album = result.current.yearData['10.20 Championship'].album;
         expect(album).toHaveLength(1);
         const photoRecord = album[0] as import('../types').PhotoRecord;
         expect(photoRecord.exif).toEqual({

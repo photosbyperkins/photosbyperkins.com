@@ -7,6 +7,15 @@ import { useAppStore } from '../../../store/useAppStore';
 import { getPhotoOriginalUrl } from '../../../utils/formatters';
 import type { EventData, PhotoInput } from '../../../types';
 
+const mockStartZipping = vi.fn();
+vi.mock('../../../hooks/useZipWorker', () => ({
+    useZipWorker: () => ({
+        isZipping: false,
+        zipProgress: 0,
+        startZipping: mockStartZipping,
+    }),
+}));
+
 const componentCache: Record<
     string,
     React.ForwardRefExoticComponent<React.HTMLAttributes<HTMLElement> & Record<string, unknown>>
@@ -65,6 +74,8 @@ describe('PortfolioEvent', () => {
         useAppStore.setState({
             sharedPhoto: null,
             favorites: [],
+            isBatchSelectMode: false,
+            batchSelectedPhotos: [],
             lightbox: { isOpen: false, images: [], index: 0, eventName: '', year: '' },
         });
     });
@@ -185,5 +196,89 @@ describe('PortfolioEvent', () => {
         expect(useAppStore.getState().batchSelectedPhotos.length).toBe(1);
         const item2 = useAppStore.getState().batchSelectedPhotos[0];
         expect(getPhotoOriginalUrl(item2)).toBe('/photos/h2.webp');
+    });
+
+    it('renders full event header (including scores and actions) identical to filtered views', () => {
+        const eventData: EventData = {
+            album: [
+                { original: '/photos/fav2.jpg', thumb: '/photos/fav2.jpg', eventName: 'Rose vs Gotham', year: '2024' },
+            ],
+            highlights: [],
+            originalYear: '2024',
+            localScore: { team1Score: 196, team2Score: 131 },
+        };
+
+        render(
+            <MemoryRouter>
+                <PortfolioEvent
+                    eventName="11.15 Rose City Rollers vs Gotham Girls Roller Derby"
+                    ev={eventData}
+                    evIdx={0}
+                    selectedYear="2024"
+                    inViewParent={true}
+                />
+            </MemoryRouter>
+        );
+
+        // Event title and team names should be rendered
+        expect(screen.getByText(/Gotham Girls Roller Derby/i)).toBeDefined();
+
+        // Scores should be rendered
+        expect(screen.getByText('196')).toBeDefined();
+        expect(screen.getByText('131')).toBeDefined();
+
+        // Event date prefix should be rendered in the title side
+        expect(screen.getByText('11.15')).toBeDefined();
+
+        // Featured / Full Album toggle should be present
+        expect(screen.getByRole('button', { name: /Show Full Album/i })).toBeDefined();
+        expect(screen.getByRole('button', { name: /Show Featured Photos/i })).toBeDefined();
+
+        // Photo should be displayed
+        const photos = screen.getAllByRole('button', { name: /View .*photo/i });
+        expect(photos.length).toBe(1);
+    });
+
+    it('downloads only favorite photos from the event when isFavoritesTab is true', () => {
+        mockStartZipping.mockClear();
+
+        const eventData: EventData = {
+            album: [
+                { original: '/photos/2024/game/fav1.jpg', thumb: '/photos/2024/game/fav1.jpg', eventName: 'Rose vs Gotham', year: '2024' },
+                { original: '/photos/2024/game/fav2.jpg', thumb: '/photos/2024/game/fav2.jpg', eventName: 'Rose vs Gotham', year: '2024' },
+            ],
+            albumSlug: '2024-rose-vs-gotham',
+            highlights: [],
+            originalYear: '2024',
+            zip: '/photos/2024/full-album-all-200-photos.zip',
+        };
+
+        render(
+            <MemoryRouter>
+                <PortfolioEvent
+                    eventName="11.15 Rose City Rollers vs Gotham Girls Roller Derby"
+                    ev={eventData}
+                    evIdx={0}
+                    selectedYear="2024"
+                    inViewParent={true}
+                    isFavoritesTab={true}
+                />
+            </MemoryRouter>
+        );
+
+        // Does NOT render the static <a href> link pointing to full-album-all-200-photos.zip
+        expect(screen.queryByRole('link', { name: /Download All Original Photos \(\.zip\)/i })).toBeNull();
+
+        // Renders the button with title "Download All Original Photos (.zip)"
+        const downloadBtn = screen.getByRole('button', { name: /Download All Original Photos \(\.zip\)/i });
+        expect(downloadBtn).toBeDefined();
+
+        fireEvent.click(downloadBtn);
+
+        // startZipping is called with ONLY the 2 favorite photos from this event and an event-specific zip name
+        expect(mockStartZipping).toHaveBeenCalledWith(
+            ['/photos/2024/game/fav1.jpg', '/photos/2024/game/fav2.jpg'],
+            '2024-rose-vs-gotham-favorites.zip'
+        );
     });
 });
