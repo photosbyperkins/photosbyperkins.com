@@ -8,6 +8,16 @@ describe('haptics utility', () => {
     beforeEach(() => {
         vi.restoreAllMocks();
         _resetScrubberHapticThrottle();
+        window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+            matches: false,
+            media: query,
+            onchange: null,
+            addListener: vi.fn(),
+            removeListener: vi.fn(),
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            dispatchEvent: vi.fn(),
+        }));
     });
 
     afterEach(() => {

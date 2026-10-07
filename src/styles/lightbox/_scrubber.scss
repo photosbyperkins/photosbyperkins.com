@@ -24,6 +24,7 @@
                 flex-shrink: 0;
                 width: max-content;
                 pointer-events: none;
+                will-change: transform;
             }
 
             &-thumb {

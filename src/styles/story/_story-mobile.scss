@@ -272,6 +272,7 @@
     box-shadow: 0 -12px 48px rgba(0, 0, 0, 0.65);
     z-index: 25;
     overflow: hidden;
+    will-change: transform;
 
     html[data-theme='light'] & {
         background: rgba(255, 255, 255, 0.98);

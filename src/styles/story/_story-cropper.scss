@@ -68,6 +68,7 @@
         left: 0;
         pointer-events: none;
         z-index: 1;
+        will-change: transform;
         transition:
             border-radius var(--transition-fast),
             box-shadow var(--transition-fast);
@@ -186,6 +187,7 @@
             z-index: 40;
             cursor: grabbing;
             scale: 1.04;
+            will-change: transform;
             box-shadow:
                 0 18px 40px rgba(0, 0, 0, 0.6),
                 0 0 0 1.5px var(--color-accent) !important;
