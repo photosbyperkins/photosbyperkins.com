@@ -5,11 +5,13 @@ import ProgressiveImage from './ProgressiveImage';
 describe('ProgressiveImage', () => {
     let mockObserverCallback: (entries: IntersectionObserverEntry[]) => void;
     let observeMock: ReturnType<typeof vi.fn>;
+    let unobserveMock: ReturnType<typeof vi.fn>;
     let disconnectMock: ReturnType<typeof vi.fn>;
     let originalIntersectionObserver: typeof IntersectionObserver;
 
     beforeEach(() => {
         observeMock = vi.fn();
+        unobserveMock = vi.fn();
         disconnectMock = vi.fn();
 
         originalIntersectionObserver = window.IntersectionObserver;
@@ -18,7 +20,7 @@ describe('ProgressiveImage', () => {
                 mockObserverCallback = callback as unknown as (entries: IntersectionObserverEntry[]) => void;
             }
             observe = observeMock;
-            unobserve = vi.fn();
+            unobserve = unobserveMock;
             disconnect = disconnectMock;
         } as unknown as typeof IntersectionObserver;
     });
@@ -65,7 +67,7 @@ describe('ProgressiveImage', () => {
         });
 
         expect(img.getAttribute('src')).toContain('/photos/photo1.jpg');
-        expect(disconnectMock).toHaveBeenCalled();
+        expect(unobserveMock).toHaveBeenCalled();
     });
 
     it('immediately loads image when priority=true without waiting for intersection', () => {

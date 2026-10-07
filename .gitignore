@@ -28,7 +28,8 @@ dist-ssr
 /data/*
 !/data/customTeamFilters.json
 /build/
-public/data/
+public/data/*
+!public/data/story/
 build.json
 public/hero/
 deploy_staging*

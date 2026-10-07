@@ -8,6 +8,58 @@ type ProgressiveImageProps = React.ImgHTMLAttributes<HTMLImageElement> & {
     aspectRatio?: string;
 };
 
+type ObserverCallback = () => void;
+let sharedObserver: IntersectionObserver | null = null;
+let currentObserverClass: typeof IntersectionObserver | null = null;
+const observerCallbacks = new Map<Element, ObserverCallback>();
+
+function getSharedObserver(): IntersectionObserver | null {
+    if (typeof window === 'undefined' || !('IntersectionObserver' in window)) return null;
+    if (!sharedObserver || currentObserverClass !== window.IntersectionObserver) {
+        currentObserverClass = window.IntersectionObserver;
+        observerCallbacks.clear();
+        sharedObserver = new window.IntersectionObserver(
+            (entries) => {
+                for (const entry of entries) {
+                    if (entry.isIntersecting) {
+                        if (entry.target) {
+                            const cb = observerCallbacks.get(entry.target);
+                            if (cb) {
+                                observerCallbacks.delete(entry.target);
+                                sharedObserver?.unobserve(entry.target);
+                                cb();
+                            }
+                        } else {
+                            const allEntries = Array.from(observerCallbacks.entries());
+                            for (const [el, cb] of allEntries) {
+                                observerCallbacks.delete(el);
+                                sharedObserver?.unobserve(el);
+                                cb();
+                            }
+                        }
+                    }
+                }
+            },
+            { rootMargin: '400px' }
+        );
+    }
+    return sharedObserver;
+}
+
+function observeElement(el: Element, cb: ObserverCallback): () => void {
+    const observer = getSharedObserver();
+    if (!observer) {
+        cb();
+        return () => {};
+    }
+    observerCallbacks.set(el, cb);
+    observer.observe(el);
+    return () => {
+        observerCallbacks.delete(el);
+        observer.unobserve(el);
+    };
+}
+
 export default function ProgressiveImage({
     src,
     alt,
@@ -35,18 +87,9 @@ export default function ProgressiveImage({
     useEffect(() => {
         if (priority || shouldLoad || !containerRef.current) return;
 
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting) {
-                    setShouldLoad(true);
-                    observer.disconnect();
-                }
-            },
-            { rootMargin: '400px' }
-        );
-
-        observer.observe(containerRef.current);
-        return () => observer.disconnect();
+        return observeElement(containerRef.current, () => {
+            setShouldLoad(true);
+        });
     }, [shouldLoad, priority]);
 
     // Check if image is already cached / completed

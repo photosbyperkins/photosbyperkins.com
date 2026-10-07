@@ -5,10 +5,10 @@ import { BrowserRouter } from 'react-router-dom';
 import { registerSW } from 'virtual:pwa-register';
 import App from './App.tsx';
 import './index.scss';
-import '@fontsource/barlow-condensed/400.css';
-import '@fontsource/barlow-condensed/600.css';
-import '@fontsource/barlow-condensed/700.css';
-import '@fontsource/outfit/400.css';
+import '@fontsource/barlow-condensed/latin-400.css';
+import '@fontsource/barlow-condensed/latin-600.css';
+import '@fontsource/barlow-condensed/latin-700.css';
+import '@fontsource/outfit/latin-400.css';
 
 // Force a hard reload if Vite fails to load a dynamic chunk or asset
 // This usually happens when the app updates but the user has an old index.html cached

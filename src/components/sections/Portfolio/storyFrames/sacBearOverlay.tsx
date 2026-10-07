@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import type { BearPathDef } from './sacBearData';
+import type { BearPathDef } from './types';
 import { loadSacBearPaths } from './sacBearLoader';
 
 export interface SacBearGraphicProps {

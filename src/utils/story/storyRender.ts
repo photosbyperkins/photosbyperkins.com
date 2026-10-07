@@ -566,6 +566,27 @@ export async function renderStoryToBlob(
     img: HTMLImageElement | HTMLCanvasElement | (HTMLImageElement | HTMLCanvasElement | null | undefined)[],
     config: StoryRenderConfig
 ): Promise<Blob> {
+    if (typeof OffscreenCanvas !== 'undefined') {
+        try {
+            let targetW = STORY_WIDTH;
+            let targetH = STORY_HEIGHT;
+            if (config.resolution === '1440x2560') {
+                targetW = 1440;
+                targetH = 2560;
+            } else if (config.resolution === '2160x3840') {
+                targetW = 2160;
+                targetH = 3840;
+            }
+            const offscreen = new OffscreenCanvas(targetW, targetH);
+            await renderStoryToCanvas(img, config, offscreen as unknown as HTMLCanvasElement);
+            if (typeof offscreen.convertToBlob === 'function') {
+                return await offscreen.convertToBlob({ type: 'image/jpeg', quality: 0.95 });
+            }
+        } catch {
+            // Fallback to DOM canvas if OffscreenCanvas conversion fails
+        }
+    }
+
     const canvas = await renderStoryToCanvas(img, config);
     return new Promise<Blob>((resolve, reject) => {
         if (typeof canvas.toBlob !== 'function') {

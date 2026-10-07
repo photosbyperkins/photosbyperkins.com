@@ -42,6 +42,9 @@ interface PortfolioProps {
     years: string[];
 }
 
+const EMPTY_VISIBLE_PHOTOS_MAP: Record<string, FavoriteStoreItem[]> = {};
+const EMPTY_BATCH_SELECTED: FavoriteStoreItem[] = [];
+
 export default function Portfolio({ years }: PortfolioProps) {
     const location = useLocation();
     const canShare = useCanShare();
@@ -67,10 +70,15 @@ export default function Portfolio({ years }: PortfolioProps) {
     const isLightboxOpen = useAppStore((state) => state.lightbox.isOpen);
     const isBatchSelectMode = useAppStore((state) => state.isBatchSelectMode);
     const setIsBatchSelectMode = useAppStore((state) => state.setIsBatchSelectMode);
-    const batchSelectedPhotos = useAppStore((state) => state.batchSelectedPhotos);
+    const batchSelectedCount = useAppStore((state) => state.batchSelectedPhotos.length);
+    const batchSelectedPhotos = useAppStore((state) =>
+        state.isBatchSelectMode ? state.batchSelectedPhotos : EMPTY_BATCH_SELECTED
+    );
     const selectBatchPhotos = useAppStore((state) => state.selectBatchPhotos);
     const clearBatchSelection = useAppStore((state) => state.clearBatchSelection);
-    const visiblePhotosMap = useAppStore((state) => state.visiblePhotosMap);
+    const visiblePhotosMap = useAppStore((state) =>
+        state.isBatchSelectMode ? state.visiblePhotosMap : EMPTY_VISIBLE_PHOTOS_MAP
+    );
     const clearVisiblePhotos = useAppStore((state) => state.clearVisiblePhotos);
     const favorites = useAppStore((state) => state.favorites);
     const addFavorites = useAppStore((state) => state.addFavorites);
@@ -249,6 +257,7 @@ export default function Portfolio({ years }: PortfolioProps) {
     }, [selectedTab, clearVisiblePhotos]);
 
     const allSelectablePhotos = useMemo(() => {
+        if (!isBatchSelectMode) return [];
         const list: FavoriteStoreItem[] = [];
         const seen = new Set<string>();
 
@@ -298,16 +307,16 @@ export default function Portfolio({ years }: PortfolioProps) {
             }
         }
         return list;
-    }, [events, visiblePhotosMap, selectedTab, recapCount, isTeamMode, isGearRoute]);
+    }, [isBatchSelectMode, events, visiblePhotosMap, selectedTab, recapCount, isTeamMode, isGearRoute]);
 
     const isAllSelected = useMemo(() => {
-        if (allSelectablePhotos.length === 0) return false;
+        if (!isBatchSelectMode || allSelectablePhotos.length === 0) return false;
         const selectedUrls = new Set(batchSelectedPhotos.map((p) => getPhotoOriginalUrl(p)).filter(Boolean));
         return allSelectablePhotos.every((p) => {
             const url = getPhotoOriginalUrl(p);
             return Boolean(url && selectedUrls.has(url));
         });
-    }, [allSelectablePhotos, batchSelectedPhotos]);
+    }, [isBatchSelectMode, allSelectablePhotos, batchSelectedPhotos]);
 
     const handleSelectAll = useCallback(() => {
         selectBatchPhotos(allSelectablePhotos);
@@ -706,7 +715,7 @@ export default function Portfolio({ years }: PortfolioProps) {
                             <button
                                 type="button"
                                 className={`portfolio__dock-btn portfolio__dock-btn--select portfolio__global-floating-select ${
-                                    batchSelectedPhotos.length > 0 ? 'portfolio__dock-btn--has-selection' : ''
+                                    batchSelectedCount > 0 ? 'portfolio__dock-btn--has-selection' : ''
                                 }`}
                                 onClick={() => {
                                     setIsBatchSelectMode(true);
@@ -716,12 +725,12 @@ export default function Portfolio({ years }: PortfolioProps) {
                             >
                                 <CheckSquare size={16} strokeWidth={2} className="portfolio__dock-btn-icon" />
                                 <span className="portfolio__dock-btn-text">Select</span>
-                                {batchSelectedPhotos.length > 0 && (
+                                {batchSelectedCount > 0 && (
                                     <span
                                         className="portfolio__dock-badge"
-                                        aria-label={`${batchSelectedPhotos.length} selected`}
+                                        aria-label={`${batchSelectedCount} selected`}
                                     >
-                                        {batchSelectedPhotos.length}
+                                        {batchSelectedCount}
                                     </span>
                                 )}
                             </button>

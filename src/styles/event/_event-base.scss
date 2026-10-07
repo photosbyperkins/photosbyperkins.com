@@ -4,6 +4,8 @@
     &__event {
         container-type: inline-size;
         scroll-margin-top: calc(var(--nav-height-total) + 1.5rem);
+        content-visibility: auto;
+        contain-intrinsic-size: auto 650px;
 
         &--highlights {
             min-height: auto;

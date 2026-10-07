@@ -136,29 +136,33 @@ const PortfolioEvent = memo(function PortfolioEvent({
     }, [albumImages, rawAlbumImages, eventName]);
 
     const isBatchSelectMode = useAppStore((state) => state.isBatchSelectMode);
-    const batchSelectedPhotos = useAppStore((state) => state.batchSelectedPhotos);
+    const batchSelectedPhotos = useAppStore((state) =>
+        state.isBatchSelectMode ? state.batchSelectedPhotos : undefined
+    );
     const toggleBatchPhoto = useAppStore((state) => state.toggleBatchPhoto);
     const selectBatchPhotos = useAppStore((state) => state.selectBatchPhotos);
     const registerVisiblePhotos = useAppStore((state) => state.registerVisiblePhotos);
     const unregisterVisiblePhotos = useAppStore((state) => state.unregisterVisiblePhotos);
 
     const selectedUrls = useMemo(() => {
+        if (!isBatchSelectMode || !batchSelectedPhotos) return undefined;
         const urls = new Set<string>();
         for (const p of batchSelectedPhotos) {
             const u = getPhotoOriginalUrl(p);
             if (u) urls.add(u);
         }
         return urls;
-    }, [batchSelectedPhotos]);
+    }, [isBatchSelectMode, batchSelectedPhotos]);
 
     const selectionIndexMap = useMemo(() => {
+        if (!isBatchSelectMode || !batchSelectedPhotos) return undefined;
         const map = new Map<string, number>();
         batchSelectedPhotos.forEach((p, idx) => {
             const u = getPhotoOriginalUrl(p);
             if (u) map.set(u, idx + 1);
         });
         return map;
-    }, [batchSelectedPhotos]);
+    }, [isBatchSelectMode, batchSelectedPhotos]);
 
     // Warm the scrubber sprite into browser cache as soon as album data arrives.
     // The sprite is used for both the lightbox scrubber and ambient blur background.
@@ -185,8 +189,16 @@ const PortfolioEvent = memo(function PortfolioEvent({
                       (window as Window & { cancelIdleCallback: (id: number) => void }).cancelIdleCallback(id)
                 : (id: number) => clearTimeout(id);
 
+        const isSaveData =
+            typeof navigator !== 'undefined' &&
+            Boolean((navigator as { connection?: { saveData?: boolean } }).connection?.saveData);
+        if (isSaveData) return;
+
         const handle = schedulePreheat(() => {
             const img = new Image();
+            if ('fetchPriority' in img) {
+                img.fetchPriority = 'low';
+            }
             img.src = spriteUrl;
         });
 
@@ -304,9 +316,10 @@ const PortfolioEvent = memo(function PortfolioEvent({
                         });
                     }
                 }
-                const currentUrls = new Set(batchSelectedPhotos.map((p) => getPhotoOriginalUrl(p)));
+                const currentBatch = batchSelectedPhotos || [];
+                const currentUrls = new Set(currentBatch.map((p) => getPhotoOriginalUrl(p)));
                 const newItems = rangeItems.filter((item) => !currentUrls.has(getPhotoOriginalUrl(item)));
-                selectBatchPhotos([...batchSelectedPhotos, ...newItems]);
+                selectBatchPhotos([...currentBatch, ...newItems]);
             } else {
                 toggleBatchPhoto(storeItem);
             }
