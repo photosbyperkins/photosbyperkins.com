@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
 import type { BadgeOptions, StoryPhotoFilterId } from '../../../utils/storyCanvas';
 import {
     getStoryFilterCss,
@@ -12,6 +13,7 @@ import { StoryBadges } from './StoryBadges';
 import type { StoryFrameId, StoryFrameContext } from './storyFrames/types';
 import { StoryFrameOverlay } from './storyFrames/StoryFrameOverlay';
 import type { ExifData } from '../../../types';
+import { panelEnterTransition, panelExit, panelOffset } from '../../../utils/story/storyTransitions';
 
 export interface BurstPanOffset {
     x: number;
@@ -39,6 +41,8 @@ export interface StoryBurstCropperProps {
     onSelectEmptyPanel?: (panelIndex: number) => void;
     panelCount?: 2 | 3;
     onBadgesChange?: (badges: BadgeOptions) => void;
+    /** Slide panels in on mount (and out when leaving for SOLO). Off by default: first open, tests and reduced motion. */
+    animatePanels?: boolean;
 }
 
 const DEFAULT_SLOT_NAMES = ['TOP', 'MID', 'BTM'];
@@ -408,6 +412,7 @@ export const StoryBurstCropper: React.FC<StoryBurstCropperProps> = ({
     onSelectEmptyPanel,
     panelCount,
     onBadgesChange,
+    animatePanels = false,
 }) => {
     const count: 2 | 3 = panelCount ?? (images.length === 2 ? 2 : 3);
     const slotNames = count === 2 ? DUET_SLOT_NAMES : DEFAULT_SLOT_NAMES;
@@ -442,24 +447,32 @@ export const StoryBurstCropper: React.FC<StoryBurstCropperProps> = ({
                         const pan = panOffsets[panelIdx] || { x: 0.5, y: 0.45, zoom: defZoom };
 
                         return (
-                            <StoryBurstPanel
+                            <motion.div
                                 key={panelIdx}
-                                panelIdx={panelIdx}
-                                src={images[panelIdx]}
-                                fallbackSrc={fallbackSrcs?.[panelIdx]}
-                                slotName={slotName}
-                                panelAspect={panelAspect}
-                                pan={pan}
-                                timeStamp={timeStamps?.[panelIdx]}
-                                shouldShowTimeStamp={shouldShowTimeStamps}
-                                isStepActive={activeStep === panelIdx}
-                                filterCss={filterCss}
-                                onPanChange={onPanChange}
-                                onSelectPanel={onSelectPanel}
-                                onSelectEmptyPanel={onSelectEmptyPanel}
-                                onDragChange={(idx, dragging) => setDraggingPanelIdx(dragging ? idx : null)}
-                                onHoverChange={(idx, hovered) => setHoveredPanelIdx(hovered ? idx : null)}
-                            />
+                                className="story-burst-cropper__panel-slot"
+                                initial={animatePanels ? panelOffset(count, panelIdx) : false}
+                                animate={{ x: '0%', y: '0%', transition: panelEnterTransition(panelIdx) }}
+                                exit={animatePanels ? 'exit' : undefined}
+                                variants={{ exit: panelExit(count, panelIdx) }}
+                            >
+                                <StoryBurstPanel
+                                    panelIdx={panelIdx}
+                                    src={images[panelIdx]}
+                                    fallbackSrc={fallbackSrcs?.[panelIdx]}
+                                    slotName={slotName}
+                                    panelAspect={panelAspect}
+                                    pan={pan}
+                                    timeStamp={timeStamps?.[panelIdx]}
+                                    shouldShowTimeStamp={shouldShowTimeStamps}
+                                    isStepActive={activeStep === panelIdx}
+                                    filterCss={filterCss}
+                                    onPanChange={onPanChange}
+                                    onSelectPanel={onSelectPanel}
+                                    onSelectEmptyPanel={onSelectEmptyPanel}
+                                    onDragChange={(idx, dragging) => setDraggingPanelIdx(dragging ? idx : null)}
+                                    onHoverChange={(idx, hovered) => setHoveredPanelIdx(hovered ? idx : null)}
+                                />
+                            </motion.div>
                         );
                     })}
                 </div>

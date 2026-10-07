@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { motion, LayoutGroup } from 'framer-motion';
+import { AnimatePresence, motion, LayoutGroup } from 'framer-motion';
 import { useCanShare } from '../../../hooks/useCanShare';
 import { useMediaQuery } from '../../../hooks/useMediaQuery';
+import { useReducedMotion } from '../../../hooks/useReducedMotion';
 import { useStoryImageLoader } from '../../../hooks/useStoryImageLoader';
 import { useStoryStudio, type StoryStudioTab } from '../../../hooks/useStoryStudio';
 import { parseEventTitle, getPhotoDisplayUrl } from '../../../utils/formatters';
 import type { BadgeOptions } from '../../../utils/storyCanvas';
 import type { EventScore, PhotoInput } from '../../../types';
+import { LAYOUT_HOLD_S, previewLayoutKey } from '../../../utils/story/storyTransitions';
 import ModalShell from '../../ui/ModalShell';
 import { StoryCropper } from './StoryCropper';
 import { StoryBurstCropper } from './StoryBurstCropper';
@@ -56,6 +58,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
     localScore,
 }) => {
     const canShare = useCanShare();
+    const prefersReducedMotion = useReducedMotion();
     const isMobileWidth = useMediaQuery('(max-width: 860px)');
     const isShortHeight = useMediaQuery('(max-height: 550px)');
     const isLandscape = useMediaQuery('(orientation: landscape)');
@@ -263,6 +266,9 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
     };
 
     const targetBurstCount = burstPanelCount ?? (photoObj.burst?.total === 2 ? 2 : 3);
+    // Which preview layout is showing; a change triggers the SOLO / DUET / TRIPTYCH slide transition.
+    const layoutKey = previewLayoutKey(activeMode === 'burst' && burst ? 'burst' : 'solo', targetBurstCount);
+    const animateLayouts = !prefersReducedMotion;
     const validBurstCount = burstSelectedIndices
         .slice(0, targetBurstCount)
         .filter((idx) => idx !== null && idx !== undefined && idx >= 0).length;
@@ -390,57 +396,78 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
 
     const previewContent = (
         <>
-            {/* Interactive Cropper when in custom crop mode */}
-            {activeMode === 'burst' && burst ? (
-                <StoryBurstCropper
-                    images={burstFrameUrls}
-                    fallbackSrcs={burstFallbackUrls}
-                    timeStamps={activeBurstTimeStamps}
-                    showTimeStamps={burst?.isTriptych || !burst?.frameDeltas ? false : burstShowTimeStamps}
-                    panOffsets={burstPanOffsets}
-                    onPanChange={handleBurstPanChange}
-                    badges={effectiveBadges}
-                    theme={cardTheme}
-                    frameId={activeFrameId}
-                    frameColorOverride={effectiveFrameColor}
-                    frameContext={frameContext}
-                    exif={photoObj.exif}
-                    filterId={activeFilterId}
-                    filterStrength={filterStrength}
-                    panelCount={targetBurstCount}
-                    activeStep={burstActiveStep}
-                    onSelectPanel={setBurstActiveStep}
-                    onSelectEmptyPanel={handleSelectEmptyBurstPanel}
-                    onBadgesChange={handleBadgesChange}
-                />
-            ) : (
-                <StoryCropper
-                    imageSrc={withBuild(activePhotoDisplay)}
-                    fallbackSrc={withBuild(activePhotoSrc) || withBuild(activePhotoThumb)}
-                    naturalWidth={naturalDimensions.width}
-                    naturalHeight={naturalDimensions.height}
-                    crop={activeCrop}
-                    paddedConfig={paddedConfig}
-                    badges={effectiveBadges}
-                    theme={cardTheme}
-                    frameId={activeFrameId}
-                    frameColorOverride={effectiveFrameColor}
-                    exif={
-                        photoObj.burst?.frameSources?.[activePhotoIndex] === photoObj.original
-                            ? photoObj.exif
+            {/* Layout layers: on a SOLO / DUET / TRIPTYCH switch the outgoing layout is held in place
+                while the incoming one slides over it (or, going back to SOLO, the burst panels slide
+                off to reveal the single photo underneath). */}
+            <AnimatePresence initial={false} mode="popLayout" custom={layoutKey}>
+                <motion.div
+                    key={layoutKey}
+                    className="story-preview-layer"
+                    style={{ zIndex: layoutKey === 'solo' ? 1 : 3 }}
+                    exit={
+                        animateLayouts
+                            ? {
+                                  zIndex: 2,
+                                  opacity: 0.999,
+                                  transition: { zIndex: { duration: 0 }, opacity: { duration: LAYOUT_HOLD_S } },
+                              }
                             : undefined
                     }
-                    filterId={activeFilterId}
-                    filterStrength={filterStrength}
-                    onChange={handleCropChange}
-                    onImageLoaded={(w, h) =>
-                        setNaturalDimensions((prev) =>
-                            prev.width === w && prev.height === h ? prev : { width: w, height: h }
-                        )
-                    }
-                    onBadgesChange={handleBadgesChange}
-                />
-            )}
+                >
+                    {/* Interactive Cropper when in custom crop mode */}
+                    {activeMode === 'burst' && burst ? (
+                        <StoryBurstCropper
+                            images={burstFrameUrls}
+                            fallbackSrcs={burstFallbackUrls}
+                            timeStamps={activeBurstTimeStamps}
+                            showTimeStamps={burst?.isTriptych || !burst?.frameDeltas ? false : burstShowTimeStamps}
+                            panOffsets={burstPanOffsets}
+                            onPanChange={handleBurstPanChange}
+                            badges={effectiveBadges}
+                            theme={cardTheme}
+                            frameId={activeFrameId}
+                            frameColorOverride={effectiveFrameColor}
+                            frameContext={frameContext}
+                            exif={photoObj.exif}
+                            filterId={activeFilterId}
+                            filterStrength={filterStrength}
+                            panelCount={targetBurstCount}
+                            activeStep={burstActiveStep}
+                            onSelectPanel={setBurstActiveStep}
+                            onSelectEmptyPanel={handleSelectEmptyBurstPanel}
+                            onBadgesChange={handleBadgesChange}
+                            animatePanels={animateLayouts}
+                        />
+                    ) : (
+                        <StoryCropper
+                            imageSrc={withBuild(activePhotoDisplay)}
+                            fallbackSrc={withBuild(activePhotoSrc) || withBuild(activePhotoThumb)}
+                            naturalWidth={naturalDimensions.width}
+                            naturalHeight={naturalDimensions.height}
+                            crop={activeCrop}
+                            paddedConfig={paddedConfig}
+                            badges={effectiveBadges}
+                            theme={cardTheme}
+                            frameId={activeFrameId}
+                            frameColorOverride={effectiveFrameColor}
+                            exif={
+                                photoObj.burst?.frameSources?.[activePhotoIndex] === photoObj.original
+                                    ? photoObj.exif
+                                    : undefined
+                            }
+                            filterId={activeFilterId}
+                            filterStrength={filterStrength}
+                            onChange={handleCropChange}
+                            onImageLoaded={(w, h) =>
+                                setNaturalDimensions((prev) =>
+                                    prev.width === w && prev.height === h ? prev : { width: w, height: h }
+                                )
+                            }
+                            onBadgesChange={handleBadgesChange}
+                        />
+                    )}
+                </motion.div>
+            </AnimatePresence>
 
             {/* Image load error fallback */}
             {imageError && (

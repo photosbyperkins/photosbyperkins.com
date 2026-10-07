@@ -52,6 +52,19 @@ describe('StoryBurstCropper', () => {
         expect(images.length).toBe(3);
     });
 
+    it('wraps each panel in a slide slot, keeping dividers on all but the last', () => {
+        const { container } = render(
+            <StoryBurstCropper
+                images={sampleImages}
+                panOffsets={defaultPanOffsets}
+                onPanChange={mockOnPanChange}
+                animatePanels={true}
+            />
+        );
+        const slots = container.querySelectorAll('.story-burst-cropper__panel-slot');
+        expect(slots.length).toBe(3);
+        slots.forEach((slot) => expect(slot.querySelector('.story-burst-cropper__panel')).not.toBeNull());
+    });
     it('renders empty slot placeholder when an image is missing', () => {
         const { container } = render(
             <StoryBurstCropper

@@ -21,6 +21,19 @@
         inset: 0;
     }
 
+    // Motion wrapper per panel (slides in/out on SOLO / DUET / TRIPTYCH switches)
+    &__panel-slot {
+        flex: 1 1 0;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+
+        &:not(:last-child) > .story-burst-cropper__panel {
+            border-bottom: 2px solid rgba(255, 255, 255, 0.16);
+        }
+    }
+
     &__panel {
         flex: 1 1 0;
         min-height: 0;
@@ -30,10 +43,6 @@
         outline: none;
         touch-action: none;
         transition: box-shadow var(--transition-fast);
-
-        &:not(:last-child) {
-            border-bottom: 2px solid rgba(255, 255, 255, 0.16);
-        }
 
         &--has-image {
             cursor: grab;
