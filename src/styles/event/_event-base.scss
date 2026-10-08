@@ -2,8 +2,15 @@
 
 .portfolio {
     &__event {
+        // content-visibility: auto implies paint containment, which clips anything
+        // painted outside this box. The WFTDA badge sits above the header
+        // (top: -1rem), so reserve that headroom inside the box and cancel it with
+        // a matching negative margin to keep the layout unchanged.
+        --event-overflow-top: 1rem;
+        padding-top: var(--event-overflow-top);
+        margin-top: calc(-1 * var(--event-overflow-top));
         container-type: inline-size;
-        scroll-margin-top: calc(var(--nav-height-total) + 1.5rem);
+        scroll-margin-top: calc(var(--nav-height-total) + 1.5rem - var(--event-overflow-top));
         content-visibility: auto;
         contain-intrinsic-size: auto 650px;
 

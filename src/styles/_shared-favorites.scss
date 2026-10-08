@@ -5,10 +5,6 @@
     &__body {
         padding-top: 1rem;
         padding-bottom: 1rem;
-
-        .portfolio__event {
-            margin-top: 0; // Override inherited :first-child margin from _event.scss
-        }
     }
 
     .modal-shell__footer-bar-inner {

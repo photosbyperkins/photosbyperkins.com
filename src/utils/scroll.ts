@@ -73,6 +73,21 @@ export function isFirstPortfolioEvent(el: HTMLElement): boolean {
     return el === firstEvent || Boolean(el.closest?.('.portfolio__event') === firstEvent);
 }
 
+/**
+ * Portfolio events reserve padding-top headroom (cancelled by a negative margin) so
+ * badges positioned above the header aren't clipped by content-visibility paint
+ * containment. Returns that inset in px so scrolling can align the visible content.
+ */
+export function getEventOverflowInset(el: HTMLElement): number {
+    if (typeof window === 'undefined' || !el.classList?.contains('portfolio__event')) return 0;
+    try {
+        const pad = parseFloat(getComputedStyle(el).paddingTop);
+        return Number.isFinite(pad) && pad > 0 ? pad : 0;
+    } catch {
+        return 0;
+    }
+}
+
 function easeInOutCubic(t: number): number {
     return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
@@ -121,11 +136,11 @@ export function scrollToElement(target: HTMLElement | string, options?: ScrollTo
         return () => {};
     }
 
-    const desiredOffset = options?.offset ?? getStickyNavOffset();
+    // Align the event's content (not its reserved overflow headroom) with the offset.
+    const desiredOffset = (options?.offset ?? getStickyNavOffset()) - getEventOverflowInset(el);
     const isFirstEvent = isFirstPortfolioEvent(el);
     const prefersReducedMotion =
-        typeof window !== 'undefined' &&
-        Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches);
+        typeof window !== 'undefined' && Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches);
 
     // Instant / Auto Jump path or reduced-motion preference
     if (options?.behavior === 'instant' || options?.behavior === 'auto' || prefersReducedMotion) {

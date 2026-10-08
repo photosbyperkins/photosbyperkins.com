@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { scrollToElement, getStickyNavOffset, resolveTargetElement, isFirstPortfolioEvent } from './scroll';
+import {
+    scrollToElement,
+    getStickyNavOffset,
+    resolveTargetElement,
+    isFirstPortfolioEvent,
+    getEventOverflowInset,
+} from './scroll';
 
 describe('scroll utility', () => {
     describe('SSR safety (Node environment without DOM)', () => {
@@ -62,6 +68,44 @@ describe('scroll utility', () => {
             });
 
             expect(getStickyNavOffset()).toBe(104);
+        });
+
+        it('getEventOverflowInset returns the padding-top of portfolio events only', () => {
+            globalThis.window = {} as unknown as Window & typeof globalThis;
+            globalThis.getComputedStyle = vi.fn().mockReturnValue({ paddingTop: '16px' });
+
+            const eventEl = {
+                classList: { contains: (c: string) => c === 'portfolio__event' },
+            } as unknown as HTMLElement;
+            const dividerEl = { classList: { contains: () => false } } as unknown as HTMLElement;
+
+            expect(getEventOverflowInset(eventEl)).toBe(16);
+            expect(getEventOverflowInset(dividerEl)).toBe(0);
+            expect(getEventOverflowInset({} as HTMLElement)).toBe(0);
+        });
+
+        it('scrollToElement aligns event content below its reserved headroom', () => {
+            const scrollToMock = vi.fn();
+            globalThis.window = {
+                scrollTo: scrollToMock,
+                scrollY: 200,
+            } as unknown as Window & typeof globalThis;
+            globalThis.getComputedStyle = vi.fn().mockReturnValue({
+                paddingTop: '16px',
+                getPropertyValue: () => '',
+            });
+            const eventEl = {
+                classList: { contains: (c: string) => c === 'portfolio__event' },
+                getBoundingClientRect: () => ({ top: 500 }),
+                closest: () => null,
+            } as unknown as HTMLElement;
+            globalThis.document = {
+                querySelector: () => null,
+            } as unknown as Document;
+
+            scrollToElement(eventEl, { behavior: 'instant', offset: 100 });
+            // 500 + 200 - (100 - 16)
+            expect(scrollToMock).toHaveBeenCalledWith({ top: 616, behavior: 'instant' });
         });
 
         it('performs instant scroll when behavior is instant', () => {
