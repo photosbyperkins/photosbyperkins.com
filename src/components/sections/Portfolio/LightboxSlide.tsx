@@ -26,12 +26,16 @@ const LightboxSlide = forwardRef<LightboxSlideHandle, LightboxSlideProps>(functi
     const displayUrl = url ? getPhotoDisplayUrl(url) : '';
     const focusX = image && typeof image !== 'string' ? image.focusX : undefined;
     const focusY = image && typeof image !== 'string' ? image.focusY : undefined;
+    // Zoom onto the centre of the primary face when known (focusY marks the top of the head).
+    const primaryFace = image && typeof image !== 'string' ? image.faces?.[0] : undefined;
+    const zoomFocusX = primaryFace?.h != null ? primaryFace.x : focusX;
+    const zoomFocusY = primaryFace?.h != null ? primaryFace.y : focusY;
 
     const { containerRef, scale, panX, panY, dragMode, constraints, toggleZoom, handleImageLoad, containerProps } =
         useSlideZoom({
             image,
-            focusX,
-            focusY,
+            focusX: zoomFocusX,
+            focusY: zoomFocusY,
             onZoomChange,
             onCanZoomChange,
             onSingleClick,

@@ -224,54 +224,63 @@ describe('generatePhotoIndex helpers', () => {
         it('extracts face data correctly with full faces array', () => {
             const cache = {
                 '/thumbnails/2026/event/photo_001.avif': {
+                    v: 2,
                     x: 0.62,
-                    y: 0.15,
+                    y: 0.1,
+                    src: 'face' as const,
                     score: 180.5,
                     recapScore: 4.2,
                     faces: [{ x: 0.62, y: 0.15, w: 0.1, h: 0.1, confidence: 0.9 }],
+                    subjects: [{ x: 0.6, y: 0.5, w: 0.3, h: 0.9, confidence: 0.8 }],
                 },
             };
             const extracted = extractFaceData('/thumbnails/2026/event/photo_001.avif', cache);
             expect(extracted).toEqual({
                 focusX: 0.62,
-                focusY: 0.15,
+                focusY: 0.1,
+                focusSource: 'face',
                 faceScore: 180.5,
                 recapScore: 4.2,
                 faces: [{ x: 0.62, y: 0.15, w: 0.1, h: 0.1, confidence: 0.9 }],
+                subjects: [{ x: 0.6, y: 0.5, w: 0.3, h: 0.9, confidence: 0.8 }],
             });
         });
 
-        it('synthesizes single fallback face when faces array is missing or empty', () => {
+        it('does not fabricate faces for person/saliency focus points', () => {
             const cache = {
                 '/thumbnails/2026/event/photo_002.avif': {
+                    v: 2,
                     x: 0.45,
                     y: 0.25,
-                    score: 95.0,
-                    recapScore: 1.5,
+                    src: 'saliency' as const,
+                    score: 0,
+                    recapScore: 0,
+                    faces: [],
+                    subjects: [],
                 },
             };
             const extracted = extractFaceData('/thumbnails/2026/event/photo_002.avif', cache);
             expect(extracted).toEqual({
                 focusX: 0.45,
                 focusY: 0.25,
-                faceScore: 95.0,
-                recapScore: 1.5,
-                faces: [{ x: 0.45, y: 0.25, confidence: 1.0 }],
+                focusSource: 'saliency',
+                faceScore: 0,
+                recapScore: 0,
             });
         });
 
-        it('supports webp fallback lookup when avif entry is requested', () => {
+        it('returns undefined when nothing was detected', () => {
+            const cache = { '/t.avif': { v: 2, x: null, y: null, score: 0, recapScore: 0 } };
+            expect(extractFaceData('/t.avif', cache)).toBeUndefined();
+        });
+
+        it('ignores entries from older cache schemas', () => {
             const cache = {
-                '/thumbnails/2026/event/photo_003.webp': {
-                    x: 0.5,
-                    y: 0.2,
-                    score: 110.0,
-                },
+                '/thumbnails/2026/event/photo_003.avif': { x: 0.5, y: 0.2, score: 110.0 },
+                '/thumbnails/2026/event/photo_004.avif': { v: 1, x: 0.5, y: 0.2, score: 110.0 },
             };
-            const extracted = extractFaceData('/thumbnails/2026/event/photo_003.avif', cache);
-            expect(extracted?.focusX).toBe(0.5);
-            expect(extracted?.focusY).toBe(0.2);
-            expect(extracted?.faces).toEqual([{ x: 0.5, y: 0.2, confidence: 1.0 }]);
+            expect(extractFaceData('/thumbnails/2026/event/photo_003.avif', cache)).toBeUndefined();
+            expect(extractFaceData('/thumbnails/2026/event/photo_004.avif', cache)).toBeUndefined();
         });
     });
 });

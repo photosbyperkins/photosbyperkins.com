@@ -277,12 +277,13 @@ describe('storyCanvas calculations', () => {
                     { x: 0.65, y: 0.42, w: 0.09, h: 0.13 },
                 ],
             });
+            // Too far apart for a 9:16 crop: lead at 1x plus a zoomed-out duo view
             expect(presets.length).toBeLessThanOrEqual(3);
-            expect(presets.map((p) => p.id)).toEqual(['padded-glass', 'duo', 'closeup']);
-            expect(presets.map((p) => p.label)).toEqual(['Padded', 'Duo', 'Close-up']);
+            expect(presets.map((p) => p.id)).toEqual(['padded-glass', 'duo', 'lead']);
+            expect(presets.map((p) => p.label)).toEqual(['Padded', 'Duo', 'Lead']);
             expect(presets[0].crop.zoom).toBeLessThan(presets[1].crop.zoom);
             expect(presets[1].crop.zoom).toBeLessThan(presets[2].crop.zoom);
-            expect(presets.find((p) => p.id === 'duo')?.isDefault).toBe(true);
+            expect(presets.find((p) => p.id === 'lead')?.isDefault).toBe(true);
         });
 
         it('generates pack / group presets when 3+ faces exist with at most 3 options sorted by zoom', () => {
@@ -297,10 +298,10 @@ describe('storyCanvas calculations', () => {
             });
             expect(presets.length).toBeLessThanOrEqual(3);
             expect(presets.map((p) => p.id)).toEqual(['padded-glass', 'pack', 'lead']);
-            expect(presets.map((p) => p.label)).toEqual(['Padded', 'Group', 'Lead Focus']);
+            expect(presets.map((p) => p.label)).toEqual(['Padded', 'Group', 'Lead']);
             expect(presets[0].crop.zoom).toBeLessThan(presets[1].crop.zoom);
             expect(presets[1].crop.zoom).toBeLessThan(presets[2].crop.zoom);
-            expect(presets.find((p) => p.id === 'pack')?.isDefault).toBe(true);
+            expect(presets.find((p) => p.id === 'lead')?.isDefault).toBe(true);
         });
     });
 

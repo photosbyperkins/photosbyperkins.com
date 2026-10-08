@@ -6,6 +6,7 @@ import os from 'os';
 import { runWithConcurrency, removeStaleFiles } from './utils.js';
 import type { RecapDefinitions } from './types.js';
 import { logger } from './logger';
+import { subjectCropRect, type SubjectFraming } from '../../src/utils/subjectFraming.js';
 
 const RECAP_DIR = path.join(process.cwd(), 'build', 'recap');
 
@@ -28,13 +29,16 @@ export async function generateRecaps(definitions: RecapDefinitions): Promise<voi
 
     const validPaths = new Set<string>();
 
-    interface RecapSliceTask {
+    interface RecapSliceTask extends SubjectFraming {
         slug: string;
         index: number;
         src: string;
-        focusX?: number;
-        focusY?: number;
     }
+
+    /** Cache key for a slice: changes whenever the source or its framing data changes. */
+    const sliceCacheKey = (src: string, img: SubjectFraming) =>
+        `${src}|${img.focusX}|${img.focusY}` +
+        (img.focusSource ? `|${img.focusSource}|${(img.faces || []).map((f) => `${f.x},${f.w ?? ''}`).join(';')}` : '');
 
     const taskData: RecapSliceTask[] = [];
 
@@ -47,7 +51,9 @@ export async function generateRecaps(definitions: RecapDefinitions): Promise<voi
                         index: index + 1,
                         src: img.src,
                         focusX: img.focusX,
-                        focusY: img.focusY
+                        focusY: img.focusY,
+                        focusSource: img.focusSource,
+                        faces: img.faces,
                     });
                 }
             });
@@ -79,7 +85,7 @@ export async function generateRecaps(definitions: RecapDefinitions): Promise<voi
 
         validPaths.add(destPath);
 
-        const cacheKey = `${sourceRelative}|${task.focusX}|${task.focusY}`;
+        const cacheKey = sliceCacheKey(sourceRelative, task);
         const isCached = cacheManifest[destRelative] === cacheKey;
 
         if (fs.existsSync(destPath) && isCached) {
@@ -125,14 +131,7 @@ export async function generateRecaps(definitions: RecapDefinitions): Promise<voi
                 cropHeight = Math.round(width / cropRatio);
             }
 
-            const focusX = task.focusX ?? 0.5;
-            const focusY = task.focusY ?? 0.5;
-
-            let left = Math.round(focusX * width - cropWidth / 2);
-            let top = Math.round(focusY * height - cropHeight / 2);
-
-            left = Math.max(0, Math.min(width - cropWidth, left));
-            top = Math.max(0, Math.min(height - cropHeight, top));
+            const { left, top } = subjectCropRect(width, height, cropWidth, cropHeight, task);
 
             const lookupKey = sourceRelative.replace(/\\/g, '/');
             const targetQuality = qualityMap[lookupKey] || 80;
@@ -180,7 +179,7 @@ export async function generateRecaps(definitions: RecapDefinitions): Promise<voi
             const img = images[i];
             const sourceRelative = img.src.startsWith('/') ? img.src.slice(1) : img.src;
             const sliceDestRelative = `recap/${slug}/photo_${i + 1}.webp`;
-            const sliceKey = `${sourceRelative}|${img.focusX}|${img.focusY}`;
+            const sliceKey = sliceCacheKey(sourceRelative, img);
             sliceKeys.push(sliceKey);
 
             const slicePath = path.join(RECAP_DIR, slug, `photo_${i + 1}.webp`);

@@ -1,10 +1,12 @@
 import fs from 'fs';
 import path from 'path';
+import crypto from 'crypto';
 import sharp from 'sharp';
 import os from 'os';
 import { runWithConcurrency, removeStaleFiles } from './utils.js';
 import type { IndexState } from './types';
 import { logger } from './logger.js';
+import { subjectCropRect, type SubjectFraming } from '../../src/utils/subjectFraming.js';
 
 const SCRUBBER_DIR = path.join(process.cwd(), 'build', 'scrubber');
 export const MAX_WEBP_DIMENSION = 16383;
@@ -25,7 +27,13 @@ if (FRAME_WIDTH * SCRUBBER_COLUMNS > MAX_WEBP_DIMENSION) {
     );
 }
 
-export function computeFocusCrop(imgWidth: number, imgHeight: number, focusX: number, focusY: number) {
+export function computeFocusCrop(
+    imgWidth: number,
+    imgHeight: number,
+    focusX: number,
+    focusY: number,
+    framing?: Pick<SubjectFraming, 'focusSource' | 'faces'>
+) {
     const imgRatio = imgWidth / imgHeight;
     let cropW, cropH;
     if (imgRatio > TARGET_RATIO) {
@@ -37,11 +45,7 @@ export function computeFocusCrop(imgWidth: number, imgHeight: number, focusX: nu
     } else {
         return null;
     }
-    let left = Math.round(focusX * imgWidth - cropW / 2);
-    let top = Math.round(focusY * imgHeight - cropH / 2);
-    left = Math.max(0, Math.min(left, imgWidth - cropW));
-    top = Math.max(0, Math.min(top, imgHeight - cropH));
-    return { left, top, width: cropW, height: cropH };
+    return subjectCropRect(imgWidth, imgHeight, cropW, cropH, { focusX, focusY, ...framing });
 }
 
 export async function generateScrubber(indexData: IndexState) {
@@ -49,6 +53,15 @@ export async function generateScrubber(indexData: IndexState) {
 
     const validSprites = new Set<string>();
     const tasks: (() => Promise<void>)[] = [];
+
+    // Content keys (thumbs + framing data) so sprites regenerate when focus data changes
+    const manifestPath = path.join(SCRUBBER_DIR, '.cache.json');
+    let cacheManifest: Record<string, string> = {};
+    try {
+        if (fs.existsSync(manifestPath)) cacheManifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    } catch { /* rebuild */ }
+    const newManifest: Record<string, string> = {};
+    validSprites.add(manifestPath);
     
     let skippedCount = 0;
     let spriteCount = 0;
@@ -87,9 +100,23 @@ export async function generateScrubber(indexData: IndexState) {
             }
 
             validSprites.add(spritePath);
+            const spriteKey = crypto
+                .createHash('sha1')
+                .update(
+                    albumPhotos
+                        .map((p) =>
+                            typeof p === 'string'
+                                ? p
+                                : `${p.thumb}|${p.focusX ?? ''}|${p.focusY ?? ''}|${p.focusSource ?? ''}|${(p.faces || []).map((f) => `${f.x},${f.w ?? ''}`).join(';')}`
+                        )
+                        .join('\n')
+                )
+                .digest('hex');
+            const manifestKey = path.relative(SCRUBBER_DIR, spritePath).replace(/\\/g, '/');
+            newManifest[manifestKey] = spriteKey;
 
             tasks.push(async () => {
-                if (fs.existsSync(spritePath)) {
+                if (fs.existsSync(spritePath) && cacheManifest[manifestKey] === spriteKey) {
                     try {
                         const meta = await sharp(spritePath).metadata();
                         if (meta.width === expectedWidth && meta.height === expectedHeight) {
@@ -118,7 +145,7 @@ export async function generateScrubber(indexData: IndexState) {
                             const imgH = meta.height || imgObj.height;
                             
                             if (imgW && imgH) {
-                                const crop = computeFocusCrop(imgW, imgH, imgObj.focusX ?? 0.5, imgObj.focusY ?? 0.5);
+                                const crop = computeFocusCrop(imgW, imgH, imgObj.focusX ?? 0.5, imgObj.focusY ?? 0.5, imgObj);
                                 let scrubberPipe = pipeline.clone();
                                 if (crop) scrubberPipe = scrubberPipe.extract(crop);
                                 
@@ -161,6 +188,7 @@ export async function generateScrubber(indexData: IndexState) {
                     spriteCount++;
                     // logger.success(`Sprite: ${path.basename(spritePath)} (80, ${finalBuffers.length} frames)${failCount > 0 ? ` (${failCount} missing frames filled with blank)` : ''}`);
                 } catch (err: unknown) {
+                    delete newManifest[manifestKey];
                     logger.error(`Failed scrubber sprite for ${event}:`, err instanceof Error ? err.message : String(err));
                 }
             });
@@ -172,6 +200,8 @@ export async function generateScrubber(indexData: IndexState) {
         logger.step(`Processing ${tasks.length} scrubber sprites across ${threads} threads...`);
         await runWithConcurrency(tasks, threads);
     }
+    fs.mkdirSync(SCRUBBER_DIR, { recursive: true });
+    fs.writeFileSync(manifestPath, JSON.stringify(newManifest, null, 2));
     
     logger.step('Cleaning up stale scrubber files...');
     removeStaleFiles(SCRUBBER_DIR, validSprites);

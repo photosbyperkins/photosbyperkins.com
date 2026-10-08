@@ -7,6 +7,7 @@ import {
     sortTaggedEvents,
     writeChunkedFile,
     generateRecapImages,
+    toClientPhoto,
 } from './chunkData';
 
 describe('chunkData pipeline helpers', () => {
@@ -144,6 +145,47 @@ describe('chunkData pipeline helpers', () => {
 
             // Latest date first
             expect(recaps[0].date).toBe('2024-10-22');
+        });
+    });
+
+    describe('toClientPhoto', () => {
+        it('drops pipeline-only fields and keeps only the lead body box', () => {
+            const face = (x: number) => ({ x, y: 0.2, w: 0.04, h: 0.05, confidence: 0.9 });
+            const out = toClientPhoto({
+                source: '/photos/a.jpg',
+                original: '/a.avif',
+                thumb: '/t/a.avif',
+                focusX: 0.6,
+                focusY: 0.175,
+                focusSource: 'face',
+                faceScore: 12.3,
+                recapScore: 4.5,
+                faces: [face(0.6), face(0.2), face(0.3), face(0.4), face(0.5)],
+                subjects: [
+                    { x: 0.2, y: 0.5, w: 0.1, h: 0.7, confidence: 0.9 },
+                    { x: 0.6, y: 0.5, w: 0.12, h: 0.7, confidence: 0.8 },
+                ],
+            });
+            expect(out).not.toHaveProperty('faceScore');
+            expect(out).not.toHaveProperty('recapScore');
+            expect(out.focusSource).toBe('face');
+            expect(out.faces).toHaveLength(4);
+            expect(out.faces?.[0]).toEqual({ x: 0.6, y: 0.2, w: 0.04, h: 0.05 });
+            expect(out.subjects).toEqual([{ x: 0.6, y: 0.5, w: 0.12, h: 0.7 }]);
+        });
+
+        it('keeps the primary subject for person-only photos', () => {
+            const out = toClientPhoto({
+                source: '/photos/b.jpg',
+                original: '/b.avif',
+                thumb: '/t/b.avif',
+                subjects: [
+                    { x: 0.3, y: 0.5, w: 0.1, h: 0.7, confidence: 0.9 },
+                    { x: 0.7, y: 0.5, w: 0.1, h: 0.7, confidence: 0.8 },
+                ],
+            });
+            expect(out.faces).toBeUndefined();
+            expect(out.subjects).toEqual([{ x: 0.3, y: 0.5, w: 0.1, h: 0.7 }]);
         });
     });
 });

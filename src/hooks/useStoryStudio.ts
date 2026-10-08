@@ -87,16 +87,26 @@ export function useStoryStudio({
     const activeW = activeImg?.naturalWidth || photoObj.burst?.frameWidths?.[activePhotoIndex] || naturalDimensions.width;
     const activeH = activeImg?.naturalHeight || photoObj.burst?.frameHeights?.[activePhotoIndex] || naturalDimensions.height;
 
-    // Generate dynamic presets based on number of detected people
+    // Detection boxes describe the photo's own frame; other burst frames only carry a focus point.
+    const ownFrameIndex = photoObj.burst?.index ?? 0;
+    const getFrameDetections = useCallback(
+        (idx: number) =>
+            idx === ownFrameIndex
+                ? { faces: photoObj.faces, subjects: photoObj.subjects, focusSource: photoObj.focusSource }
+                : {},
+        [ownFrameIndex, photoObj.faces, photoObj.subjects, photoObj.focusSource]
+    );
+
+    // Generate dynamic presets based on detected faces / people
     const presets = useMemo(() => {
         return generateStoryPresets({
             width: activeW,
             height: activeH,
             focusX: activeFocusX,
             focusY: activeFocusY,
-            faces: photoObj.faces,
+            ...getFrameDetections(activePhotoIndex),
         });
-    }, [activeW, activeH, activeFocusX, activeFocusY, photoObj.faces]);
+    }, [activeW, activeH, activeFocusX, activeFocusY, activePhotoIndex, getFrameDetections]);
 
     // Active state from App Store
     const activeSiteTheme = useAppStore((state) => state.activeTheme);
@@ -1177,7 +1187,7 @@ export function useStoryStudio({
                 height: h,
                 focusX: photoObj.burst?.frameFocusX?.[idx] ?? photoObj.focusX,
                 focusY: photoObj.burst?.frameFocusY?.[idx] ?? photoObj.focusY,
-                faces: photoObj.faces,
+                ...getFrameDetections(idx),
             });
 
             if (activeMode === 'padded') {
@@ -1202,6 +1212,7 @@ export function useStoryStudio({
             paddedConfig.cardScale,
             selectedPresetId,
             setIsDownloaded,
+            getFrameDetections,
         ]
     );
 

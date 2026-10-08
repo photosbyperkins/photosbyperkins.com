@@ -191,33 +191,104 @@ describe('storyMath', () => {
             expect(presets.find((p) => p.id === 'subject')?.isDefault).toBe(true);
         });
 
-        it('generates presets for 2 faces detected (duo)', () => {
+        it('centres the subject on the face and sizes the close-up from the face height', () => {
             const presets = generateStoryPresets({
                 width: 6000,
                 height: 4000,
-                faces: [
-                    { x: 0.3, y: 0.4 },
-                    { x: 0.7, y: 0.4 },
-                ],
+                faces: [{ x: 0.4, y: 0.3, w: 0.04, h: 0.05 }],
             });
-            expect(presets).toHaveLength(3);
-            expect(presets.map((p) => p.id)).toEqual(['padded-glass', 'duo', 'closeup']);
-            expect(presets.find((p) => p.id === 'duo')?.isDefault).toBe(true);
+            const subject = presets.find((p) => p.id === 'subject')!;
+            const closeup = presets.find((p) => p.id === 'closeup')!;
+            expect(subject.crop.zoom).toBe(1);
+            expect(subject.crop.centerX).toBeCloseTo(0.4);
+            // Face fills ~11% of the close-up height: 0.11 / 0.05 = 2.2x
+            expect(closeup.crop.zoom).toBeCloseTo(2.2);
+            expect(closeup.crop.centerX).toBeCloseTo(0.4);
+            // Face sits in the upper part of the close-up
+            const faceRelY = (0.3 - closeup.crop.y) / closeup.crop.height;
+            expect(faceRelY).toBeGreaterThan(0.2);
+            expect(faceRelY).toBeLessThan(0.4);
         });
 
-        it('generates presets for 3+ faces detected (pack/group)', () => {
+        it('sizes the close-up from the body box that contains the face', () => {
+            const presets = generateStoryPresets({
+                width: 6000,
+                height: 4000,
+                faces: [{ x: 0.5, y: 0.3, w: 0.04, h: 0.05 }],
+                subjects: [{ x: 0.5, y: 0.55, w: 0.15, h: 0.6 }],
+            });
+            const closeup = presets.find((p) => p.id === 'closeup')!;
+            // min(0.92 / 0.6, 0.375 / 0.15) = 1.533x — the whole skater fits
+            expect(closeup.crop.zoom).toBeCloseTo(0.92 / 0.6);
+            expect(closeup.crop.y).toBeLessThan(0.3 - 0.025);
+            expect(closeup.crop.y + closeup.crop.height).toBeGreaterThan(0.85);
+        });
+
+        it('frames a duo together when both fit a 9:16 crop, with a tighter close-up', () => {
             const presets = generateStoryPresets({
                 width: 6000,
                 height: 4000,
                 faces: [
-                    { x: 0.2, y: 0.3 },
-                    { x: 0.5, y: 0.4 },
-                    { x: 0.8, y: 0.3 },
+                    { x: 0.45, y: 0.4, w: 0.05, h: 0.06 },
+                    { x: 0.55, y: 0.42, w: 0.05, h: 0.06 },
+                ],
+            });
+            expect(presets.map((p) => p.id)).toEqual(['padded-glass', 'duo', 'closeup']);
+            expect(presets.find((p) => p.id === 'duo')?.isDefault).toBe(true);
+            const closeup = presets.find((p) => p.id === 'closeup')!;
+            expect(closeup.crop.zoom).toBeGreaterThan(1.2);
+            // Both faces stay inside the close-up
+            expect(closeup.crop.x).toBeLessThan(0.425);
+            expect(closeup.crop.x + closeup.crop.width).toBeGreaterThan(0.575);
+        });
+
+        it('defaults to the lead subject when a group is too wide, offering a fit-group view', () => {
+            const presets = generateStoryPresets({
+                width: 6000,
+                height: 4000,
+                faces: [
+                    { x: 0.2, y: 0.3, w: 0.05, h: 0.06 },
+                    { x: 0.5, y: 0.4, w: 0.05, h: 0.06 },
+                    { x: 0.8, y: 0.3, w: 0.05, h: 0.06 },
                 ],
             });
             expect(presets).toHaveLength(3);
             expect(presets.map((p) => p.id)).toEqual(['padded-glass', 'pack', 'lead']);
-            expect(presets.find((p) => p.id === 'pack')?.isDefault).toBe(true);
+            const lead = presets.find((p) => p.id === 'lead')!;
+            expect(lead.isDefault).toBe(true);
+            expect(lead.crop.centerX).toBeCloseTo(0.2, 1);
+            const pack = presets.find((p) => p.id === 'pack')!;
+            expect(pack.crop.zoom).toBeLessThan(1);
+            expect(pack.crop.x).toBeLessThanOrEqual(0.136);
+            expect(pack.crop.x + pack.crop.width).toBeGreaterThanOrEqual(0.864);
+        });
+
+        it('frames the athlete when only a person box was detected', () => {
+            const presets = generateStoryPresets({
+                width: 6000,
+                height: 4000,
+                focusX: 0.6,
+                focusY: 0.25,
+                focusSource: 'person',
+                subjects: [{ x: 0.6, y: 0.55, w: 0.12, h: 0.6 }],
+            });
+            expect(presets.map((p) => p.id)).toEqual(['padded-glass', 'subject', 'closeup']);
+            const closeup = presets.find((p) => p.id === 'closeup')!;
+            expect(closeup.crop.zoom).toBeCloseTo(0.85 / 0.6);
+            expect(closeup.crop.centerX).toBeCloseTo(0.6);
+            expect(closeup.crop.y).toBeLessThan(0.25);
+        });
+
+        it('labels saliency focus points as Focus', () => {
+            const presets = generateStoryPresets({
+                width: 6000,
+                height: 4000,
+                focusX: 0.7,
+                focusY: 0.5,
+                focusSource: 'saliency',
+            });
+            expect(presets.map((p) => p.label)).toEqual(['Padded', 'Focus', 'Close-up']);
+            expect(presets.find((p) => p.id === 'subject')?.crop.centerX).toBeCloseTo(0.7);
         });
 
         it('falls back to focusX/focusY if no faces are provided', () => {

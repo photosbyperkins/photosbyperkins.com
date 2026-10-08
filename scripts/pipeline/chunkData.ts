@@ -1,7 +1,7 @@
 // Chunk Data Pipeline
 import fs from 'fs';
 import path from 'path';
-import type { IndexState, RecapDefinitions, EventData, Photo, PhotoObject, WftdaMatch, FaceBox } from './types.js';
+import type { IndexState, RecapDefinitions, EventData, Photo, PhotoObject, WftdaMatch, FaceBox, FocusSource } from './types.js';
 import { logger } from './logger';
 import { GEAR_REGISTRY, getGearItem } from '../../src/data/gearData.js';
 import { parseEventTitle } from '../../src/utils/formatters.js';
@@ -42,6 +42,8 @@ export interface RecapImageItem {
     src: string;
     focusX?: number;
     focusY?: number;
+    focusSource?: FocusSource;
+    faces?: FaceBox[];
     title: string;
     date: string;
     teams?: string[];
@@ -63,6 +65,31 @@ export function slugify(text: string) {
         .replace(/--+/g, '-'); // Replace multiple - with single -
 }
 
+/** Max faces shipped to the client per photo (Story framing only needs the leading few). */
+const CLIENT_MAX_FACES = 4;
+
+const stripConfidence = ({ x, y, w, h }: FaceBox): FaceBox => ({ x, y, ...(w != null ? { w } : {}), ...(h != null ? { h } : {}) });
+
+/**
+ * Compacts a photo for the client album chunks: drops pipeline-only scores and detection confidences,
+ * caps faces, and keeps only the primary subject's body box (the one containing the lead face).
+ */
+export function toClientPhoto(img: PhotoObject): PhotoObject {
+    const { faceScore: _faceScore, recapScore: _recapScore, faces, subjects, ...rest } = img;
+    const out: PhotoObject = { ...rest };
+    if (faces && faces.length > 0) out.faces = faces.slice(0, CLIENT_MAX_FACES).map(stripConfidence);
+    if (subjects && subjects.length > 0) {
+        const lead = faces?.[0];
+        const body = lead
+            ? subjects.find(
+                  (s) => s.w != null && s.h != null && Math.abs(lead.x - s.x) <= s.w / 2 && Math.abs(lead.y - s.y) <= s.h / 2
+              )
+            : subjects[0];
+        if (body) out.subjects = [stripConfidence(body)];
+    }
+    return out;
+}
+
 export function generateRecapImages(eventsObj: Record<string, Partial<ProcessedEventData>>) {
     const eventsArray = Object.entries(eventsObj);
     const validEvents = eventsArray.filter(([eventName]) => !eventName.toLowerCase().includes('headshot')).reverse();
@@ -81,6 +108,8 @@ export function generateRecapImages(eventsObj: Record<string, Partial<ProcessedE
 
         const focusX = typeof photoInput === 'object' ? photoInput.focusX : undefined;
         const focusY = typeof photoInput === 'object' ? photoInput.focusY : undefined;
+        const focusSource = typeof photoInput === 'object' ? photoInput.focusSource : undefined;
+        const faces = typeof photoInput === 'object' ? photoInput.faces : undefined;
 
         const { baseDatePrefix, teams } = parseEventTitle(eventName);
 
@@ -88,6 +117,8 @@ export function generateRecapImages(eventsObj: Record<string, Partial<ProcessedE
             src,
             focusX,
             focusY,
+            ...(focusSource ? { focusSource } : {}),
+            ...(faces && faces.length > 0 ? { faces } : {}),
             title: eventName,
             date: ev.date || baseDatePrefix,
             teams: teams.length > 0 ? teams : undefined,
@@ -398,11 +429,7 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
             const albumFile = path.join(yearAlbumsDir, `${slug}.json`);
 
             // Save album separately
-            const cleanAlbum = (event.album || []).map(img => {
-                if (typeof img === 'string') return img;
-                const { ...rest } = img;
-                return rest;
-            });
+            const cleanAlbum = (event.album || []).map(img => (typeof img === 'string' ? img : toClientPhoto(img)));
             fs.writeFileSync(albumFile, JSON.stringify(cleanAlbum, null, 0));
 
             let maxExifChars = 0;

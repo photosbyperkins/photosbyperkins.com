@@ -1,0 +1,13 @@
+# Python dependencies for scripts/detectFaces.py (subject detection).
+#   pip install -r scripts/requirements.txt
+#
+# ONNX Runtime runs SCRFD (faces) and YOLOX (people) on the GPU when available:
+#   - Windows (any DX12 GPU: AMD / NVIDIA / Intel): onnxruntime-directml (below)
+#   - NVIDIA on Linux:                              replace with onnxruntime-gpu
+#   - CPU only:                                     replace with onnxruntime
+# Without onnxruntime the script falls back to OpenCV YuNet + cv2.dnn YOLOX on the CPU.
+opencv-python>=4.8
+numpy>=1.26
+pillow>=11.0
+onnxruntime-directml>=1.20; sys_platform == "win32"
+onnxruntime>=1.20; sys_platform != "win32"

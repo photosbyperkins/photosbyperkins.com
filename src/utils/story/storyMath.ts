@@ -1,4 +1,4 @@
-import type { FaceBox } from '../../types';
+import type { FaceBox, FocusSource } from '../../types';
 import type { NormalizedCrop, StoryPreset } from './storyConstants';
 import { STORY_ASPECT_RATIO } from './storyConstants';
 
@@ -204,9 +204,47 @@ export function calculateNormalizedCrop(
     };
 }
 
+/** A detection box in normalised image coordinates (centre + size). */
+interface SubjectBox {
+    cx: number;
+    cy: number;
+    w: number;
+    h: number;
+}
+
+const isFiniteNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
+
+/** Assumed face size for legacy point-only faces (no w/h), whose `y` is the face top. */
+const LEGACY_FACE_SIZE = 0.06;
+
+function toSubjectBox(f: FaceBox | undefined, pointIsTop: boolean): SubjectBox | null {
+    if (!f || !isFiniteNum(f.x) || !isFiniteNum(f.y)) return null;
+    if (isFiniteNum(f.w) && isFiniteNum(f.h) && f.w > 0 && f.h > 0) {
+        return { cx: f.x, cy: f.y, w: f.w, h: f.h };
+    }
+    const s = LEGACY_FACE_SIZE;
+    return { cx: f.x, cy: pointIsTop ? f.y + s / 2 : f.y, w: s, h: s };
+}
+
+/** Normalised size of the 9:16 story crop at a given zoom (fractions of image width/height). */
+function storyCropSize(imgW: number, imgH: number, zoom: number): { cw: number; ch: number } {
+    const ratio = imgW > 0 && imgH > 0 ? imgW / imgH : 1.5;
+    if (ratio >= STORY_ASPECT_RATIO) {
+        const ch = 1 / zoom;
+        return { cw: (ch * STORY_ASPECT_RATIO) / ratio, ch };
+    }
+    const cw = 1 / zoom;
+    return { cw, ch: (cw * ratio) / STORY_ASPECT_RATIO };
+}
+
 /**
  * Generates context-aware 9:16 framing presets sorted from least zoomed in (padded) to most zoomed in.
  * Guaranteed to have at most 3 options.
+ *
+ * Uses detector output from scripts/detectFaces.py: `faces` and `subjects` are centre+size boxes with
+ * the primary subject first; `focusSource` says whether the focus point came from a face, a person
+ * (body) box or a saliency map. Point-only faces (legacy data) are treated as a face top.
  */
 export function generateStoryPresets(options: {
     width: number;
@@ -214,20 +252,23 @@ export function generateStoryPresets(options: {
     focusX?: number;
     focusY?: number;
     faces?: FaceBox[];
+    subjects?: FaceBox[];
+    focusSource?: FocusSource;
 }): StoryPreset[] {
-    const { width: w, height: h, focusX, focusY, faces } = options;
+    const { width: w, height: h, focusX, focusY, focusSource } = options;
     const presets: StoryPreset[] = [];
+    const crop = (cx: number, cy: number, zoom: number, minZoom?: number) =>
+        calculateNormalizedCrop(w, h, cx, cy, zoom, minZoom);
+    const { cw: cw1, ch: ch1 } = storyCropSize(w, h, 1);
+    /** Crop centre Y that places `y` at fraction `at` from the top of a crop of height `ch`. */
+    const anchorY = (y: number, at: number, ch: number) => y + (0.5 - at) * ch;
 
-    // Filter valid faces
-    const validFaces = (faces || []).filter(
-        (f) => typeof f.x === 'number' && typeof f.y === 'number' && !isNaN(f.x) && !isNaN(f.y)
-    );
-
-    // Fallback: If no faces array but focusX/focusY exists, treat as 1 face
-    const effectiveFaces: Array<{ x: number; y: number; w?: number; h?: number }> =
-        validFaces.length > 0 ? validFaces : focusX != null && focusY != null ? [{ x: focusX, y: focusY }] : [];
-
-    const numPeople = effectiveFaces.length;
+    const faces = (options.faces || []).map((f) => toSubjectBox(f, true)).filter((b): b is SubjectBox => !!b);
+    const subjects = (options.subjects || [])
+        .filter((s) => isFiniteNum(s?.w) && isFiniteNum(s?.h))
+        .map((s) => toSubjectBox(s, false))
+        .filter((b): b is SubjectBox => !!b);
+    const hasFocus = isFiniteNum(focusX) && isFiniteNum(focusY);
 
     // --- ALWAYS OPTION 1: Least zoomed in (Padded letterbox view) ---
     const fitZoom = calculateFitZoom(w, h, 0.92);
@@ -235,17 +276,170 @@ export function generateStoryPresets(options: {
         id: 'padded-glass',
         label: 'Padded',
         description: 'Full uncropped image with letterbox background',
-        crop: calculateNormalizedCrop(w, h, 0.5, 0.5, fitZoom, fitZoom),
+        crop: crop(0.5, 0.5, fitZoom, fitZoom),
         mode: 'solo',
     });
 
-    // --- CASE 0: No People Detected ---
-    if (numPeople === 0) {
+    /** Solo framing for one face: subject at 1×, close-up sized from its body box or face size. */
+    const soloFacePresets = (face: SubjectBox, id: string, label: string, description: string) => {
+        const main: StoryPreset = {
+            id,
+            label,
+            description,
+            crop: crop(face.cx, anchorY(face.cy, 0.35, ch1), 1.0),
+            mode: 'solo',
+        };
+        const body = subjects.find(
+            (s) => Math.abs(face.cx - s.cx) <= s.w / 2 && face.cy >= s.cy - s.h / 2 && face.cy <= s.cy
+        );
+        let zoom: number;
+        let cx: number;
+        let cy: number;
+        if (body) {
+            zoom = clamp(Math.min((0.92 * ch1) / body.h, cw1 / body.w), 1.15, 2.5);
+            const { cw, ch } = storyCropSize(w, h, zoom);
+            // Centre on the body, but keep the face in the middle 60% (outstretched arms widen the box)
+            cx = clamp(body.cx, face.cx - 0.3 * cw, face.cx + 0.3 * cw);
+            // ...and never crop off the top of the head.
+            cy = Math.min(body.cy, face.cy - face.h / 2 - 0.05 * ch + ch / 2);
+        } else {
+            zoom = clamp((0.11 * ch1) / face.h, 1.15, 2.5);
+            cx = face.cx;
+            cy = anchorY(face.cy, 0.3, storyCropSize(w, h, zoom).ch);
+        }
+        const closeup: StoryPreset = {
+            id: 'closeup',
+            label: 'Close-up',
+            description: body ? 'Tight framing on the athlete' : 'Tight framing on the face',
+            crop: crop(cx, cy, zoom),
+            mode: 'solo',
+        };
+        return [main, closeup];
+    };
+
+    if (faces.length >= 2) {
+        // --- Duo / Group: frame the faces' bounding box with breathing room ---
+        const isDuo = faces.length === 2;
+        const groupId = isDuo ? 'duo' : 'pack';
+        const groupLabel = isDuo ? 'Duo' : 'Group';
+        const avgW = faces.reduce((s, f) => s + f.w, 0) / faces.length;
+        const avgH = faces.reduce((s, f) => s + f.h, 0) / faces.length;
+        const minX = Math.min(...faces.map((f) => f.cx - f.w / 2)) - avgW * 0.8;
+        const maxX = Math.max(...faces.map((f) => f.cx + f.w / 2)) + avgW * 0.8;
+        const minY = Math.min(...faces.map((f) => f.cy - f.h / 2)) - avgH * 0.8;
+        const maxY = Math.max(...faces.map((f) => f.cy + f.h / 2)) + avgH * 0.8;
+        const reqW = maxX - minX;
+        const reqH = maxY - minY;
+        const midX = (minX + maxX) / 2;
+        const midY = (minY + maxY) / 2;
+        // Zoom at which the padded group exactly fills the crop (>1 means it fits at 1× with room to spare)
+        const groupZoom = Math.min(cw1 / reqW, ch1 / reqH);
+        const groupDescription = isDuo ? 'Frames both subjects together' : 'Frames all subjects together';
+        const [lead, leadCloseup] = soloFacePresets(faces[0], 'lead', 'Lead', 'Framed on the primary subject');
+
+        if (groupZoom >= 1) {
+            presets.push({
+                id: groupId,
+                label: groupLabel,
+                description: groupDescription,
+                crop: crop(midX, anchorY(midY, 0.4, ch1), 1.0),
+                mode: 'solo',
+                isDefault: true,
+            });
+            if (groupZoom >= 1.2) {
+                const zoom = Math.min(groupZoom, 2.2);
+                presets.push({
+                    id: 'closeup',
+                    label: 'Close-up',
+                    description: 'Tighter framing on the group',
+                    crop: crop(midX, anchorY(midY, 0.4, storyCropSize(w, h, zoom).ch), zoom),
+                    mode: 'solo',
+                });
+            } else {
+                presets.push({ ...leadCloseup, id: 'lead', label: 'Lead', description: lead.description });
+            }
+        } else {
+            // The group can't fit a 9:16 crop: default to the primary subject (unless the group nearly
+            // fits, e.g. a posed line-up), and offer a zoomed-out (letterboxed) view that keeps everyone in
+            // frame when it's meaningfully tighter than Padded.
+            const fitGroupZoom = Math.max(fitZoom, groupZoom);
+            const showGroup = fitGroupZoom - fitZoom >= 0.06;
+            const preferGroup = showGroup && fitGroupZoom >= 0.85;
+            presets.push(preferGroup ? lead : { ...lead, isDefault: true });
+            if (showGroup) {
+                presets.push({
+                    id: groupId,
+                    label: groupLabel,
+                    description: groupDescription,
+                    crop: crop(midX, midY, fitGroupZoom, fitZoom),
+                    mode: 'solo',
+                    ...(preferGroup ? { isDefault: true } : {}),
+                });
+            } else {
+                presets.push(leadCloseup);
+            }
+        }
+    } else if (faces.length === 1) {
+        // --- Solo face ---
+        const [main, closeup] = soloFacePresets(
+            faces[0],
+            'subject',
+            'Subject',
+            'Framed on skater with natural headroom'
+        );
+        presets.push({ ...main, isDefault: true }, closeup);
+    } else if (subjects.length > 0 && focusSource !== 'saliency') {
+        // --- Person detected but no usable face (helmets, backs, motion blur) ---
+        const s = subjects[0];
+        presets.push({
+            id: 'subject',
+            label: 'Subject',
+            description: 'Framed on the athlete',
+            crop: crop(s.cx, anchorY(s.cy - s.h / 2, 0.1, ch1), 1.0),
+            mode: 'solo',
+            isDefault: true,
+        });
+        const zoom = clamp(Math.min((0.85 * ch1) / s.h, cw1 / s.w), 1.1, 2.2);
+        presets.push({
+            id: 'closeup',
+            label: 'Close-up',
+            description: 'Tight framing on the athlete',
+            crop: crop(s.cx, anchorY(s.cy - s.h / 2, 0.08, storyCropSize(w, h, zoom).ch), zoom),
+            mode: 'solo',
+        });
+    } else if (hasFocus && focusSource === 'saliency') {
+        // --- No people: frame the most salient, in-focus region ---
+        presets.push({
+            id: 'subject',
+            label: 'Focus',
+            description: 'Framed on the sharpest detail',
+            crop: crop(focusX, focusY, 1.0),
+            mode: 'solo',
+            isDefault: true,
+        });
+        presets.push({
+            id: 'closeup',
+            label: 'Close-up',
+            description: 'Dynamic 1.35x zoom on the detail',
+            crop: crop(focusX, focusY, 1.35),
+            mode: 'solo',
+        });
+    } else if (hasFocus) {
+        // --- Legacy focus point (or person focus without boxes): treat it as a face top ---
+        const [main, closeup] = soloFacePresets(
+            { cx: focusX, cy: focusY + LEGACY_FACE_SIZE / 2, w: LEGACY_FACE_SIZE, h: LEGACY_FACE_SIZE },
+            'subject',
+            'Subject',
+            'Framed on skater with natural headroom'
+        );
+        presets.push({ ...main, isDefault: true }, closeup);
+    } else {
+        // --- Nothing detected ---
         presets.push({
             id: 'center',
             label: 'Center',
             description: 'Balanced center composition',
-            crop: calculateNormalizedCrop(w, h, 0.5, 0.5, 1.0),
+            crop: crop(0.5, 0.5, 1.0),
             mode: 'solo',
             isDefault: true,
         });
@@ -253,82 +447,7 @@ export function generateStoryPresets(options: {
             id: 'closeup',
             label: 'Close-up',
             description: 'Dynamic 1.35x zoom on center action',
-            crop: calculateNormalizedCrop(w, h, 0.5, 0.5, 1.35),
-            mode: 'solo',
-        });
-    }
-
-    // --- CASE 1: Solo Person Detected ---
-    else if (numPeople === 1) {
-        const p1 = effectiveFaces[0];
-        // Headroom compensation: shift slightly up so head has natural headroom
-        const headAdjustedY = Math.max(0.15, p1.y - 0.06);
-
-        presets.push({
-            id: 'subject',
-            label: 'Subject',
-            description: 'Framed on skater with natural headroom',
-            crop: calculateNormalizedCrop(w, h, p1.x, headAdjustedY, 1.0),
-            mode: 'solo',
-            isDefault: true,
-        });
-        presets.push({
-            id: 'closeup',
-            label: 'Close-up',
-            description: 'Dynamic 1.35x zoom on athlete',
-            crop: calculateNormalizedCrop(w, h, p1.x, Math.max(0.12, p1.y - 0.03), 1.35),
-            mode: 'solo',
-        });
-    }
-
-    // --- CASE 2: Two People Detected (e.g. Jammer vs Blocker) ---
-    else if (numPeople === 2) {
-        const [f1, f2] = effectiveFaces;
-        const minX = Math.min(f1.x, f2.x);
-        const maxX = Math.max(f1.x, f2.x);
-        const midX = (minX + maxX) / 2;
-        const midY = (f1.y + f2.y) / 2;
-        const headAdjustedY = Math.max(0.15, midY - 0.06);
-
-        presets.push({
-            id: 'duo',
-            label: 'Duo',
-            description: 'Frames both subjects together',
-            crop: calculateNormalizedCrop(w, h, midX, headAdjustedY, 1.0),
-            mode: 'solo',
-            isDefault: true,
-        });
-        presets.push({
-            id: 'closeup',
-            label: 'Close-up',
-            description: 'Tighter 1.25x action framing',
-            crop: calculateNormalizedCrop(w, h, midX, Math.max(0.12, headAdjustedY - 0.03), 1.25),
-            mode: 'solo',
-        });
-    }
-
-    // --- CASE 3: Three or More People ---
-    else {
-        // Group centroid
-        const avgX = effectiveFaces.reduce((sum, f) => sum + f.x, 0) / numPeople;
-        const avgY = effectiveFaces.reduce((sum, f) => sum + f.y, 0) / numPeople;
-        const headAdjustedY = Math.max(0.18, avgY - 0.05);
-
-        presets.push({
-            id: 'pack',
-            label: 'Group',
-            description: 'Frames all subjects in the frame',
-            crop: calculateNormalizedCrop(w, h, avgX, headAdjustedY, 1.0),
-            mode: 'solo',
-            isDefault: true,
-        });
-
-        const primary = effectiveFaces[0];
-        presets.push({
-            id: 'lead',
-            label: 'Lead Focus',
-            description: 'Focus on primary action subject',
-            crop: calculateNormalizedCrop(w, h, primary.x, Math.max(0.15, primary.y - 0.06), 1.25),
+            crop: crop(0.5, 0.5, 1.35),
             mode: 'solo',
         });
     }

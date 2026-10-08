@@ -27,8 +27,8 @@ An incredibly fast, highly automated photography portfolio built for action phot
 ## 🛠 Prerequisites
 
 1. **Node.js** (v18+)
-2. **Python** (for OpenCV face detection logic in `scripts/detectFaces.py`)
-   - Run `pip install opencv-python`
+2. **Python 3.10+** (for subject detection in `scripts/detectFaces.py`)
+   - Run `pip install -r scripts/requirements.txt` (uses ONNX Runtime with DirectML on Windows for GPU inference; models are downloaded and checksum-verified into `data/models/` on first run)
 3. **Environment Config**: Copy `.env.example` to `.env` and fill out your variables!
 4. **Favicon**: Drop an `icon.svg` into the root folder to completely customize the PWA icons, otherwise it defaults to a clean, generic camera.
 
@@ -83,7 +83,7 @@ Running `npm run build` triggers an intense, multi-phase pipeline orchestrated b
 
 ### Phase 3 — Python Interop
 - Serializes the state to `data/photos.json`.
-- Runs **Face Detection** (`detectFaces.py`): Identifies facial focal centers and multi-person bounding boxes via OpenCV Caffe SSD DNN with Pillow AVIF decoding fallback. Caches results to `data/.faces_cache.json`.
+- Runs **Subject Detection** (`detectFaces.py`): tiled SCRFD-10G face detection plus YOLOX-L person detection (ONNX Runtime, GPU via DirectML when available; OpenCV YuNet fallback), ranked by sharpness, size and confidence so the primary subject comes first. Photos without a usable face fall back to the lead person's head region, then to a sharpness-weighted saliency map. Writes `focusX`/`focusY`/`focusSource`, `faces` and `subjects` boxes, and caches results (keyed by thumbnail size + mtime) to `data/.faces_cache.json`.
 - Deserializes the updated state.
 
 ### Phase 4 — Data Modifiers & Chunking

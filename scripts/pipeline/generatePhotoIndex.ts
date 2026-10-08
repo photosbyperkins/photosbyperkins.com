@@ -20,7 +20,7 @@ import path from 'path';
 import os from 'os';
 import sharp from 'sharp';
 import exifr from 'exifr';
-import type { IndexState, FaceBox, PhotoObject } from './types.js';
+import type { IndexState, FaceBox, FocusSource, PhotoObject } from './types.js';
 import { logger } from './logger';
 import { runWithConcurrency } from './utils.js';
 import { loadBuildCache, saveBuildCache, computeDirHash, setAlbumCache } from './cache.js';
@@ -359,12 +359,18 @@ async function extractExif(absPath: string) {
     }
 }
 
+/** Cache schema written by scripts/detectFaces.py (ALGO_VERSION). */
+export const FACE_CACHE_VERSION = 2;
+
 export interface FaceCacheEntry {
-    x: number;
-    y: number;
+    v?: number;
+    x: number | null;
+    y: number | null;
+    src?: FocusSource | null;
     score?: number;
     recapScore?: number;
     faces?: FaceBox[];
+    subjects?: FaceBox[];
 }
 
 export interface AlbumItemWithDims extends Partial<PhotoObject> {
@@ -396,19 +402,19 @@ export function loadFacesCache(
 
 export function extractFaceData(thumb: string, cache: Record<string, FaceCacheEntry>) {
     if (!thumb || !cache) return undefined;
-    const val = cache[thumb] || cache[thumb.replace(/\.avif$/, '.webp')];
-    if (val && typeof val === 'object' && val.x != null && val.y != null) {
-        return {
-            focusX: val.x,
-            focusY: val.y,
-            ...(val.score != null ? { faceScore: val.score } : {}),
-            ...(val.recapScore != null ? { recapScore: val.recapScore } : {}),
-            ...(val.faces && val.faces.length > 0
-                ? { faces: val.faces }
-                : { faces: [{ x: Number(val.x.toFixed(3)), y: Number(val.y.toFixed(3)), confidence: 1.0 }] }),
-        };
-    }
-    return undefined;
+    const val = cache[thumb];
+    // Older cache schemas stored fabricated face points; only trust the current detector.
+    if (!val || typeof val !== 'object' || val.v !== FACE_CACHE_VERSION) return undefined;
+    if (val.x == null || val.y == null) return undefined;
+    return {
+        focusX: val.x,
+        focusY: val.y,
+        ...(val.src ? { focusSource: val.src } : {}),
+        ...(val.score != null ? { faceScore: val.score } : {}),
+        ...(val.recapScore != null ? { recapScore: val.recapScore } : {}),
+        ...(val.faces && val.faces.length > 0 ? { faces: val.faces } : {}),
+        ...(val.subjects && val.subjects.length > 0 ? { subjects: val.subjects } : {}),
+    };
 }
 
 /**

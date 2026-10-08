@@ -10,6 +10,8 @@ describe('useFocusTrap', () => {
 
     afterEach(() => {
         cleanup();
+        // Tests append elements straight to <body>; with `isolate: false` they'd leak into the next file.
+        document.body.innerHTML = '';
         vi.restoreAllMocks();
         vi.useRealTimers();
     });

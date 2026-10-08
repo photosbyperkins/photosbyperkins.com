@@ -1,6 +1,6 @@
-import type { ExifData, FaceBox, PhotoRecord } from '../../src/types';
+import type { ExifData, FaceBox, FocusSource, PhotoRecord } from '../../src/types';
 
-export type { FaceBox };
+export type { FaceBox, FocusSource };
 export type PhotoExif = ExifData;
 
 export interface PhotoObject extends PhotoRecord {
@@ -42,6 +42,8 @@ export interface RecapDefinitions {
         src: string;
         focusX?: number;
         focusY?: number;
+        focusSource?: FocusSource;
+        faces?: FaceBox[];
     }>;
 }
 

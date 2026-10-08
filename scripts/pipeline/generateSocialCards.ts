@@ -6,6 +6,7 @@ import 'dotenv/config';
 import type { IndexState } from './types';
 import { logger } from './logger';
 import { parseEventTitle } from '../../src/utils/formatters.js';
+import { subjectCropRect } from '../../src/utils/subjectFraming.js';
 const DIST_DIR = path.join(process.cwd(), 'dist');
 const OUTPUT_DIR = path.join(DIST_DIR, 'social-cards');
 const CACHE_MANIFEST_PATH = path.join(OUTPUT_DIR, '.cache.json');
@@ -140,7 +141,10 @@ export async function generateSocialCards(data: IndexState) {
             const outputFile = path.join(OUTPUT_DIR, safeFilename(year, event));
             const focusXCached = img && typeof img === 'object' ? img.focusX : undefined;
             const focusYCached = img && typeof img === 'object' ? img.focusY : undefined;
-            const cacheKey = `${firstImgPath}|${focusXCached ?? ''}|${focusYCached ?? ''}`;
+            const focusSourceCached = img && typeof img === 'object' ? img.focusSource : undefined;
+            const cacheKey =
+                `${firstImgPath}|${focusXCached ?? ''}|${focusYCached ?? ''}` +
+                (focusSourceCached ? `|${focusSourceCached}` : '');
             const relKey = safeFilename(year, event);
             newManifest[relKey] = cacheKey;
             if (cacheManifest[relKey] === cacheKey && fs.existsSync(outputFile)) {
@@ -239,17 +243,10 @@ export async function generateSocialCards(data: IndexState) {
                     cropHeight = Math.round(cropWidth / targetRatio);
                 }
                 
-                const targetCenterX = img.focusX * img.width;
-                const targetCenterY = img.focusY * img.height;
-                
-                let cropLeft = Math.round(targetCenterX - cropWidth / 2);
-                let cropTop = Math.round(targetCenterY - cropHeight / 2);
-                
-                cropLeft = Math.max(0, Math.min(cropLeft, img.width - cropWidth));
-                cropTop = Math.max(0, Math.min(cropTop, img.height - cropHeight));
-                
+                const crop = subjectCropRect(img.width, img.height, cropWidth, cropHeight, img);
+
                 pipeline = pipeline
-                    .extract({ left: cropLeft, top: cropTop, width: cropWidth, height: cropHeight })
+                    .extract(crop)
                     .resize(1200, 630);
             } else {
                 pipeline = pipeline.resize(1200, 630, { fit: 'cover', position: 'entropy' });

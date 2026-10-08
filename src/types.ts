@@ -9,6 +9,10 @@ export interface ExifData {
     gearLensId?: string;
 }
 
+/**
+ * Normalised (0–1) detection box. `x`/`y` are the box centre and `w`/`h` its
+ * size. Legacy entries without `w`/`h` only carry a point (the face top).
+ */
 export interface FaceBox {
     x: number;
     y: number;
@@ -16,6 +20,9 @@ export interface FaceBox {
     h?: number;
     confidence?: number;
 }
+
+/** What produced a photo's focus point (see scripts/detectFaces.py). */
+export type FocusSource = 'face' | 'person' | 'saliency';
 
 export interface BurstMetadata {
     id: string;
@@ -45,7 +52,11 @@ export interface PhotoRecord {
     src?: string;
     focusX?: number;
     focusY?: number;
+    focusSource?: FocusSource;
+    /** Significant faces, primary subject first. */
     faces?: FaceBox[];
+    /** Significant people (body boxes), primary subject first. */
+    subjects?: FaceBox[];
     width?: number;
     height?: number;
     spriteIndex?: number;
