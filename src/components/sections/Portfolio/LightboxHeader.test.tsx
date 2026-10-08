@@ -3,6 +3,9 @@ import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import LightboxHeader from './LightboxHeader';
 import type { PhotoRecord } from '../../../types';
 
+const rowText = (row: 'top' | 'bottom') =>
+    document.querySelector(`.portfolio__lightbox-data-row-${row}`)?.textContent ?? null;
+
 describe('LightboxHeader', () => {
     afterEach(() => {
         cleanup();
@@ -111,9 +114,31 @@ describe('LightboxHeader', () => {
             />
         );
 
-        expect(screen.getByText('NIKON Z 8 • 135mm f/1.8 Plena')).toBeDefined();
-        expect(screen.getByText('135mm • f/1.8 • 1/2500s • ISO 3200')).toBeDefined();
+        expect(rowText('top')).toBe('NIKON Z 8 • 135mm f/1.8 Plena');
+        expect(rowText('bottom')).toBe('135mm • f/1.8 • 1/2500s • ISO 3200');
         expect(screen.queryByText('No camera data')).toBeNull();
+    });
+
+    it('keeps unchanged EXIF values mounted when cycling photos (no flash)', () => {
+        const base = { cameraModel: 'NIKON Z 8', lens: '400mm f/2.8', focalLength: '400mm', aperture: 'f/2.8' };
+        const images: PhotoRecord[] = [
+            { original: '/photos/a.jpg', thumb: '/a.avif', exif: { ...base, shutterSpeed: '1/1000s', iso: 'ISO 800' } },
+            { original: '/photos/b.jpg', thumb: '/b.avif', exif: { ...base, shutterSpeed: '1/2000s', iso: 'ISO 800' } },
+        ];
+
+        const { rerender } = render(<LightboxHeader images={images} index={0} canShare={false} onClose={vi.fn()} />);
+        const display = document.querySelector('.portfolio__lightbox-data-display');
+        const camera = screen.getByText('NIKON Z 8');
+        const iso = screen.getByText('ISO 800');
+        const shutter = screen.getByText('1/1000s');
+
+        rerender(<LightboxHeader images={images} index={1} canShare={false} onClose={vi.fn()} />);
+
+        expect(document.querySelector('.portfolio__lightbox-data-display')).toBe(display);
+        expect(screen.getByText('NIKON Z 8')).toBe(camera);
+        expect(screen.getByText('ISO 800')).toBe(iso);
+        expect(screen.getByText('1/2000s')).not.toBe(shutter);
+        expect(rowText('bottom')).toBe('400mm • f/2.8 • 1/2000s • ISO 800');
     });
 
     it('resolves EXIF from cached album when current photo lacks EXIF', async () => {
@@ -139,17 +164,10 @@ describe('LightboxHeader', () => {
             thumb: '/thumbnails/2024/game/photo_001.avif',
         };
 
-        render(
-            <LightboxHeader
-                images={[photoWithoutExif]}
-                index={0}
-                canShare={false}
-                onClose={vi.fn()}
-            />
-        );
+        render(<LightboxHeader images={[photoWithoutExif]} index={0} canShare={false} onClose={vi.fn()} />);
 
-        expect(screen.getByText('NIKON D850 • 300mm f/4 PF')).toBeDefined();
-        expect(screen.getByText('300mm • f/4.5 • 1/1250s • ISO 6400')).toBeDefined();
+        expect(rowText('top')).toBe('NIKON D850 • 300mm f/4 PF');
+        expect(rowText('bottom')).toBe('300mm • f/4.5 • 1/1250s • ISO 6400');
         expect(screen.queryByText('No camera data')).toBeNull();
         _clearAlbumCache();
     });
@@ -161,12 +179,7 @@ describe('LightboxHeader', () => {
         };
 
         render(
-            <LightboxHeader
-                images={[photoWithoutExif, standardPhoto]}
-                index={0}
-                canShare={false}
-                onClose={vi.fn()}
-            />
+            <LightboxHeader images={[photoWithoutExif, standardPhoto]} index={0} canShare={false} onClose={vi.fn()} />
         );
 
         expect(screen.getByText('No camera data')).toBeDefined();

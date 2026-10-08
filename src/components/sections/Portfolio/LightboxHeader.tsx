@@ -2,7 +2,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Download, Share2, HelpCircle, StoryCropIcon } from '../../ui/icons';
 import { DURATION, EASE_OUT_EXPO, EASE_IN } from '../../../utils/motion';
 import type { PhotoInput } from '../../../types';
-import { getPhotoDisplayUrl, formatCameraModel, resolvePhotoInput, getPhotoOriginalUrl } from '../../../utils/formatters';
+import {
+    getPhotoDisplayUrl,
+    formatCameraModel,
+    resolvePhotoInput,
+    getPhotoOriginalUrl,
+} from '../../../utils/formatters';
 import { triggerPhotoDownload } from '../../../utils/build';
 import { getCachedAlbum } from '../../../utils/albumData';
 
@@ -16,6 +21,30 @@ interface LightboxHeaderProps {
     onClose: () => void;
     onToggleHelp?: () => void;
     onOpenStoryExport?: () => void;
+}
+
+type ExifPart = readonly [field: string, value: string | undefined];
+
+/**
+ * One EXIF line ("Z8 • 70-200mm"). Each value is keyed by field + text, so when cycling
+ * photos only the values that actually change remount and fade in; identical values
+ * (and the separators) stay perfectly still. No exit animation — the old value is
+ * replaced in place, avoiding overlap/reflow inside the inline text run.
+ */
+function ExifRow({ className, parts }: { className: string; parts: ExifPart[] }) {
+    const present = parts.filter((p): p is readonly [string, string] => Boolean(p[1]));
+    return (
+        <span className={className}>
+            {present.map(([field, value], i) => (
+                <span key={field}>
+                    {i > 0 && ' • '}
+                    <span key={value} className="portfolio__lightbox-data-value">
+                        {value}
+                    </span>
+                </span>
+            ))}
+        </span>
+    );
 }
 
 export default function LightboxHeader({
@@ -136,30 +165,40 @@ export default function LightboxHeader({
 
             <div className="portfolio__lightbox-top-center" onClick={(e) => e.stopPropagation()}>
                 <AnimatePresence mode="popLayout" initial={false}>
-                    {exif ? (() => {
-                        const rowTop = [formatCameraModel(exif?.cameraModel), exif?.lens].filter(Boolean).join(' • ');
-                        const rowBottom = [exif?.focalLength, exif?.aperture, exif?.shutterSpeed, exif?.iso]
-                            .filter(Boolean)
-                            .join(' • ');
-                        return (
-                            <motion.div
-                                className="portfolio__lightbox-data-display"
-                                key={`exif-${rowTop}|${rowBottom}`}
-                                initial={{ opacity: 0, y: 3 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -2, transition: { duration: DURATION.instant, ease: EASE_IN } }}
-                                transition={{ duration: DURATION.fast, ease: EASE_OUT_EXPO }}
+                    {exif ? (
+                        <motion.div
+                            className="portfolio__lightbox-data-display"
+                            // Stable key: the container persists while cycling photos; only
+                            // individual values that actually change fade in (see ExifRow).
+                            key="exif"
+                            initial={{ opacity: 0, y: 3 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -2, transition: { duration: DURATION.instant, ease: EASE_IN } }}
+                            transition={{ duration: DURATION.fast, ease: EASE_OUT_EXPO }}
+                        >
+                            <div
+                                className="portfolio__lightbox-data-info"
+                                style={maxExifChars > 0 ? { minWidth: `${maxExifChars * 5.0}px` } : undefined}
                             >
-                                <div
-                                    className="portfolio__lightbox-data-info"
-                                    style={exif && maxExifChars > 0 ? { minWidth: `${maxExifChars * 5.0}px` } : undefined}
-                                >
-                                    <span className="portfolio__lightbox-data-row-top">{rowTop}</span>
-                                    <span className="portfolio__lightbox-data-row-bottom">{rowBottom}</span>
-                                </div>
-                            </motion.div>
-                        );
-                    })() : albumHasExif ? (
+                                <ExifRow
+                                    className="portfolio__lightbox-data-row-top"
+                                    parts={[
+                                        ['camera', formatCameraModel(exif.cameraModel)],
+                                        ['lens', exif.lens],
+                                    ]}
+                                />
+                                <ExifRow
+                                    className="portfolio__lightbox-data-row-bottom"
+                                    parts={[
+                                        ['focal', exif.focalLength],
+                                        ['aperture', exif.aperture],
+                                        ['shutter', exif.shutterSpeed],
+                                        ['iso', exif.iso],
+                                    ]}
+                                />
+                            </div>
+                        </motion.div>
+                    ) : albumHasExif ? (
                         <motion.div
                             className="portfolio__lightbox-data-display portfolio__lightbox-data-display--empty"
                             key="exif-empty"

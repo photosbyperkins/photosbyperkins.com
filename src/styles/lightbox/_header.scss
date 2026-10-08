@@ -161,6 +161,16 @@
             text-align: center;
         }
 
+        // Individual EXIF value; keyed by text in TSX so it only remounts (and
+        // fades) when that value changes between photos.
+        &-data-value {
+            animation: lightboxDataValueIn var(--dur-fast) var(--ease-out-expo) backwards;
+
+            @media (prefers-reduced-motion: reduce) {
+                animation: none;
+            }
+        }
+
         &-action {
             background: rgba(var(--color-bg-rgb), 0.5);
             border: 1px solid var(--glass-border);
@@ -225,5 +235,11 @@
                 }
             }
         }
+    }
+}
+
+@keyframes lightboxDataValueIn {
+    from {
+        opacity: 0;
     }
 }
