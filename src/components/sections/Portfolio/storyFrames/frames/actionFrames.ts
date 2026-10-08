@@ -146,7 +146,9 @@ export const ACTION_FRAMES: StoryFrameDefinition[] = [
             const hasScoreboard = context?.hasScoreboard ?? true;
 
             const bottomY = hasScoreboard ? 1700 : 1690;
-            const topY = hasAttribution ? 150 : 100;
+            // Top flames are the flipped tongues scaled by 0.65, so their base edge (y=220) sits at
+            // topY - 0.65 * 220 = topY - 143. 142 puts it 1px past the top edge: flush, no hairline gap.
+            const topY = hasAttribution ? 142 : 100;
 
             const flameTongues = `
                 <path d="M0,220 L0,90 C25,80 35,50 45,15 C60,50 80,80 65,110 C85,90 100,55 110,25 C125,70 140,110 125,150 C145,135 160,100 165,70 C175,120 170,170 150,220 Z" fill="${red}" opacity="0.95" />
