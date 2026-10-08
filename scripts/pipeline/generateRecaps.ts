@@ -6,7 +6,7 @@ import os from 'os';
 import { runWithConcurrency, removeStaleFiles } from './utils.js';
 import type { RecapDefinitions } from './types.js';
 import { logger } from './logger';
-import { subjectCropRect, type SubjectFraming } from '../../src/utils/subjectFraming.js';
+import { subjectCropRect, sliceCacheKey, type SubjectFraming } from '../../src/utils/subjectFraming.js';
 
 const RECAP_DIR = path.join(process.cwd(), 'build', 'recap');
 
@@ -34,11 +34,6 @@ export async function generateRecaps(definitions: RecapDefinitions): Promise<voi
         index: number;
         src: string;
     }
-
-    /** Cache key for a slice: changes whenever the source or its framing data changes. */
-    const sliceCacheKey = (src: string, img: SubjectFraming) =>
-        `${src}|${img.focusX}|${img.focusY}` +
-        (img.focusSource ? `|${img.focusSource}|${(img.faces || []).map((f) => `${f.x},${f.w ?? ''}`).join(';')}` : '');
 
     const taskData: RecapSliceTask[] = [];
 

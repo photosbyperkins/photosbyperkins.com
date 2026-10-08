@@ -14,6 +14,24 @@ export interface SubjectFraming {
  */
 export const HEAD_TOP_AT = 0.28;
 
+/**
+ * Framing version tag included in slice cache keys. Bump if framing math, headroom,
+ * or aspect logic changes to invalidate cached crops and sprites.
+ */
+export const FRAMING_VERSION = 1;
+
+/**
+ * Stable cache key for a crop slice: changes whenever the framing version, source,
+ * crop ratio, or subject detection data changes.
+ */
+export function sliceCacheKey(src: string, img: SubjectFraming): string {
+    return (
+        `v${FRAMING_VERSION}|h${HEAD_TOP_AT}|${src}|${img.focusX ?? ''}|${img.focusY ?? ''}` +
+        (img.focusSource ? `|${img.focusSource}|${(img.faces || []).map((f) => `${f.x},${f.w ?? ''}`).join(';')}` : '')
+    );
+}
+
+
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
 
 /**

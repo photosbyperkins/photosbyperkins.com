@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { HEAD_TOP_AT, subjectCropCenter, subjectCropRect } from './subjectFraming';
+import { HEAD_TOP_AT, subjectCropCenter, subjectCropRect, sliceCacheKey, FRAMING_VERSION } from './subjectFraming';
 
 describe('subjectFraming', () => {
     it('centres saliency and unknown focus points as-is', () => {
@@ -43,5 +43,26 @@ describe('subjectFraming', () => {
         });
         const mid = subjectCropRect(3000, 2000, 1000, 1000, { focusX: 0.5, focusY: 0.5, focusSource: 'saliency' });
         expect(mid).toEqual({ left: 1000, top: 500, width: 1000, height: 1000 });
+    });
+
+    describe('sliceCacheKey', () => {
+        it('includes framing version and headroom constant in cache key', () => {
+            const key = sliceCacheKey('photos/photo1.jpg', { focusX: 0.5, focusY: 0.3 });
+            expect(key).toContain(`v${FRAMING_VERSION}|h${HEAD_TOP_AT}`);
+        });
+
+        it('alters cache key when subject data changes', () => {
+            const base = sliceCacheKey('photos/photo1.jpg', { focusX: 0.5, focusY: 0.3 });
+            const shifted = sliceCacheKey('photos/photo1.jpg', { focusX: 0.6, focusY: 0.3 });
+            const faceSource = sliceCacheKey('photos/photo1.jpg', {
+                focusX: 0.5,
+                focusY: 0.3,
+                focusSource: 'face',
+                faces: [{ x: 0.5, y: 0.3, w: 0.1, h: 0.1 }],
+            });
+
+            expect(base).not.toEqual(shifted);
+            expect(base).not.toEqual(faceSource);
+        });
     });
 });

@@ -287,4 +287,30 @@ describe('Recap Component - Batch Selection & Interactions', () => {
         expect(useAppStore.getState().batchSelectedPhotos.length).toBe(1);
         expect(getPhotoOriginalUrl(useAppStore.getState().batchSelectedPhotos[0])).toBe('/photos/2024/match-a/cached_001.jpg');
     });
+
+    it('preloads sprite image with hash query parameter when provided', () => {
+        const imageSrcs: string[] = [];
+        const originalImage = window.Image;
+        try {
+            window.Image = class extends originalImage {
+                set src(val: string) {
+                    imageSrcs.push(val);
+                }
+            } as unknown as typeof Image;
+
+            render(
+                <Recap
+                    slug="2024"
+                    count={3}
+                    events={mockEvents}
+                    yearData={mockYearData}
+                    hash="abc123def4"
+                />
+            );
+
+            expect(imageSrcs.some((src) => src.includes('/recap/2024/sprite.webp?h=abc123def4'))).toBe(true);
+        } finally {
+            window.Image = originalImage;
+        }
+    });
 });

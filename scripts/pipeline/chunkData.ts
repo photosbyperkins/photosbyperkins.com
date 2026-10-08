@@ -1,10 +1,11 @@
-// Chunk Data Pipeline
+import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import type { IndexState, RecapDefinitions, EventData, Photo, PhotoObject, WftdaMatch, FaceBox, FocusSource } from './types.js';
 import { logger } from './logger';
 import { GEAR_REGISTRY, getGearItem } from '../../src/data/gearData.js';
 import { parseEventTitle } from '../../src/utils/formatters.js';
+import { sliceCacheKey, type SubjectFraming } from '../../src/utils/subjectFraming.js';
 
 export interface ProcessedHighlight {
     original?: string;
@@ -163,11 +164,23 @@ export function generateRecapImages(eventsObj: Record<string, Partial<ProcessedE
     return images;
 }
 
+/**
+ * Computes a deterministic 10-hex digest of a year's recap slice composition.
+ * Changes whenever slices are added/removed/reordered, framing version changes,
+ * or face/subject crop focus points update.
+ */
+export function computeRecapHash(recapImages: Array<SubjectFraming & { src: string }>): string | undefined {
+    if (!recapImages || recapImages.length === 0) return undefined;
+    const str = recapImages.map((img) => sliceCacheKey(img.src, img)).join(';');
+    return crypto.createHash('sha256').update(str).digest('hex').slice(0, 10);
+}
+
 export interface ChunkPartPayload<T = unknown> {
     events: Record<string, T>;
     nextPart?: string;
     recapCount?: number;
     recapEvents?: unknown[];
+    recapHash?: string;
     stats?: unknown;
     [key: string]: unknown;
 }
@@ -628,6 +641,7 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
         const recapImages = generateRecapImages(processedYearData);
         recapDefinitions[year] = recapImages;
         const recapEvents = recapImages.map(img => ({ eventName: img.title, photoIndex: img.albumIndex }));
+        const recapHash = computeRecapHash(recapImages);
 
         // Strip payload bloat from processedYearData before saving it.
         // Because globalTeamsList uses the exact same evMeta references, this also cleans the team chunks.
@@ -684,7 +698,12 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
             firstSeenTeams: Array.from(firstSeenTeams),
         };
 
-        writeChunkedFile(YEARS_DIR, year, processedYearData, { recapCount: recapImages.length, recapEvents, stats: yearStats });
+        writeChunkedFile(YEARS_DIR, year, processedYearData, {
+            recapCount: recapImages.length,
+            recapEvents,
+            ...(recapHash ? { recapHash } : {}),
+            stats: yearStats,
+        });
         // logger.info(`Chunked year: ${year} into parts with ${Object.keys(processedYearData).length} albums`);
     }
 

@@ -16,6 +16,7 @@ describe('usePortfolioData', () => {
         },
         recapCount: 5,
         recapEvents: [{ eventName: '03.15 Match A', photoIndex: 0 }],
+        recapHash: 'hash2026',
         stats: {
             totalEvents: 1,
             totalPhotos: 1,
@@ -108,6 +109,7 @@ describe('usePortfolioData', () => {
         });
 
         expect(result.current.recapCount).toBe(5);
+        expect(result.current.recapHash).toBe('hash2026');
         expect(result.current.stats?.mostUsedCamera).toBe('Sony A9 III');
         expect(onDataLoadAction).toHaveBeenCalled();
     });

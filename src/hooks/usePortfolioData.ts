@@ -12,6 +12,7 @@ interface CachedYearPayload {
     events: YearData;
     recapCount: number;
     recapEvents: { eventName: string; photoIndex: number }[];
+    recapHash?: string;
     nextPart: string | null;
     stats?: SeasonStats;
 }
@@ -26,6 +27,7 @@ interface FetchPayload {
     events: YearData;
     recapCount?: number;
     recapEvents?: { eventName: string; photoIndex: number }[];
+    recapHash?: string;
     nextPart?: string | null;
     stats?: SeasonStats;
 }
@@ -50,6 +52,7 @@ export function usePortfolioData({
     const [yearData, setYearData] = useState<YearData>({});
     const [recapCount, setRecapCount] = useState<number>(0);
     const [recapEvents, setRecapEvents] = useState<{ eventName: string; photoIndex: number }[]>([]);
+    const [recapHash, setRecapHash] = useState<string | undefined>();
     const [stats, setStats] = useState<SeasonStats | undefined>();
 
     // Performance locking mechanism to pause background loading while Recap loads
@@ -152,6 +155,7 @@ export function usePortfolioData({
                                 events: payload.events,
                                 recapCount: payload.recapCount || 0,
                                 recapEvents: payload.recapEvents || [],
+                                recapHash: payload.recapHash,
                                 nextPart: payload.nextPart ?? null,
                                 stats: payload.stats,
                             });
@@ -353,6 +357,7 @@ export function usePortfolioData({
                     setYearData(cached.events);
                     setRecapCount(cached.recapCount);
                     setRecapEvents(cached.recapEvents);
+                    setRecapHash(cached.recapHash);
                     setStats(cached.stats);
                     setIsRecapLoaded(true);
                     if (cached.nextPart) setPendingNextPart(cached.nextPart);
@@ -379,6 +384,7 @@ export function usePortfolioData({
                             if (!accumulate) {
                                 setRecapCount(data.recapCount || 0);
                                 setRecapEvents(data.recapEvents || []);
+                                setRecapHash(data.recapHash);
                                 setStats(data.stats);
 
                                 // Store first-part result so future switches are instant.
@@ -386,6 +392,7 @@ export function usePortfolioData({
                                     events: data.events,
                                     recapCount: data.recapCount || 0,
                                     recapEvents: data.recapEvents || [],
+                                    recapHash: data.recapHash,
                                     nextPart: data.nextPart ?? null,
                                     stats: data.stats,
                                 });
@@ -412,6 +419,7 @@ export function usePortfolioData({
                                     events: data.events,
                                     recapCount: data.recapCount || 0,
                                     recapEvents: data.recapEvents || [],
+                                    recapHash: data.recapHash,
                                     nextPart: data.nextPart ?? null,
                                     stats: data.stats,
                                 });
@@ -512,6 +520,7 @@ export function usePortfolioData({
         yearData: isFavoritesTab ? favoritesYearData : yearData,
         recapCount: isFavoritesTab ? 0 : recapCount,
         recapEvents: isFavoritesTab ? [] : recapEvents,
+        recapHash: isFavoritesTab ? undefined : recapHash,
         stats: isFavoritesTab ? undefined : stats,
         setIsRecapLoaded,
         prefetchTab,

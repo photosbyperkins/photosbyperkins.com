@@ -124,7 +124,7 @@ export default function Portfolio({ years }: PortfolioProps) {
 
     const { sharedFavorites, clearSharedFavorites } = useSharedFavorites();
 
-    const { yearData, recapCount, recapEvents, stats, setIsRecapLoaded, prefetchTab } = usePortfolioData({
+    const { yearData, recapCount, recapEvents, recapHash, stats, setIsRecapLoaded, prefetchTab } = usePortfolioData({
         selectedTab,
         years,
         onDataLoadAction: handleDataLoad,
@@ -508,6 +508,7 @@ export default function Portfolio({ years }: PortfolioProps) {
                             slug={selectedTab}
                             count={recapCount}
                             events={recapEvents}
+                            hash={recapHash}
                             overlayText={selectedTab}
                             isYear={true}
                             onRecapLoadComplete={() => setIsRecapLoaded(true)}

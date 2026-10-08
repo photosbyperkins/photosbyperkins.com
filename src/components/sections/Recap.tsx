@@ -23,6 +23,7 @@ export interface RecapProps {
     slug: string;
     count: number;
     events?: RecapEventMeta[];
+    hash?: string;
     overlayText?: string;
     isYear?: boolean;
     onRecapLoadComplete?: () => void;
@@ -39,6 +40,7 @@ interface RecapSliceItemProps {
     totalSlices: number;
     idx: number;
     slug: string;
+    hash?: string;
     events?: RecapEventMeta[];
     eventIdx: number;
     reducedMotion?: boolean;
@@ -56,6 +58,7 @@ const RecapSliceItem = memo(function RecapSliceItem({
     totalSlices,
     idx,
     slug,
+    hash,
     events,
     eventIdx,
     reducedMotion,
@@ -149,7 +152,7 @@ const RecapSliceItem = memo(function RecapSliceItem({
                 style={
                     spriteLoaded
                         ? {
-                              backgroundImage: `url(${withBuild(`/recap/${slug}/sprite.webp`)})`,
+                              backgroundImage: `url(${withBuild(`/recap/${slug}/sprite.webp${hash ? `?h=${hash}` : ''}`)})`,
                               backgroundPosition: bgPosition,
                               backgroundSize: bgSize,
                           }
@@ -179,6 +182,7 @@ export default function Recap({
     slug,
     count,
     events,
+    hash,
     overlayText,
     isYear,
     onRecapLoadComplete,
@@ -195,6 +199,7 @@ export default function Recap({
 
     const [spriteLoaded, setSpriteLoaded] = useState(false);
     const [prevSlug, setPrevSlug] = useState(slug);
+    const [prevHash, setPrevHash] = useState(hash);
     const reducedMotion = useReducedMotion();
 
     const isBatchSelectMode = useAppStore((state) => state.isBatchSelectMode);
@@ -306,8 +311,9 @@ export default function Recap({
         [yearData, slug, loadedAlbums]
     );
 
-    if (slug !== prevSlug) {
+    if (slug !== prevSlug || hash !== prevHash) {
         setPrevSlug(slug);
+        setPrevHash(hash);
         setSpriteLoaded(false);
     }
 
@@ -316,8 +322,8 @@ export default function Recap({
         const img = new Image();
         img.onload = () => setSpriteLoaded(true);
         img.onerror = () => setSpriteLoaded(true); // Fallback: still render
-        img.src = withBuild(`/recap/${slug}/sprite.webp`);
-    }, [slug]);
+        img.src = withBuild(`/recap/${slug}/sprite.webp${hash ? `?h=${hash}` : ''}`);
+    }, [slug, hash]);
 
     useEffect(() => {
         if (spriteLoaded && onRecapLoadComplete) {
@@ -495,6 +501,7 @@ export default function Recap({
                             totalSlices={count}
                             idx={idx}
                             slug={slug}
+                            hash={hash}
                             events={events}
                             eventIdx={eventIdx}
                             spriteLoaded={spriteLoaded}

@@ -7,6 +7,7 @@ import {
     sortTaggedEvents,
     writeChunkedFile,
     generateRecapImages,
+    computeRecapHash,
     toClientPhoto,
 } from './chunkData';
 
@@ -186,6 +187,30 @@ describe('chunkData pipeline helpers', () => {
             });
             expect(out.faces).toBeUndefined();
             expect(out.subjects).toEqual([{ x: 0.3, y: 0.5, w: 0.1, h: 0.7 }]);
+        });
+    });
+
+    describe('computeRecapHash', () => {
+        it('returns undefined for empty slice lists', () => {
+            expect(computeRecapHash([])).toBeUndefined();
+        });
+
+        it('returns a stable 10-char hex hash that changes when slice content changes', () => {
+            const listA = [
+                { src: '/photos/photo1.webp', focusX: 0.5, focusY: 0.3 },
+                { src: '/photos/photo2.webp', focusX: 0.4, focusY: 0.2 },
+            ];
+            const hashA = computeRecapHash(listA);
+            expect(hashA).toBeDefined();
+            expect(hashA).toHaveLength(10);
+            expect(hashA).toEqual(computeRecapHash(listA));
+
+            const listB = [
+                { src: '/photos/photo1.webp', focusX: 0.55, focusY: 0.3 },
+                { src: '/photos/photo2.webp', focusX: 0.4, focusY: 0.2 },
+            ];
+            const hashB = computeRecapHash(listB);
+            expect(hashB).not.toEqual(hashA);
         });
     });
 });
