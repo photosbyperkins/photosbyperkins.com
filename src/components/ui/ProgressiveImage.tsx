@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { withBuild } from '../../utils/build';
+import { loadedSrcs } from './progressiveImageCache';
 
 type ProgressiveImageProps = React.ImgHTMLAttributes<HTMLImageElement> & {
     placeholder?: string | null;
@@ -59,9 +60,6 @@ function observeElement(el: Element, cb: ObserverCallback): () => void {
         observer.unobserve(el);
     };
 }
-
-export const loadedSrcs = new Set<string>();
-export const clearLoadedSrcs = () => loadedSrcs.clear();
 
 export default function ProgressiveImage({
     src,

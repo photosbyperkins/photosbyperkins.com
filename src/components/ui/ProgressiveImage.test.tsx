@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, act } from '@testing-library/react';
-import ProgressiveImage, { clearLoadedSrcs } from './ProgressiveImage';
+import ProgressiveImage from './ProgressiveImage';
+import { clearLoadedSrcs } from './progressiveImageCache';
 
 describe('ProgressiveImage', () => {
     let mockObserverCallback: (entries: IntersectionObserverEntry[]) => void;
@@ -34,11 +35,7 @@ describe('ProgressiveImage', () => {
 
     it('renders placeholder image when not yet loaded', () => {
         const { container } = render(
-            <ProgressiveImage
-                src="/photos/photo1.jpg"
-                alt="Test photo"
-                placeholder="/photos/photo1_thumb.jpg"
-            />
+            <ProgressiveImage src="/photos/photo1.jpg" alt="Test photo" placeholder="/photos/photo1_thumb.jpg" />
         );
 
         const placeholder = container.querySelector('.progressive-image__placeholder') as HTMLImageElement;
@@ -47,13 +44,7 @@ describe('ProgressiveImage', () => {
     });
 
     it('defers loading full image until intersecting when priority=false', () => {
-        const { container } = render(
-            <ProgressiveImage
-                src="/photos/photo1.jpg"
-                alt="Test photo"
-                priority={false}
-            />
-        );
+        const { container } = render(<ProgressiveImage src="/photos/photo1.jpg" alt="Test photo" priority={false} />);
 
         const img = container.querySelector('.progressive-image__img') as HTMLImageElement;
         expect(img.getAttribute('src')).toBeNull();
@@ -74,11 +65,7 @@ describe('ProgressiveImage', () => {
 
     it('immediately loads image when priority=true without waiting for intersection', () => {
         const { container } = render(
-            <ProgressiveImage
-                src="/photos/photo1.jpg"
-                alt="Priority photo"
-                priority={true}
-            />
+            <ProgressiveImage src="/photos/photo1.jpg" alt="Priority photo" priority={true} />
         );
 
         const img = container.querySelector('.progressive-image__img') as HTMLImageElement;

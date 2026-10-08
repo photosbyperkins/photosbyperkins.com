@@ -4,11 +4,6 @@
     // --- Lightbox Header & Controls ---
     &__lightbox {
         &-top-bar {
-            animation: lightboxChromeInTop 0.32s var(--ease-out-expo) 0.06s backwards;
-
-            @media (prefers-reduced-motion: reduce) {
-                animation: none;
-            }
             position: absolute;
             top: 0;
             left: 0;
@@ -31,6 +26,11 @@
                 transform 240ms var(--ease-out-expo),
                 visibility 0s linear 0s,
                 background-color var(--transition-fast);
+            animation: lightboxChromeInTop 0.32s var(--ease-out-expo) 0.06s backwards;
+
+            @media (prefers-reduced-motion: reduce) {
+                animation: none;
+            }
 
             @media (max-width: 480px) {
                 min-height: 48px;
@@ -227,5 +227,3 @@
         }
     }
 }
-
-

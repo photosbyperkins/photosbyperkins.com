@@ -149,7 +149,7 @@ export function useSlideZoom({
             if (onZoomChange) onZoomChange(false);
             if (releaseTimeoutRef.current) clearTimeout(releaseTimeoutRef.current);
         }
-    }, [animateTo, calculateMaxScale, checkConstraints, onZoomChange, scale]);
+    }, [animateTo, calculateMaxScale, checkConstraints, onZoomChange, scale, panX, panY]);
 
     const debouncedResize = useDebounce(handleResize, 150);
 
@@ -239,7 +239,7 @@ export function useSlideZoom({
                 if (onZoomChange) onZoomChange(true);
             }
         },
-        [scale, panX, panY, onZoomChange, checkConstraints, focusX, focusY]
+        [scale, panX, panY, onZoomChange, checkConstraints, focusX, focusY, animateTo]
     );
 
     const handleTouchStart = (e: React.TouchEvent) => {

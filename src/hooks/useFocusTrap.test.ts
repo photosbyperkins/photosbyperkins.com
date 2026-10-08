@@ -160,4 +160,59 @@ describe('useFocusTrap', () => {
 
         expect(document.activeElement).toBe(btn1);
     });
+
+    describe('restoreFocus: false (nested dialog takes over)', () => {
+        const setup = () => {
+            const outsideBtn = document.createElement('button');
+            document.body.appendChild(outsideBtn);
+            outsideBtn.focus();
+
+            const container = document.createElement('div');
+            const innerBtn = document.createElement('button');
+            container.appendChild(innerBtn);
+            document.body.appendChild(container);
+
+            const hook = renderHook(
+                ({ nestedOpen }) =>
+                    useFocusTrap({ current: container }, !nestedOpen, undefined, { restoreFocus: !nestedOpen }),
+                { initialProps: { nestedOpen: false } }
+            );
+            act(() => {
+                vi.advanceTimersByTime(20);
+            });
+            expect(document.activeElement).toBe(innerBtn);
+            return { outsideBtn, innerBtn, hook };
+        };
+
+        it('does not pull focus back behind the dialog when a nested dialog opens', () => {
+            const { innerBtn, hook } = setup();
+
+            hook.rerender({ nestedOpen: true });
+
+            expect(document.activeElement).toBe(innerBtn);
+        });
+
+        it('keeps the original return target across pause/resume', () => {
+            const { outsideBtn, innerBtn, hook } = setup();
+
+            hook.rerender({ nestedOpen: true });
+            hook.rerender({ nestedOpen: false });
+            act(() => {
+                vi.advanceTimersByTime(20);
+            });
+            expect(document.activeElement).toBe(innerBtn);
+
+            hook.unmount();
+            expect(document.activeElement).toBe(outsideBtn);
+        });
+
+        it('restores focus when unmounted while paused', () => {
+            const { outsideBtn, hook } = setup();
+
+            hook.rerender({ nestedOpen: true });
+            hook.unmount();
+
+            expect(document.activeElement).toBe(outsideBtn);
+        });
+    });
 });

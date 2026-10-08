@@ -42,6 +42,7 @@
 
     // Text
     --color-text: #f0f0f8;
+    --color-text-rgb: 240, 240, 248;
     --color-text-muted: #8888aa;
     --color-text-dim: #6b6b99;
 
@@ -106,6 +107,7 @@
 
     // Text
     --color-text: #1a1a24;
+    --color-text-rgb: 26, 26, 36;
     --color-text-muted: #555566;
     --color-text-dim: #6e6e85;
 
@@ -178,10 +180,10 @@ main {
         background: linear-gradient(90deg, transparent 0%, rgba(0, 0, 0, 0.03) 50%, transparent 100%);
     }
 
+    // Once loaded, drop the shimmer box entirely (stops the animation and frees its layer).
     &:has(> .progressive-image__img.is-loaded)::before {
+        content: none;
         animation: none;
-        opacity: 0;
-        transition: opacity var(--dur-fast);
     }
 
     &__placeholder {

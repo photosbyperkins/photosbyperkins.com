@@ -18,7 +18,7 @@
     border: none;
     box-shadow: none;
     transition: opacity var(--transition-fast);
-    animation: railIn var(--dur-base) var(--ease-out-expo) both;
+    animation: railIn var(--dur-base) var(--ease-out-expo) backwards;
     margin-left: calc(-50px - 1.5rem);
 
     // Hide on very short landscape viewports to prevent vertical clipping

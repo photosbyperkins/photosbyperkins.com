@@ -4,11 +4,6 @@
     // --- Lightbox Filmstrip Scrubber ---
     &__lightbox {
         &-scrubber {
-            animation: lightboxChromeInBottom 0.32s var(--ease-out-expo) 0.06s backwards;
-
-            @media (prefers-reduced-motion: reduce) {
-                animation: none;
-            }
             position: absolute;
             bottom: max(20px, env(safe-area-inset-bottom));
             left: 0;
@@ -25,6 +20,11 @@
                 visibility 0s linear 0s;
             mask-image: linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%);
             -webkit-mask-image: linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%);
+            animation: lightboxChromeInBottom 0.32s var(--ease-out-expo) 0.06s backwards;
+
+            @media (prefers-reduced-motion: reduce) {
+                animation: none;
+            }
 
             &-track {
                 display: flex;

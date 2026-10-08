@@ -50,6 +50,8 @@
             @media (hover: hover) {
                 &:hover {
                     .story-burst-cropper__pan-hint {
+                        max-width: 60px;
+                        margin-left: 4px;
                         opacity: 1;
                         transform: translateX(0);
                     }
@@ -68,6 +70,8 @@
             }
 
             .story-burst-cropper__pan-hint {
+                max-width: 60px;
+                margin-left: 4px;
                 opacity: 1;
                 transform: translateX(0);
             }
@@ -224,6 +228,8 @@
             color: #ffffff;
 
             .story-burst-cropper__pan-hint {
+                max-width: 60px;
+                margin-left: 4px;
                 opacity: 1;
                 transform: translateX(0);
             }
@@ -231,6 +237,8 @@
 
         &--hovered {
             .story-burst-cropper__pan-hint {
+                max-width: 60px;
+                margin-left: 4px;
                 opacity: 1;
                 transform: translateX(0);
             }
@@ -240,8 +248,10 @@
     &__pan-hint {
         font-size: 9px;
         font-weight: 600;
+        // Collapsed at rest so the pill doesn't reserve space; width snaps, text fades/slides in.
+        max-width: 0;
+        margin-left: 0;
         opacity: 0;
-        margin-left: 4px;
         overflow: hidden;
         white-space: nowrap;
         text-transform: uppercase;

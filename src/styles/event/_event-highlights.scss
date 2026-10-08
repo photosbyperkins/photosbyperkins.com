@@ -143,7 +143,7 @@
                     &:hover .portfolio__grid-select-badge:not(.portfolio__grid-select-badge--active) {
                         border-color: #ffffff;
                         background: rgba(0, 0, 0, 0.72);
-                        transform: scale(1.12);
+                        scale: 1.12;
                     }
                 }
             }

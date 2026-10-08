@@ -132,8 +132,9 @@
             &--active,
             &--checked,
             &--selected {
-                transform: translateX(-50%) scale(1.1);
-                animation: recapBadgePop 280ms var(--ease-out-expo) forwards;
+                animation:
+                    badgeIn var(--dur-fast) var(--ease-out-expo) backwards,
+                    recapBadgePop 280ms var(--ease-out-expo);
             }
         }
 
@@ -141,7 +142,7 @@
             &:hover .portfolio__grid-select-badge:not(.portfolio__grid-select-badge--active) {
                 border-color: #ffffff;
                 background: rgba(0, 0, 0, 0.72);
-                transform: translateX(-50%) scale(1.12);
+                scale: 1.12;
             }
         }
 
@@ -202,10 +203,10 @@
 @keyframes recapBadgePop {
     0% {
         opacity: 0;
-        transform: translateX(-50%) scale(0.5);
+        scale: 0.5;
     }
     100% {
         opacity: 1;
-        transform: translateX(-50%) scale(1.1);
+        scale: 1.1;
     }
 }

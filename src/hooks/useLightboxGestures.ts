@@ -21,6 +21,8 @@ export interface UseLightboxGesturesReturn {
     x: MotionValue<number>;
     isAnimating: boolean;
     maxDist: number;
+    /** Max horizontal drag (px) for the scrubber; always leaves maxDist slices covering the viewport. */
+    scrubMaxDrag: number;
     currentOpacity: MotionValue<number>;
     prevOpacity: MotionValue<number>;
     nextOpacity: MotionValue<number>;
@@ -57,8 +59,14 @@ export function useLightboxGestures({
     // Map the horizontal swipe down to a 72px physical tracking shift
     const dragShift = useTransform(x, [-windowWidth, 0, windowWidth], [-72, 0, 72]);
 
-    // Slices needed to cover the visible viewport plus margins so the track wraps seamlessly.
-    const maxDist = Math.max(16, Math.ceil((windowWidth || 1200) / 72) + 8);
+    // Slices needed so the track never shows empty slots: half the viewport is
+    // visible on each side of the playhead, and the scrubber can be dragged up to
+    // scrubMaxDrag in either direction on top of that.
+    const vw = windowWidth || 1200;
+    const halfVisibleSlices = Math.ceil(vw / 2 / 72) + 2;
+    const scrubDragSlices = Math.ceil(vw / 72) + 2;
+    const maxDist = halfVisibleSlices + scrubDragSlices;
+    const scrubMaxDrag = scrubDragSlices * 72;
 
     // The center slice (offset 0) is at position maxDist in the rendered array.
     // Its center is at (maxDist * 72 + 36) from the track's left edge.
@@ -160,6 +168,7 @@ export function useLightboxGestures({
         x,
         isAnimating,
         maxDist,
+        scrubMaxDrag,
         currentOpacity,
         prevOpacity,
         nextOpacity,

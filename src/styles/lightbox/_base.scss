@@ -84,10 +84,12 @@
             overflow: hidden;
 
             &-img {
+                // Rendered at quarter resolution and scaled ×5 (16× fewer filtered pixels).
+                // 25% × 5 = 125%, offset by −12.5% so the blur fall-off stays off-screen on every side.
                 position: absolute;
                 inset: auto;
-                top: 0;
-                left: 0;
+                top: -12.5%;
+                left: -12.5%;
                 width: 25%;
                 height: 25%;
                 transform-origin: 0 0;
@@ -202,6 +204,13 @@
                 visibility: hidden;
                 pointer-events: none;
                 transition-delay: 0s, 0s, 240ms;
+            }
+
+            // Children (buttons, thumbs) opt back into pointer events; keep them inert during the
+            // fade, before `visibility` flips.
+            .portfolio__lightbox-top-bar *,
+            .portfolio__lightbox-scrubber * {
+                pointer-events: none;
             }
 
             .portfolio__lightbox-top-bar {

@@ -82,7 +82,7 @@
                     &:hover .portfolio__grid-select-badge:not(.portfolio__grid-select-badge--active) {
                         border-color: #ffffff;
                         background: rgba(0, 0, 0, 0.72);
-                        transform: scale(1.12);
+                        scale: 1.12;
                     }
                 }
 
@@ -152,9 +152,11 @@
     z-index: 5;
     pointer-events: none;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-    animation: badgeIn var(--dur-fast) var(--ease-out-expo) both;
+    // Individual scale property so the entrance/pop compose with any positioning transform
+    // (Recap centres the badge with translateX(-50%)).
+    animation: badgeIn var(--dur-fast) var(--ease-out-expo) backwards;
     transition:
-        transform var(--transition-fast),
+        scale var(--transition-fast),
         background var(--transition-fast),
         border-color var(--transition-fast),
         box-shadow var(--transition-fast);
@@ -169,9 +171,12 @@
     &--selected {
         background: var(--color-accent);
         border-color: #ffffff;
-        transform: scale(1.1);
+        scale: 1.1;
         box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
-        animation: gridBadgePop 200ms var(--ease-out-expo) forwards;
+        // Keep badgeIn in the list so deselecting doesn't restart the entrance.
+        animation:
+            badgeIn var(--dur-fast) var(--ease-out-expo) backwards,
+            gridBadgePop 200ms var(--ease-out-expo);
     }
 
     .portfolio__grid-select-number {
@@ -186,20 +191,20 @@
 @keyframes badgeIn {
     from {
         opacity: 0;
-        transform: scale(0.6);
+        scale: 0.6;
     }
 }
 
 @keyframes gridBadgePop {
     0% {
         opacity: 0;
-        transform: scale(0.5);
+        scale: 0.5;
     }
     60% {
-        transform: scale(1.16);
+        scale: 1.16;
     }
     100% {
         opacity: 1;
-        transform: scale(1.1);
+        scale: 1.1;
     }
 }

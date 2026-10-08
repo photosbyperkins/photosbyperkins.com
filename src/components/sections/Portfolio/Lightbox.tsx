@@ -216,6 +216,7 @@ export default function Lightbox({
         x,
         isAnimating,
         maxDist,
+        scrubMaxDrag,
         currentOpacity,
         prevOpacity,
         nextOpacity,
@@ -436,6 +437,7 @@ export default function Lightbox({
                 images={images}
                 index={index}
                 maxDist={maxDist}
+                maxDrag={scrubMaxDrag}
                 spriteUrl={spriteUrl}
                 getThumbSrc={getThumbSrc}
                 checkIfFavorite={checkIfFavorite}

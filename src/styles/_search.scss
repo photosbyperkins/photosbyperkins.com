@@ -50,6 +50,7 @@
 
         &:active {
             transform: scale(0.94);
+            transition-duration: var(--dur-press);
         }
 
         @media (hover: hover) {
@@ -65,7 +66,7 @@
         flex-direction: column;
         flex: 1 1 auto;
         overflow: hidden;
-        animation: searchContentIn var(--dur-base) var(--ease-out-expo) both;
+        animation: searchContentIn var(--dur-base) var(--ease-out-expo) backwards;
         padding-top: 1.5rem;
         padding-bottom: max(2rem, env(safe-area-inset-bottom, 2rem));
     }
@@ -212,18 +213,19 @@
                 margin-top: -1px;
                 position: relative;
                 z-index: 1;
-                transition: transform 0.15s ease;
+                transition: transform var(--dur-fast) var(--ease-out-expo);
             }
 
             span:not(.portfolio__segment-pill) {
                 position: relative;
                 z-index: 1;
-                transition: transform 0.15s ease;
+                transition: transform var(--dur-fast) var(--ease-out-expo);
             }
 
             &:active > svg,
             &:active > span:not(.portfolio__segment-pill) {
                 transform: scale(0.92);
+                transition-duration: var(--dur-press);
             }
 
             &:first-child {
@@ -452,4 +454,3 @@
         transform: translateY(4px);
     }
 }
-

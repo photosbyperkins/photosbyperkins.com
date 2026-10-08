@@ -1,7 +1,12 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import type { RefObject } from 'react';
 
 export interface UseFocusTrapOptions {
+    /**
+     * Restore focus to the previously focused element when the trap deactivates.
+     * Pass `false` while another dialog (e.g. a nested overlay) takes over focus: the trap then
+     * *pauses* instead of releasing, keeping its original return target for when it finally closes.
+     */
     restoreFocus?: boolean;
 }
 
@@ -12,15 +17,32 @@ export function useFocusTrap(
     options?: UseFocusTrapOptions
 ) {
     const previousFocusRef = useRef<Element | null>(null);
+    const isPausedRef = useRef(false);
     const restoreFocus = options?.restoreFocus ?? true;
+
+    // Read at cleanup time. A captured value would be stale: when isActive and restoreFocus flip
+    // together, the cleanup that runs belongs to the previous render. Layout effects commit before
+    // passive-effect cleanups, so the ref is current by then.
+    const restoreFocusRef = useRef(restoreFocus);
+    useLayoutEffect(() => {
+        restoreFocusRef.current = restoreFocus;
+    }, [restoreFocus]);
 
     useEffect(() => {
         if (!isActive) return;
 
-        previousFocusRef.current = document.activeElement;
+        const isResuming = isPausedRef.current;
+        isPausedRef.current = false;
+        // Keep the original return target when resuming after a nested dialog closed.
+        if (!isResuming || !previousFocusRef.current) {
+            previousFocusRef.current = document.activeElement;
+        }
 
         // Use a small timeout to ensure the target element is rendered and focusable
         const timer = setTimeout(() => {
+            // When resuming, the nested dialog has already returned focus inside us; don't steal it.
+            if (isResuming && containerRef.current?.contains(document.activeElement)) return;
+
             if (initialFocusRef?.current) {
                 initialFocusRef.current.focus();
             } else if (containerRef.current) {
@@ -69,9 +91,24 @@ export function useFocusTrap(
         return () => {
             clearTimeout(timer);
             window.removeEventListener('keydown', handleFocusTrap);
-            if (restoreFocus && previousFocusRef.current instanceof HTMLElement) {
+            if (!restoreFocusRef.current) {
+                isPausedRef.current = true;
+                return;
+            }
+            if (previousFocusRef.current instanceof HTMLElement) {
+                previousFocusRef.current.focus();
+            }
+            previousFocusRef.current = null;
+        };
+    }, [containerRef, isActive, initialFocusRef]);
+
+    // Declared after the trap effect so its cleanup runs last on unmount. If the owner unmounts while
+    // paused (e.g. lightbox closed while Story Maker is open), still hand focus back to the original element.
+    useEffect(() => {
+        return () => {
+            if (isPausedRef.current && previousFocusRef.current instanceof HTMLElement) {
                 previousFocusRef.current.focus();
             }
         };
-    }, [containerRef, isActive, initialFocusRef, restoreFocus]);
+    }, []);
 }

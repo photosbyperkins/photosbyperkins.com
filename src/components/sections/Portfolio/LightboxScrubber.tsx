@@ -146,6 +146,8 @@ interface LightboxScrubberProps {
     images: PhotoInput[];
     index: number;
     maxDist: number;
+    /** Max scrub drag in px. Defaults to half the rendered slice range. */
+    maxDrag?: number;
     spriteUrl: string | null;
     getThumbSrc: (photo: PhotoInput) => string | undefined;
     checkIfFavorite: (photo: PhotoInput) => boolean;
@@ -168,6 +170,7 @@ export default function LightboxScrubber({
     images,
     index,
     maxDist,
+    maxDrag: maxDragProp,
     spriteUrl,
     getThumbSrc,
     checkIfFavorite,
@@ -233,7 +236,7 @@ export default function LightboxScrubber({
         [onPaginate, onSetIndex, reducedMotion, localDragX]
     );
 
-    const maxDrag = Math.max(72, (maxDist - 1) * 72);
+    const maxDrag = maxDragProp ?? Math.max(72, Math.floor(maxDist / 2) * 72);
 
     return (
         <div className="portfolio__lightbox-scrubber" onClick={(e) => e.stopPropagation()}>
@@ -250,19 +253,22 @@ export default function LightboxScrubber({
                         scrubShiftRef.current = 0;
                         setScrubShift(0);
                     }}
-                    onDrag={(_e, info) => {
-                        const shift = Math.round(-info.offset.x / 72);
+                    onDrag={() => {
+                        // Read the clamped track position, not the raw pointer offset,
+                        // so the highlight matches the slice under the playhead.
+                        const shift = Math.round(-localDragX.get() / 72);
                         if (shift !== scrubShiftRef.current) {
                             scrubShiftRef.current = shift;
                             setScrubShift(shift);
                             triggerScrubberHaptic();
                         }
                     }}
-                    onDragEnd={(_e, info) => {
+                    onDragEnd={() => {
                         setIsScrubbing(false);
                         scrubShiftRef.current = 0;
                         setScrubShift(0);
-                        const shiftPhotos = Math.round(-info.offset.x / 72);
+                        const dragX = localDragX.get();
+                        const shiftPhotos = Math.round(-dragX / 72);
                         if (shiftPhotos !== 0) {
                             const newIndex = (((index + shiftPhotos) % images.length) + images.length) % images.length;
                             flushSync(() => {
@@ -274,7 +280,7 @@ export default function LightboxScrubber({
                         if (reducedMotion) {
                             localDragX.set(0);
                         } else {
-                            localDragX.set(info.offset.x + shiftPhotos * 72);
+                            localDragX.set(dragX + shiftPhotos * 72);
                             animate(localDragX, 0, SPRING_SETTLE);
                         }
                     }}

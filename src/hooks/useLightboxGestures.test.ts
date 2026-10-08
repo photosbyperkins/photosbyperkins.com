@@ -180,7 +180,30 @@ describe('useLightboxGestures', () => {
             })
         );
 
-        // Math.ceil(1200 / 72) + 8 = 25 slices
+        // half-visible (ceil(600/72)+2 = 11) + drag range (ceil(1200/72)+2 = 19) = 30 slices
         expect(result.current.maxDist).toBeGreaterThanOrEqual(25);
     });
+
+    it.each([320, 375, 768, 1200, 1920, 3840])(
+        'keeps the viewport covered at the scrubber drag limit (windowWidth=%i)',
+        (windowWidth) => {
+            const { result } = renderHook(() =>
+                useLightboxGestures({
+                    images: mockImages,
+                    index: 0,
+                    windowWidth,
+                    reducedMotion: true,
+                    isFavorite: false,
+                    checkIfFavorite: () => false,
+                    getThumbSrc: () => undefined,
+                    onSetIndex: vi.fn(),
+                })
+            );
+
+            const { maxDist, scrubMaxDrag } = result.current;
+            expect(scrubMaxDrag).toBeGreaterThan(0);
+            // At full drag, the rendered slices on the far side must still reach the viewport edge.
+            expect(scrubMaxDrag + windowWidth / 2 + 36).toBeLessThanOrEqual(maxDist * 72);
+        }
+    );
 });

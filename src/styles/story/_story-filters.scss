@@ -77,7 +77,8 @@
         border-radius: 4px;
         transition:
             background-color var(--transition-fast),
-            color var(--transition-fast);
+            color var(--transition-fast),
+            opacity var(--transition-fast);
 
         @media (hover: hover) {
             &:hover {
