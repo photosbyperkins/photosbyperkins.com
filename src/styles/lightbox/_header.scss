@@ -4,6 +4,11 @@
     // --- Lightbox Header & Controls ---
     &__lightbox {
         &-top-bar {
+            animation: lightboxChromeInTop 0.32s var(--ease-out-expo) 0.06s backwards;
+
+            @media (prefers-reduced-motion: reduce) {
+                animation: none;
+            }
             position: absolute;
             top: 0;
             left: 0;
@@ -22,7 +27,9 @@
             gap: 0.75rem;
             pointer-events: auto;
             transition:
-                opacity var(--transition-fast),
+                opacity 240ms var(--ease-out-expo),
+                transform 240ms var(--ease-out-expo),
+                visibility 0s linear 0s,
                 background-color var(--transition-fast);
 
             @media (max-width: 480px) {
@@ -44,7 +51,6 @@
             position: relative;
             justify-self: start;
             min-width: 84px;
-            transition: opacity var(--transition-fast);
 
             @media (max-width: 480px) {
                 min-width: 72px;
@@ -73,6 +79,7 @@
         }
 
         &-top-center {
+            position: relative; // positioned parent for AnimatePresence popLayout exit
             display: flex;
             align-items: center;
             justify-content: center;
@@ -98,7 +105,6 @@
             user-select: none;
             cursor: default;
             position: relative;
-            animation: exifCrossFade 0.2s ease-out;
 
             @media (max-width: 480px) {
                 height: 34px;
@@ -106,7 +112,6 @@
             }
 
             &--empty {
-                opacity: 0.4;
                 font-style: italic;
             }
         }
@@ -146,6 +151,7 @@
         }
 
         &-data-row-bottom {
+            font-variant-numeric: tabular-nums;
             color: var(--color-text-muted);
             min-width: 0;
             max-width: 100%;
@@ -153,59 +159,6 @@
             text-overflow: ellipsis;
             white-space: nowrap;
             text-align: center;
-        }
-
-        &-menu {
-            position: absolute;
-            top: 52px;
-            left: 0;
-            background: rgba(20, 20, 20, 0.85);
-            -webkit-backdrop-filter: blur(12px);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            border-radius: 6px;
-            padding: 8px;
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-            min-width: 160px;
-            pointer-events: auto;
-            transform-origin: top left;
-        }
-
-        &-menu-item {
-            background: transparent;
-            border: none;
-            color: white;
-            padding: 10px 12px;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            cursor: pointer;
-            transition: all var(--transition-fast);
-            font-family: var(--font-primary);
-            font-size: 0.95rem;
-
-            svg {
-                opacity: 0.8;
-            }
-
-            &.is-disabled {
-                opacity: 0.4;
-                cursor: not-allowed;
-            }
-
-            @media (hover: hover) {
-                &:hover:not(.is-disabled) {
-                    background: rgba(255, 255, 255, 0.1);
-
-                    svg {
-                        opacity: 1;
-                    }
-                }
-            }
         }
 
         &-action {
@@ -219,8 +172,17 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: all var(--transition-fast);
+            transition:
+                color var(--transition-fast),
+                background-color var(--transition-fast),
+                border-color var(--transition-fast),
+                transform var(--dur-fast) var(--ease-out-expo);
             overflow: hidden;
+
+            &:active {
+                transform: scale(0.92);
+                transition-duration: var(--dur-press);
+            }
 
             @media (max-width: 480px) {
                 width: 34px;
@@ -266,13 +228,4 @@
     }
 }
 
-@keyframes exifCrossFade {
-    0% {
-        opacity: 0.35;
-        transform: scale(0.985);
-    }
-    100% {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
+

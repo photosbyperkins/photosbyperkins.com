@@ -173,25 +173,38 @@
         transition:
             color var(--transition-fast),
             background var(--transition-fast),
-            transform var(--transition-fast),
             box-shadow var(--transition-fast);
+
+        svg,
+        span:not(.story-mobile-dock__pill):not(.story-export-modal__studio-tab-pill):not(.portfolio__segment-pill) {
+            position: relative;
+            z-index: 1;
+            transition: transform var(--dur-fast) var(--ease-out-expo);
+        }
 
         html[data-theme='light'] & {
             color: #64748b;
         }
 
-        &:hover {
-            color: var(--color-text);
-            background: rgba(255, 255, 255, 0.05);
+        @media (hover: hover) {
+            &:hover {
+                color: var(--color-text);
+                background: rgba(255, 255, 255, 0.05);
 
-            html[data-theme='light'] & {
-                background: rgba(0, 0, 0, 0.04);
-                color: #0f172a;
+                html[data-theme='light'] & {
+                    background: rgba(0, 0, 0, 0.04);
+                    color: #0f172a;
+                }
             }
         }
 
-        &:active {
+        &:active > svg,
+        &:active
+            > span:not(.story-mobile-dock__pill):not(.story-export-modal__studio-tab-pill):not(
+                .portfolio__segment-pill
+            ) {
             transform: scale(0.96);
+            transition-duration: var(--dur-press);
         }
 
         &.active,
@@ -247,10 +260,8 @@
 .story-mobile-popover__backdrop {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.45);
+    background: rgba(0, 0, 0, 0.5);
     z-index: 20;
-    backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
     cursor: pointer;
     touch-action: none;
 }
@@ -375,13 +386,15 @@
             color: #64748b;
         }
 
-        &:hover {
-            color: var(--color-text);
-            background: rgba(255, 255, 255, 0.05);
+        @media (hover: hover) {
+            &:hover {
+                color: var(--color-text);
+                background: rgba(255, 255, 255, 0.05);
 
-            html[data-theme='light'] & {
-                background: rgba(0, 0, 0, 0.04);
-                color: #0f172a;
+                html[data-theme='light'] & {
+                    background: rgba(0, 0, 0, 0.04);
+                    color: #0f172a;
+                }
             }
         }
 
@@ -440,7 +453,11 @@
         color: var(--color-text-muted);
         cursor: pointer;
         flex-shrink: 0;
-        transition: all var(--transition-fast);
+        transition:
+            color var(--transition-fast),
+            background-color var(--transition-fast),
+            border-color var(--transition-fast),
+            transform var(--dur-fast) var(--ease-out-expo);
 
         html[data-theme='light'] & {
             background: rgba(0, 0, 0, 0.05);
@@ -448,18 +465,21 @@
             color: #475569;
         }
 
-        &:hover {
-            color: var(--color-text);
-            background: rgba(255, 255, 255, 0.14);
+        @media (hover: hover) {
+            &:hover {
+                color: var(--color-text);
+                background: rgba(255, 255, 255, 0.14);
 
-            html[data-theme='light'] & {
-                background: rgba(0, 0, 0, 0.08);
-                color: #1e293b;
+                html[data-theme='light'] & {
+                    background: rgba(0, 0, 0, 0.08);
+                    color: #1e293b;
+                }
             }
         }
 
         &:active {
             transform: scale(0.92);
+            transition-duration: var(--dur-press);
         }
     }
 

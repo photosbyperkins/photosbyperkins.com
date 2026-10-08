@@ -108,7 +108,6 @@
             display: inline-flex;
             align-items: center;
             background: transparent;
-            transition: all var(--transition-fast);
             text-decoration: none;
             flex-shrink: 0;
             position: absolute;
@@ -123,7 +122,6 @@
                 text-transform: uppercase;
                 letter-spacing: 0.05em;
                 color: #f5a2c6;
-                transition: all var(--transition-fast);
                 line-height: 1;
             }
 

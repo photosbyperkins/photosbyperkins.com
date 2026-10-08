@@ -8,6 +8,7 @@ import {
 } from '../../../utils/storyCanvas';
 import { formatTeamName } from '../../../utils/formatters';
 import { Move, X } from '../../ui/icons';
+import { EASE_OUT_EXPO } from '../../../utils/motion';
 
 type BadgeKey = 'scoreboard' | 'attribution';
 
@@ -58,8 +59,8 @@ export const StoryBadges: React.FC<StoryBadgesProps> = ({ badges, theme = 'dark'
 
     const isScoreboardActive = Boolean(
         !badges?.isEventAmbiguous &&
-            badges?.showScoreboard &&
-            (badges.scoreboardTitle || (badges.teams && badges.teams.length > 0))
+        badges?.showScoreboard &&
+        (badges.scoreboardTitle || (badges.teams && badges.teams.length > 0))
     );
     const isAttributionActive = Boolean(badges?.showAttribution);
     const isActive: Record<BadgeKey, boolean> = { scoreboard: isScoreboardActive, attribution: isAttributionActive };
@@ -115,7 +116,7 @@ export const StoryBadges: React.FC<StoryBadgesProps> = ({ badges, theme = 'dark'
 
             el.animate([{ translate: `${dx}px ${dy}px` }, { translate: '0px 0px' }], {
                 duration: 300,
-                easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+                easing: `cubic-bezier(${EASE_OUT_EXPO.join(', ')})`,
             });
         });
     });

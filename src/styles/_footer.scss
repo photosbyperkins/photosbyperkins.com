@@ -113,7 +113,15 @@
         min-height: 44px;
         padding: 10px;
         border-radius: 6px;
-        transition: all var(--transition-fast);
+        transition:
+            color var(--transition-fast),
+            background-color var(--transition-fast),
+            transform var(--dur-fast) var(--ease-out-expo);
+
+        &:active {
+            transform: scale(0.94);
+            transition-duration: var(--dur-press);
+        }
 
         @media (hover: hover) {
             &:hover {

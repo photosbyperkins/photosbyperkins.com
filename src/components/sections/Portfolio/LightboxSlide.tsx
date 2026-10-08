@@ -62,6 +62,7 @@ const LightboxSlide = forwardRef<LightboxSlideHandle, LightboxSlideProps>(functi
                 drag={dragMode}
                 dragConstraints={constraints}
                 dragElastic={0.1}
+                dragTransition={{ power: 0.25, timeConstant: 220, bounceStiffness: 400, bounceDamping: 40 }}
                 draggable={false}
                 key="stable"
             />

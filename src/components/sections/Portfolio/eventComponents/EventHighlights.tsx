@@ -74,6 +74,7 @@ export const EventHighlights = React.memo(function EventHighlights({
                 return (
                     <div
                         key={origUrl}
+                        style={{ '--reveal-delay': `${Math.min(i, 8) * 35}ms` } as React.CSSProperties}
                         className={`portfolio__featured-item ${isLast && totalPhotos > 5 ? 'has-overlay-mobile' : ''}${
                             isSelected ? ' portfolio__featured-item--selected' : ''
                         }${isSelectMode ? ' portfolio__featured-item--select-mode' : ''}`}

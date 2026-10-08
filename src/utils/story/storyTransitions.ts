@@ -9,6 +9,7 @@
  * Preview-only: exported PNGs are drawn separately by storyRender.ts.
  */
 import type { TargetAndTransition, Transition } from 'framer-motion';
+import { EASE_OUT_EXPO_STRONG } from '../motion';
 
 export type PreviewLayoutKey = 'solo' | 'burst-2' | 'burst-3';
 
@@ -23,7 +24,7 @@ export const PANEL_STAGGER_S = 0.075;
 /** How long the outgoing layout is held underneath the incoming one (covers the full staggered slide). */
 export const LAYOUT_HOLD_S = PANEL_SLIDE_S + PANEL_STAGGER_S * 2 + 0.05;
 
-const EXPO_OUT: Transition['ease'] = [0.16, 1, 0.3, 1];
+const EXPO_OUT: Transition['ease'] = EASE_OUT_EXPO_STRONG;
 const QUART_IN: Transition['ease'] = [0.5, 0, 0.75, 0];
 
 /**

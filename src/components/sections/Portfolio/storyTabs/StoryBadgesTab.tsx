@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Moon, Sun } from '../../../ui/icons';
+import { SPRING_SNAPPY } from '../../../../utils/motion';
 import type { BadgeOptions, StoryBadgePosition } from '../../../../utils/storyCanvas';
 import {
     DEFAULT_SCOREBOARD_POSITION,
@@ -221,7 +222,7 @@ export const StoryBadgesTab: React.FC<StoryBadgesTabProps> = ({
                                     <motion.span
                                         className="portfolio__segment-pill"
                                         layoutId="storyBadgeThemePill"
-                                        transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                        transition={SPRING_SNAPPY}
                                     />
                                 )}
                                 <Sun size={16} />
@@ -243,7 +244,7 @@ export const StoryBadgesTab: React.FC<StoryBadgesTabProps> = ({
                                     <motion.span
                                         className="portfolio__segment-pill"
                                         layoutId="storyBadgeThemePill"
-                                        transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                        transition={SPRING_SNAPPY}
                                     />
                                 )}
                                 <Moon size={16} />
@@ -299,7 +300,7 @@ export const StoryBadgesTab: React.FC<StoryBadgesTabProps> = ({
                                         <motion.span
                                             className="portfolio__segment-pill"
                                             layoutId="storyAttrTogglePill"
-                                            transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                            transition={SPRING_SNAPPY}
                                         />
                                     )}
                                     <span>Show</span>
@@ -317,7 +318,7 @@ export const StoryBadgesTab: React.FC<StoryBadgesTabProps> = ({
                                         <motion.span
                                             className="portfolio__segment-pill"
                                             layoutId="storyAttrTogglePill"
-                                            transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                            transition={SPRING_SNAPPY}
                                         />
                                     )}
                                     <span>Hide</span>
@@ -440,7 +441,7 @@ export const StoryBadgesTab: React.FC<StoryBadgesTabProps> = ({
                                                 <motion.span
                                                     className="portfolio__segment-pill"
                                                     layoutId="storyEventTogglePill"
-                                                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                                    transition={SPRING_SNAPPY}
                                                 />
                                             )}
                                             <span>Scores</span>
@@ -460,7 +461,7 @@ export const StoryBadgesTab: React.FC<StoryBadgesTabProps> = ({
                                                 <motion.span
                                                     className="portfolio__segment-pill"
                                                     layoutId="storyEventTogglePill"
-                                                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                                    transition={SPRING_SNAPPY}
                                                 />
                                             )}
                                             <span>Event</span>
@@ -480,7 +481,7 @@ export const StoryBadgesTab: React.FC<StoryBadgesTabProps> = ({
                                                 <motion.span
                                                     className="portfolio__segment-pill"
                                                     layoutId="storyEventTogglePill"
-                                                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                                    transition={SPRING_SNAPPY}
                                                 />
                                             )}
                                             <span>Hide</span>
@@ -507,7 +508,7 @@ export const StoryBadgesTab: React.FC<StoryBadgesTabProps> = ({
                                                 <motion.span
                                                     className="portfolio__segment-pill"
                                                     layoutId="storyEventTogglePill"
-                                                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                                    transition={SPRING_SNAPPY}
                                                 />
                                             )}
                                             <span>Show</span>
@@ -527,7 +528,7 @@ export const StoryBadgesTab: React.FC<StoryBadgesTabProps> = ({
                                                 <motion.span
                                                     className="portfolio__segment-pill"
                                                     layoutId="storyEventTogglePill"
-                                                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                                    transition={SPRING_SNAPPY}
                                                 />
                                             )}
                                             <span>Hide</span>

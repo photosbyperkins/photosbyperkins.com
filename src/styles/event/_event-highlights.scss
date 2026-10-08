@@ -18,6 +18,12 @@
                 background: var(--color-bg);
                 cursor: pointer;
                 container-type: size;
+                transition: transform var(--dur-fast) var(--ease-out-expo);
+
+                &:active {
+                    transform: scale(0.985);
+                    transition-duration: var(--dur-press);
+                }
 
                 &:nth-child(1),
                 &:nth-child(2) {
@@ -51,7 +57,16 @@
                     display: block;
                     transition:
                         transform var(--transition-fast),
-                        filter var(--transition-fast);
+                        filter var(--transition-fast),
+                        opacity 0.5s var(--ease-out-expo) var(--reveal-delay, 0ms),
+                        scale 0.7s var(--ease-out-expo) var(--reveal-delay, 0ms);
+
+                    @media (prefers-reduced-motion: reduce) {
+                        transition:
+                            transform var(--transition-fast),
+                            filter var(--transition-fast),
+                            opacity 0.2s linear;
+                    }
 
                     @media (hover: hover) {
                         &:hover {

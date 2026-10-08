@@ -44,20 +44,25 @@
         cursor: pointer;
         position: relative;
         z-index: 1;
-        transition: all var(--transition-fast);
+        transition:
+            color var(--transition-fast),
+            background-color var(--transition-fast);
 
         svg,
         span:not(.portfolio__segment-pill) {
             position: relative;
             z-index: 1;
+            transition: transform var(--dur-fast) var(--ease-out-expo);
         }
 
         &:not(:last-child) {
             border-right: none;
         }
 
-        &:active {
+        &:active > svg,
+        &:active > span:not(.portfolio__segment-pill) {
             transform: scale(0.92);
+            transition-duration: var(--dur-press);
         }
 
         @media (hover: hover) {
@@ -210,15 +215,23 @@
         cursor: pointer;
         position: relative;
         z-index: 1;
-        transition: all var(--transition-fast);
+        transition:
+            color var(--transition-fast),
+            background-color var(--transition-fast);
 
         span:not(.portfolio__segment-pill) {
             position: relative;
             z-index: 1;
+            transition: transform var(--dur-fast) var(--ease-out-expo);
         }
 
         &:not(:last-child) {
             border-right: 1px solid var(--color-border);
+        }
+
+        &:active > span:not(.portfolio__segment-pill) {
+            transform: scale(0.96);
+            transition-duration: var(--dur-press);
         }
 
         @media (hover: hover) {

@@ -44,6 +44,7 @@ vi.mock('framer-motion', () => ({
                             exit: _e,
                             whileHover: _wh,
                             whileTap: _wt,
+                            variants: _v,
                             ...domProps
                         } = props;
                         return React.createElement(prop, { ...domProps, ref }, children as React.ReactNode);

@@ -31,7 +31,7 @@ export default function ThemeToggle({ variant = 'floating' }: ThemeToggleProps) 
     const isDark = activeTheme === 'dark';
     const size = isNav ? 20 : 22;
 
-    const springConfig = { type: 'spring' as const, stiffness: 150, damping: 15 };
+    const springConfig = { type: 'spring' as const, stiffness: 260, damping: 22 };
 
     const maskId = `moon-mask-${uniqueId.replace(/:/g, '')}`;
 
@@ -42,6 +42,7 @@ export default function ThemeToggle({ variant = 'floating' }: ThemeToggleProps) 
             aria-label="Toggle theme"
         >
             <motion.svg
+                initial={false}
                 xmlns="http://www.w3.org/2000/svg"
                 width={size}
                 height={size}

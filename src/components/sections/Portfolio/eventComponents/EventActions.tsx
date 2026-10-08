@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Save, Star, Share2, FullAlbumIcon } from '../../../ui/icons';
+import { SPRING_SNAPPY } from '../../../../utils/motion';
 import { useAppStore } from '../../../../store/useAppStore';
 import { buildFavoritesShareUrl } from '../../../../utils/favoritesUrl';
 import { withBuild } from '../../../../utils/build';
@@ -111,13 +112,7 @@ export const EventActions = React.memo(function EventActions({
                     aria-label={isFavoritesTab ? "Download All Original Photos (.zip)" : "Download Favorites as .zip"}
                     style={{
                         cursor: isZipping ? 'wait' : 'pointer',
-                        backgroundImage: isZipping
-                            ? 'linear-gradient(to bottom, var(--color-accent) 100%, transparent 100%)'
-                            : 'none',
-                        backgroundSize: `100% ${isZipping ? zipProgress : 0}%`,
-                        backgroundRepeat: 'no-repeat',
-                        backgroundPosition: 'top center',
-                        transition: 'background-size 0.2s ease-out, border-color 0.2s ease-out, color 0.2s ease-out',
+                        ['--p' as string]: isZipping ? `${zipProgress / 100}` : 0,
                         borderColor: isZipping ? 'var(--color-accent)' : undefined,
                         color: isZipping ? (zipProgress > 50 ? '#fff' : 'var(--color-accent)') : undefined,
                     }}
@@ -151,7 +146,7 @@ export const EventActions = React.memo(function EventActions({
                             <motion.span
                                 className="portfolio__segment-pill"
                                 layoutId={`event-toggle-${selectedYear}-${eventName}`}
-                                transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                transition={SPRING_SNAPPY}
                             />
                         )}
                         <Star size={16} />
@@ -168,7 +163,7 @@ export const EventActions = React.memo(function EventActions({
                             <motion.span
                                 className="portfolio__segment-pill"
                                 layoutId={`event-toggle-${selectedYear}-${eventName}`}
-                                transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                transition={SPRING_SNAPPY}
                             />
                         )}
                         <FullAlbumIcon size={16} />

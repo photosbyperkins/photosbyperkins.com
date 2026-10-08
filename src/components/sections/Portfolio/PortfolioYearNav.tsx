@@ -1,4 +1,6 @@
 import { Link } from 'react-router-dom';
+import { motion, LayoutGroup } from 'framer-motion';
+import { SPRING_SNAPPY } from '../../../utils/motion';
 import { X, Heart } from '../../ui/icons';
 import { formatTeamName } from '../../../utils/formatters';
 import type { GearItem } from '../../../data/gearData';
@@ -55,7 +57,7 @@ export default function PortfolioYearNav({
                     </span>
                 </Link>
             ) : (
-                <>
+                <LayoutGroup id="year-nav">
                     {years.map((y) => (
                         <Link
                             key={y}
@@ -81,6 +83,14 @@ export default function PortfolioYearNav({
                             >
                                 {y.slice(-2)}
                             </span>
+                            {y === selectedTab && (
+                                <motion.span
+                                    className="portfolio__year-indicator"
+                                    layoutId="yearNavIndicator"
+                                    transition={SPRING_SNAPPY}
+                                    aria-hidden="true"
+                                />
+                            )}
                         </Link>
                     ))}
                     <Link
@@ -115,8 +125,16 @@ export default function PortfolioYearNav({
                                 }}
                             />
                         </span>
+                        {selectedTab === 'favorites' && (
+                            <motion.span
+                                className="portfolio__year-indicator"
+                                layoutId="yearNavIndicator"
+                                transition={SPRING_SNAPPY}
+                                aria-hidden="true"
+                            />
+                        )}
                     </Link>
-                </>
+                </LayoutGroup>
             )}
         </nav>
     );

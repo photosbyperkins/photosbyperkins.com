@@ -54,6 +54,14 @@
             align-items: center;
             justify-content: center;
 
+            > span:not(.portfolio__year-indicator) {
+                transition: scale var(--dur-press);
+            }
+
+            &:active > span:not(.portfolio__year-indicator) {
+                scale: 0.92;
+            }
+
             &:last-child {
                 margin-right: 0;
             }
@@ -97,19 +105,32 @@
 
                 &.active {
                     color: var(--color-text);
+                }
 
-                    &::after {
-                        transform: scaleX(1);
-                    }
+                & > .portfolio__year-indicator {
+                    left: 2px;
+                    right: 2px;
                 }
             }
 
             &.active {
                 color: var(--color-text);
 
-                &::after {
-                    transform: scaleX(1);
+                // Hover underline would double up with the sliding indicator (year tabs only)
+                &:not(.portfolio__active-filter)::after {
+                    transform: scaleX(0) !important;
                 }
+            }
+
+            // Sliding active-tab underline (shared layoutId)
+            .portfolio__year-indicator {
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                height: 2px;
+                background: var(--color-accent);
+                pointer-events: none;
             }
 
             @media (hover: hover) {
@@ -137,6 +158,10 @@
             &::after {
                 left: 0;
                 right: 0;
+            }
+
+            &.active::after {
+                transform: scaleX(1);
             }
 
             @media (max-width: 600px) {
@@ -306,3 +331,20 @@
         }
     }
 }
+
+@supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+        .portfolio__year-divider {
+            animation: yearDividerIn linear both;
+            animation-timeline: view();
+            animation-range: entry 0% entry 60%;
+        }
+    }
+}
+
+@keyframes yearDividerIn {
+    from {
+        opacity: 0;
+    }
+}
+

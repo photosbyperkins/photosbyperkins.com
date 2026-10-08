@@ -33,11 +33,12 @@ export default function GearFilter({ gearSearchQuery, filteredGear, gearIndexLoa
 
     const hasResults = cameras.length > 0 || lenses.length > 0;
 
-    const renderGearPill = (item: GearMeta) => (
+    const renderGearPill = (item: GearMeta, idx: number) => (
         <Link
             key={item.id}
             to={`/portfolio/gear/${item.id}`}
             className="portfolio__team-pill portfolio__gear-pill"
+            style={{ '--reveal-delay': `${Math.min(idx, 24) * 15}ms` } as React.CSSProperties}
             onClick={() => {
                 onBack?.();
                 window.scrollTo({ top: 0, behavior: 'instant' });

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, fireEvent, act } from '@testing-library/react';
-import ProgressiveImage from './ProgressiveImage';
+import ProgressiveImage, { clearLoadedSrcs } from './ProgressiveImage';
 
 describe('ProgressiveImage', () => {
     let mockObserverCallback: (entries: IntersectionObserverEntry[]) => void;
@@ -10,6 +10,7 @@ describe('ProgressiveImage', () => {
     let originalIntersectionObserver: typeof IntersectionObserver;
 
     beforeEach(() => {
+        clearLoadedSrcs();
         observeMock = vi.fn();
         unobserveMock = vi.fn();
         disconnectMock = vi.fn();
@@ -26,6 +27,7 @@ describe('ProgressiveImage', () => {
     });
 
     afterEach(() => {
+        clearLoadedSrcs();
         window.IntersectionObserver = originalIntersectionObserver;
         vi.restoreAllMocks();
     });

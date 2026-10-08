@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion';
 import { useState, useEffect, useMemo, useRef, useCallback, memo } from 'react';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
+import { EASE_OUT_EXPO } from '../../utils/motion';
 import { useAppStore } from '../../store/useAppStore';
 import { withBuild } from '../../utils/build';
 import { useElementSize } from '../../hooks/useElementSize';
@@ -99,7 +100,6 @@ const RecapSliceItem = memo(function RecapSliceItem({
     return (
         <motion.div
             id={`recap-slice-${idx}`}
-            layout
             className={`recap__slice${!spriteLoaded ? ' recap__slice--skeleton' : ''}${
                 isSelectMode ? ' recap__slice--select-mode' : ''
             }${isSelected ? ' recap__slice--selected' : ''}`}
@@ -126,7 +126,23 @@ const RecapSliceItem = memo(function RecapSliceItem({
                       ? { opacity: 0.4 }
                       : { rotateY: -180, opacity: 0.4 }
             }
-            transition={reducedMotion ? { duration: 0 } : { duration: 0.8, type: 'spring', bounce: 0.3 }}
+            transition={
+                reducedMotion
+                    ? { duration: 0 }
+                    : {
+                          rotateY: {
+                              type: 'spring',
+                              visualDuration: 0.6,
+                              bounce: 0.15,
+                              delay: Math.min(idx, 24) * 0.018,
+                          },
+                          opacity: {
+                              duration: 0.3,
+                              ease: EASE_OUT_EXPO,
+                              delay: Math.min(idx, 24) * 0.018,
+                          },
+                      }
+            }
         >
             <div
                 className="recap__sprite-slice"

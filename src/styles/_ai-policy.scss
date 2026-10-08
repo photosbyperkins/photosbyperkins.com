@@ -33,7 +33,14 @@
         padding: 1.5rem 1.75rem;
         transition:
             border-color var(--transition-fast),
-            transform var(--transition-fast);
+            translate var(--dur-base) var(--ease-out-expo);
+
+        @media (hover: hover) {
+            &:hover {
+                translate: 0 -2px;
+                border-color: color-mix(in srgb, var(--color-accent) 35%, var(--glass-border));
+            }
+        }
 
         // Render icon as subtle watermark graphic in the background across all viewports
         &-icon {

@@ -1,9 +1,146 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { motion, type MotionValue, useMotionValue, animate } from 'framer-motion';
 import { flushSync } from 'react-dom';
 import { Heart } from '../../ui/icons';
 import type { PhotoInput } from '../../../types';
 import { triggerHaptic, triggerScrubberHaptic } from '../../../utils/haptics';
+import { useReducedMotion } from '../../../hooks/useReducedMotion';
+import { SPRING_SETTLE } from '../../../utils/motion';
+
+export const SCRUBBER_COLUMNS = 50;
+export const MAX_SPRITE_FRAMES = 4250;
+
+interface ThumbProps {
+    offset: number;
+    wrappedIndex: number;
+    img: PhotoInput;
+    spriteUrl: string | null;
+    totalCols: number;
+    totalRows: number;
+    getThumbSrc: (photo: PhotoInput) => string | undefined;
+    isThumbActive: boolean;
+    isImgFavorite: boolean;
+    burst?: { index: number; total: number };
+    motionOpacity?: MotionValue<number>;
+    staticOpacity?: number;
+    onThumbClick: (offset: number, wrappedIndex: number) => void;
+}
+
+const Thumb = memo(
+    function Thumb({
+        offset,
+        wrappedIndex,
+        img,
+        spriteUrl,
+        totalCols,
+        totalRows,
+        getThumbSrc,
+        isThumbActive,
+        isImgFavorite,
+        burst,
+        motionOpacity,
+        staticOpacity,
+        onThumbClick,
+    }: ThumbProps) {
+        const handleClick = () => onThumbClick(offset, wrappedIndex);
+
+        const onKeyDown = (e: React.KeyboardEvent) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onThumbClick(offset, wrappedIndex);
+            }
+        };
+
+        const col = img && typeof img !== 'string' && img.spriteIndex != null ? img.spriteIndex % SCRUBBER_COLUMNS : 0;
+        const row =
+            img && typeof img !== 'string' && img.spriteIndex != null
+                ? Math.floor(img.spriteIndex / SCRUBBER_COLUMNS)
+                : 0;
+
+        const bgStyle =
+            spriteUrl && typeof img !== 'string' && img.spriteIndex != null
+                ? {
+                      backgroundImage: `url("${spriteUrl}")`,
+                      backgroundPosition: `${-(col * 72)}px ${-(row * 48)}px`,
+                      backgroundSize: `${totalCols * 72}px ${totalRows * 48}px`,
+                  }
+                : {
+                      backgroundImage: `url("${getThumbSrc(img)}")`,
+                      backgroundPosition:
+                          typeof img === 'object' && img.focusX != null && img.focusY != null
+                              ? `${(img.focusX * 100).toFixed(1)}% ${(img.focusY * 100).toFixed(1)}%`
+                              : 'center',
+                  };
+
+        const className = `portfolio__lightbox-scrubber-thumb${isThumbActive ? ' is-active' : ''}${burst ? ' portfolio__lightbox-scrubber-thumb--burst' : ''}`;
+        const ariaLabel = `Go to photo ${wrappedIndex + 1}${burst ? ` (Burst frame ${burst.index + 1} of ${burst.total})` : ''}`;
+
+        const content = (
+            <>
+                {burst && (
+                    <div
+                        className={`portfolio__lightbox-scrubber-burst-bar${
+                            burst.index === 0 ? ' is-start' : ''
+                        }${burst.index === burst.total - 1 ? ' is-end' : ''}`}
+                        aria-hidden="true"
+                    />
+                )}
+                {isImgFavorite && (
+                    <div
+                        className="portfolio__lightbox-scrubber-heart is-active portfolio__lightbox-scrubber-heart--thumb"
+                        style={{ pointerEvents: 'none' }}
+                    >
+                        <Heart size={28} fill="var(--color-accent)" color="var(--color-accent)" strokeWidth={1.5} />
+                    </div>
+                )}
+            </>
+        );
+
+        if (Math.abs(offset) <= 1 && motionOpacity) {
+            return (
+                <motion.div
+                    className={className}
+                    onClick={handleClick}
+                    onKeyDown={onKeyDown}
+                    style={{ ...bgStyle, opacity: motionOpacity }}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={ariaLabel}
+                >
+                    {content}
+                </motion.div>
+            );
+        }
+
+        return (
+            <div
+                className={className}
+                onClick={handleClick}
+                onKeyDown={onKeyDown}
+                style={{ ...bgStyle, opacity: staticOpacity ?? 0.5 }}
+                role="button"
+                tabIndex={0}
+                aria-label={ariaLabel}
+            >
+                {content}
+            </div>
+        );
+    },
+    (prev, next) =>
+        prev.offset === next.offset &&
+        prev.wrappedIndex === next.wrappedIndex &&
+        prev.img === next.img &&
+        prev.isThumbActive === next.isThumbActive &&
+        prev.isImgFavorite === next.isImgFavorite &&
+        prev.burst === next.burst &&
+        prev.staticOpacity === next.staticOpacity &&
+        prev.motionOpacity === next.motionOpacity &&
+        prev.spriteUrl === next.spriteUrl &&
+        prev.totalCols === next.totalCols &&
+        prev.totalRows === next.totalRows &&
+        prev.getThumbSrc === next.getThumbSrc &&
+        prev.onThumbClick === next.onThumbClick
+);
 
 interface LightboxScrubberProps {
     images: PhotoInput[];
@@ -20,13 +157,12 @@ interface LightboxScrubberProps {
     filledHeartOpacity: MotionValue<number>;
     filledHeartScale: MotionValue<number>;
     onSetIndex: (index: number) => void;
+    onPaginate?: (direction: number) => void;
     toggleFavorite: () => void;
     isFavorite: boolean;
     isChangingSlide?: boolean;
     isPopping?: boolean;
 }
-
-const SCRUBBER_COLUMNS = 200;
 
 export default function LightboxScrubber({
     images,
@@ -43,12 +179,16 @@ export default function LightboxScrubber({
     filledHeartOpacity,
     filledHeartScale,
     onSetIndex,
+    onPaginate,
     toggleFavorite,
     isFavorite,
     isChangingSlide = false,
     isPopping = false,
 }: LightboxScrubberProps) {
+    const reducedMotion = useReducedMotion();
     const total = images.length;
+    const totalCols = Math.max(1, Math.min(images.length, SCRUBBER_COLUMNS));
+    const totalRows = Math.max(1, Math.ceil(images.length / SCRUBBER_COLUMNS));
     const localDragX = useMotionValue(0);
     const [isScrubbing, setIsScrubbing] = useState(false);
     const [scrubShift, setScrubShift] = useState(0);
@@ -74,13 +214,34 @@ export default function LightboxScrubber({
     const activeOffset = isScrubbing ? scrubShift : 0;
     const currentDisplayIndex = isScrubbing && total > 0 ? (((index + scrubShift) % total) + total) % total : index;
 
+    const handleThumbClick = useCallback(
+        (offset: number, wrappedIndex: number) => {
+            if (onPaginate && Math.abs(offset) === 1) {
+                onPaginate(offset);
+                return;
+            }
+            flushSync(() => {
+                onSetIndex(wrappedIndex);
+            });
+            if (reducedMotion) {
+                localDragX.set(0);
+            } else {
+                localDragX.set(offset * 72);
+                animate(localDragX, 0, SPRING_SETTLE);
+            }
+        },
+        [onPaginate, onSetIndex, reducedMotion, localDragX]
+    );
+
+    const maxDrag = Math.max(72, (maxDist - 1) * 72);
+
     return (
         <div className="portfolio__lightbox-scrubber" onClick={(e) => e.stopPropagation()}>
             {/* Sliding track — thumbnails slide under the fixed playhead */}
             <motion.div className="portfolio__lightbox-scrubber-track" style={{ x: trackX }}>
                 <motion.div
                     drag="x"
-                    dragConstraints={{ left: -10000, right: 10000 }}
+                    dragConstraints={{ left: -maxDrag, right: maxDrag }}
                     dragElastic={0}
                     dragMomentum={false}
                     style={{ x: localDragX, display: 'flex' }}
@@ -109,9 +270,13 @@ export default function LightboxScrubber({
                             });
                         }
 
-                        // We must offset the instant jump of the track re-render
-                        localDragX.set(info.offset.x + shiftPhotos * 72);
-                        animate(localDragX, 0, { type: 'spring', stiffness: 400, damping: 40 });
+                        // Offset the instant jump of the track re-render
+                        if (reducedMotion) {
+                            localDragX.set(0);
+                        } else {
+                            localDragX.set(info.offset.x + shiftPhotos * 72);
+                            animate(localDragX, 0, SPRING_SETTLE);
+                        }
                     }}
                 >
                     {(() => {
@@ -128,80 +293,34 @@ export default function LightboxScrubber({
                             const burst = typeof img === 'object' ? img.burst : undefined;
 
                             // Determine drag-driven opacity for this thumb
-                            const thumbOpacity = isScrubbing
-                                ? offset === activeOffset
-                                    ? 1
-                                    : 0.5
-                                : offset === 0
-                                  ? thumbOpacity0
-                                  : offset === -1
-                                    ? thumbOpacityPrev
-                                    : offset === 1
-                                      ? thumbOpacityNext
-                                      : undefined;
+                            const motionOpacity =
+                                !isScrubbing && offset === 0
+                                    ? thumbOpacity0
+                                    : !isScrubbing && offset === -1
+                                      ? thumbOpacityPrev
+                                      : !isScrubbing && offset === 1
+                                        ? thumbOpacityNext
+                                        : undefined;
 
-                            const col =
-                                img && typeof img !== 'string' && img.spriteIndex != null
-                                    ? img.spriteIndex % SCRUBBER_COLUMNS
-                                    : 0;
-                            const row =
-                                img && typeof img !== 'string' && img.spriteIndex != null
-                                    ? Math.floor(img.spriteIndex / SCRUBBER_COLUMNS)
-                                    : 0;
-
-                            const bgStyle =
-                                spriteUrl && typeof img !== 'string' && img.spriteIndex != null
-                                    ? {
-                                          backgroundImage: `url("${spriteUrl}")`,
-                                          backgroundPosition: `${-(col * 72)}px ${-(row * 48)}px`,
-                                          backgroundSize: 'auto',
-                                      }
-                                    : {
-                                          backgroundImage: `url("${getThumbSrc(img)}")`,
-                                          backgroundPosition:
-                                              typeof img === 'object' && img.focusX != null && img.focusY != null
-                                                  ? `${(img.focusX * 100).toFixed(1)}% ${(img.focusY * 100).toFixed(1)}%`
-                                                  : 'center',
-                                      };
+                            const staticOpacity = isScrubbing ? (offset === activeOffset ? 1 : 0.5) : 0.5;
 
                             return (
-                                <motion.div
+                                <Thumb
                                     key={`${offset}`}
-                                    className={`portfolio__lightbox-scrubber-thumb${isThumbActive ? ' is-active' : ''}${burst ? ' portfolio__lightbox-scrubber-thumb--burst' : ''}`}
-                                    onClick={() => onSetIndex(wrappedIndex)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' || e.key === ' ') {
-                                            e.preventDefault();
-                                            onSetIndex(wrappedIndex);
-                                        }
-                                    }}
-                                    style={{ ...bgStyle, opacity: thumbOpacity ?? 0.5 }}
-                                    role="button"
-                                    tabIndex={0}
-                                    aria-label={`Go to photo ${wrappedIndex + 1}${burst ? ` (Burst frame ${burst.index + 1} of ${burst.total})` : ''}`}
-                                >
-                                    {burst && (
-                                        <div
-                                            className={`portfolio__lightbox-scrubber-burst-bar${
-                                                burst.index === 0 ? ' is-start' : ''
-                                            }${burst.index === burst.total - 1 ? ' is-end' : ''}`}
-                                            aria-hidden="true"
-                                        />
-                                    )}
-                                    {isImgFavorite && (
-                                        <div
-                                            className="portfolio__lightbox-scrubber-heart is-active portfolio__lightbox-scrubber-heart--thumb"
-                                            style={{ pointerEvents: 'none' }}
-                                        >
-                                            <Heart
-                                                size={28}
-                                                fill="var(--color-accent)"
-                                                color="var(--color-accent)"
-                                                strokeWidth={1.5}
-                                            />
-                                        </div>
-                                    )}
-                                </motion.div>
+                                    offset={offset}
+                                    wrappedIndex={wrappedIndex}
+                                    img={img}
+                                    spriteUrl={spriteUrl}
+                                    totalCols={totalCols}
+                                    totalRows={totalRows}
+                                    getThumbSrc={getThumbSrc}
+                                    isThumbActive={isThumbActive}
+                                    isImgFavorite={isImgFavorite}
+                                    burst={burst}
+                                    motionOpacity={motionOpacity}
+                                    staticOpacity={staticOpacity}
+                                    onThumbClick={handleThumbClick}
+                                />
                             );
                         });
                     })()}
@@ -228,7 +347,7 @@ export default function LightboxScrubber({
                     </motion.div>
                     {/* Filled heart — driven by drag progress */}
                     <motion.div
-                        className="portfolio__lightbox-scrubber-heart-layer"
+                        className="portfolio__lightbox-scrubber-heart-layer portfolio__lightbox-scrubber-heart-layer--filled"
                         style={{ opacity: filledHeartOpacity, scale: filledHeartScale }}
                     >
                         <Heart size={28} fill="var(--color-accent)" color="var(--color-accent)" strokeWidth={1.5} />

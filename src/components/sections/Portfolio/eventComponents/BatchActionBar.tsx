@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Heart, Save, Share2, X, CheckSquare, StoryCropIcon } from '../../../ui/icons';
 import { useCanShare } from '../../../../hooks/useCanShare';
 import { triggerHaptic } from '../../../../utils/haptics';
+import { DURATION, EASE_IN_OUT, SPRING_SOFT } from '../../../../utils/motion';
 
 export interface BatchActionBarProps {
     isVisible: boolean;
@@ -42,14 +43,14 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
     const isDeviceCanShare = useCanShare();
     const canShare = canShareProp ?? isDeviceCanShare;
     return (
-        <AnimatePresence>
+        <AnimatePresence propagate>
             {isVisible && (
                 <motion.aside
                     className="portfolio__batch-bar"
-                    initial={{ x: '-50%', y: 80, opacity: 0 }}
+                    initial={{ x: '-50%', y: 24, opacity: 0 }}
                     animate={{ x: '-50%', y: 0, opacity: 1 }}
-                    exit={{ x: '-50%', y: 80, opacity: 0 }}
-                    transition={{ type: 'spring', damping: 26, stiffness: 320 }}
+                    exit={{ x: '-50%', y: 16, opacity: 0, transition: { duration: DURATION.fast, ease: EASE_IN_OUT } }}
+                    transition={SPRING_SOFT}
                     role="toolbar"
                     aria-label="Batch photo actions toolbar"
                 >
@@ -163,11 +164,7 @@ export const BatchActionBar: React.FC<BatchActionBarProps> = ({
                                     }
                                     style={{
                                         cursor: isZipping ? 'wait' : selectedCount === 0 ? 'not-allowed' : 'pointer',
-                                        backgroundImage: isZipping
-                                            ? 'linear-gradient(to right, var(--color-accent) 100%, transparent 100%)'
-                                            : 'none',
-                                        backgroundSize: `${isZipping ? zipProgress : 0}% 100%`,
-                                        backgroundRepeat: 'no-repeat',
+                                        ['--p' as string]: isZipping ? `${zipProgress / 100}` : 0,
                                     }}
                                 >
                                     <Save size={16} className="portfolio__batch-btn-icon" />

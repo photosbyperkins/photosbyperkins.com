@@ -4,6 +4,11 @@
     // --- Lightbox Filmstrip Scrubber ---
     &__lightbox {
         &-scrubber {
+            animation: lightboxChromeInBottom 0.32s var(--ease-out-expo) 0.06s backwards;
+
+            @media (prefers-reduced-motion: reduce) {
+                animation: none;
+            }
             position: absolute;
             bottom: max(20px, env(safe-area-inset-bottom));
             left: 0;
@@ -14,7 +19,10 @@
             overflow: clip;
             pointer-events: none;
             z-index: var(--z-lightbox-controls);
-            transition: opacity var(--transition-fast);
+            transition:
+                opacity 240ms var(--ease-out-expo),
+                transform 240ms var(--ease-out-expo),
+                visibility 0s linear 0s;
             mask-image: linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%);
             -webkit-mask-image: linear-gradient(to right, transparent 0%, black 15%, black 85%, transparent 100%);
 
@@ -109,7 +117,9 @@
                 cursor: pointer;
                 color: white;
                 opacity: 1;
-                transition: all 0.15s ease;
+                transition:
+                    color var(--dur-fast) var(--ease-out-expo),
+                    opacity var(--dur-fast) var(--ease-out-expo);
                 border-radius: 2px;
                 padding: 0;
 
@@ -122,15 +132,11 @@
                 &.is-active {
                     color: var(--color-accent);
                     opacity: 1;
-
-                    svg {
-                        filter: drop-shadow(0 0 8px var(--color-accent-glow));
-                    }
                 }
 
                 &.is-popping {
                     svg {
-                        animation: heart-pop 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+                        animation: heart-pop 0.4s cubic-bezier(0.33, 1, 0.68, 1);
                     }
                 }
 
@@ -149,6 +155,10 @@
                     align-items: center;
                     justify-content: center;
                     pointer-events: none;
+
+                    &--filled svg {
+                        filter: drop-shadow(0 0 8px var(--color-accent-glow));
+                    }
                 }
             }
         }
@@ -159,11 +169,11 @@
     0% {
         transform: scale(1);
     }
-    45% {
-        transform: scale(1.38);
+    40% {
+        transform: scale(1.28);
     }
-    75% {
-        transform: scale(0.92);
+    70% {
+        transform: scale(0.96);
     }
     100% {
         transform: scale(1);

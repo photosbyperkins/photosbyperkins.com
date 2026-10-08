@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { motion, useIsPresent } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from '../../ui/icons';
 import { useState, useRef, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
@@ -6,11 +6,12 @@ import { useReducedMotion } from '../../../hooks/useReducedMotion';
 import LightboxSlide, { type LightboxSlideHandle } from './LightboxSlide';
 import LightboxAmbient from './LightboxAmbient';
 import LightboxHeader from './LightboxHeader';
-import LightboxScrubber from './LightboxScrubber';
+import LightboxScrubber, { SCRUBBER_COLUMNS, MAX_SPRITE_FRAMES } from './LightboxScrubber';
 import LightboxHelp from './LightboxHelp';
 import type { PhotoInput, EventScore } from '../../../types';
 import { withBuild, triggerPhotoDownload } from '../../../utils/build';
 import { triggerHaptic } from '../../../utils/haptics';
+import { DURATION, EASE_OUT_EXPO, EASE_IN_OUT, EASE_IN } from '../../../utils/motion';
 
 const StoryExportModal = lazy(() => import('./StoryExportModal'));
 
@@ -85,10 +86,12 @@ export default function Lightbox({
         return url ? withBuild(url) : undefined;
     }, []);
 
+    const [failedSpriteUrl, setFailedSpriteUrl] = useState<string | null>(null);
+
     // Derive scrubber sprite URL — all photos in a normal event share one sprite.
-    // Falls back to individual thumbs for Favorites (mixed-event) views.
-    const spriteUrl = useMemo(() => {
-        if (images.length === 0) return null;
+    // Falls back to individual thumbs for Favorites (mixed-event) views or oversized albums.
+    const rawSpriteUrl = useMemo(() => {
+        if (images.length === 0 || images.length > MAX_SPRITE_FRAMES) return null;
         const first = images[0];
         if (typeof first === 'string' || !first.thumb || first.spriteIndex == null) return null;
         // Ensure ALL images have spriteIndex and share the same event directory
@@ -103,6 +106,15 @@ export default function Lightbox({
         return withBuild(`${spriteDir}/sprite.webp`);
     }, [images]);
 
+    useEffect(() => {
+        if (!rawSpriteUrl) return;
+        const testImg = new Image();
+        testImg.onerror = () => setFailedSpriteUrl(rawSpriteUrl);
+        testImg.src = rawSpriteUrl;
+    }, [rawSpriteUrl]);
+
+    const spriteUrl = failedSpriteUrl === rawSpriteUrl ? null : rawSpriteUrl;
+
     /** Return CSS background style for the ambient blur layer.
      *  Uses the scrubber sprite frame when available (already loaded),
      *  falls back to individual thumbnails for Favorites/mixed views. */
@@ -110,7 +122,6 @@ export default function Lightbox({
         (photo: PhotoInput): React.CSSProperties => {
             if (!photo) return {};
             if (spriteUrl && typeof photo !== 'string' && photo.spriteIndex != null) {
-                const SCRUBBER_COLUMNS = 200;
                 const totalCols = Math.min(images.length, SCRUBBER_COLUMNS);
                 const totalRows = Math.ceil(images.length / SCRUBBER_COLUMNS);
                 const col = photo.spriteIndex % SCRUBBER_COLUMNS;
@@ -152,7 +163,7 @@ export default function Lightbox({
             if (popTimerRef.current) clearTimeout(popTimerRef.current);
             popTimerRef.current = setTimeout(() => {
                 setIsPopping(false);
-            }, 350);
+            }, 400);
         }
         triggerHaptic('tap');
         toggleFavorite({
@@ -230,6 +241,8 @@ export default function Lightbox({
         onZoomReset: () => setIsZoomed(false),
     });
 
+    const isPresent = useIsPresent();
+
     useLightboxNavigation({
         onClose: isStoryExportOpen
             ? () => setIsStoryExportOpen(false)
@@ -238,7 +251,8 @@ export default function Lightbox({
               : onClose,
         onPaginate: paginate,
         isZoomed,
-        isActive: !isAnimating && !isStoryExportOpen,
+        isActive: isPresent && !isStoryExportOpen,
+        isAnimating,
         onToggleFavorite: handleToggleFavorite,
         onToggleZoom: handleToggleZoom,
         onToggleTheater: handleToggleTheater,
@@ -248,7 +262,9 @@ export default function Lightbox({
     });
 
     useBodyScrollLock(true);
-    useFocusTrap(lightboxRef, !isStoryExportOpen && !isHelpOpen);
+    useFocusTrap(lightboxRef, !isStoryExportOpen && !isHelpOpen, undefined, {
+        restoreFocus: !isStoryExportOpen && !isHelpOpen,
+    });
 
     useEffect(() => {
         // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -295,8 +311,9 @@ export default function Lightbox({
             tabIndex={-1}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: reducedMotion ? 0 : 0.2 }}
+            exit={{ opacity: 0, transition: { duration: reducedMotion ? 0.15 : 0.22, ease: EASE_IN_OUT } }}
+            transition={{ duration: reducedMotion ? 0.15 : DURATION.base, ease: EASE_OUT_EXPO }}
+            style={{ pointerEvents: isPresent ? 'auto' : 'none' }}
             onPointerDown={(e) => {
                 recentlyDragged.current = { x: e.clientX, y: e.clientY };
             }}
@@ -320,32 +337,28 @@ export default function Lightbox({
             />
 
             {/* Left/Right Navigation Overlays */}
-            {!isZoomed && (
-                <>
-                    <div
-                        className="portfolio__lightbox-nav-overlay portfolio__lightbox-nav-overlay--left"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            paginate(-1);
-                        }}
-                    >
-                        <div className="portfolio__lightbox-nav-btn">
-                            <ChevronLeft size={32} />
-                        </div>
-                    </div>
-                    <div
-                        className="portfolio__lightbox-nav-overlay portfolio__lightbox-nav-overlay--right"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            paginate(1);
-                        }}
-                    >
-                        <div className="portfolio__lightbox-nav-btn">
-                            <ChevronRight size={32} />
-                        </div>
-                    </div>
-                </>
-            )}
+            <div
+                className={`portfolio__lightbox-nav-overlay portfolio__lightbox-nav-overlay--left${isZoomed ? ' is-hidden' : ''}`}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    if (!isZoomed) paginate(-1);
+                }}
+            >
+                <div className="portfolio__lightbox-nav-btn">
+                    <ChevronLeft size={32} />
+                </div>
+            </div>
+            <div
+                className={`portfolio__lightbox-nav-overlay portfolio__lightbox-nav-overlay--right${isZoomed ? ' is-hidden' : ''}`}
+                onClick={(e) => {
+                    e.stopPropagation();
+                    if (!isZoomed) paginate(1);
+                }}
+            >
+                <div className="portfolio__lightbox-nav-btn">
+                    <ChevronRight size={32} />
+                </div>
+            </div>
 
             <LightboxHeader
                 images={images}
@@ -359,9 +372,13 @@ export default function Lightbox({
                 onOpenStoryExport={handleOpenStoryExport}
             />
 
-            <div
+            <motion.div
                 className="portfolio__lightbox-track-container"
                 ref={containerRef}
+                initial={{ scale: 0.985 }}
+                animate={{ scale: 1 }}
+                exit={{ scale: 0.985, transition: { duration: DURATION.fast, ease: EASE_IN } }}
+                transition={{ duration: DURATION.slow, ease: EASE_OUT_EXPO }}
                 onClick={(e) => {
                     e.stopPropagation();
                 }}
@@ -371,6 +388,8 @@ export default function Lightbox({
                     style={{ x }}
                     drag={isAnimating || isZoomed ? false : 'x'}
                     dragConstraints={{ left: 0, right: 0 }}
+                    dragElastic={1}
+                    dragMomentum={false}
                     onDragStart={() => setIsDragging(true)}
                     onDragEnd={(e, info) => {
                         setIsDragging(false);
@@ -411,7 +430,7 @@ export default function Lightbox({
                         />
                     </div>
                 </motion.div>
-            </div>
+            </motion.div>
 
             <LightboxScrubber
                 images={images}
@@ -428,6 +447,7 @@ export default function Lightbox({
                 filledHeartOpacity={filledHeartOpacity}
                 filledHeartScale={filledHeartScale}
                 onSetIndex={onSetIndex}
+                onPaginate={paginate}
                 isFavorite={isFavorite}
                 isChangingSlide={isAnimating || isDragging}
                 isPopping={isPopping}

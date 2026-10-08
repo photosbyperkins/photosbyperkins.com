@@ -72,7 +72,10 @@
         cursor: pointer;
         position: relative;
         z-index: 1;
-        transition: all var(--transition-fast);
+        transition:
+            color var(--transition-fast),
+            background-color var(--transition-fast),
+            transform var(--dur-fast) var(--ease-out-expo);
 
         span:not(.portfolio__segment-pill),
         svg {
@@ -86,6 +89,7 @@
 
         &:active {
             transform: scale(0.95);
+            transition-duration: var(--dur-press);
         }
 
         @media (hover: hover) {
@@ -172,7 +176,15 @@
         cursor: pointer;
         position: relative;
         z-index: 1;
-        transition: all var(--transition-fast);
+        transition:
+            color var(--transition-fast),
+            background-color var(--transition-fast),
+            transform var(--dur-fast) var(--ease-out-expo);
+
+        &:active {
+            transform: scale(0.96);
+            transition-duration: var(--dur-press);
+        }
 
         span:not(.portfolio__segment-pill) {
             position: relative;
@@ -397,7 +409,7 @@
 
             .story-export-modal__zoom-tick-mark {
                 background: var(--color-accent);
-                height: 6px;
+                transform: scaleY(1.5);
             }
         }
     }
@@ -407,7 +419,10 @@
         height: 4px;
         background: var(--color-border);
         border-radius: 1px;
-        transition: all var(--transition-fast);
+        transform-origin: top;
+        transition:
+            background-color var(--transition-fast),
+            transform var(--dur-fast) var(--ease-out-expo);
     }
 
     &__zoom-tick-label {
@@ -549,7 +564,15 @@
         cursor: pointer;
         position: relative;
         z-index: 1;
-        transition: all var(--transition-fast);
+        transition:
+            color var(--transition-fast),
+            background-color var(--transition-fast),
+            transform var(--dur-fast) var(--ease-out-expo);
+
+        &:active {
+            transform: scale(0.96);
+            transition-duration: var(--dur-press);
+        }
 
         span:not(.portfolio__segment-pill) {
             position: relative;
@@ -667,7 +690,15 @@
         color: var(--color-text-muted);
         position: relative;
         z-index: 1;
-        transition: all var(--transition-fast);
+        transition:
+            color var(--transition-fast),
+            background-color var(--transition-fast),
+            transform var(--dur-fast) var(--ease-out-expo);
+
+        &:active {
+            transform: scale(0.96);
+            transition-duration: var(--dur-press);
+        }
 
         &:not(:last-child) {
             border-right: 1px solid var(--color-border);
@@ -749,7 +780,16 @@
         text-transform: uppercase;
         position: relative;
         z-index: 1;
-        transition: all var(--transition-fast);
+        transition:
+            background-color var(--transition-fast),
+            border-color var(--transition-fast),
+            color var(--transition-fast),
+            transform var(--dur-fast) var(--ease-out-expo);
+
+        &:active:not(:disabled):not(&--disabled) {
+            transform: scale(0.96);
+            transition-duration: var(--dur-press);
+        }
 
         html[data-theme='light'] & {
             background: rgba(0, 0, 0, 0.04);
@@ -853,7 +893,16 @@
         letter-spacing: 0.04em;
         text-transform: uppercase;
         cursor: pointer;
-        transition: all var(--transition-fast);
+        transition:
+            background-color var(--transition-fast),
+            border-color var(--transition-fast),
+            color var(--transition-fast),
+            transform var(--dur-fast) var(--ease-out-expo);
+
+        &:active {
+            transform: scale(0.96);
+            transition-duration: var(--dur-press);
+        }
 
         @media (max-width: 860px) {
             padding: 2px 8px;
@@ -929,7 +978,16 @@
         cursor: pointer;
         padding: 0;
         background: #0a0a14;
-        transition: all var(--transition-fast);
+        transition:
+            border-color var(--transition-fast),
+            box-shadow var(--transition-fast),
+            opacity var(--transition-fast),
+            transform var(--dur-fast) var(--ease-out-expo);
+
+        &:active {
+            transform: scale(0.96);
+            transition-duration: var(--dur-press);
+        }
 
         img {
             width: 100%;
@@ -940,14 +998,17 @@
         }
 
         &--selected {
-            border: 2px solid var(--color-accent);
-            box-shadow: 0 0 8px color-mix(in srgb, var(--color-accent) 40%, transparent);
+            border-color: var(--color-accent);
+            box-shadow:
+                inset 0 0 0 1px var(--color-accent),
+                0 0 8px color-mix(in srgb, var(--color-accent) 40%, transparent);
             opacity: 1;
         }
 
         &--targeted {
             border-color: #ffffff;
             box-shadow:
+                inset 0 0 0 1px #ffffff,
                 0 0 0 2px var(--color-accent),
                 0 0 12px color-mix(in srgb, var(--color-accent) 65%, transparent);
             opacity: 1;

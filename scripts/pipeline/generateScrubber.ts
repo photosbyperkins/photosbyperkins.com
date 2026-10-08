@@ -7,12 +7,25 @@ import type { IndexState } from './types';
 import { logger } from './logger.js';
 
 const SCRUBBER_DIR = path.join(process.cwd(), 'build', 'scrubber');
-const FRAME_WIDTH = 72;
-const FRAME_HEIGHT = 48;
-const SCRUBBER_COLUMNS = 200;
-const TARGET_RATIO = FRAME_WIDTH / FRAME_HEIGHT;
+export const MAX_WEBP_DIMENSION = 16383;
+export const MAX_GPU_TEXTURE_DIMENSION = 8192;
 
-function computeFocusCrop(imgWidth: number, imgHeight: number, focusX: number, focusY: number) {
+export const FRAME_WIDTH = 144;
+export const FRAME_HEIGHT = 96;
+export const SCRUBBER_COLUMNS = 50;
+export const TARGET_RATIO = FRAME_WIDTH / FRAME_HEIGHT;
+
+export const MAX_SPRITE_ROWS = Math.floor(MAX_GPU_TEXTURE_DIMENSION / FRAME_HEIGHT); // 85
+export const MAX_SPRITE_FRAMES = SCRUBBER_COLUMNS * MAX_SPRITE_ROWS; // 4,250
+
+if (FRAME_WIDTH * SCRUBBER_COLUMNS > MAX_WEBP_DIMENSION) {
+    throw new Error(
+        `Invalid scrubber configuration: FRAME_WIDTH (${FRAME_WIDTH}) * SCRUBBER_COLUMNS (${SCRUBBER_COLUMNS}) = ` +
+            `${FRAME_WIDTH * SCRUBBER_COLUMNS}px exceeds WebP max dimension (${MAX_WEBP_DIMENSION}px).`
+    );
+}
+
+export function computeFocusCrop(imgWidth: number, imgHeight: number, focusX: number, focusY: number) {
     const imgRatio = imgWidth / imgHeight;
     let cropW, cropH;
     if (imgRatio > TARGET_RATIO) {
@@ -54,12 +67,26 @@ export async function generateScrubber(indexData: IndexState) {
             const spriteRelative = thumbDir.replace(/^\/?thumbnails\//, 'scrubber/');
             const spritePath = path.join(process.cwd(), 'build', spriteRelative, 'sprite.webp');
             
-            validSprites.add(spritePath);
-            
             const cols = Math.min(albumPhotos.length, SCRUBBER_COLUMNS);
             const rows = Math.ceil(albumPhotos.length / SCRUBBER_COLUMNS);
             const expectedWidth = FRAME_WIDTH * cols;
             const expectedHeight = FRAME_HEIGHT * rows;
+
+            // Defensive safeguard against breaching WebP or GPU texture limits
+            if (
+                albumPhotos.length > MAX_SPRITE_FRAMES ||
+                expectedWidth > MAX_WEBP_DIMENSION ||
+                expectedHeight > MAX_WEBP_DIMENSION
+            ) {
+                logger.warn(
+                    `[Scrubber] Album "${event}" has ${albumPhotos.length} photos (${expectedWidth}x${expectedHeight}px), ` +
+                        `exceeding safe sprite bounds (${MAX_SPRITE_FRAMES} frames / ${MAX_WEBP_DIMENSION}px). ` +
+                        `Skipping sprite; Lightbox will fall back to individual thumbnails.`
+                );
+                continue;
+            }
+
+            validSprites.add(spritePath);
 
             tasks.push(async () => {
                 if (fs.existsSync(spritePath)) {

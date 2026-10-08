@@ -12,6 +12,8 @@
             margin-top: 0.25rem;
 
             .portfolio__zip-btn {
+                position: relative;
+                overflow: hidden;
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
@@ -24,7 +26,23 @@
                 height: 36px;
                 border-radius: 6px;
                 cursor: pointer;
-                transition: all var(--transition-fast);
+                transition:
+                    color var(--transition-fast),
+                    background-color var(--transition-fast),
+                    border-color var(--transition-fast),
+                    transform var(--dur-fast) var(--ease-out-expo);
+
+                &::before {
+                    content: '';
+                    position: absolute;
+                    inset: 0;
+                    background: var(--color-accent);
+                    transform: scaleY(var(--p, 0));
+                    transform-origin: top;
+                    transition: transform 200ms linear;
+                    z-index: 0;
+                    pointer-events: none;
+                }
 
                 @media (hover: hover) {
                     &:hover {
@@ -36,9 +54,12 @@
 
                 &:active {
                     transform: scale(0.95);
+                    transition-duration: var(--dur-press);
                 }
 
                 svg {
+                    position: relative;
+                    z-index: 1;
                     margin-top: -1px;
                 }
             }
@@ -60,7 +81,11 @@
                 font-weight: 600;
                 letter-spacing: 0.05em;
                 text-transform: uppercase;
-                transition: all var(--transition-fast);
+                transition:
+                    color var(--transition-fast),
+                    background-color var(--transition-fast),
+                    border-color var(--transition-fast),
+                    transform var(--dur-fast) var(--ease-out-expo);
 
                 @media (hover: hover) {
                     &:hover {
@@ -72,6 +97,7 @@
 
                 &:active {
                     transform: scale(0.95);
+                    transition-duration: var(--dur-press);
                 }
 
                 &.active {

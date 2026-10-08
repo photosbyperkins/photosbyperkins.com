@@ -1,4 +1,4 @@
-import { motion, useInView } from 'framer-motion';
+import { motion, useInView, AnimatePresence } from 'framer-motion';
 import { useState, useEffect, useMemo, useRef, useCallback, memo } from 'react';
 import { useCanShare } from '../../../hooks/useCanShare';
 import { useEventAlbum } from '../../../hooks/useEventAlbum';
@@ -21,6 +21,8 @@ import {
 } from '../../../utils/eventTransforms';
 import type { EventData, PhotoInput, PhotoRecord, FavoriteStoreItem } from '../../../types';
 import { withBuild } from '../../../utils/build';
+import { MAX_SPRITE_FRAMES } from './LightboxScrubber';
+import { DURATION, fadeUp } from '../../../utils/motion';
 
 interface PortfolioEventProps {
     eventName: string;
@@ -51,7 +53,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
     const [ev, setEv] = useState<EventData>(initialEv);
     const [isGridView, setIsGridView] = useState(false);
 
-    const ref = useRef<HTMLDivElement>(null);
+    const ref = useRef<HTMLElement>(null);
     const inView = useInView(ref, { once: true, margin: '400px' });
 
     const toggleGridView = useCallback((e: React.MouseEvent) => {
@@ -66,8 +68,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
     }, []);
 
     const isSharedEvent = sharedPhoto?.eventName === eventName;
-    const isVisible =
-        inView || (evIdx < 2 && inViewParent) || Boolean(isSharedEvent) || eventName === 'Favorites';
+    const isVisible = inView || (evIdx < 2 && inViewParent) || Boolean(isSharedEvent) || eventName === 'Favorites';
 
     useEffect(() => {
         setEv(initialEv);
@@ -85,8 +86,8 @@ const PortfolioEvent = memo(function PortfolioEvent({
         const zipName = ev.albumSlug
             ? `${ev.albumSlug}-favorites.zip`
             : eventName !== 'Favorites'
-                ? `${eventName.replace(/[^a-zA-Z0-9_-]/g, '_')}-favorites.zip`
-                : 'Favorites.zip';
+              ? `${eventName.replace(/[^a-zA-Z0-9_-]/g, '_')}-favorites.zip`
+              : 'Favorites.zip';
         startZipping(urls, zipName);
     };
 
@@ -167,7 +168,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
     // Warm the scrubber sprite into browser cache as soon as album data arrives.
     // The sprite is used for both the lightbox scrubber and ambient blur background.
     useEffect(() => {
-        if (albumImages.length === 0) return;
+        if (albumImages.length === 0 || albumImages.length > MAX_SPRITE_FRAMES) return;
         const first = albumImages[0];
         if (!first.thumb || first.spriteIndex == null) return;
         const dir = first.thumb.substring(0, first.thumb.lastIndexOf('/'));
@@ -220,25 +221,14 @@ const PortfolioEvent = memo(function PortfolioEvent({
                 scrollToElement(elementId);
             }
 
-            if (
-                sharedPhoto.photoIndex !== undefined &&
-                !isNaN(sharedPhoto.photoIndex) &&
-                albumImages.length > 0
-            ) {
+            if (sharedPhoto.photoIndex !== undefined && !isNaN(sharedPhoto.photoIndex) && albumImages.length > 0) {
                 const safeIndex = Math.max(0, Math.min(albumImages.length - 1, sharedPhoto.photoIndex));
                 const scorePayload =
                     ev.localScore ||
                     (ev.wftdaMatch
                         ? { team1Score: ev.wftdaMatch.score1, team2Score: ev.wftdaMatch.score2 }
                         : undefined);
-                openLightbox(
-                    albumImages,
-                    safeIndex,
-                    eventName,
-                    selectedYear,
-                    ev.maxExifChars,
-                    scorePayload
-                );
+                openLightbox(albumImages, safeIndex, eventName, selectedYear, ev.maxExifChars, scorePayload);
             }
             setSharedPhoto(null);
         }
@@ -361,14 +351,11 @@ const PortfolioEvent = memo(function PortfolioEvent({
     );
 
     return (
-        <motion.article
+        <article
             ref={ref}
             id={`event-${eventName.replace(/[^a-zA-Z0-9-]/g, '-')}`}
             data-event-name={eventName}
             className="portfolio__event"
-            initial={{ opacity: 0, y: 20 }}
-            animate={isVisible ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.4 }}
         >
             {eventName !== 'Favorites' && (
                 <div className="portfolio__event-header">
@@ -390,78 +377,94 @@ const PortfolioEvent = memo(function PortfolioEvent({
                     />
                 </div>
             )}
-            {ev.description && <p className="portfolio__event-desc">{ev.description}</p>}
+            {ev.description && (
+                <p className="portfolio__event-desc">
+                    {ev.description}
+                </p>
+            )}
 
-            {isVisible ? (
-                <>
-                    {eventName === 'Favorites' && (!ev.album || ev.album.length === 0) ? (
-                        <EventEmptyFavorites />
-                    ) : isGridView || eventName === 'Favorites' ? (
-                        albumImages.length >
-                            (parseInt(import.meta.env.VITE_VIRTUAL_GRID_THRESHOLD || '50', 10) || 50) &&
-                        eventName !== 'Favorites' ? (
+            <div>
+                <AnimatePresence mode="wait" initial={false}>
+                    <motion.div
+                        key={isGridView ? 'grid' : 'highlights'}
+                        {...fadeUp(6, DURATION.fast)}
+                        exit={{ opacity: 0, transition: { duration: DURATION.instant } }}
+                    >
+                        {isVisible ? (
                             <>
-                                <VirtualizedAlbumGrid
-                                    photos={albumImages}
-                                    eventName={eventName}
-                                    selectedYear={selectedYear}
-                                    maxExifChars={ev.maxExifChars}
-                                    localScore={eventScore}
-                                    openLightbox={openLightbox}
-                                    isSelectMode={isBatchSelectMode}
-                                    selectedUrls={selectedUrls}
-                                    selectionIndexMap={selectionIndexMap}
-                                    onToggleSelect={handleToggleSelect}
-                                />
-                                {loading && <div className="portfolio__loading">Loading photos...</div>}
-                                {fetchError && (
-                                    <div className="portfolio__error">Error loading photos. Please try refreshing.</div>
+                                {eventName === 'Favorites' && (!ev.album || ev.album.length === 0) ? (
+                                    <EventEmptyFavorites />
+                                ) : isGridView || eventName === 'Favorites' ? (
+                                    albumImages.length >
+                                        (parseInt(import.meta.env.VITE_VIRTUAL_GRID_THRESHOLD || '50', 10) || 50) &&
+                                    eventName !== 'Favorites' ? (
+                                        <>
+                                            <VirtualizedAlbumGrid
+                                                photos={albumImages}
+                                                eventName={eventName}
+                                                selectedYear={selectedYear}
+                                                maxExifChars={ev.maxExifChars}
+                                                localScore={eventScore}
+                                                openLightbox={openLightbox}
+                                                isSelectMode={isBatchSelectMode}
+                                                selectedUrls={selectedUrls}
+                                                selectionIndexMap={selectionIndexMap}
+                                                onToggleSelect={handleToggleSelect}
+                                            />
+                                            {loading && <div className="portfolio__loading">Loading photos...</div>}
+                                            {fetchError && (
+                                                <div className="portfolio__error">
+                                                    Error loading photos. Please try refreshing.
+                                                </div>
+                                            )}
+                                        </>
+                                    ) : (
+                                        <EventGrid
+                                            albumImages={albumImages}
+                                            eventName={eventName}
+                                            selectedYear={selectedYear}
+                                            maxExifChars={ev.maxExifChars}
+                                            eventScore={eventScore}
+                                            loading={loading}
+                                            fetchError={fetchError}
+                                            openLightbox={openLightbox}
+                                            isSelectMode={isBatchSelectMode}
+                                            selectedUrls={selectedUrls}
+                                            selectionIndexMap={selectionIndexMap}
+                                            onToggleSelect={handleToggleSelect}
+                                        />
+                                    )
+                                ) : (
+                                    <EventHighlights
+                                        featuredPhotos={featuredPhotos}
+                                        albumImages={albumImages}
+                                        albumIndexMap={albumIndexMap}
+                                        eventName={eventName}
+                                        selectedYear={selectedYear}
+                                        totalPhotos={totalPhotos}
+                                        maxExifChars={ev.maxExifChars}
+                                        eventScore={eventScore}
+                                        evIdx={evIdx}
+                                        loading={loading}
+                                        fetchError={fetchError}
+                                        openLightbox={openLightbox}
+                                        isSelectMode={isBatchSelectMode}
+                                        selectedUrls={selectedUrls}
+                                        selectionIndexMap={selectionIndexMap}
+                                        onToggleSelect={handleToggleSelect}
+                                    />
                                 )}
                             </>
                         ) : (
-                            <EventGrid
-                                albumImages={albumImages}
-                                eventName={eventName}
-                                selectedYear={selectedYear}
-                                maxExifChars={ev.maxExifChars}
-                                eventScore={eventScore}
-                                loading={loading}
-                                fetchError={fetchError}
-                                openLightbox={openLightbox}
-                                isSelectMode={isBatchSelectMode}
-                                selectedUrls={selectedUrls}
-                                selectionIndexMap={selectionIndexMap}
-                                onToggleSelect={handleToggleSelect}
+                            <div
+                                className="portfolio__event-placeholder portfolio__event-placeholder--featured"
+                                aria-hidden="true"
                             />
-                        )
-                    ) : (
-                        <EventHighlights
-                            featuredPhotos={featuredPhotos}
-                            albumImages={albumImages}
-                            albumIndexMap={albumIndexMap}
-                            eventName={eventName}
-                            selectedYear={selectedYear}
-                            totalPhotos={totalPhotos}
-                            maxExifChars={ev.maxExifChars}
-                            eventScore={eventScore}
-                            evIdx={evIdx}
-                            loading={loading}
-                            fetchError={fetchError}
-                            openLightbox={openLightbox}
-                            isSelectMode={isBatchSelectMode}
-                            selectedUrls={selectedUrls}
-                            selectionIndexMap={selectionIndexMap}
-                            onToggleSelect={handleToggleSelect}
-                        />
-                    )}
-                </>
-            ) : (
-                <div
-                    className="portfolio__event-placeholder portfolio__event-placeholder--featured"
-                    aria-hidden="true"
-                />
-            )}
-        </motion.article>
+                        )}
+                    </motion.div>
+                </AnimatePresence>
+            </div>
+        </article>
     );
 });
 

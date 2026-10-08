@@ -1,5 +1,8 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRef } from 'react';
 import { X } from '../../ui/icons';
+import { useFocusTrap } from '../../../hooks/useFocusTrap';
+import { DURATION, EASE_OUT_EXPO, EASE_IN_OUT, EASE_IN } from '../../../utils/motion';
 import React from 'react';
 
 export interface LightboxHelpProps {
@@ -34,6 +37,11 @@ const SHORTCUTS: { keys: React.ReactNode; label: string }[] = [
 ];
 
 export default function LightboxHelp({ isOpen, onClose }: LightboxHelpProps) {
+    const cardRef = useRef<HTMLDivElement>(null);
+    const closeBtnRef = useRef<HTMLButtonElement>(null);
+
+    useFocusTrap(cardRef, isOpen, closeBtnRef);
+
     return (
         <AnimatePresence>
             {isOpen && (
@@ -42,19 +50,28 @@ export default function LightboxHelp({ isOpen, onClose }: LightboxHelpProps) {
                     role="dialog"
                     aria-label="Keyboard Shortcuts"
                     aria-modal="true"
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ duration: 0.2 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0, transition: { duration: DURATION.fast, ease: EASE_IN_OUT } }}
+                    transition={{ duration: DURATION.base, ease: EASE_OUT_EXPO }}
                     onClick={(e) => {
                         e.stopPropagation();
                         onClose();
                     }}
                 >
-                    <div className="portfolio__lightbox-help-card" onClick={(e) => e.stopPropagation()}>
+                    <motion.div
+                        ref={cardRef}
+                        className="portfolio__lightbox-help-card"
+                        initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 4, scale: 0.99, transition: { duration: 0.14, ease: EASE_IN } }}
+                        transition={{ duration: DURATION.base, ease: EASE_OUT_EXPO }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
                         <div className="portfolio__lightbox-help-header">
                             <h3>Keyboard Shortcuts</h3>
                             <button
+                                ref={closeBtnRef}
                                 className="portfolio__lightbox-help-close"
                                 onClick={onClose}
                                 aria-label="Close shortcuts"
@@ -70,7 +87,7 @@ export default function LightboxHelp({ isOpen, onClose }: LightboxHelpProps) {
                                 </div>
                             ))}
                         </div>
-                    </div>
+                    </motion.div>
                 </motion.div>
             )}
         </AnimatePresence>

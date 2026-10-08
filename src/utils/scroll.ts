@@ -123,9 +123,12 @@ export function scrollToElement(target: HTMLElement | string, options?: ScrollTo
 
     const desiredOffset = options?.offset ?? getStickyNavOffset();
     const isFirstEvent = isFirstPortfolioEvent(el);
+    const prefersReducedMotion =
+        typeof window !== 'undefined' &&
+        Boolean(window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches);
 
-    // Instant / Auto Jump path
-    if (options?.behavior === 'instant' || options?.behavior === 'auto') {
+    // Instant / Auto Jump path or reduced-motion preference
+    if (options?.behavior === 'instant' || options?.behavior === 'auto' || prefersReducedMotion) {
         const targetY = isFirstEvent ? 0 : Math.max(0, el.getBoundingClientRect().top + window.scrollY - desiredOffset);
         window.scrollTo({ top: targetY, behavior: 'instant' as ScrollBehavior });
         options?.onComplete?.();

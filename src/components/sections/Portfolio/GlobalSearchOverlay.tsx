@@ -4,6 +4,7 @@ import { createPortal } from 'react-dom';
 import { Search, X } from '../../ui/icons';
 import { useFocusTrap } from '../../../hooks/useFocusTrap';
 import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock';
+import { DURATION, EASE_OUT_EXPO, EASE_IN_OUT, SPRING_SNAPPY } from '../../../utils/motion';
 import TeamFilter from './TeamFilter';
 import GearFilter, { type GearMeta } from './GearFilter';
 
@@ -90,10 +91,10 @@ export default function GlobalSearchOverlay({
                     aria-modal="true"
                     aria-label="Search portfolio"
                     tabIndex={-1}
-                    initial={{ opacity: 0, y: 50 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 50 }}
-                    transition={{ duration: 0.3, ease: 'easeOut' }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0, transition: { duration: DURATION.fast, ease: EASE_IN_OUT } }}
+                    transition={{ duration: DURATION.base, ease: EASE_OUT_EXPO }}
                 >
                     <div className="portfolio__search-topbar">
                         <div className="portfolio__search-topbar-inner container">
@@ -102,7 +103,7 @@ export default function GlobalSearchOverlay({
                                     className="portfolio__segmented-toggle portfolio__search-tab-toggle"
                                     role="group"
                                     aria-label="Search category"
-                                >
+                                    >
                                     <button
                                         type="button"
                                         className={activeTab === 'teams' ? 'active' : ''}
@@ -113,7 +114,7 @@ export default function GlobalSearchOverlay({
                                             <motion.span
                                                 className="portfolio__segment-pill"
                                                 layoutId="searchTabPill"
-                                                transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                                transition={SPRING_SNAPPY}
                                             />
                                         )}
                                         <span>Teams</span>
@@ -128,7 +129,7 @@ export default function GlobalSearchOverlay({
                                             <motion.span
                                                 className="portfolio__segment-pill"
                                                 layoutId="searchTabPill"
-                                                transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                                transition={SPRING_SNAPPY}
                                             />
                                         )}
                                         <span>Gear</span>

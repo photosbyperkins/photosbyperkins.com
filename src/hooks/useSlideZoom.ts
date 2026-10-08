@@ -1,6 +1,8 @@
 import { useMotionValue, animate, type MotionValue } from 'framer-motion';
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { useDebounce } from './useDebounce';
+import { useReducedMotion } from './useReducedMotion';
+import { SPRING_ZOOM } from '../utils/motion';
 import type { PhotoInput } from '../types';
 
 export interface UseSlideZoomOptions {
@@ -10,6 +12,7 @@ export interface UseSlideZoomOptions {
     onZoomChange?: (isZoomed: boolean) => void;
     onCanZoomChange?: (canZoom: boolean) => void;
     onSingleClick?: () => void;
+    reducedMotion?: boolean;
 }
 
 export interface UseSlideZoomReturn {
@@ -38,7 +41,10 @@ export function useSlideZoom({
     onZoomChange,
     onCanZoomChange,
     onSingleClick,
+    reducedMotion,
 }: UseSlideZoomOptions): UseSlideZoomReturn {
+    const isReducedMotion = useReducedMotion();
+    const reduced = reducedMotion ?? isReducedMotion;
     const containerRef = useRef<HTMLDivElement | null>(null);
     const [dragMode, setDragMode] = useState<boolean | 'x' | 'y'>(false);
 
@@ -59,6 +65,18 @@ export function useSlideZoom({
     const lastDoubleTapTimeRef = useRef<number>(0);
 
     const isAnimatingInRef = useRef(false);
+
+    const animateTo = useCallback(
+        (mv: MotionValue<number>, target: number, onComplete?: () => void) => {
+            if (reduced) {
+                mv.set(target);
+                onComplete?.();
+            } else {
+                animate(mv, target, onComplete ? { ...SPRING_ZOOM, onComplete } : SPRING_ZOOM);
+            }
+        },
+        [reduced]
+    );
 
     const checkConstraints = useCallback(
         (targetScale?: number) => {
@@ -117,10 +135,21 @@ export function useSlideZoom({
 
     const handleResize = useCallback(() => {
         calculateMaxScale();
-        animate(scale, 1);
-        animate(panX, 0);
-        animate(panY, 0);
-    }, [calculateMaxScale, panX, panY, scale]);
+        if (scale.get() > 1.05 || isZoomedInternalRef.current) {
+            isAnimatingOutRef.current = true;
+            setDragMode(false);
+            animateTo(scale, 1, () => {
+                isAnimatingOutRef.current = false;
+                checkConstraints(1);
+            });
+            animateTo(panX, 0);
+            animateTo(panY, 0);
+
+            isZoomedInternalRef.current = false;
+            if (onZoomChange) onZoomChange(false);
+            if (releaseTimeoutRef.current) clearTimeout(releaseTimeoutRef.current);
+        }
+    }, [animateTo, calculateMaxScale, checkConstraints, onZoomChange, scale]);
 
     const debouncedResize = useDebounce(handleResize, 150);
 
@@ -143,17 +172,12 @@ export function useSlideZoom({
             if (scale.get() > 1.05) {
                 isAnimatingOutRef.current = true;
                 setDragMode(false);
-                animate(scale, 1, {
-                    type: 'spring',
-                    damping: 30,
-                    stiffness: 280,
-                    onComplete: () => {
-                        isAnimatingOutRef.current = false;
-                        checkConstraints(1);
-                    },
+                animateTo(scale, 1, () => {
+                    isAnimatingOutRef.current = false;
+                    checkConstraints(1);
                 });
-                animate(panX, 0, { type: 'spring', damping: 30, stiffness: 280 });
-                animate(panY, 0, { type: 'spring', damping: 30, stiffness: 280 });
+                animateTo(panX, 0);
+                animateTo(panY, 0);
 
                 // Toggle UI icon immediately
                 isZoomedInternalRef.current = false;
@@ -166,15 +190,10 @@ export function useSlideZoom({
                 setDragMode(false);
 
                 const s = maxScaleRef.current;
-                animate(scale, s, {
-                    type: 'spring',
-                    damping: 30,
-                    stiffness: 280,
-                    onComplete: () => {
-                        isAnimatingInRef.current = false;
-                        checkConstraints(s);
-                        setDragMode(true);
-                    },
+                animateTo(scale, s, () => {
+                    isAnimatingInRef.current = false;
+                    checkConstraints(s);
+                    setDragMode(true);
                 });
 
                 // Panning logic
@@ -210,8 +229,8 @@ export function useSlideZoom({
                     }
 
                     if (targetPanX !== 0 || targetPanY !== 0) {
-                        animate(panX, targetPanX, { type: 'spring', damping: 30, stiffness: 280 });
-                        animate(panY, targetPanY, { type: 'spring', damping: 30, stiffness: 280 });
+                        animateTo(panX, targetPanX);
+                        animateTo(panY, targetPanY);
                     }
                 }
 
@@ -250,20 +269,18 @@ export function useSlideZoom({
     };
 
     const handleTouchEnd = () => {
+        if (scale.get() === 1 && panX.get() === 0 && panY.get() === 0) {
+            return;
+        }
         if (!isZoomedInternalRef.current && scale.get() <= 1.05) {
             isAnimatingOutRef.current = true;
             setDragMode(false);
-            animate(scale, 1, {
-                type: 'spring',
-                damping: 30,
-                stiffness: 280,
-                onComplete: () => {
-                    isAnimatingOutRef.current = false;
-                    checkConstraints(1);
-                },
+            animateTo(scale, 1, () => {
+                isAnimatingOutRef.current = false;
+                checkConstraints(1);
             });
-            animate(panX, 0, { type: 'spring', damping: 30, stiffness: 280 });
-            animate(panY, 0, { type: 'spring', damping: 30, stiffness: 280 });
+            animateTo(panX, 0);
+            animateTo(panY, 0);
 
             if (onZoomChange) onZoomChange(false);
             isZoomedInternalRef.current = false;

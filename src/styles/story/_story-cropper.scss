@@ -163,7 +163,7 @@
         // so only cosmetic properties transition here.
         transition:
             box-shadow 0.18s ease,
-            scale 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+            scale var(--dur-fast) var(--ease-out-expo);
 
         &--interactive {
             cursor: grab;
@@ -314,7 +314,7 @@
         pointer-events: none;
         transition:
             opacity 0.15s ease,
-            scale 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+            scale var(--dur-fast) var(--ease-out-expo),
             background 0.15s ease,
             border-color 0.15s ease;
 

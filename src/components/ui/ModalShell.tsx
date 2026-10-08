@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
+import { DURATION, EASE_IN_OUT, EASE_OUT_EXPO } from '../../utils/motion';
 import { X, ExternalLink } from './icons';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
@@ -42,8 +43,22 @@ export default function ModalShell({
     const modalRef = useRef<HTMLDivElement>(null);
     const closeBtnRef = useRef<HTMLButtonElement>(null);
 
-    useBodyScrollLock(isOpen);
-    useFocusTrap(modalRef, isOpen, closeBtnRef);
+    const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
+    const [isLocked, setIsLocked] = useState(isOpen);
+
+    if (isOpen !== prevIsOpen) {
+        setPrevIsOpen(isOpen);
+        if (isOpen) {
+            setIsLocked(true);
+        }
+    }
+
+    const handleExitComplete = () => {
+        setIsLocked(false);
+    };
+
+    useBodyScrollLock(isLocked);
+    useFocusTrap(modalRef, isLocked, closeBtnRef);
 
     useEffect(() => {
         if (isOpen) {
@@ -64,7 +79,7 @@ export default function ModalShell({
     const containerMaxWidthClass = `modal-shell__container--${maxWidth}`;
 
     const content = (
-        <AnimatePresence>
+        <AnimatePresence onExitComplete={handleExitComplete}>
             {isOpen && (
                 <motion.div
                     ref={modalRef}
@@ -73,10 +88,10 @@ export default function ModalShell({
                     aria-modal="true"
                     aria-label={ariaLabel}
                     tabIndex={-1}
-                    initial={{ opacity: 0, y: 50 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 50 }}
-                    transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0, transition: { duration: 0.2, ease: EASE_IN_OUT } }}
+                    transition={{ duration: DURATION.base, ease: EASE_OUT_EXPO }}
                     style={style}
                     onClick={(e) => e.stopPropagation()}
                     onPointerDown={(e) => e.stopPropagation()}
@@ -123,7 +138,14 @@ export default function ModalShell({
                         role="region"
                         aria-label={typeof title === 'string' ? `${title} content` : ariaLabel}
                     >
-                        <div className={`container modal-shell__container ${containerMaxWidthClass}`}>{children}</div>
+                        <motion.div
+                            className={`container modal-shell__container ${containerMaxWidthClass}`}
+                            initial={{ opacity: 0, y: 12 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: DURATION.modal, delay: 0.05, ease: EASE_OUT_EXPO }}
+                        >
+                            {children}
+                        </motion.div>
                     </div>
 
                     {footer && (

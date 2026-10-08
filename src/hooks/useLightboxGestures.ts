@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from 'react';
 import { useMotionValue, useTransform, animate, type PanInfo, type MotionValue } from 'framer-motion';
 import type { PhotoInput } from '../types';
 import { triggerHaptic } from '../utils/haptics';
+import { SPRING_SLIDE } from '../utils/motion';
 
 export interface UseLightboxGesturesOptions {
     images: PhotoInput[];
@@ -30,7 +31,7 @@ export interface UseLightboxGesturesReturn {
     filledHeartOpacity: MotionValue<number>;
     emptyHeartOpacity: MotionValue<number>;
     filledHeartScale: MotionValue<number>;
-    paginate: (direction: number) => Promise<void>;
+    paginate: (direction: number, velocity?: number) => Promise<void>;
     onDragEnd: (_e: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => void;
 }
 
@@ -56,11 +57,8 @@ export function useLightboxGestures({
     // Map the horizontal swipe down to a 72px physical tracking shift
     const dragShift = useTransform(x, [-windowWidth, 0, windowWidth], [-72, 0, 72]);
 
-    // Slices needed to cover the physical drag range (±10,000px) plus viewport margins so the track
-    // never runs out of thumbnails and wraps around seamlessly during long scrubber drags.
-    const maxDragPixels = 10000 + (windowWidth || 1200) / 2;
-    const minVisibleSlices = Math.max(5, Math.ceil((windowWidth || 1200) / 72) + 8);
-    const maxDist = Math.max(Math.floor(minVisibleSlices / 2), Math.ceil(maxDragPixels / 72));
+    // Slices needed to cover the visible viewport plus margins so the track wraps seamlessly.
+    const maxDist = Math.max(16, Math.ceil((windowWidth || 1200) / 72) + 8);
 
     // The center slice (offset 0) is at position maxDist in the rendered array.
     // Its center is at (maxDist * 72 + 36) from the track's left edge.
@@ -96,7 +94,7 @@ export function useLightboxGestures({
     const filledHeartScale = useTransform(filledHeartOpacity, (v) => 0.8 + v * 0.2);
 
     const paginate = useCallback(
-        async (newDirection: number) => {
+        async (newDirection: number, velocity: number = 0) => {
             if (isAnimating) return;
             setIsAnimating(true);
             onZoomReset?.();
@@ -109,10 +107,8 @@ export function useLightboxGestures({
                 x.set(newDirection > 0 ? -windowWidth : windowWidth);
             } else {
                 await animate(x, newDirection > 0 ? -windowWidth : windowWidth, {
-                    type: 'spring',
-                    stiffness: 450,
-                    damping: 40,
-                    restDelta: 0.5,
+                    ...SPRING_SLIDE,
+                    velocity,
                 });
             }
 
@@ -142,17 +138,22 @@ export function useLightboxGestures({
 
     const onDragEnd = useCallback(
         (_e: MouseEvent | TouchEvent | PointerEvent, { offset, velocity }: PanInfo) => {
-            const swipeThreshold = 50;
-            if (offset.x < -swipeThreshold || velocity.x < -500) {
-                paginate(1);
-            } else if (offset.x > swipeThreshold || velocity.x > 500) {
-                paginate(-1);
+            const proj = offset.x + velocity.x * 0.2;
+            const t = Math.min(120, windowWidth * 0.2);
+            if (proj < -t) {
+                paginate(1, velocity.x);
+            } else if (proj > t) {
+                paginate(-1, velocity.x);
             } else {
                 // Snap back to center
-                animate(x, 0, { type: 'spring', stiffness: 450, damping: 40 });
+                if (reducedMotion) {
+                    x.set(0);
+                } else {
+                    animate(x, 0, { ...SPRING_SLIDE, velocity: velocity.x });
+                }
             }
         },
-        [paginate, x]
+        [paginate, x, windowWidth, reducedMotion]
     );
 
     return {

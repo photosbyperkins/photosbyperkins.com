@@ -39,13 +39,41 @@
         font-weight: 600;
         letter-spacing: 0.1em;
         text-transform: uppercase;
-        transition: all var(--transition-fast);
+        position: relative;
+        overflow: hidden;
+        transition:
+            color var(--transition-fast),
+            background-color var(--transition-fast),
+            border-color var(--transition-fast),
+            transform var(--dur-fast) var(--ease-out-expo);
+
+        &::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: var(--color-accent);
+            transform: scaleY(var(--p, 0));
+            transform-origin: top;
+            transition: transform 200ms linear;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        > * {
+            position: relative;
+            z-index: 1;
+        }
 
         @media (hover: hover) {
             &:hover {
                 color: var(--color-text);
                 border-color: var(--color-text-muted);
             }
+        }
+
+        &:active {
+            transform: scale(0.94);
+            transition-duration: var(--dur-press);
         }
 
         svg {

@@ -1,8 +1,9 @@
 import React from 'react';
-import { motion, LayoutGroup } from 'framer-motion';
+import { motion, LayoutGroup, AnimatePresence } from 'framer-motion';
 import type { StoryStudioTab } from '../../../../hooks/useStoryStudio';
 import type { IconProps } from '../../../ui/icons';
 import { triggerHaptic } from '../../../../utils/haptics';
+import { DURATION, SPRING_SNAPPY } from '../../../../utils/motion';
 
 interface StoryMobileDockProps {
     tabs: Array<{ id: StoryStudioTab; label: string; icon: React.FC<IconProps> }>;
@@ -44,13 +45,16 @@ export const StoryMobileDock: React.FC<StoryMobileDockProps> = ({ tabs, activeTa
                                 aria-pressed={isActive}
                                 aria-expanded={isActive}
                             >
-                                {isActive && (
-                                    <motion.span
-                                        className="portfolio__segment-pill story-export-modal__studio-tab-pill story-mobile-dock__pill"
-                                        layoutId="mobileDockActiveTabPill"
-                                        transition={{ type: 'spring', stiffness: 500, damping: 38 }}
-                                    />
-                                )}
+                                <AnimatePresence>
+                                    {isActive && (
+                                        <motion.span
+                                            className="portfolio__segment-pill story-export-modal__studio-tab-pill story-mobile-dock__pill"
+                                            layoutId="mobileDockActiveTabPill"
+                                            exit={{ opacity: 0, scale: 0.92, transition: { duration: DURATION.instant } }}
+                                            transition={SPRING_SNAPPY}
+                                        />
+                                    )}
+                                </AnimatePresence>
                                 <IconComponent size={18} className="story-export-modal__studio-tab-icon" />
                                 <span className="story-export-modal__tab-label story-export-modal__studio-tab-label story-mobile-dock__label">
                                     {tab.label}

@@ -34,6 +34,17 @@
         );
         mask-image: linear-gradient(to right, transparent 0px, black 40px, black calc(100% - 40px), transparent 100%);
 
+        &:has(.recap__slice--skeleton)::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(90deg, transparent, rgba(var(--color-text-rgb), 0.08) 50%, transparent);
+            transform: translateX(-100%);
+            animation: recap-shimmer 1.5s var(--ease-in-out) infinite;
+            pointer-events: none;
+            z-index: 3;
+        }
+
         .recap__overlay-text {
             position: absolute;
             inset: 0;
@@ -87,15 +98,19 @@
             margin-right: 0;
         }
 
-        &:hover {
-            filter: brightness(1.15) saturate(1.05);
+        @media (hover: hover) {
+            &:hover {
+                filter: brightness(1.15) saturate(1.05);
+            }
         }
 
         &--select-mode {
             cursor: pointer;
 
-            &:hover {
-                z-index: 2;
+            @media (hover: hover) {
+                &:hover {
+                    z-index: 2;
+                }
             }
         }
 
@@ -118,7 +133,7 @@
             &--checked,
             &--selected {
                 transform: translateX(-50%) scale(1.1);
-                animation: recapBadgePop 0.22s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+                animation: recapBadgePop 280ms var(--ease-out-expo) forwards;
             }
         }
 
@@ -149,14 +164,7 @@
 
         // Shimmer skeleton while the sprite is loading
         &--skeleton {
-            background: linear-gradient(
-                90deg,
-                var(--color-bg-2) 25%,
-                rgba(var(--color-text-rgb), 0.06) 50%,
-                var(--color-bg-2) 75%
-            );
-            background-size: 200% 100%;
-            animation: recap-shimmer 1.5s ease-in-out infinite;
+            background-color: var(--color-bg-2);
             cursor: default;
         }
 
@@ -186,25 +194,18 @@
 }
 
 @keyframes recap-shimmer {
-    0% {
-        background-position: 200% 0;
-    }
-    100% {
-        background-position: -200% 0;
+    to {
+        transform: translateX(100%);
     }
 }
 
 @keyframes recapBadgePop {
     0% {
-        transform: translateX(-50%) scale(0.35);
         opacity: 0;
-    }
-    70% {
-        transform: translateX(-50%) scale(1.22);
+        transform: translateX(-50%) scale(0.5);
     }
     100% {
-        transform: translateX(-50%) scale(1.1);
         opacity: 1;
+        transform: translateX(-50%) scale(1.1);
     }
 }
-

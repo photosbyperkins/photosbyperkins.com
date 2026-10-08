@@ -3,11 +3,18 @@
 @keyframes storyTabFadeIn {
     from {
         opacity: 0;
-        transform: translateY(2px);
+        transform: translateY(4px);
     }
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+@keyframes storyToastIn {
+    from {
+        opacity: 0;
+        transform: translateY(4px) scale(0.98);
     }
 }
 
@@ -312,7 +319,6 @@
         min-width: 0;
         scrollbar-width: thin;
         scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
-        animation: tabPaneFadeIn 0.2s cubic-bezier(0.2, 0, 0.2, 1);
 
         &::-webkit-scrollbar {
             width: 4px;
@@ -356,7 +362,7 @@
         width: 100%;
         max-width: 100%;
         min-width: 0;
-        animation: storyTabFadeIn 0.15s ease-out;
+        animation: storyTabFadeIn 180ms var(--ease-out-expo);
 
         @media (max-width: 860px) {
             gap: 0.5rem;
@@ -608,16 +614,24 @@
         border-radius: 10px;
         cursor: pointer;
         box-shadow: 0 4px 16px var(--color-accent-glow);
-        transition: all var(--transition-fast);
+        transition:
+            color var(--transition-fast),
+            background-color var(--transition-fast),
+            border-color var(--transition-fast),
+            box-shadow var(--transition-fast),
+            transform var(--dur-fast) var(--ease-out-expo);
 
-        &:hover:not(:disabled) {
-            filter: brightness(1.1);
-            box-shadow: 0 6px 20px var(--color-accent-glow);
+        @media (hover: hover) {
+            &:hover:not(:disabled) {
+                filter: brightness(1.1);
+                box-shadow: 0 6px 20px var(--color-accent-glow);
+            }
         }
 
         &:active:not(:disabled) {
             filter: brightness(0.95);
             transform: scale(0.98);
+            transition-duration: var(--dur-press);
         }
 
         &:disabled:not(.is-done):not(.story-export-modal__primary-action--done) {
@@ -633,6 +647,10 @@
             box-shadow: none;
             opacity: 0.9;
             cursor: default;
+
+            svg {
+                animation: donePop 360ms var(--ease-out-expo);
+            }
 
             &:disabled {
                 opacity: 0.9;
@@ -661,20 +679,31 @@
         border: 1px solid var(--color-border);
         border-radius: 8px;
         cursor: pointer;
-        transition: all var(--transition-fast);
+        transition:
+            background-color var(--transition-fast),
+            border-color var(--transition-fast),
+            color var(--transition-fast),
+            transform var(--dur-fast) var(--ease-out-expo);
 
         html[data-theme='light'] & {
             background: rgba(0, 0, 0, 0.04);
         }
 
-        &:hover:not(:disabled) {
-            background: rgba(255, 255, 255, 0.12);
-            border-color: rgba(255, 255, 255, 0.2);
+        @media (hover: hover) {
+            &:hover:not(:disabled) {
+                background: rgba(255, 255, 255, 0.12);
+                border-color: rgba(255, 255, 255, 0.2);
 
-            html[data-theme='light'] & {
-                background: rgba(0, 0, 0, 0.08);
-                border-color: rgba(0, 0, 0, 0.2);
+                html[data-theme='light'] & {
+                    background: rgba(0, 0, 0, 0.08);
+                    border-color: rgba(0, 0, 0, 0.2);
+                }
             }
+        }
+
+        &:active:not(:disabled) {
+            transform: scale(0.97);
+            transition-duration: var(--dur-press);
         }
 
         &:disabled {
@@ -693,7 +722,6 @@
         font-weight: 500;
         border-radius: 6px;
         text-align: center;
-        animation: fadeIn 0.2s ease-out;
 
         &--error {
             background: rgba(239, 68, 68, 0.15);
@@ -858,7 +886,11 @@
         text-transform: uppercase;
         white-space: nowrap;
         cursor: pointer;
-        transition: all var(--transition-fast);
+        transition:
+            background-color var(--transition-fast),
+            border-color var(--transition-fast),
+            color var(--transition-fast),
+            transform var(--dur-fast) var(--ease-out-expo);
         flex-shrink: 0;
         box-sizing: border-box;
         touch-action: manipulation;
@@ -894,16 +926,23 @@
             }
         }
 
-        &:hover:not(&--active) {
-            color: var(--color-text);
-            background: rgba(255, 255, 255, 0.1);
-            border-color: rgba(255, 255, 255, 0.2);
+        @media (hover: hover) {
+            &:hover:not(&--active) {
+                color: var(--color-text);
+                background: rgba(255, 255, 255, 0.1);
+                border-color: rgba(255, 255, 255, 0.2);
 
-            html[data-theme='light'] & {
-                background: rgba(0, 0, 0, 0.06);
-                border-color: rgba(0, 0, 0, 0.16);
-                color: #111118;
+                html[data-theme='light'] & {
+                    background: rgba(0, 0, 0, 0.06);
+                    border-color: rgba(0, 0, 0, 0.16);
+                    color: #111118;
+                }
             }
+        }
+
+        &:active {
+            transform: scale(0.96);
+            transition-duration: var(--dur-press);
         }
 
         &--active {

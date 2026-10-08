@@ -1,4 +1,6 @@
+import { motion, AnimatePresence } from 'framer-motion';
 import { X, Download, Share2, HelpCircle, StoryCropIcon } from '../../ui/icons';
+import { DURATION, EASE_OUT_EXPO, EASE_IN } from '../../../utils/motion';
 import type { PhotoInput } from '../../../types';
 import { getPhotoDisplayUrl, formatCameraModel, resolvePhotoInput, getPhotoOriginalUrl } from '../../../utils/formatters';
 import { triggerPhotoDownload } from '../../../utils/build';
@@ -133,32 +135,45 @@ export default function LightboxHeader({
             </div>
 
             <div className="portfolio__lightbox-top-center" onClick={(e) => e.stopPropagation()}>
-                {exif ? (
-                    <div className="portfolio__lightbox-data-display" key={`exif-${index}`}>
-                        <div
-                            className="portfolio__lightbox-data-info"
-                            style={exif && maxExifChars > 0 ? { minWidth: `${maxExifChars * 5.0}px` } : undefined}
+                <AnimatePresence mode="popLayout" initial={false}>
+                    {exif ? (() => {
+                        const rowTop = [formatCameraModel(exif?.cameraModel), exif?.lens].filter(Boolean).join(' • ');
+                        const rowBottom = [exif?.focalLength, exif?.aperture, exif?.shutterSpeed, exif?.iso]
+                            .filter(Boolean)
+                            .join(' • ');
+                        return (
+                            <motion.div
+                                className="portfolio__lightbox-data-display"
+                                key={`exif-${rowTop}|${rowBottom}`}
+                                initial={{ opacity: 0, y: 3 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -2, transition: { duration: DURATION.instant, ease: EASE_IN } }}
+                                transition={{ duration: DURATION.fast, ease: EASE_OUT_EXPO }}
+                            >
+                                <div
+                                    className="portfolio__lightbox-data-info"
+                                    style={exif && maxExifChars > 0 ? { minWidth: `${maxExifChars * 5.0}px` } : undefined}
+                                >
+                                    <span className="portfolio__lightbox-data-row-top">{rowTop}</span>
+                                    <span className="portfolio__lightbox-data-row-bottom">{rowBottom}</span>
+                                </div>
+                            </motion.div>
+                        );
+                    })() : albumHasExif ? (
+                        <motion.div
+                            className="portfolio__lightbox-data-display portfolio__lightbox-data-display--empty"
+                            key="exif-empty"
+                            initial={{ opacity: 0, y: 3 }}
+                            animate={{ opacity: 0.4, y: 0 }}
+                            exit={{ opacity: 0, y: -2, transition: { duration: DURATION.instant, ease: EASE_IN } }}
+                            transition={{ duration: DURATION.fast, ease: EASE_OUT_EXPO }}
                         >
-                            <span className="portfolio__lightbox-data-row-top">
-                                {[formatCameraModel(exif?.cameraModel), exif?.lens].filter(Boolean).join(' • ')}
-                            </span>
-                            <span className="portfolio__lightbox-data-row-bottom">
-                                {[exif?.focalLength, exif?.aperture, exif?.shutterSpeed, exif?.iso]
-                                    .filter(Boolean)
-                                    .join(' • ')}
-                            </span>
-                        </div>
-                    </div>
-                ) : albumHasExif ? (
-                    <div
-                        className="portfolio__lightbox-data-display portfolio__lightbox-data-display--empty"
-                        key={`empty-${index}`}
-                    >
-                        <div className="portfolio__lightbox-data-info">
-                            <span className="portfolio__lightbox-data-row-bottom">No camera data</span>
-                        </div>
-                    </div>
-                ) : null}
+                            <div className="portfolio__lightbox-data-info">
+                                <span className="portfolio__lightbox-data-row-bottom">No camera data</span>
+                            </div>
+                        </motion.div>
+                    ) : null}
+                </AnimatePresence>
             </div>
 
             <div className="portfolio__lightbox-top-right">

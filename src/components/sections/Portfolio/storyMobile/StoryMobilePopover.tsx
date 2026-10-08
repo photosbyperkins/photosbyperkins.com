@@ -3,6 +3,7 @@ import { motion, AnimatePresence, useDragControls, LayoutGroup } from 'framer-mo
 import { X, type IconProps } from '../../../ui/icons';
 import type { StoryStudioTab } from '../../../../hooks/useStoryStudio';
 import { triggerHaptic } from '../../../../utils/haptics';
+import { DURATION, EASE_OUT_EXPO, SPRING_SHEET, SPRING_SNAPPY } from '../../../../utils/motion';
 
 interface StoryMobilePopoverProps {
     isOpen: boolean;
@@ -23,6 +24,26 @@ export const StoryMobilePopover: React.FC<StoryMobilePopoverProps> = ({
 }) => {
     const dragControls = useDragControls();
 
+    const activeTabRef = React.useRef<StoryStudioTab>(activeTab);
+    React.useEffect(() => {
+        activeTabRef.current = activeTab;
+    }, [activeTab]);
+
+    React.useEffect(() => {
+        if (!isOpen) return;
+
+        const timer = setTimeout(() => {
+            const activeBtn = document.getElementById(`mobile-popover-tab-${activeTabRef.current}`);
+            activeBtn?.focus({ preventScroll: true });
+        }, 50);
+
+        return () => {
+            clearTimeout(timer);
+            const dockTab = document.getElementById(`mobile-dock-tab-${activeTabRef.current}`);
+            dockTab?.focus({ preventScroll: true });
+        };
+    }, [isOpen]);
+
     const isTestEnv =
         (globalThis as unknown as { process?: { env?: { NODE_ENV?: string } } }).process?.env?.NODE_ENV === 'test';
     if (isTestEnv && !isOpen) {
@@ -42,7 +63,7 @@ export const StoryMobilePopover: React.FC<StoryMobilePopoverProps> = ({
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        transition={{ duration: 0.2 }}
+                        transition={{ duration: DURATION.base, ease: EASE_OUT_EXPO }}
                         onClick={onClose}
                         aria-hidden="true"
                     />
@@ -53,7 +74,7 @@ export const StoryMobilePopover: React.FC<StoryMobilePopoverProps> = ({
                         initial={{ y: '100%' }}
                         animate={{ y: 0 }}
                         exit={{ y: '100%' }}
-                        transition={{ type: 'spring', damping: 32, stiffness: 380 }}
+                        transition={SPRING_SHEET}
                         drag="y"
                         dragListener={false}
                         dragControls={dragControls}
@@ -112,7 +133,7 @@ export const StoryMobilePopover: React.FC<StoryMobilePopoverProps> = ({
                                                     <motion.span
                                                         className="portfolio__segment-pill story-export-modal__studio-tab-pill story-mobile-popover__tab-pill"
                                                         layoutId="mobilePopoverTabPill"
-                                                        transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                                        transition={SPRING_SNAPPY}
                                                     />
                                                 )}
                                                 <IconComponent

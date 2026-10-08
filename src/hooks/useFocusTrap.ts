@@ -1,12 +1,18 @@
 import { useEffect, useRef } from 'react';
 import type { RefObject } from 'react';
 
+export interface UseFocusTrapOptions {
+    restoreFocus?: boolean;
+}
+
 export function useFocusTrap(
     containerRef: RefObject<HTMLElement | null>,
     isActive: boolean = true,
-    initialFocusRef?: RefObject<HTMLElement | null>
+    initialFocusRef?: RefObject<HTMLElement | null>,
+    options?: UseFocusTrapOptions
 ) {
     const previousFocusRef = useRef<Element | null>(null);
+    const restoreFocus = options?.restoreFocus ?? true;
 
     useEffect(() => {
         if (!isActive) return;
@@ -63,9 +69,9 @@ export function useFocusTrap(
         return () => {
             clearTimeout(timer);
             window.removeEventListener('keydown', handleFocusTrap);
-            if (previousFocusRef.current instanceof HTMLElement) {
+            if (restoreFocus && previousFocusRef.current instanceof HTMLElement) {
                 previousFocusRef.current.focus();
             }
         };
-    }, [containerRef, isActive, initialFocusRef]);
+    }, [containerRef, isActive, initialFocusRef, restoreFocus]);
 }

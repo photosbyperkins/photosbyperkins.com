@@ -17,7 +17,8 @@
     background: transparent;
     border: none;
     box-shadow: none;
-    transition: opacity var(--transition-normal);
+    transition: opacity var(--transition-fast);
+    animation: railIn var(--dur-base) var(--ease-out-expo) both;
     margin-left: calc(-54px - 1.5rem);
 
     // Hide on very short landscape viewports to prevent vertical clipping
@@ -55,7 +56,7 @@
         transform: translateY(calc(var(--active-year-index, 0) * (var(--year-item-height) + var(--year-item-gap))));
         will-change: transform;
         transition:
-            transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+            transform 0.28s var(--ease-out-expo),
             opacity 0.2s ease;
 
         html[data-theme='light'] & {
@@ -93,7 +94,8 @@
         cursor: pointer;
         transition:
             color 0.15s ease,
-            background 0.15s ease;
+            background 0.15s ease,
+            transform var(--dur-fast) var(--ease-out-expo);
 
         .portfolio__year-label {
             display: inline-flex;
@@ -319,6 +321,7 @@
 
             &:active {
                 transform: scale(0.92);
+                transition-duration: var(--dur-press);
                 background: rgba(var(--color-accent-rgb, 230, 0, 0), 0.25);
             }
 
@@ -407,5 +410,11 @@
                 }
             }
         }
+    }
+}
+
+@keyframes railIn {
+    from {
+        opacity: 0;
     }
 }

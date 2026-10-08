@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
 import { motionValue } from 'framer-motion';
-import LightboxScrubber from './LightboxScrubber';
+import LightboxScrubber, { SCRUBBER_COLUMNS, MAX_SPRITE_FRAMES } from './LightboxScrubber';
 import type { PhotoInput } from '../../../types';
 
 describe('LightboxScrubber', () => {
@@ -215,5 +215,40 @@ describe('LightboxScrubber', () => {
         expect(thumbs[152]?.getAttribute('aria-label')).toContain('Go to photo 3');
         // offset 3: photo 1 (wrapped)
         expect(thumbs[153]?.getAttribute('aria-label')).toContain('Go to photo 1');
+    });
+
+    it('exports valid scrubber constants and safeguards', () => {
+        expect(SCRUBBER_COLUMNS).toBe(50);
+        expect(MAX_SPRITE_FRAMES).toBe(4250);
+    });
+
+    it('applies 2x retina scaled backgroundSize and position when spriteUrl is provided', () => {
+        const spriteImages: PhotoInput[] = [
+            { original: '/p1.jpg', thumb: '/t1.jpg', spriteIndex: 0 },
+            { original: '/p2.jpg', thumb: '/t2.jpg', spriteIndex: 1 },
+            { original: '/p3.jpg', thumb: '/t3.jpg', spriteIndex: 51 }, // Row 1, Col 1 with SCRUBBER_COLUMNS = 50
+        ];
+
+        const { container } = render(
+            <LightboxScrubber
+                {...defaultProps}
+                images={spriteImages}
+                index={0}
+                spriteUrl="/build/scrubber/sprite.webp"
+            />
+        );
+
+        const thumbs = container.querySelectorAll('.portfolio__lightbox-scrubber-thumb') as NodeListOf<HTMLElement>;
+        // offset 0 is thumb for index 0 (spriteIndex: 0 -> col: 0, row: 0)
+        // with maxDist=2 (offsets -2, -1, 0, 1, 2), offset 0 is thumbs[2]
+        const activeThumb = thumbs[2];
+        expect(activeThumb.style.backgroundImage).toBe('url("/build/scrubber/sprite.webp")');
+        expect(activeThumb.style.backgroundPosition).toBe('0px 0px');
+        // 3 images -> totalCols = 3, totalRows = 1
+        expect(activeThumb.style.backgroundSize).toBe(`${3 * 72}px ${1 * 48}px`);
+
+        // offset 2 is thumb for index 2 (spriteIndex: 51 -> col: 1, row: 1) -> thumbs[4]
+        const rowWrapThumb = thumbs[4];
+        expect(rowWrapThumb.style.backgroundPosition).toBe(`${-(1 * 72)}px ${-(1 * 48)}px`);
     });
 });

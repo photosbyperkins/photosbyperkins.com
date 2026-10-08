@@ -60,6 +60,9 @@ function observeElement(el: Element, cb: ObserverCallback): () => void {
     };
 }
 
+export const loadedSrcs = new Set<string>();
+export const clearLoadedSrcs = () => loadedSrcs.clear();
+
 export default function ProgressiveImage({
     src,
     alt,
@@ -72,16 +75,20 @@ export default function ProgressiveImage({
     onLoad,
     ...props
 }: ProgressiveImageProps) {
-    const [isLoaded, setIsLoaded] = useState(false);
+    const [isLoaded, setIsLoaded] = useState(() => Boolean(src && loadedSrcs.has(src)));
     const [prevSrc, setPrevSrc] = useState(src);
-    const [shouldLoad, setShouldLoad] = useState(priority);
+    const [shouldLoad, setShouldLoad] = useState(() => priority || Boolean(src && loadedSrcs.has(src)));
     const containerRef = useRef<HTMLDivElement>(null);
     const imgRef = useRef<HTMLImageElement>(null);
 
-    // Reset loaded state when src changes (e.g. recycled row in virtualized grid)
+    // Reset or restore loaded state when src changes (e.g. recycled row in virtualized grid)
     if (src !== prevSrc) {
         setPrevSrc(src);
-        setIsLoaded(false);
+        const cached = Boolean(src && loadedSrcs.has(src));
+        setIsLoaded(cached);
+        if (cached) {
+            setShouldLoad(true);
+        }
     }
 
     useEffect(() => {
@@ -95,16 +102,18 @@ export default function ProgressiveImage({
     // Check if image is already cached / completed
     useEffect(() => {
         if (imgRef.current?.complete && imgRef.current.naturalWidth > 0) {
+            if (src) loadedSrcs.add(src);
             setIsLoaded(true);
         }
     }, [shouldLoad, src]);
 
     const handleLoad = useCallback(
         (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+            if (src) loadedSrcs.add(src);
             setIsLoaded(true);
             onLoad?.(e);
         },
-        [onLoad]
+        [onLoad, src]
     );
 
     const imageSrc = shouldLoad && src ? withBuild(src) : undefined;

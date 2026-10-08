@@ -105,7 +105,7 @@ describe('useLightboxGestures', () => {
             })
         );
 
-        const panInfo = { offset: { x: -60, y: 0 }, velocity: { x: 0, y: 0 } } as unknown as PanInfo;
+        const panInfo = { offset: { x: -140, y: 0 }, velocity: { x: 0, y: 0 } } as unknown as PanInfo;
         act(() => {
             result.current.onDragEnd(new MouseEvent('pointerup'), panInfo);
         });
@@ -131,7 +131,7 @@ describe('useLightboxGestures', () => {
             })
         );
 
-        const panInfo = { offset: { x: 60, y: 0 }, velocity: { x: 0, y: 0 } } as unknown as PanInfo;
+        const panInfo = { offset: { x: 140, y: 0 }, velocity: { x: 0, y: 0 } } as unknown as PanInfo;
         act(() => {
             result.current.onDragEnd(new MouseEvent('pointerup'), panInfo);
         });
@@ -166,7 +166,7 @@ describe('useLightboxGestures', () => {
         expect(result.current.x.get()).toBe(0);
     });
 
-    it('computes maxDist sufficiently large to cover scrubber drag constraints (>= 140)', () => {
+    it('computes maxDist sufficiently large to cover visible viewport and margins (>= 25)', () => {
         const { result } = renderHook(() =>
             useLightboxGestures({
                 images: mockImages,
@@ -180,7 +180,7 @@ describe('useLightboxGestures', () => {
             })
         );
 
-        // 10000 / 72 = 138.88, with window width buffer it should be at least 140
-        expect(result.current.maxDist).toBeGreaterThanOrEqual(140);
+        // Math.ceil(1200 / 72) + 8 = 25 slices
+        expect(result.current.maxDist).toBeGreaterThanOrEqual(25);
     });
 });

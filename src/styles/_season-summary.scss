@@ -86,10 +86,16 @@
             padding: 0;
             cursor: pointer;
             text-decoration: none;
-            transition: color 0.2s ease;
+            transition: color var(--transition-fast), opacity var(--dur-press);
 
-            &:hover {
-                color: var(--color-accent);
+            @media (hover: hover) {
+                &:hover {
+                    color: var(--color-accent);
+                }
+            }
+
+            &:active {
+                opacity: 0.6;
             }
 
             &:focus-visible {

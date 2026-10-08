@@ -48,7 +48,7 @@ export default function TeamFilter({ teamSearchQuery, filteredTeams, teamIndexLo
 
     const hasResults = individualTeams.length > 0 || leaguesAndGroups.length > 0;
 
-    const renderTeamPill = (team: TeamMeta) => {
+    const renderTeamPill = (team: TeamMeta, idx: number) => {
         const displayName = formatTeamName(team.name);
         return (
             <Link
@@ -57,6 +57,7 @@ export default function TeamFilter({ teamSearchQuery, filteredTeams, teamIndexLo
                 className={`portfolio__team-pill ${
                     team.slug === 'wftda-sanctioned' ? 'is-wftda' : ''
                 }`}
+                style={{ '--reveal-delay': `${Math.min(idx, 24) * 15}ms` } as React.CSSProperties}
                 onClick={() => {
                     onBack?.();
                     window.scrollTo({ top: 0, behavior: 'instant' });

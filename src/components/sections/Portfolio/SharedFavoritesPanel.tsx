@@ -67,13 +67,7 @@ export default function SharedFavoritesPanel({ photos, onClose }: SharedFavorite
                     aria-label="Download Shared Favorites as .zip"
                     style={{
                         cursor: isZipping ? 'wait' : 'pointer',
-                        backgroundImage: isZipping
-                            ? 'linear-gradient(to bottom, var(--color-accent) 100%, transparent 100%)'
-                            : 'none',
-                        backgroundSize: `100% ${isZipping ? zipProgress : 0}%`,
-                        backgroundRepeat: 'no-repeat',
-                        backgroundPosition: 'top center',
-                        transition: 'background-size 0.2s ease-out, border-color 0.2s ease-out, color 0.2s ease-out',
+                        ['--p' as string]: isZipping ? `${zipProgress / 100}` : 0,
                         borderColor: isZipping ? 'var(--color-accent)' : undefined,
                         color: isZipping ? (zipProgress > 50 ? '#fff' : 'var(--color-accent)') : undefined,
                     }}

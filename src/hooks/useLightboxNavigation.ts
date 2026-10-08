@@ -5,6 +5,7 @@ interface UseLightboxNavigationProps {
     onPaginate: (direction: number) => void;
     isZoomed: boolean;
     isActive?: boolean;
+    isAnimating?: boolean;
     onToggleFavorite?: () => void;
     onToggleZoom?: () => void;
     onToggleTheater?: () => void;
@@ -18,6 +19,7 @@ export function useLightboxNavigation({
     onPaginate,
     isZoomed,
     isActive = true,
+    isAnimating = false,
     onToggleFavorite,
     onToggleZoom,
     onToggleTheater,
@@ -48,7 +50,15 @@ export function useLightboxNavigation({
             if (e.key === 'Escape') {
                 e.preventDefault();
                 onClose();
-            } else if (e.key === 'ArrowLeft') {
+                return;
+            }
+
+            // Block slide navigation and secondary actions mid-slide, but allow Escape above
+            if (isAnimating) {
+                return;
+            }
+
+            if (e.key === 'ArrowLeft') {
                 if (isZoomed) return;
                 e.preventDefault();
                 onPaginate(-1);
@@ -92,6 +102,7 @@ export function useLightboxNavigation({
         onPaginate,
         isZoomed,
         isActive,
+        isAnimating,
         onToggleFavorite,
         onToggleZoom,
         onToggleTheater,
@@ -106,7 +117,7 @@ export function useLightboxNavigation({
         let wheelCooldown = false;
 
         const handleWheel = (e: WheelEvent) => {
-            if (isZoomed || wheelCooldown) return;
+            if (isZoomed || wheelCooldown || isAnimating) return;
 
             const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
             if (Math.abs(delta) < 10) return;
@@ -122,5 +133,5 @@ export function useLightboxNavigation({
 
         window.addEventListener('wheel', handleWheel, { passive: false });
         return () => window.removeEventListener('wheel', handleWheel);
-    }, [onPaginate, isZoomed, isActive]);
+    }, [onPaginate, isZoomed, isActive, isAnimating]);
 }

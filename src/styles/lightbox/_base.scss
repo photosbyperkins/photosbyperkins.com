@@ -85,13 +85,16 @@
 
             &-img {
                 position: absolute;
-                inset: 0;
-                width: 100%;
-                height: 100%;
+                inset: auto;
+                top: 0;
+                left: 0;
+                width: 25%;
+                height: 25%;
+                transform-origin: 0 0;
+                transform: scale(5);
                 background-size: cover;
                 background-position: center;
-                filter: blur(70px) saturate(130%);
-                transform: scale(1.25);
+                filter: blur(18px) saturate(130%);
                 will-change: opacity;
             }
 
@@ -117,6 +120,9 @@
             height: auto;
             object-fit: contain;
             border-radius: 4px;
+        }
+
+        &-slide--current &-image-full {
             will-change: transform;
         }
 
@@ -132,7 +138,16 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            pointer-events: auto;
+            transition:
+                opacity 240ms var(--ease-out-expo),
+                transform 240ms var(--ease-out-expo),
+                visibility 0s linear 0s;
+
+            &.is-hidden {
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity var(--dur-fast) var(--ease-out-expo);
+            }
 
             &--left {
                 left: 0;
@@ -169,11 +184,10 @@
             color: var(--color-text);
             opacity: 0.3;
             transform: scale(0.95);
-            transition: all var(--transition-fast) cubic-bezier(0.2, 0.8, 0.2, 1);
-
-            svg {
-                transition: transform var(--transition-fast);
-            }
+            transition:
+                opacity var(--dur-fast) var(--ease-out-expo),
+                transform 240ms var(--ease-out-expo),
+                background-color var(--dur-fast) ease;
 
             @media (max-width: 768px) {
                 opacity: 0;
@@ -185,8 +199,33 @@
             .portfolio__lightbox-scrubber,
             .portfolio__lightbox-nav-overlay {
                 opacity: 0;
+                visibility: hidden;
                 pointer-events: none;
+                transition-delay: 0s, 0s, 240ms;
+            }
+
+            .portfolio__lightbox-top-bar {
+                transform: translateY(-6px);
+            }
+
+            .portfolio__lightbox-scrubber {
+                transform: translateY(8px);
             }
         }
+    }
+}
+
+// Lightbox chrome entrance (CSS-only so theater mode's opacity:0 keeps working; `backwards` fill = no lingering state)
+@keyframes lightboxChromeInTop {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+}
+
+@keyframes lightboxChromeInBottom {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
     }
 }

@@ -26,6 +26,7 @@ import SharedFavoritesPanel from './SharedFavoritesPanel';
 import PortfolioMonthTrack from './PortfolioMonthTrack';
 import PortfolioYearTrack from './PortfolioYearTrack';
 import { computeViewYears } from '../../../utils/yearTrack';
+import { DURATION, EASE_IN_OUT, SPRING_POP, SPRING_SOFT } from '../../../utils/motion';
 import GearInfoHeader from './GearInfoHeader';
 import PortfolioYearNav from './PortfolioYearNav';
 import PortfolioSeasonStrip from './PortfolioSeasonStrip';
@@ -371,9 +372,7 @@ export default function Portfolio({ years }: PortfolioProps) {
 
     const handleDownloadAllFavorites = useCallback(() => {
         if (favorites.length === 0) return;
-        const urls = favorites
-            .map((item) => getPhotoOriginalUrl(item))
-            .filter((u): u is string => Boolean(u));
+        const urls = favorites.map((item) => getPhotoOriginalUrl(item)).filter((u): u is string => Boolean(u));
         if (urls.length === 0) return;
         startZipping(urls, 'Favorites.zip');
     }, [favorites, startZipping]);
@@ -397,8 +396,6 @@ export default function Portfolio({ years }: PortfolioProps) {
             }
         }
     }, [favorites]);
-
-
 
     const [directStoryPhoto, setDirectStoryPhoto] = useState<PhotoRecord | null>(null);
     const [directStoryEventName, setDirectStoryEventName] = useState<string>('');
@@ -548,14 +545,19 @@ export default function Portfolio({ years }: PortfolioProps) {
                 )}
 
                 <div className="portfolio__events-wrapper">
-                    {!isGlobalSearchOpen && !isLightboxOpen && (
-                        !isMultiYearMode ? (
+                    {!isGlobalSearchOpen &&
+                        !isLightboxOpen &&
+                        (!isMultiYearMode ? (
                             <PortfolioMonthTrack key={selectedTab} events={events} selectedYear={selectedTab} />
                         ) : multiYearData.length > 1 ? (
                             <PortfolioYearTrack
                                 key={selectedTab}
                                 events={events}
-                                title={activeTeamMeta?.name || currentGearItem?.name || (isFavoritesTab ? 'Favorites' : undefined)}
+                                title={
+                                    activeTeamMeta?.name ||
+                                    currentGearItem?.name ||
+                                    (isFavoritesTab ? 'Favorites' : undefined)
+                                }
                             />
                         ) : multiYearData.length === 1 ? (
                             <PortfolioMonthTrack
@@ -563,8 +565,7 @@ export default function Portfolio({ years }: PortfolioProps) {
                                 events={events}
                                 selectedYear={multiYearData[0].year}
                             />
-                        ) : null
-                    )}
+                        ) : null)}
 
                     <div className="portfolio__events" ref={stickyRef}>
                         {isFavoritesTab && favorites.length === 0 ? (
@@ -590,14 +591,7 @@ export default function Portfolio({ years }: PortfolioProps) {
                                                     aria-label="Download All Original Photos (.zip)"
                                                     style={{
                                                         cursor: isZipping ? 'wait' : 'pointer',
-                                                        backgroundImage: isZipping
-                                                            ? 'linear-gradient(to bottom, var(--color-accent) 100%, transparent 100%)'
-                                                            : 'none',
-                                                        backgroundSize: `100% ${isZipping ? zipProgress : 0}%`,
-                                                        backgroundRepeat: 'no-repeat',
-                                                        backgroundPosition: 'top center',
-                                                        transition:
-                                                            'background-size 0.2s ease-out, border-color 0.2s ease-out, color 0.2s ease-out',
+                                                        ['--p' as string]: isZipping ? `${zipProgress / 100}` : 0,
                                                         borderColor: isZipping ? 'var(--color-accent)' : undefined,
                                                         color: isZipping
                                                             ? zipProgress > 50
@@ -682,15 +676,20 @@ export default function Portfolio({ years }: PortfolioProps) {
                 <LightboxContainer />
             </Suspense>
 
-            <AnimatePresence mode="wait">
+            <AnimatePresence>
                 {!isGlobalSearchOpen && !isBatchSelectMode && !isNearFooter && (
                     <motion.div
                         key="portfolio-floating-dock"
                         className="portfolio__floating-dock"
-                        initial={{ x: '-50%', y: 80, opacity: 0 }}
+                        initial={{ x: '-50%', y: 24, opacity: 0 }}
                         animate={{ x: '-50%', y: 0, opacity: 1 }}
-                        exit={{ x: '-50%', y: 80, opacity: 0 }}
-                        transition={{ type: 'spring', damping: 26, stiffness: 320 }}
+                        exit={{
+                            x: '-50%',
+                            y: 16,
+                            opacity: 0,
+                            transition: { duration: DURATION.fast, ease: EASE_IN_OUT },
+                        }}
+                        transition={SPRING_SOFT}
                         role="toolbar"
                         aria-label="Photo browsing actions"
                     >
@@ -725,14 +724,23 @@ export default function Portfolio({ years }: PortfolioProps) {
                             >
                                 <CheckSquare size={16} strokeWidth={2} className="portfolio__dock-btn-icon" />
                                 <span className="portfolio__dock-btn-text">Select</span>
-                                {batchSelectedCount > 0 && (
-                                    <span
-                                        className="portfolio__dock-badge"
-                                        aria-label={`${batchSelectedCount} selected`}
-                                    >
-                                        {batchSelectedCount}
-                                    </span>
-                                )}
+                                <AnimatePresence initial={false}>
+                                    {batchSelectedCount > 0 && (
+                                        <motion.span
+                                            key="dock-badge"
+                                            className="portfolio__dock-badge"
+                                            aria-label={`${batchSelectedCount} selected`}
+                                            initial={{ scale: 0.4, opacity: 0 }}
+                                            animate={{ scale: 1, opacity: 1 }}
+                                            exit={{ scale: 0.4, opacity: 0, transition: { duration: DURATION.fast } }}
+                                            transition={SPRING_POP}
+                                        >
+                                            <span key={batchSelectedCount} className="portfolio__dock-badge-count">
+                                                {batchSelectedCount}
+                                            </span>
+                                        </motion.span>
+                                    )}
+                                </AnimatePresence>
                             </button>
                         </div>
                     </motion.div>

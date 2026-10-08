@@ -30,6 +30,7 @@ import { StoryFiltersTab } from './storyTabs/StoryFiltersTab';
 import { StoryFramesTab } from './storyTabs/StoryFramesTab';
 import { StoryBadgesTab } from './storyTabs/StoryBadgesTab';
 import { StorySvgFilters } from './StorySvgFilters';
+import { DURATION, EASE_OUT_EXPO, SPRING_SNAPPY } from '../../../utils/motion';
 import '../../../styles/_story-export.scss';
 
 const STUDIO_TABS: Array<{ id: StoryStudioTab; label: string; icon: React.FC<IconProps> }> = [
@@ -297,22 +298,29 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
 
     const footer = (
         <div className="story-export-modal__footer-container">
-            {statusToast && (
-                <div
-                    className={`story-export-modal__toast ${
-                        statusToast.toLowerCase().includes('fail') ||
-                        statusToast.toLowerCase().includes('unavailable') ||
-                        statusToast.toLowerCase().includes('lacks') ||
-                        statusToast.toLowerCase().includes('error')
-                            ? 'story-export-modal__toast--error'
-                            : ''
-                    }`}
-                    role="status"
-                    aria-live="polite"
-                >
-                    {statusToast}
-                </div>
-            )}
+            <AnimatePresence>
+                {statusToast && (
+                    <motion.div
+                        key="story-toast"
+                        className={`story-export-modal__toast ${
+                            statusToast.toLowerCase().includes('fail') ||
+                            statusToast.toLowerCase().includes('unavailable') ||
+                            statusToast.toLowerCase().includes('lacks') ||
+                            statusToast.toLowerCase().includes('error')
+                                ? 'story-export-modal__toast--error'
+                                : ''
+                        }`}
+                        role="status"
+                        aria-live="polite"
+                        initial={{ opacity: 0, y: 4, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 4, scale: 0.98, transition: { duration: DURATION.instant } }}
+                        transition={{ duration: DURATION.fast, ease: EASE_OUT_EXPO }}
+                    >
+                        {statusToast}
+                    </motion.div>
+                )}
+            </AnimatePresence>
             <button
                 className={`story-export-modal__primary-action ${
                     isDownloaded ? 'is-done story-export-modal__primary-action--done' : ''
@@ -648,7 +656,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                                 <motion.span
                                                     className="portfolio__segment-pill story-export-modal__studio-tab-pill"
                                                     layoutId="landscapeActiveTabPill"
-                                                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                                    transition={SPRING_SNAPPY}
                                                 />
                                             )}
                                             <IconComponent size={16} className="story-export-modal__studio-tab-icon" />
@@ -711,7 +719,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                                                 <motion.span
                                                     className="portfolio__segment-pill story-export-modal__studio-tab-pill"
                                                     layoutId="studioActiveTabPill"
-                                                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                                    transition={SPRING_SNAPPY}
                                                 />
                                             )}
                                             <IconComponent size={18} className="story-export-modal__studio-tab-icon" />

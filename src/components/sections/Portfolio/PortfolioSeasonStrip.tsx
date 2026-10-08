@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Heart } from '../../ui/icons';
+import AnimatedNumber from '../../ui/AnimatedNumber';
 import { getTeamNameFormats, findEarliestEventForTeam } from '../../../utils/formatters';
 import { scrollToElement } from '../../../utils/scroll';
 import type { GearItem } from '../../../data/gearData';
@@ -31,12 +32,16 @@ export default function PortfolioSeasonStrip({
             <div className="portfolio__season-strip">
                 <div className="portfolio__season-stat-compact portfolio__season-stat-compact--events">
                     <span className="portfolio__season-stat-label">Games</span>
-                    <span className="portfolio__season-stat-value">{totalEvents}</span>
+                    <span className="portfolio__season-stat-value">
+                        <AnimatedNumber value={totalEvents} />
+                    </span>
                 </div>
                 {totalPhotos > 0 && (
                     <div className="portfolio__season-stat-compact portfolio__season-stat-compact--photos">
                         <span className="portfolio__season-stat-label">Photos</span>
-                        <span className="portfolio__season-stat-value">{totalPhotos.toLocaleString()}</span>
+                        <span className="portfolio__season-stat-value">
+                            <AnimatedNumber value={totalPhotos} />
+                        </span>
                     </div>
                 )}
                 {firstSeenTeam ? (

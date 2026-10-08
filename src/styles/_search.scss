@@ -42,8 +42,15 @@
         border-radius: 4px;
         min-width: 44px;
         min-height: 44px;
-        transition: all var(--transition-fast);
+        transition:
+            color var(--transition-fast),
+            background-color var(--transition-fast),
+            transform var(--dur-fast) var(--ease-out-expo);
         flex-shrink: 0;
+
+        &:active {
+            transform: scale(0.94);
+        }
 
         @media (hover: hover) {
             &:hover {
@@ -58,6 +65,7 @@
         flex-direction: column;
         flex: 1 1 auto;
         overflow: hidden;
+        animation: searchContentIn var(--dur-base) var(--ease-out-expo) both;
         padding-top: 1.5rem;
         padding-bottom: max(2rem, env(safe-area-inset-bottom, 2rem));
     }
@@ -117,7 +125,10 @@
             color: var(--color-text);
             font-family: var(--font-body);
             font-size: 0.95rem;
-            transition: all var(--transition-fast);
+            transition:
+                background-color var(--transition-fast),
+                border-color var(--transition-fast),
+                box-shadow var(--transition-fast);
             outline: none;
 
             &:focus {
@@ -195,8 +206,7 @@
             transition:
                 color var(--transition-fast),
                 background var(--transition-fast),
-                box-shadow var(--transition-fast),
-                transform 0.12s ease;
+                box-shadow var(--transition-fast);
 
             svg {
                 margin-top: -1px;
@@ -208,9 +218,11 @@
             span:not(.portfolio__segment-pill) {
                 position: relative;
                 z-index: 1;
+                transition: transform 0.15s ease;
             }
 
-            &:active {
+            &:active > svg,
+            &:active > span:not(.portfolio__segment-pill) {
                 transform: scale(0.92);
             }
 
@@ -305,9 +317,22 @@
         background: var(--color-bg-2);
         border: 1px solid var(--color-border);
         text-decoration: none;
-        transition: all var(--transition-fast);
+        transition:
+            background-color var(--transition-fast),
+            border-color var(--transition-fast),
+            transform var(--dur-fast) var(--ease-out-expo);
         color: var(--color-text);
         width: 100%;
+        animation: pillFadeUp 0.22s var(--ease-out-expo) var(--reveal-delay, 0ms) backwards;
+
+        &:active {
+            transform: scale(0.98);
+            transition-duration: var(--dur-press);
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            animation: none;
+        }
 
         @media (hover: hover) {
             &:hover {
@@ -413,3 +438,18 @@
         }
     }
 }
+
+@keyframes searchContentIn {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+}
+
+@keyframes pillFadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+}
+

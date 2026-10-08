@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowLeftRight, TriptychReverse } from '../../../ui/icons';
+import { SPRING_SNAPPY } from '../../../../utils/motion';
 import type { NormalizedCrop, PaddedStyleOptions, StoryPreset } from '../../../../utils/storyCanvas';
 import { calculateFitZoom, calculateNormalizedCrop } from '../../../../utils/storyCanvas';
 import { isFrameValidForWizardStep } from '../../../../utils/story';
@@ -451,7 +452,7 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                     <motion.span
                                         className="portfolio__segment-pill"
                                         layoutId="storyLayoutModePill"
-                                        transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                        transition={SPRING_SNAPPY}
                                     />
                                 )}
                                 <span>Solo</span>
@@ -477,7 +478,7 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                     <motion.span
                                         className="portfolio__segment-pill"
                                         layoutId="storyLayoutModePill"
-                                        transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                        transition={SPRING_SNAPPY}
                                     />
                                 )}
                                 <span>Duet</span>
@@ -504,7 +505,7 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                         <motion.span
                                             className="portfolio__segment-pill"
                                             layoutId="storyLayoutModePill"
-                                            transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                            transition={SPRING_SNAPPY}
                                         />
                                     )}
                                     <span>Triptych</span>
@@ -680,7 +681,7 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                                     <motion.span
                                                         className="portfolio__segment-pill"
                                                         layoutId="storyBurstTimestampsPill"
-                                                        transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                                        transition={SPRING_SNAPPY}
                                                     />
                                                 )}
                                                 <span>Show</span>
@@ -699,7 +700,7 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                                     <motion.span
                                                         className="portfolio__segment-pill"
                                                         layoutId="storyBurstTimestampsPill"
-                                                        transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                                        transition={SPRING_SNAPPY}
                                                     />
                                                 )}
                                                 <span>Hide</span>
@@ -781,7 +782,7 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                                         <motion.span
                                                             className="portfolio__segment-pill"
                                                             layoutId="storyBurstWizardStepPill"
-                                                            transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                                            transition={SPRING_SNAPPY}
                                                         />
                                                     )}
                                                     <span className="story-export-modal__burst-slot-name">
@@ -990,7 +991,7 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                                 <motion.span
                                                     className="portfolio__segment-pill"
                                                     layoutId="storyPresetPill"
-                                                    transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                                    transition={SPRING_SNAPPY}
                                                 />
                                             )}
                                             <span>{preset.label}</span>
@@ -1095,7 +1096,7 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                         <motion.span
                                             className="portfolio__segment-pill"
                                             layoutId="storyPaddedStylePill"
-                                            transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                            transition={SPRING_SNAPPY}
                                         />
                                     )}
                                     <span>Frosted</span>
@@ -1117,7 +1118,7 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                         <motion.span
                                             className="portfolio__segment-pill"
                                             layoutId="storyPaddedStylePill"
-                                            transition={{ type: 'spring', stiffness: 500, damping: 38 }}
+                                            transition={SPRING_SNAPPY}
                                         />
                                     )}
                                     <span>Solid</span>
