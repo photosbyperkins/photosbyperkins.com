@@ -8,7 +8,7 @@ import {
     DEFAULT_ATTRIBUTION_POSITION,
 } from './storyConstants';
 import type { StoryRenderConfig, BurstStoryOptions, StoryPhotoFilterId } from './storyConstants';
-import { calculateBurstPanelCrop } from './storyMath';
+import { calculateBurstPanelCrop, calculateCardCornerRadii, getCardRectFromCrop } from './storyMath';
 import { resolveBadgeCoords } from './badgePlacement';
 import {
     drawRoundRect,
@@ -204,12 +204,18 @@ export async function renderStoryToCanvas(
             }
 
             // --- B. Foreground Card Rendering ---
+            let cardX: number;
+            let cardY: number;
             let cardW: number;
             let cardH: number;
 
             if (isSolo && config.crop && config.crop.width > 0 && config.crop.height > 0) {
-                cardW = targetW / config.crop.width;
-                cardH = targetH / config.crop.height;
+                // Honour the crop origin so a partially zoomed-out, panned card matches the preview exactly
+                ({ x: cardX, y: cardY, width: cardW, height: cardH } = getCardRectFromCrop(
+                    config.crop,
+                    targetW,
+                    targetH
+                ));
             } else {
                 const scale = padded.cardScale || 0.92;
                 const imgRatio = naturalW / naturalH;
@@ -222,13 +228,19 @@ export async function renderStoryToCanvas(
                     cardH = maxCardH;
                     cardW = cardH * imgRatio;
                 }
+
+                cardX = (targetW - cardW) / 2;
+                // Always centered vertically & horizontally (eliminating legacy elevated position)
+                cardY = (targetH - cardH) / 2;
             }
 
-            const cardX = (targetW - cardW) / 2;
-            // Always centered vertically & horizontally (eliminating legacy elevated position)
-            const cardY = (targetH - cardH) / 2;
-
-            const effectiveRadius = cardX <= 2 && cardY <= 2 ? 0 : cornerRadius;
+            // Corners shrink as the card approaches the frame edges so they're never half-clipped
+            const effectiveRadius = calculateCardCornerRadii(
+                { x: cardX, y: cardY, width: cardW, height: cardH },
+                targetW,
+                targetH,
+                cornerRadius
+            );
             const isCustomBgLight = Boolean(padded.customColor && isColorLight(padded.customColor));
 
             // Render Drop Shadow

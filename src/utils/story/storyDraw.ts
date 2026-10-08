@@ -61,6 +61,7 @@ export function drawCameraLogoIcon(
 
 /**
  * Draws rounded rectangle path on canvas (with polyfill for older browsers).
+ * `radius` may be a single value or per-corner radii `[top-left, top-right, bottom-right, bottom-left]`.
  */
 export function drawRoundRect(
     ctx: CanvasRenderingContext2D,
@@ -68,19 +69,22 @@ export function drawRoundRect(
     y: number,
     width: number,
     height: number,
-    radius: number
+    radius: number | [number, number, number, number]
 ): void {
     if (typeof ctx.roundRect === 'function') {
         ctx.beginPath();
-        ctx.roundRect(x, y, width, height, radius);
+        ctx.roundRect(x, y, width, height, Array.isArray(radius) ? [...radius] : radius);
     } else {
-        const r = Math.min(radius, width / 2, height / 2);
+        const maxR = Math.min(width / 2, height / 2);
+        const [tl, tr, br, bl] = (Array.isArray(radius) ? radius : [radius, radius, radius, radius]).map((r) =>
+            Math.max(0, Math.min(r, maxR))
+        );
         ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.arcTo(x + width, y, x + width, y + height, r);
-        ctx.arcTo(x + width, y + height, x, y + height, r);
-        ctx.arcTo(x, y + height, x, y, r);
-        ctx.arcTo(x, y, x + width, y, r);
+        ctx.moveTo(x + tl, y);
+        ctx.arcTo(x + width, y, x + width, y + height, tr);
+        ctx.arcTo(x + width, y + height, x, y + height, br);
+        ctx.arcTo(x, y + height, x, y, bl);
+        ctx.arcTo(x, y, x + width, y, tl);
         ctx.closePath();
     }
 }

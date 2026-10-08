@@ -69,12 +69,11 @@
         pointer-events: none;
         z-index: 1;
         will-change: transform;
-        transition:
-            border-radius var(--transition-fast),
-            box-shadow var(--transition-fast);
+        // border-radius is set inline per corner (dynamic, see StoryCropper) and must track
+        // pan/zoom 1:1, so it is intentionally not transitioned.
+        transition: box-shadow var(--transition-fast);
 
         &--padded {
-            border-radius: clamp(8px, 3cqw, 20px);
             overflow: hidden;
             box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
             border: 1px solid rgba(255, 255, 255, 0.2);

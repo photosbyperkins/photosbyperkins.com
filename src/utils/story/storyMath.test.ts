@@ -5,6 +5,8 @@ import {
     calculateBurstPanelCrop,
     calculateFitZoom,
     calculateNormalizedCrop,
+    calculateCardCornerRadii,
+    getCardRectFromCrop,
     generateStoryPresets,
 } from './storyMath';
 import { STORY_ASPECT_RATIO } from './storyConstants';
@@ -309,6 +311,50 @@ describe('storyMath', () => {
             });
             // Should fall back to 0 faces
             expect(presets.map((p) => p.id)).toEqual(['padded-glass', 'center', 'closeup']);
+        });
+    });
+
+    describe('getCardRectFromCrop', () => {
+        it('centers a fully zoomed-out card', () => {
+            // 3:2 landscape at fit zoom: crop is centered on both axes
+            const crop = calculateNormalizedCrop(6000, 4000, 0.5, 0.5, 0.3, 0.3);
+            const rect = getCardRectFromCrop(crop, 1080, 1920);
+            expect(rect.x).toBeCloseTo((1080 - rect.width) / 2, 6);
+            expect(rect.y).toBeCloseTo((1920 - rect.height) / 2, 6);
+        });
+
+        it('honours horizontal pan when the card bleeds horizontally', () => {
+            // Landscape between fit and fill: padded vertically, panned horizontally to the left edge
+            const crop = calculateNormalizedCrop(6000, 4000, 0, 0.5, 0.8, 0.3);
+            expect(crop.height).toBeGreaterThan(1);
+            const rect = getCardRectFromCrop(crop, 1080, 1920);
+            expect(rect.x).toBeCloseTo(0, 6);
+            expect(rect.x + rect.width).toBeGreaterThan(1080);
+            expect(rect.y).toBeGreaterThan(0);
+        });
+    });
+
+    describe('calculateCardCornerRadii', () => {
+        it('uses the full base radius when the card is comfortably inset', () => {
+            const r = calculateCardCornerRadii({ x: 100, y: 200, width: 880, height: 1520 }, 1080, 1920, 24);
+            expect(r).toEqual([24, 24, 24, 24]);
+        });
+
+        it('squares corners on edges that touch or bleed past the frame', () => {
+            // Touches left, bleeds right, inset vertically
+            const r = calculateCardCornerRadii({ x: 0, y: 500, width: 1200, height: 900 }, 1080, 1920, 24);
+            expect(r).toEqual([0, 0, 0, 0]);
+        });
+
+        it('shrinks corners proportionally to the smaller adjacent gap', () => {
+            // left gap 10, right gap 40, top gap 5, bottom gap 100
+            const r = calculateCardCornerRadii({ x: 10, y: 5, width: 1030, height: 1815 }, 1080, 1920, 24);
+            expect(r).toEqual([5, 5, 24, 10]);
+        });
+
+        it('never returns negative radii', () => {
+            const r = calculateCardCornerRadii({ x: -50, y: -50, width: 1200, height: 2100 }, 1080, 1920, 24);
+            expect(r).toEqual([0, 0, 0, 0]);
         });
     });
 });

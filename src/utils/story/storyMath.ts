@@ -204,6 +204,59 @@ export function calculateNormalizedCrop(
     };
 }
 
+/** Axis-aligned rectangle in frame units (pixels, cqw, etc. — callers choose). */
+export interface CardRect {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+}
+
+/** Per-corner radii in CSS / canvas `roundRect` order: [top-left, top-right, bottom-right, bottom-left]. */
+export type CornerRadii = [number, number, number, number];
+
+/**
+ * Maps a solo-mode normalized crop to the photo card's rectangle inside a frame of `frameW × frameH`.
+ * The crop window always fills the frame, so the full image (the card) is scaled by 1/crop size and
+ * offset by the crop origin. Mirrors the StoryCropper preview transform exactly.
+ */
+export function getCardRectFromCrop(
+    crop: Pick<NormalizedCrop, 'x' | 'y' | 'width' | 'height'>,
+    frameW: number,
+    frameH: number
+): CardRect {
+    const cw = Math.max(0.001, crop.width);
+    const ch = Math.max(0.001, crop.height);
+    const width = frameW / cw;
+    const height = frameH / ch;
+    return { x: -crop.x * width, y: -crop.y * height, width, height };
+}
+
+/**
+ * Dynamic per-corner radii for a rounded photo card inside a frame.
+ *
+ * Each corner's radius is limited by the inset gap between the card and the frame along both of its
+ * adjacent edges: a full `baseRadius` when the card sits comfortably inside the frame, shrinking
+ * linearly to 0 as either edge approaches the frame edge, and 0 when that edge touches or bleeds
+ * past it. This avoids half-clipped rounded corners at intermediate pan / zoom positions.
+ *
+ * All inputs and outputs share the same units.
+ */
+export function calculateCardCornerRadii(
+    card: CardRect,
+    frameW: number,
+    frameH: number,
+    baseRadius: number
+): CornerRadii {
+    const base = Math.max(0, baseRadius);
+    const gapL = card.x;
+    const gapT = card.y;
+    const gapR = frameW - (card.x + card.width);
+    const gapB = frameH - (card.y + card.height);
+    const corner = (h: number, v: number) => Math.max(0, Math.min(base, h, v));
+    return [corner(gapL, gapT), corner(gapR, gapT), corner(gapR, gapB), corner(gapL, gapB)];
+}
+
 /** A detection box in normalised image coordinates (centre + size). */
 interface SubjectBox {
     cx: number;

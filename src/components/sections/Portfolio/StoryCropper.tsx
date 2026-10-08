@@ -3,7 +3,10 @@ import type { NormalizedCrop, BadgeOptions, StoryPhotoFilterId, PaddedStyleOptio
 import {
     calculateNormalizedCrop,
     calculateFitZoom,
+    calculateCardCornerRadii,
+    getCardRectFromCrop,
     STORY_ASPECT_RATIO,
+    STORY_WIDTH,
     getStoryFilterCss,
     hexToRgba,
 } from '../../../utils/storyCanvas';
@@ -124,6 +127,22 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
     const scaleY = 1 / Math.max(0.001, effectiveCrop.height);
     const translateX = -effectiveCrop.x * 100;
     const translateY = -effectiveCrop.y * 100;
+
+    // Dynamic per-corner radii (in cqw of the 9:16 viewport) so corners shrink as the card nears the frame
+    // edges instead of being half-clipped. Uses the same base radius (px @ 1080w) and math as the export.
+    const cardBorderRadius = useMemo(() => {
+        if (!isPadded) return undefined;
+        const frameW = 100;
+        const frameH = frameW / STORY_ASPECT_RATIO;
+        const baseRadius = ((paddedConfig?.cardCornerRadius ?? 24) / STORY_WIDTH) * frameW;
+        const radii = calculateCardCornerRadii(
+            getCardRectFromCrop(effectiveCrop, frameW, frameH),
+            frameW,
+            frameH,
+            baseRadius
+        );
+        return radii.map((r) => `${parseFloat(r.toFixed(3))}cqw`).join(' ');
+    }, [isPadded, effectiveCrop, paddedConfig?.cardCornerRadius]);
 
     // Handle mouse / touch drag pan
     const handlePointerDown = (e: React.PointerEvent) => {
@@ -344,6 +363,7 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
                         width: `${scaleX * 100}%`,
                         height: `${scaleY * 100}%`,
                         transform: `translate(${translateX}%, ${translateY}%)`,
+                        borderRadius: cardBorderRadius,
                     }}
                 >
                     <img
