@@ -138,4 +138,16 @@ describe('Lightbox', () => {
         fireEvent.keyDown(window, { key: 't' });
         expect(dialog.classList.contains('is-theater-mode')).toBe(false);
     });
+
+    it('appends scrubberHash to scrubber spriteUrl when provided on images', () => {
+        const imagesWithSprite: PhotoInput[] = [
+            { original: '/photos/photo_01.jpg', thumb: '/thumbnails/2026/event/photo_01.webp', spriteIndex: 0, scrubberHash: 'hash123456' },
+            { original: '/photos/photo_02.jpg', thumb: '/thumbnails/2026/event/photo_02.webp', spriteIndex: 1, scrubberHash: 'hash123456' },
+        ];
+        render(<Lightbox {...defaultProps} images={imagesWithSprite} />);
+        const scrubberThumbs = document.querySelectorAll('.portfolio__lightbox-scrubber-thumb');
+        expect(scrubberThumbs.length).toBeGreaterThan(0);
+        const firstThumb = scrubberThumbs[0] as HTMLElement;
+        expect(firstThumb.style.backgroundImage).toContain('/scrubber/2026/event/sprite.webp?h=hash123456');
+    });
 });

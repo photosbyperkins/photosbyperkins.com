@@ -2,7 +2,7 @@
  * Global build utilities and asset versioning.
  *
  * Implements intelligent cache-busting:
- * - Immutable album media (/photos/, /thumbnails/, /avif/, /webp/, /scrubber/)
+ * - Immutable album media (/photos/, /thumbnails/, /avif/, /webp/)
  *   are cached for 1 year by browsers/service workers and are not invalidated on every code deploy.
  * - Dynamic data and mutable assets can still append versioning when explicitly needed.
  */
@@ -21,7 +21,7 @@ export function getBuildNumber(): string {
 export function withBuild(url: string | undefined | null, force = false): string {
     if (!url) return '';
     // Skip cache-busting for immutable album media unless explicitly forced
-    const isImmutableMedia = /\/(?:photos|thumbnails|avif|webp|scrubber)\//i.test(url);
+    const isImmutableMedia = /\/(?:photos|thumbnails|avif|webp)\//i.test(url);
     if (isImmutableMedia && !force) {
         return url;
     }

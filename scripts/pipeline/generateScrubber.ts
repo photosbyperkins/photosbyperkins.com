@@ -1,12 +1,12 @@
 import fs from 'fs';
 import path from 'path';
-import crypto from 'crypto';
 import sharp from 'sharp';
 import os from 'os';
 import { runWithConcurrency, removeStaleFiles } from './utils.js';
 import type { IndexState } from './types';
 import { logger } from './logger.js';
 import { subjectCropRect, type SubjectFraming } from '../../src/utils/subjectFraming.js';
+import { computeScrubberHash } from './chunkData.js';
 
 const SCRUBBER_DIR = path.join(process.cwd(), 'build', 'scrubber');
 export const MAX_WEBP_DIMENSION = 16383;
@@ -100,18 +100,7 @@ export async function generateScrubber(indexData: IndexState) {
             }
 
             validSprites.add(spritePath);
-            const spriteKey = crypto
-                .createHash('sha1')
-                .update(
-                    albumPhotos
-                        .map((p) =>
-                            typeof p === 'string'
-                                ? p
-                                : `${p.thumb}|${p.focusX ?? ''}|${p.focusY ?? ''}|${p.focusSource ?? ''}|${(p.faces || []).map((f) => `${f.x},${f.w ?? ''}`).join(';')}`
-                        )
-                        .join('\n')
-                )
-                .digest('hex');
+            const spriteKey = computeScrubberHash(albumPhotos) || '';
             const manifestKey = path.relative(SCRUBBER_DIR, spritePath).replace(/\\/g, '/');
             newManifest[manifestKey] = spriteKey;
 

@@ -60,6 +60,7 @@ export interface PhotoRecord {
     width?: number;
     height?: number;
     spriteIndex?: number;
+    scrubberHash?: string;
     exif?: ExifData;
     burst?: BurstMetadata;
     eventName?: string;
@@ -104,6 +105,7 @@ export type EventData = {
     maxExifChars?: number;
     wftdaMatch?: WftdaMatch;
     localScore?: EventScore;
+    scrubberHash?: string;
 };
 
 export type YearData = Record<string, EventData>;
@@ -125,6 +127,8 @@ export interface LightboxState {
     year: string;
     isOpen: boolean;
     maxExifChars?: number;
+    localScore?: EventScore;
+    scrubberHash?: string;
 }
 
 export interface SharedPhotoState {

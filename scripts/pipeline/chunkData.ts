@@ -22,6 +22,7 @@ export interface ProcessedEventData extends Omit<EventData, 'album' | 'highlight
     albumSlug?: string;
     originalYear?: string;
     maxExifChars?: number;
+    scrubberHash?: string;
     recapImages?: Array<Partial<PhotoObject> & { src?: string; recapScore?: number; albumIndex?: number }>;
     wftdaMatch?: WftdaMatch | null;
     wftdaRankings?: Record<string, unknown>;
@@ -172,6 +173,25 @@ export function generateRecapImages(eventsObj: Record<string, Partial<ProcessedE
 export function computeRecapHash(recapImages: Array<SubjectFraming & { src: string }>): string | undefined {
     if (!recapImages || recapImages.length === 0) return undefined;
     const str = recapImages.map((img) => sliceCacheKey(img.src, img)).join(';');
+    return crypto.createHash('sha256').update(str).digest('hex').slice(0, 10);
+}
+
+/**
+ * Computes a deterministic 10-hex digest for an album's scrubber sprite.
+ * Changes whenever photos are added/removed/reordered, framing changes,
+ * or face/subject crop focus points update.
+ */
+export function computeScrubberHash(
+    albumPhotos: Array<string | { thumb?: string; focusX?: number; focusY?: number; focusSource?: string; faces?: Array<{ x: number; w?: number }> }>
+): string | undefined {
+    if (!albumPhotos || albumPhotos.length === 0) return undefined;
+    const str = albumPhotos
+        .map((p) =>
+            typeof p === 'string'
+                ? p
+                : `${p.thumb ?? ''}|${p.focusX ?? ''}|${p.focusY ?? ''}|${p.focusSource ?? ''}|${(p.faces || []).map((f) => `${f.x},${f.w ?? ''}`).join(';')}`
+        )
+        .join('\n');
     return crypto.createHash('sha256').update(str).digest('hex').slice(0, 10);
 }
 
@@ -440,9 +460,12 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
         for (const [eventName, event] of sortedYearEntries) {
             const slug = slugify(eventName);
             const albumFile = path.join(yearAlbumsDir, `${slug}.json`);
+            const scrubberHash = computeScrubberHash(event.album || []);
 
             // Save album separately
-            const cleanAlbum = (event.album || []).map(img => (typeof img === 'string' ? img : toClientPhoto(img)));
+            const cleanAlbum = (event.album || []).map((img) =>
+                typeof img === 'string' ? img : { ...toClientPhoto(img), ...(scrubberHash ? { scrubberHash } : {}) }
+            );
             fs.writeFileSync(albumFile, JSON.stringify(cleanAlbum, null, 0));
 
             let maxExifChars = 0;
@@ -479,6 +502,7 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
                 albumSlug: slug,
                 originalYear: year, // Required when fetched from a team index!
                 ...(maxExifChars > 0 && { maxExifChars }),
+                ...(scrubberHash ? { scrubberHash } : {}),
                 recapImages: (event.album || [])
                     .map((img, idx) => ({ ...img, albumIndex: idx }))
                     .sort((a, b) => (b.recapScore || 0) - (a.recapScore || 0))
@@ -511,6 +535,7 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
                     albumSlug: slug,
                     originalYear: year,
                     ...(maxExifChars > 0 && { maxExifChars }),
+                    ...(scrubberHash ? { scrubberHash } : {}),
                     highlights: chosenHighlights.map((h: Photo) => ({
                         original: typeof h === 'string' ? h : h.original || h.src,
                         thumb: typeof h === 'string' ? h : h.thumb || h.original || h.src,
@@ -623,6 +648,7 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
                         const customEvMeta: ProcessedEventData = {
                             ...event,
                             album: [],
+                            ...(scrubberHash ? { scrubberHash } : {}),
                             wftdaMatch: null,
                             wftdaRankings: {},
                         };

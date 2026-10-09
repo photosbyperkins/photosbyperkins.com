@@ -12,6 +12,7 @@ export interface PortfolioSlice {
         isOpen: boolean;
         maxExifChars?: number;
         localScore?: EventScore;
+        scrubberHash?: string;
     };
     sharedPhoto: SharedPhotoState | null;
     favorites: FavoriteStoreItem[];
@@ -25,7 +26,8 @@ export interface PortfolioSlice {
         eventName: string,
         year: string,
         maxExifChars?: number,
-        localScore?: EventScore
+        localScore?: EventScore,
+        scrubberHash?: string
     ) => void;
     closeLightbox: () => void;
     setLightboxIndex: (index: number) => void;
@@ -109,8 +111,8 @@ export const createPortfolioSlice: StateCreator<PortfolioSlice, [], [], Portfoli
     batchSelectedPhotos: [],
     visiblePhotosMap: {},
 
-    openLightbox: (images, index, eventName, year, maxExifChars, localScore) =>
-        set({ lightbox: { images, index, eventName, year, isOpen: true, maxExifChars, localScore } }),
+    openLightbox: (images, index, eventName, year, maxExifChars, localScore, scrubberHash) =>
+        set({ lightbox: { images, index, eventName, year, isOpen: true, maxExifChars, localScore, scrubberHash } }),
 
     closeLightbox: () => set((state) => ({ lightbox: { ...state.lightbox, isOpen: false } })),
 

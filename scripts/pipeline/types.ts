@@ -29,6 +29,7 @@ export interface EventData {
     photoCount?: number;
     localScore?: Record<string, unknown>;
     earliestTime?: number;
+    scrubberHash?: string;
 }
 
 export type YearData = Record<string, EventData>;

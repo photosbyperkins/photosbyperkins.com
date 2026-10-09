@@ -8,6 +8,7 @@ import {
     writeChunkedFile,
     generateRecapImages,
     computeRecapHash,
+    computeScrubberHash,
     toClientPhoto,
 } from './chunkData';
 
@@ -210,6 +211,30 @@ describe('chunkData pipeline helpers', () => {
                 { src: '/photos/photo2.webp', focusX: 0.4, focusY: 0.2 },
             ];
             const hashB = computeRecapHash(listB);
+            expect(hashB).not.toEqual(hashA);
+        });
+    });
+
+    describe('computeScrubberHash', () => {
+        it('returns undefined for empty album photo lists', () => {
+            expect(computeScrubberHash([])).toBeUndefined();
+        });
+
+        it('returns a stable 10-char hex hash that changes when thumb, focus, or face coords change', () => {
+            const albumA = [
+                { thumb: '/thumbnails/photo1.webp', focusX: 0.5, focusY: 0.3, focusSource: 'face', faces: [{ x: 0.5, w: 0.1 }] },
+                { thumb: '/thumbnails/photo2.webp', focusX: 0.4, focusY: 0.2 },
+            ];
+            const hashA = computeScrubberHash(albumA);
+            expect(hashA).toBeDefined();
+            expect(hashA).toHaveLength(10);
+            expect(hashA).toEqual(computeScrubberHash(albumA));
+
+            const albumB = [
+                { thumb: '/thumbnails/photo1.webp', focusX: 0.55, focusY: 0.3, focusSource: 'face', faces: [{ x: 0.5, w: 0.1 }] },
+                { thumb: '/thumbnails/photo2.webp', focusX: 0.4, focusY: 0.2 },
+            ];
+            const hashB = computeScrubberHash(albumB);
             expect(hashB).not.toEqual(hashA);
         });
     });

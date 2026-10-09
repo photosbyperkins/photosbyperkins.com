@@ -19,7 +19,7 @@ import {
     buildAlbumIndexMap,
     sortTeamsByScore,
 } from '../../../utils/eventTransforms';
-import type { EventData, PhotoInput, PhotoRecord, FavoriteStoreItem } from '../../../types';
+import type { EventData, PhotoInput, PhotoRecord, FavoriteStoreItem, EventScore } from '../../../types';
 import { withBuild } from '../../../utils/build';
 import { MAX_SPRITE_FRAMES } from './LightboxScrubber';
 import { DURATION, fadeUp } from '../../../utils/motion';
@@ -172,7 +172,8 @@ const PortfolioEvent = memo(function PortfolioEvent({
         const first = albumImages[0];
         if (!first.thumb || first.spriteIndex == null) return;
         const dir = first.thumb.substring(0, first.thumb.lastIndexOf('/'));
-        const spriteUrl = withBuild(`${dir.replace(/^\/thumbnails\//, '/scrubber/')}/sprite.webp`);
+        const hash = ev.scrubberHash || (typeof first === 'object' ? first.scrubberHash : undefined);
+        const spriteUrl = withBuild(`${dir.replace(/^\/thumbnails\//, '/scrubber/')}/sprite.webp${hash ? `?h=${hash}` : ''}`);
 
         const schedulePreheat =
             typeof window !== 'undefined' && 'requestIdleCallback' in window
@@ -228,7 +229,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
                     (ev.wftdaMatch
                         ? { team1Score: ev.wftdaMatch.score1, team2Score: ev.wftdaMatch.score2 }
                         : undefined);
-                openLightbox(albumImages, safeIndex, eventName, selectedYear, ev.maxExifChars, scorePayload);
+                openLightbox(albumImages, safeIndex, eventName, selectedYear, ev.maxExifChars, scorePayload, ev.scrubberHash);
             }
             setSharedPhoto(null);
         }
@@ -238,6 +239,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
         ev.maxExifChars,
         ev.localScore,
         ev.wftdaMatch,
+        ev.scrubberHash,
         sharedPhoto,
         eventName,
         selectedYear,
@@ -245,6 +247,20 @@ const PortfolioEvent = memo(function PortfolioEvent({
         setSharedPhoto,
         albumImages,
     ]);
+
+    const handleOpenLightbox = useCallback(
+        (
+            album: PhotoRecord[],
+            index: number,
+            eName: string,
+            year: string,
+            maxExif?: number,
+            score?: EventScore
+        ) => {
+            openLightbox(album, index, eName, year, maxExif, score, ev.scrubberHash);
+        },
+        [openLightbox, ev.scrubberHash]
+    );
 
     const totalPhotos = ev.photoCount || albumImages.length;
 
@@ -405,7 +421,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
                                                 selectedYear={selectedYear}
                                                 maxExifChars={ev.maxExifChars}
                                                 localScore={eventScore}
-                                                openLightbox={openLightbox}
+                                                openLightbox={handleOpenLightbox}
                                                 isSelectMode={isBatchSelectMode}
                                                 selectedUrls={selectedUrls}
                                                 selectionIndexMap={selectionIndexMap}
@@ -427,7 +443,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
                                             eventScore={eventScore}
                                             loading={loading}
                                             fetchError={fetchError}
-                                            openLightbox={openLightbox}
+                                            openLightbox={handleOpenLightbox}
                                             isSelectMode={isBatchSelectMode}
                                             selectedUrls={selectedUrls}
                                             selectionIndexMap={selectionIndexMap}
@@ -447,7 +463,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
                                         evIdx={evIdx}
                                         loading={loading}
                                         fetchError={fetchError}
-                                        openLightbox={openLightbox}
+                                        openLightbox={handleOpenLightbox}
                                         isSelectMode={isBatchSelectMode}
                                         selectedUrls={selectedUrls}
                                         selectionIndexMap={selectionIndexMap}

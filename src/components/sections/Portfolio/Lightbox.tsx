@@ -49,6 +49,7 @@ export default function Lightbox({
     const canShare = useCanShare();
     const favorites = useAppStore((state) => state.favorites);
     const toggleFavorite = useAppStore((state) => state.toggleFavorite);
+    const scrubberHash = useAppStore((state) => state.lightbox?.scrubberHash);
     const reducedMotion = useReducedMotion();
     const lightboxRef = useRef<HTMLDivElement>(null);
 
@@ -103,8 +104,9 @@ export default function Lightbox({
         });
         if (!allMatch) return null;
         const spriteDir = dir.replace(/^\/thumbnails\//, '/scrubber/');
-        return withBuild(`${spriteDir}/sprite.webp`);
-    }, [images]);
+        const hash = scrubberHash || (typeof first === 'object' && first ? first.scrubberHash : undefined);
+        return withBuild(`${spriteDir}/sprite.webp${hash ? `?h=${hash}` : ''}`);
+    }, [images, scrubberHash]);
 
     useEffect(() => {
         if (!rawSpriteUrl) return;
