@@ -1,5 +1,6 @@
 import { test, expect } from '@playwright/test';
 import * as path from 'path';
+import { openStudioTab, thumbByLabel } from './helpers/storyStudio';
 
 test.describe('Mobile Studio Screenshot Capture', () => {
     test.use({
@@ -32,12 +33,13 @@ test.describe('Mobile Studio Screenshot Capture', () => {
             await expect(studioModal).toBeVisible({ timeout: 8000 });
             await page.waitForTimeout(1200);
 
-            // 1. Tab 1: Layout - Crop Mode
+            // 1. Tab 1: Layout - Crop Mode (collapsed sheet: preview + tab bar + export button)
             await page.screenshot({
                 path: path.join(artifactDir, `${prefix}layout_crop.png`),
             });
 
-            // 2. Tab 1: Layout - Padded Mode
+            // 2. Tab 1: Layout - Padded Mode (tap Layout to open the bottom sheet)
+            await openStudioTab(studioModal, 'Layout');
             const paddedBtn = studioModal.locator('button:has-text("Padded")');
             await paddedBtn.click();
             await page.waitForTimeout(500);
@@ -45,17 +47,18 @@ test.describe('Mobile Studio Screenshot Capture', () => {
                 path: path.join(artifactDir, `${prefix}layout_padded.png`),
             });
 
-            // Switch back to Crop
-            const cropBtn = studioModal.locator('button:has-text("9:16")').first();
+            // Switch back to Crop (first non-Padded framing preset; "9:16" only exists for burst photos)
+            const cropBtn = studioModal
+                .locator('[role="group"][aria-label="Framing presets"] button:not(:has-text("Padded"))')
+                .first();
             await cropBtn.click();
             await page.waitForTimeout(400);
 
             // 3. Tab 2: Filters
-            const filtersTab = studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Filters")');
-            await filtersTab.click();
+            await openStudioTab(studioModal, 'Filters');
             await page.waitForTimeout(500);
 
-            const vintageFilter = studioModal.locator('.story-export-modal__filter-pill:has-text("Vintage")');
+            const vintageFilter = studioModal.getByRole('button', { name: 'Photo filter: Vintage', exact: true });
             if (await vintageFilter.isVisible()) {
                 await vintageFilter.click();
                 await page.waitForTimeout(400);
@@ -65,21 +68,26 @@ test.describe('Mobile Studio Screenshot Capture', () => {
             });
 
             // 4. Tab 3: Frames - Default
-            const framesTab = studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Frames")');
-            await framesTab.click();
+            await openStudioTab(studioModal, 'Frames');
             await page.waitForTimeout(500);
             await page.screenshot({
                 path: path.join(artifactDir, `${prefix}frames_default.png`),
             });
 
-            // 5. Tab 3: Frames - Active Frame with Tint Bar
-            const grizzlyFrame = studioModal.locator('.story-export-modal__frames-grid button:has-text("Grizzly")');
+            // 5. Tab 3: Frames - Active Frame with Gold tint (via the Tint popover)
+            const grizzlyFrame = thumbByLabel(studioModal.locator('#story-export-frames-grid'), 'Grizzly');
             if (await grizzlyFrame.isVisible()) {
                 await grizzlyFrame.click();
                 await page.waitForTimeout(400);
-                const goldTint = studioModal.locator('button[title="Gold"]');
-                if (await goldTint.isVisible()) {
-                    await goldTint.click();
+                const tintTrigger = studioModal.locator('button.story-tint__trigger');
+                if (await tintTrigger.isVisible()) {
+                    await tintTrigger.click();
+                    const goldTint = studioModal.locator('#story-tint-popover button[aria-label="Frame tint: Gold"]');
+                    if (await goldTint.isVisible()) {
+                        await goldTint.click();
+                    }
+                    // Close the popover only (Escape is captured by the popover first)
+                    await page.keyboard.press('Escape');
                 }
                 await page.waitForTimeout(400);
             }
@@ -88,8 +96,7 @@ test.describe('Mobile Studio Screenshot Capture', () => {
             });
 
             // 6. Tab 4: Badges
-            const badgesTab = studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Badges")');
-            await badgesTab.click();
+            await openStudioTab(studioModal, 'Badges');
             await page.waitForTimeout(500);
             await page.screenshot({
                 path: path.join(artifactDir, `${prefix}badges.png`),

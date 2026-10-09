@@ -33,6 +33,8 @@ export interface StorySettings {
     showAttribution: boolean;
     showScoreboard: boolean;
     showScores: boolean;
+    /** When true, a selected decorative frame animates and exports as an MP4 video instead of still JPEG. */
+    isFrameAnimated: boolean;
 }
 
 export const DEFAULT_STORY_SETTINGS: StorySettings = {
@@ -61,6 +63,7 @@ export const DEFAULT_STORY_SETTINGS: StorySettings = {
     showAttribution: true,
     showScoreboard: true,
     showScores: true,
+    isFrameAnimated: false,
 };
 
 export const RECENT_FRAMES_STORAGE_KEY = 'story-recent-frames';

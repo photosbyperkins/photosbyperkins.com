@@ -192,14 +192,14 @@ export const STORY_PHOTO_FILTERS: StoryPhotoFilter[] = [
     },
     {
         id: 'bw',
-        label: 'B&W',
+        label: 'Mono',
         description: 'Classic balanced monochrome',
         cssFilter: 'grayscale(100%) contrast(108%)',
         category: 'classic',
     },
     {
         id: 'bw-contrast',
-        label: 'B&W+',
+        label: 'Hi-Con Mono',
         description: 'High contrast black & white with deep blacks',
         cssFilter: 'grayscale(100%) contrast(160%) brightness(95%)',
         category: 'classic',
@@ -262,7 +262,7 @@ export const STORY_PHOTO_FILTERS: StoryPhotoFilter[] = [
     },
     {
         id: 'cinematic',
-        label: 'Cinematic',
+        label: 'Teal & Orange',
         description: 'Hollywood split-toning with warm skin tones and teal shadows',
         cssFilter: 'url(#story-filter-cinematic-swatch)',
         category: 'cinematic',

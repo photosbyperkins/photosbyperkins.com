@@ -1,8 +1,8 @@
 import type { StoryFrameDefinition } from '../types';
-import { defineFrame } from './helper';
+import { defineLayeredFrame } from './helper';
 
 export const ACTION_FRAMES: StoryFrameDefinition[] = [
-    defineFrame(
+    defineLayeredFrame(
         'claw-marks',
         'Claws',
         'action',
@@ -18,8 +18,7 @@ export const ACTION_FRAMES: StoryFrameDefinition[] = [
                 ? 'translate(110, 1530) rotate(195) scale(1.05)'
                 : 'translate(140, 1680) rotate(195) scale(1.15)';
 
-            const clawCluster = (scale = 1) => `
-                <g transform="scale(${scale})">
+            const claws = `
                     <!-- Claw 1 (Outer) -->
                     <path d="M0,0 Q60,120 120,260 Q105,240 100,180 Q60,90 0,0 Z" fill="${primary}" opacity="0.95" />
                     <path d="M20,30 Q65,120 105,225 Q95,210 90,170 Q60,100 20,30 Z" fill="${highlight}" opacity="0.4" />
@@ -34,33 +33,36 @@ export const ACTION_FRAMES: StoryFrameDefinition[] = [
 
                     <!-- Micro Scratch Marks -->
                     <path d="M40,50 Q80,130 115,200" stroke="${accent}" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.6" />
-                    <path d="M-130,110 Q-80,195 -40,260" stroke="${primary}" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.5" />
+                    <path d="M-130,110 Q-80,195 -40,260" stroke="${primary}" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.5" />`;
 
-                    <!-- Glowing Impact Embers -->
+            // Glowing impact embers, split into two alternating sets so they twinkle out of phase
+            const embersA = `
                     <circle cx="40" cy="200" r="4.5" fill="${highlight}" />
-                    <circle cx="80" cy="280" r="3.5" fill="${accent}" />
                     <circle cx="-20" cy="260" r="5" fill="${highlight}" />
+                    <circle cx="10" cy="310" r="3" fill="${highlight}" opacity="0.9" />`;
+            const embersB = `
+                    <circle cx="80" cy="280" r="3.5" fill="${accent}" />
                     <circle cx="115" cy="245" r="2.5" fill="${primary}" opacity="0.85" />
-                    <circle cx="10" cy="310" r="3" fill="${highlight}" opacity="0.9" />
-                    <circle cx="-55" cy="295" r="2.5" fill="${accent}" opacity="0.75" />
-                </g>
-            `;
+                    <circle cx="-55" cy="295" r="2.5" fill="${accent}" opacity="0.75" />`;
 
-            return `
-                <!-- Dynamic Asymmetric Clustered Claw Strikes -->
-                <!-- Top-Right Primary Rake -->
-                <g transform="translate(860, 45) rotate(16)">
-                    ${clawCluster(1.1)}
-                </g>
+            // Dynamic asymmetric clustered claw strikes: top-right primary rake, bottom-left counter rake
+            const rake = (transform: string, scale: number, inner: string) =>
+                `<g transform="${transform}"><g transform="scale(${scale})">${inner}</g></g>`;
+            const topRight = 'translate(860, 45) rotate(16)';
 
-                <!-- Bottom-Left Counter Rake -->
-                <g transform="${bottomTransform}">
-                    ${clawCluster(1.05)}
-                </g>
-            `;
+            return {
+                layers: [
+                    { id: 'rakeTR', svg: rake(topRight, 1.1, claws) },
+                    { id: 'embersTRa', svg: rake(topRight, 1.1, embersA) },
+                    { id: 'embersTRb', svg: rake(topRight, 1.1, embersB) },
+                    { id: 'rakeBL', svg: rake(bottomTransform, 1.05, claws) },
+                    { id: 'embersBLa', svg: rake(bottomTransform, 1.05, embersA) },
+                    { id: 'embersBLb', svg: rake(bottomTransform, 1.05, embersB) },
+                ],
+            };
         }
     ),
-    defineFrame(
+    defineLayeredFrame(
         'pop-art',
         'Pop Art',
         'action',
@@ -73,67 +75,79 @@ export const ACTION_FRAMES: StoryFrameDefinition[] = [
             const hasScoreboard = context?.hasScoreboard ?? true;
 
             const bottomOffset = hasScoreboard ? 1750 : 1800;
+            const bottomShift = bottomOffset - 1750;
 
-            return `
-                <!-- Top-Right Ben-Day Dot Matrix -->
-                <g transform="translate(970, 0)">
-                    <circle cx="90" cy="18" r="18" fill="${red}" />
-                    <circle cx="90" cy="54" r="14" fill="${yellow}" />
-                    <circle cx="90" cy="88" r="11" fill="${yellow}" />
-                    <circle cx="90" cy="120" r="7" fill="${cyan}" />
+            // Ben-Day dot matrix columns from the corner outwards: [radius, colour] per row, corner row first.
+            // Both matrices share the pattern; each column is its own layer so the dots ripple out of the corner.
+            const halftone: [number, string][][] = [
+                [
+                    [18, red],
+                    [14, yellow],
+                    [11, yellow],
+                    [7, cyan],
+                ],
+                [
+                    [14, yellow],
+                    [11, yellow],
+                    [8, cyan],
+                    [5, cyan],
+                ],
+                [
+                    [10, yellow],
+                    [8, cyan],
+                    [5, cyan],
+                    [3.5, yellow],
+                ],
+                [
+                    [6, cyan],
+                    [4.5, yellow],
+                ],
+            ];
+            const matrix = (id: string, transform: string, xs: number[], ys: number[]) =>
+                halftone.map((col, i) => ({
+                    id: `${id}${i}`,
+                    svg: `<g transform="${transform}">${col
+                        .map(([r, fill], j) => `<circle cx="${xs[i]}" cy="${ys[j]}" r="${r}" fill="${fill}" />`)
+                        .join('')}</g>`,
+                }));
 
-                    <circle cx="55" cy="18" r="14" fill="${yellow}" />
-                    <circle cx="55" cy="54" r="11" fill="${yellow}" />
-                    <circle cx="55" cy="88" r="8" fill="${cyan}" />
-                    <circle cx="55" cy="120" r="5" fill="${cyan}" />
-
-                    <circle cx="22" cy="18" r="10" fill="${yellow}" />
-                    <circle cx="22" cy="54" r="8" fill="${cyan}" />
-                    <circle cx="22" cy="88" r="5" fill="${cyan}" />
-                    <circle cx="22" cy="120" r="3.5" fill="${yellow}" />
-
-                    <circle cx="-8" cy="18" r="6" fill="${cyan}" />
-                    <circle cx="-8" cy="54" r="4.5" fill="${yellow}" />
-                </g>
-
-                <!-- Top-Left Action Speed Stripes -->
-                <line x1="0" y1="0" x2="160" y2="100" stroke="${red}" stroke-width="6" stroke-linecap="round" />
+            return {
+                layers: [
+                    // Top-Right Ben-Day Dot Matrix
+                    ...matrix('dotsTR', 'translate(970, 0)', [90, 55, 22, -8], [18, 54, 88, 120]),
+                    // Top-Left Action Speed Stripes
+                    {
+                        id: 'stripesTL',
+                        svg: `<line x1="0" y1="0" x2="160" y2="100" stroke="${red}" stroke-width="6" stroke-linecap="round" />
                 <line x1="0" y1="40" x2="120" y2="120" stroke="${yellow}" stroke-width="5" stroke-linecap="round" />
-                <line x1="0" y1="80" x2="80" y2="130" stroke="${cyan}" stroke-width="4" stroke-linecap="round" />
-                <polygon points="175,108 178,118 188,121 178,124 175,134 172,124 162,121 172,118" fill="${yellow}" />
-
-                <!-- Bottom-Left Ben-Day Dot Matrix -->
-                <g transform="translate(0, ${bottomOffset})">
-                    <circle cx="18" cy="95" r="18" fill="${red}" />
-                    <circle cx="18" cy="60" r="14" fill="${yellow}" />
-                    <circle cx="18" cy="28" r="11" fill="${yellow}" />
-                    <circle cx="18" cy="-2" r="7" fill="${cyan}" />
-
-                    <circle cx="52" cy="95" r="14" fill="${yellow}" />
-                    <circle cx="52" cy="60" r="11" fill="${yellow}" />
-                    <circle cx="52" cy="28" r="8" fill="${cyan}" />
-                    <circle cx="52" cy="-2" r="5" fill="${cyan}" />
-
-                    <circle cx="84" cy="95" r="10" fill="${yellow}" />
-                    <circle cx="84" cy="60" r="8" fill="${cyan}" />
-                    <circle cx="84" cy="28" r="5" fill="${cyan}" />
-                    <circle cx="84" cy="-2" r="3.5" fill="${yellow}" />
-
-                    <circle cx="114" cy="95" r="6" fill="${cyan}" />
-                    <circle cx="114" cy="60" r="4.5" fill="${yellow}" />
-                </g>
-
-                <!-- Bottom-Right Action Speed Stripes -->
-                <g transform="translate(0, ${bottomOffset - 1750})">
+                <line x1="0" y1="80" x2="80" y2="130" stroke="${cyan}" stroke-width="4" stroke-linecap="round" />`,
+                    },
+                    {
+                        id: 'starTL',
+                        svg: `<polygon points="175,108 178,118 188,121 178,124 175,134 172,124 162,121 172,118" fill="${yellow}" />`,
+                        pivot: { x: 175, y: 121 },
+                    },
+                    // Bottom-Left Ben-Day Dot Matrix
+                    ...matrix('dotsBL', `translate(0, ${bottomOffset})`, [18, 52, 84, 114], [95, 60, 28, -2]),
+                    // Bottom-Right Action Speed Stripes
+                    {
+                        id: 'stripesBR',
+                        svg: `<g transform="translate(0, ${bottomShift})">
                     <line x1="1080" y1="1890" x2="920" y2="1790" stroke="${red}" stroke-width="6" stroke-linecap="round" />
                     <line x1="1080" y1="1850" x2="960" y2="1770" stroke="${yellow}" stroke-width="5" stroke-linecap="round" />
                     <line x1="1080" y1="1810" x2="1000" y2="1760" stroke="${cyan}" stroke-width="4" stroke-linecap="round" />
-                    <polygon points="905,1782 902,1772 892,1769 902,1766 905,1756 908,1766 918,1769 908,1772" fill="${yellow}" />
-                </g>
-            `;
+                </g>`,
+                    },
+                    {
+                        id: 'starBR',
+                        svg: `<g transform="translate(0, ${bottomShift})"><polygon points="905,1782 902,1772 892,1769 902,1766 905,1756 908,1766 918,1769 908,1772" fill="${yellow}" /></g>`,
+                        pivot: { x: 905, y: 1769 + bottomShift },
+                    },
+                ],
+            };
         }
     ),
-    defineFrame(
+    defineLayeredFrame(
         'street-flames',
         'Flames',
         'action',
@@ -150,31 +164,27 @@ export const ACTION_FRAMES: StoryFrameDefinition[] = [
             // topY - 0.65 * 220 = topY - 143. 142 puts it 1px past the top edge: flush, no hairline gap.
             const topY = hasAttribution ? 142 : 100;
 
-            const flameTongues = `
-                <path d="M0,220 L0,90 C25,80 35,50 45,15 C60,50 80,80 65,110 C85,90 100,55 110,25 C125,70 140,110 125,150 C145,135 160,100 165,70 C175,120 170,170 150,220 Z" fill="${red}" opacity="0.95" />
-                <path d="M0,220 L0,120 C20,110 30,80 38,50 C48,80 65,110 55,130 C70,120 85,85 95,60 C105,100 120,130 110,170 C125,160 140,130 142,105 C148,145 142,185 125,220 Z" fill="${amber}" />
-            `;
+            const outerTongue = `<path d="M0,220 L0,90 C25,80 35,50 45,15 C60,50 80,80 65,110 C85,90 100,55 110,25 C125,70 140,110 125,150 C145,135 160,100 165,70 C175,120 170,170 150,220 Z" fill="${red}" opacity="0.95" />`;
+            const innerTongue = `<path d="M0,220 L0,120 C20,110 30,80 38,50 C48,80 65,110 55,130 C70,120 85,85 95,60 C105,100 120,130 110,170 C125,160 140,130 142,105 C148,145 142,185 125,220 Z" fill="${amber}" />`;
 
-            return `
-                <!-- Bottom Symmetrical Flames -->
-                <g transform="translate(0, ${bottomY})">
-                    ${flameTongues}
-                </g>
-                <g transform="translate(1080, ${bottomY}) scale(-1, 1)">
-                    ${flameTongues}
-                </g>
+            // Bottom symmetrical flames, then the top corner flame pinstripes. Each flame is an outer and
+            // an inner tongue (separate layers so they flicker out of phase), pivoted on its base edge.
+            const corners = [
+                { id: 'flameBL', transform: `translate(0, ${bottomY})`, pivot: { x: 80, y: bottomY + 220 } },
+                { id: 'flameBR', transform: `translate(1080, ${bottomY}) scale(-1, 1)`, pivot: { x: 1000, y: bottomY + 220 } },
+                { id: 'flameTL', transform: `translate(0, ${topY}) scale(0.65, -0.65)`, pivot: { x: 52, y: topY - 143 } },
+                { id: 'flameTR', transform: `translate(1080, ${topY}) scale(-0.65, -0.65)`, pivot: { x: 1028, y: topY - 143 } },
+            ];
 
-                <!-- Top Corner Flame Pinstripes -->
-                <g transform="translate(0, ${topY}) scale(0.65, -0.65)">
-                    ${flameTongues}
-                </g>
-                <g transform="translate(1080, ${topY}) scale(-0.65, -0.65)">
-                    ${flameTongues}
-                </g>
-            `;
+            return {
+                layers: corners.flatMap(({ id, transform, pivot }) => [
+                    { id: `${id}Outer`, svg: `<g transform="${transform}">${outerTongue}</g>`, pivot },
+                    { id: `${id}Inner`, svg: `<g transform="${transform}">${innerTongue}</g>`, pivot },
+                ]),
+            };
         }
     ),
-    defineFrame(
+    defineLayeredFrame(
         'electric-lightning',
         'Voltage',
         'action',
@@ -198,54 +208,67 @@ export const ACTION_FRAMES: StoryFrameDefinition[] = [
             const groundSparksLeft = hasScoreboard ? 'translate(80, 1730)' : 'translate(130, 1830)';
             const groundSparksRight = hasScoreboard ? 'translate(1000, 1730)' : 'translate(950, 1830)';
 
-            return `
-                <!-- Left Vertical High-Voltage Lightning -->
-                <path d="M40,-20 L95,110 L60,150 L130,280 L85,330 L150,490 L105,550 L160,680" stroke="${primary}" stroke-width="7" stroke-linejoin="bevel" stroke-linecap="round" fill="none" opacity="0.4" />
-                <path d="M40,-20 L95,110 L60,150 L130,280 L85,330 L150,490 L105,550 L160,680" stroke="${plasma}" stroke-width="4" stroke-linejoin="bevel" stroke-linecap="round" fill="none" />
-                <path d="M40,-20 L95,110 L60,150 L130,280 L85,330 L150,490 L105,550 L160,680" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="bevel" stroke-linecap="round" fill="none" />
-
-                <!-- Right Vertical High-Voltage Lightning -->
-                <path d="M1040,-20 L985,110 L1020,150 L950,280 L995,330 L930,490 L975,550 L920,680" stroke="${primary}" stroke-width="7" stroke-linejoin="bevel" stroke-linecap="round" fill="none" opacity="0.4" />
-                <path d="M1040,-20 L985,110 L1020,150 L950,280 L995,330 L930,490 L975,550 L920,680" stroke="${plasma}" stroke-width="4" stroke-linejoin="bevel" stroke-linecap="round" fill="none" />
-                <path d="M1040,-20 L985,110 L1020,150 L950,280 L995,330 L930,490 L975,550 L920,680" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="bevel" stroke-linecap="round" fill="none" />
-
-                <!-- Symmetrical Top Flanking Sparks -->
-                <polygon points="120,${topSparkY - 15} 125,${topSparkY} 140,${topSparkY + 5} 125,${topSparkY + 10} 120,${topSparkY + 25} 115,${topSparkY + 10} 100,${topSparkY + 5} 115,${topSparkY}" fill="${spark}" />
-                <polygon points="960,${topSparkY - 15} 965,${topSparkY} 980,${topSparkY + 5} 965,${topSparkY + 10} 960,${topSparkY + 25} 955,${topSparkY + 10} 940,${topSparkY + 5} 955,${topSparkY}" fill="${spark}" />
-
-                <!-- Symmetrical Mid Sparks -->
-                <polygon points="175,380 179,392 191,396 179,400 175,412 171,400 159,396 171,392" fill="#ffffff" />
-                <polygon points="905,380 909,392 921,396 909,400 905,412 901,400 889,396 901,392" fill="#ffffff" />
-
-                <!-- Mid-Flank Lightning Pulses -->
-                <path d="M35,820 L65,880 L45,920 L75,990" stroke="${primary}" stroke-width="2.5" fill="none" opacity="0.75" />
-                <circle cx="75" cy="990" r="3" fill="${spark}" />
-                <path d="M1045,820 L1015,880 L1035,920 L1005,990" stroke="${primary}" stroke-width="2.5" fill="none" opacity="0.75" />
-                <circle cx="1005" cy="990" r="3" fill="${spark}" />
-
-                <!-- Bottom Lightning Bolts -->
-                <path d="${bottomBoltLeft}" stroke="${primary}" stroke-width="5" stroke-linejoin="bevel" stroke-linecap="round" fill="none" opacity="0.4" />
-                <path d="${bottomBoltLeft}" stroke="${plasma}" stroke-width="3" stroke-linejoin="bevel" stroke-linecap="round" fill="none" />
-                <path d="${bottomBoltLeft}" stroke="#ffffff" stroke-width="1.2" stroke-linejoin="bevel" stroke-linecap="round" fill="none" />
-
-                <path d="${bottomBoltRight}" stroke="${primary}" stroke-width="5" stroke-linejoin="bevel" stroke-linecap="round" fill="none" opacity="0.4" />
-                <path d="${bottomBoltRight}" stroke="${plasma}" stroke-width="3" stroke-linejoin="bevel" stroke-linecap="round" fill="none" />
-                <path d="${bottomBoltRight}" stroke="#ffffff" stroke-width="1.2" stroke-linejoin="bevel" stroke-linecap="round" fill="none" />
-
-                <g transform="${groundSparksLeft}">
+            // Glow, plasma and white core strokes of one bolt
+            const bolt = (d: string, w: [number, number, number]) => `
+                <path d="${d}" stroke="${primary}" stroke-width="${w[0]}" stroke-linejoin="bevel" stroke-linecap="round" fill="none" opacity="0.4" />
+                <path d="${d}" stroke="${plasma}" stroke-width="${w[1]}" stroke-linejoin="bevel" stroke-linecap="round" fill="none" />
+                <path d="${d}" stroke="#ffffff" stroke-width="${w[2]}" stroke-linejoin="bevel" stroke-linecap="round" fill="none" />`;
+            const groundSpark = (transform: string) => `
+                <g transform="${transform}">
                     <circle cx="0" cy="0" r="6" fill="${primary}" opacity="0.6" />
                     <circle cx="0" cy="0" r="2.5" fill="#ffffff" />
                     <polygon points="0,-12 3,-3 12,0 3,3 0,12 -3,3 -12,0 -3,-3" fill="${spark}" />
-                </g>
-                <g transform="${groundSparksRight}">
-                    <circle cx="0" cy="0" r="6" fill="${primary}" opacity="0.6" />
-                    <circle cx="0" cy="0" r="2.5" fill="#ffffff" />
-                    <polygon points="0,-12 3,-3 12,0 3,3 0,12 -3,3 -12,0 -3,-3" fill="${spark}" />
-                </g>
-            `;
+                </g>`;
+            const topSpark = (x: number) =>
+                `<polygon points="${x},${topSparkY - 15} ${x + 5},${topSparkY} ${x + 20},${topSparkY + 5} ${x + 5},${topSparkY + 10} ${x},${topSparkY + 25} ${x - 5},${topSparkY + 10} ${x - 20},${topSparkY + 5} ${x - 5},${topSparkY}" fill="${spark}" />`;
+
+            return {
+                layers: [
+                    // Left / right vertical high-voltage lightning
+                    {
+                        id: 'boltL',
+                        svg: bolt('M40,-20 L95,110 L60,150 L130,280 L85,330 L150,490 L105,550 L160,680', [7, 4, 1.8]),
+                    },
+                    {
+                        id: 'boltR',
+                        svg: bolt(
+                            'M1040,-20 L985,110 L1020,150 L950,280 L995,330 L930,490 L975,550 L920,680',
+                            [7, 4, 1.8]
+                        ),
+                    },
+                    // Symmetrical top flanking sparks
+                    { id: 'sparkTL', svg: topSpark(120) },
+                    { id: 'sparkTR', svg: topSpark(960) },
+                    // Symmetrical mid sparks
+                    {
+                        id: 'sparkML',
+                        svg: `<polygon points="175,380 179,392 191,396 179,400 175,412 171,400 159,396 171,392" fill="#ffffff" />`,
+                    },
+                    {
+                        id: 'sparkMR',
+                        svg: `<polygon points="905,380 909,392 921,396 909,400 905,412 901,400 889,396 901,392" fill="#ffffff" />`,
+                    },
+                    // Mid-flank lightning pulses
+                    {
+                        id: 'pulseL',
+                        svg: `<path d="M35,820 L65,880 L45,920 L75,990" stroke="${primary}" stroke-width="2.5" fill="none" opacity="0.75" />
+                <circle cx="75" cy="990" r="3" fill="${spark}" />`,
+                    },
+                    {
+                        id: 'pulseR',
+                        svg: `<path d="M1045,820 L1015,880 L1035,920 L1005,990" stroke="${primary}" stroke-width="2.5" fill="none" opacity="0.75" />
+                <circle cx="1005" cy="990" r="3" fill="${spark}" />`,
+                    },
+                    // Bottom lightning bolts
+                    { id: 'bottomBoltL', svg: bolt(bottomBoltLeft, [5, 3, 1.2]) },
+                    { id: 'bottomBoltR', svg: bolt(bottomBoltRight, [5, 3, 1.2]) },
+                    { id: 'groundL', svg: groundSpark(groundSparksLeft) },
+                    { id: 'groundR', svg: groundSpark(groundSparksRight) },
+                ],
+            };
         }
     ),
-    defineFrame(
+    defineLayeredFrame(
         'sonic-boom',
         'Sonic',
         'action',
@@ -260,33 +283,47 @@ export const ACTION_FRAMES: StoryFrameDefinition[] = [
             const topOriginY = hasAttribution ? 60 : 0;
             const bottomOriginY = hasScoreboard ? 1860 : 1920;
 
-            const shockwaveQuarter = (flipX: boolean, flipY: boolean) => `
-                <g transform="scale(${flipX ? -1 : 1}, ${flipY ? -1 : 1})">
-                    <circle cx="0" cy="0" r="130" stroke="${primary}" stroke-width="4.5" fill="none" opacity="0.8" />
-                    <circle cx="0" cy="0" r="210" stroke="${secondary}" stroke-width="2.5" stroke-dasharray="14 10" fill="none" opacity="0.65" />
-                    <polygon points="60,40 100,25 75,70" fill="${primary}" opacity="0.85" />
-                    <polygon points="120,70 160,50 140,95" fill="${secondary}" opacity="0.75" />
-                </g>
-            `;
+            // 4 Symmetrical Sonic Blast Corners. Each quarter is a solid ring, a dashed outer ring and two shards,
+            // split into layers (same draw order) that all pivot on the corner origin, the shockwave centre.
+            const corners = [
+                { id: 'TL', x: 0, y: topOriginY, flipX: false, flipY: false },
+                { id: 'TR', x: 1080, y: topOriginY, flipX: true, flipY: false },
+                { id: 'BL', x: 0, y: bottomOriginY, flipX: false, flipY: true },
+                { id: 'BR', x: 1080, y: bottomOriginY, flipX: true, flipY: true },
+            ];
 
-            return `
-                <!-- 4 Symmetrical Sonic Blast Corners -->
-                <g transform="translate(0, ${topOriginY})">
-                    ${shockwaveQuarter(false, false)}
-                </g>
-                <g transform="translate(1080, ${topOriginY})">
-                    ${shockwaveQuarter(true, false)}
-                </g>
-                <g transform="translate(0, ${bottomOriginY})">
-                    ${shockwaveQuarter(false, true)}
-                </g>
-                <g transform="translate(1080, ${bottomOriginY})">
-                    ${shockwaveQuarter(true, true)}
-                </g>
-            `;
+            return {
+                layers: corners.flatMap(({ id, x, y, flipX, flipY }) => {
+                    const quarter = (inner: string) =>
+                        `<g transform="translate(${x}, ${y})"><g transform="scale(${flipX ? -1 : 1}, ${flipY ? -1 : 1})">${inner}</g></g>`;
+                    const pivot = { x, y };
+                    return [
+                        {
+                            id: `ring${id}`,
+                            svg: quarter(
+                                `<circle cx="0" cy="0" r="130" stroke="${primary}" stroke-width="4.5" fill="none" opacity="0.8" />`
+                            ),
+                            pivot,
+                        },
+                        {
+                            id: `dash${id}`,
+                            svg: quarter(
+                                `<circle cx="0" cy="0" r="210" stroke="${secondary}" stroke-width="2.5" stroke-dasharray="14 10" fill="none" opacity="0.65" />`
+                            ),
+                            pivot,
+                        },
+                        {
+                            id: `shards${id}`,
+                            svg: quarter(`<polygon points="60,40 100,25 75,70" fill="${primary}" opacity="0.85" />
+                    <polygon points="120,70 160,50 140,95" fill="${secondary}" opacity="0.75" />`),
+                            pivot,
+                        },
+                    ];
+                }),
+            };
         }
     ),
-    defineFrame(
+    defineLayeredFrame(
         'speed-demons',
         'Velocity',
         'action',
@@ -320,20 +357,29 @@ export const ACTION_FRAMES: StoryFrameDefinition[] = [
                    <path d="M880,${bottomY} Q950,${bottomY + 15} 1040,${bottomY}" stroke="${c1}" stroke-width="3" fill="none" opacity="0.7" />`
                 : `<path d="M40,${bottomY} Q540,${bottomY + 30} 1040,${bottomY}" stroke="${c1}" stroke-width="3" fill="none" opacity="0.7" />`;
 
-            return `
-                ${topStreams}
-                ${bottomStreams}
-
-                <!-- Symmetrical Left and Right Flank Wind-Tunnel Chevrons -->
-                ${chevronFlank(40, 500, 1)}
-                ${chevronFlank(1040, 500, -1)}
-                ${chevronFlank(40, 1100, 1)}
-                ${chevronFlank(1040, 1100, -1)}
-
-                <!-- Edge Dashed Speed Boundaries -->
-                <line x1="24" y1="260" x2="24" y2="1660" stroke="${c2}" stroke-width="2" stroke-dasharray="24 16" opacity="0.5" />
-                <line x1="1056" y1="260" x2="1056" y2="1660" stroke="${c2}" stroke-width="2" stroke-dasharray="24 16" opacity="0.5" />
-            `;
+            return {
+                layers: [
+                    { id: 'streamsTop', svg: topStreams },
+                    { id: 'streamsBottom', svg: bottomStreams },
+                    // Symmetrical Left and Right Flank Wind-Tunnel Chevrons
+                    { id: 'chevronL1', svg: chevronFlank(40, 500, 1) },
+                    { id: 'chevronR1', svg: chevronFlank(1040, 500, -1) },
+                    { id: 'chevronL2', svg: chevronFlank(40, 1100, 1) },
+                    { id: 'chevronR2', svg: chevronFlank(1040, 1100, -1) },
+                    // Edge Dashed Speed Boundaries. 1400px = 35 whole 24+16 dash periods from a dash start, so
+                    // clipped to the exact line extent they scroll seamlessly by one period.
+                    {
+                        id: 'edgeL',
+                        svg: `<line x1="24" y1="260" x2="24" y2="1660" stroke="${c2}" stroke-width="2" stroke-dasharray="24 16" opacity="0.5" />`,
+                        clip: { x: 20, y: 260, w: 8, h: 1400 },
+                    },
+                    {
+                        id: 'edgeR',
+                        svg: `<line x1="1056" y1="260" x2="1056" y2="1660" stroke="${c2}" stroke-width="2" stroke-dasharray="24 16" opacity="0.5" />`,
+                        clip: { x: 1052, y: 260, w: 8, h: 1400 },
+                    },
+                ],
+            };
         }
     ),
 ];

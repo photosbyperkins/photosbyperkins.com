@@ -2,6 +2,7 @@ import { test, expect, type Page, type Locator } from '@playwright/test';
 import * as path from 'path';
 import * as fs from 'fs';
 import zlib from 'zlib';
+import { collapseSheet, openStudioTab as openStudioTabHelper, type StudioTabName } from './helpers/storyStudio';
 
 /**
  * Build a #photos= v2 hash using grouped album:numbers format + DEFLATE.
@@ -116,43 +117,16 @@ const RESOLUTIONS: ResolutionConfig[] = [
 
 const BASE_SCREENSHOT_DIR = path.resolve(process.cwd(), 'screenshots');
 
-async function openStudioTab(studioModal: Locator, tabName: string, page: Page) {
-    // 1. If mobile popover is already open, use the tab buttons inside it
-    const popoverOpen = await studioModal.locator('.story-mobile-popover').isVisible();
-    const popoverTab = studioModal.locator(`.story-mobile-popover__tab-btn:has-text("${tabName}")`).first();
-    if (popoverOpen && (await popoverTab.isVisible())) {
-        await popoverTab.click();
-        await page.waitForTimeout(350);
-        return;
-    }
-
-    // 2. In mobile portrait, tap the dock button to open the popover on this tab
-    const dockBtn = studioModal
-        .locator(`.story-mobile-dock button[aria-label="${tabName}"], .story-mobile-dock button:has-text("${tabName}")`)
-        .first();
-    if (await dockBtn.isVisible()) {
-        await dockBtn.click();
-        await page.waitForTimeout(400);
-        return;
-    }
-
-    // 3. Desktop or Landscape studio tabs
-    const studioTab = studioModal
-        .locator(`.story-export-modal__studio-tab-btn:has-text("${tabName}"), button[role="tab"]:has-text("${tabName}")`)
-        .first();
-    if (await studioTab.isVisible()) {
-        await studioTab.click();
-        await page.waitForTimeout(350);
-        return;
-    }
+async function openStudioTab(studioModal: Locator, tabName: StudioTabName, page: Page) {
+    // One tab bar in every layout mode; in sheet mode the tap opens the bottom sheet on that tab.
+    await openStudioTabHelper(studioModal, tabName);
+    await page.waitForTimeout(400);
 }
 
-async function closeMobilePopover(studioModal: Locator, page: Page) {
-    const closeBtn = studioModal.locator('.story-mobile-popover__close-btn');
-    if (await closeBtn.isVisible()) {
-        await closeBtn.click();
-        await page.waitForTimeout(300);
-    }
+async function closeSheet(studioModal: Locator, page: Page) {
+    // Collapse the bottom sheet (sheet mode only) so portrait shows the full canvas preview.
+    await collapseSheet(page, studioModal);
+    await page.waitForTimeout(300);
 }
 
 test.describe('Platform Complete Resolution Suite', () => {
@@ -232,8 +206,8 @@ test.describe('Platform Complete Resolution Suite', () => {
                 await expect(studioModal).toBeVisible({ timeout: 10000 });
                 await page.waitForTimeout(600);
 
-                // Close popover if open so portrait shows full canvas hero preview
-                await closeMobilePopover(studioModal, page);
+                // Collapse the sheet if open so portrait shows the full canvas preview
+                await closeSheet(studioModal, page);
 
                 // Ensure 9:16 crop mode
                 const cropBtn = studioModal.locator('button:has-text("9:16")').first();
@@ -254,18 +228,18 @@ test.describe('Platform Complete Resolution Suite', () => {
 
                 // 7. Story Maker (Filters Tab)
                 await openStudioTab(studioModal, 'Filters', page);
-                const vividPill = studioModal
-                    .locator('.story-export-modal__filter-pill:has-text("Vivid"), .story-export-modal__filter-card:has-text("Vivid")')
-                    .first();
-                if (await vividPill.isVisible()) {
-                    await vividPill.click();
+                const vividThumb = studioModal.getByRole('button', { name: 'Photo filter: Vivid', exact: true });
+                if (await vividThumb.isVisible()) {
+                    await vividThumb.click();
                     await page.waitForTimeout(300);
                 }
                 await page.screenshot({ path: path.join(outDir, '07_story_maker_filters.png') });
 
                 // 8. Story Maker (Frames Tab)
                 await openStudioTab(studioModal, 'Frames', page);
-                const frameBtn = studioModal.locator('.story-export-modal__frames-grid button, .story-export-modal__frame-card').nth(1);
+                const framesGrid = studioModal.locator('#story-export-frames-grid');
+                // First non-"None" frame thumb
+                const frameBtn = framesGrid.locator('button.story-thumb:not(:has(.story-thumb__none))').first();
                 if (await frameBtn.isVisible()) {
                     await frameBtn.click();
                     await page.waitForTimeout(400);
@@ -277,7 +251,8 @@ test.describe('Platform Complete Resolution Suite', () => {
                 await page.waitForTimeout(400);
                 await page.screenshot({ path: path.join(outDir, '09_story_maker_badges.png') });
 
-                // Close Story Studio
+                // Close Story Studio (collapse the sheet first so the backdrop doesn't intercept the close button)
+                await closeSheet(studioModal, page);
                 const closeStudio = studioModal
                     .locator('.modal-shell__close-btn, button[aria-label="Close Story Maker"]')
                     .first();

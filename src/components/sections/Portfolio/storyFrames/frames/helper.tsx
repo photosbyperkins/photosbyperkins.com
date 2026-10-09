@@ -1,4 +1,10 @@
-import type { StoryFrameDefinition, StoryFrameId, StoryFrameCategory, StoryFrameContext } from '../types';
+import type {
+    StoryFrameDefinition,
+    StoryFrameId,
+    StoryFrameCategory,
+    StoryFrameContext,
+    StoryFrameLayers,
+} from '../types';
 
 /**
  * Wraps an inner SVG markup string in the standard 1080x1920 SVG container element.
@@ -34,5 +40,30 @@ export function defineFrame(
             />
         ),
         getSvgString: (override, context) => createSvgString(generateInnerSvg(override, context)),
+    };
+}
+
+/** Flattens a layer split back into inner SVG markup (defs first, then layers in draw order). */
+export function joinFrameLayers({ defs, layers }: StoryFrameLayers): string {
+    return (defs ?? '') + layers.map((l) => l.svg).join('');
+}
+
+/**
+ * Defines a frame from a layer generator. The static frame is the joined layers, so the still export,
+ * the DOM preview and the animated layers can never drift apart.
+ */
+export function defineLayeredFrame(
+    id: StoryFrameId,
+    label: string,
+    category: StoryFrameCategory | undefined,
+    vibe: string,
+    signaturePalette: string[],
+    generateLayers: (colorOverride?: string, context?: StoryFrameContext) => StoryFrameLayers
+): StoryFrameDefinition {
+    return {
+        ...defineFrame(id, label, category, vibe, signaturePalette, (override, context) =>
+            joinFrameLayers(generateLayers(override, context))
+        ),
+        getLayers: generateLayers,
     };
 }

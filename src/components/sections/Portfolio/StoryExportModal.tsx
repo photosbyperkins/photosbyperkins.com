@@ -1,44 +1,44 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { AnimatePresence, motion, LayoutGroup } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useCanShare } from '../../../hooks/useCanShare';
-import { useMediaQuery } from '../../../hooks/useMediaQuery';
 import { useReducedMotion } from '../../../hooks/useReducedMotion';
 import { useStoryImageLoader } from '../../../hooks/useStoryImageLoader';
+import { useStoryLayoutMode } from '../../../hooks/useStoryLayoutMode';
 import { useStoryStudio, type StoryStudioTab } from '../../../hooks/useStoryStudio';
 import { parseEventTitle, getPhotoDisplayUrl } from '../../../utils/formatters';
-import type { BadgeOptions } from '../../../utils/storyCanvas';
+import type { BadgeOptions, StoryPhotoFilterId } from '../../../utils/storyCanvas';
+import type { StoryFrameId } from './storyFrames/types';
 import type { EventScore, PhotoInput } from '../../../types';
 import { LAYOUT_HOLD_S, previewLayoutKey } from '../../../utils/story/storyTransitions';
 import ModalShell from '../../ui/ModalShell';
 import { StoryCropper } from './StoryCropper';
 import { StoryBurstCropper } from './StoryBurstCropper';
-import { StoryMobileDock } from './storyMobile/StoryMobileDock';
-import { StoryMobilePopover } from './storyMobile/StoryMobilePopover';
+import { StoryStudioPanel } from './storyStudio/StoryStudioPanel';
+import { StoryExportButton } from './storyStudio/StoryExportButton';
+import type { StudioTabDef } from './storyStudio/StoryTabBar';
 import {
-    Check,
-    Download,
     RotateCcw,
-    Share2,
     StoryLayoutTabIcon,
     StoryFiltersTabIcon,
     StoryFramesTabIcon,
     StoryBadgesTabIcon,
-    type IconProps,
 } from '../../ui/icons';
 import { StoryLayoutTab } from './storyTabs/StoryLayoutTab';
 import { StoryFiltersTab } from './storyTabs/StoryFiltersTab';
 import { StoryFramesTab } from './storyTabs/StoryFramesTab';
 import { StoryBadgesTab } from './storyTabs/StoryBadgesTab';
 import { StorySvgFilters } from './StorySvgFilters';
-import { DURATION, EASE_OUT_EXPO, SPRING_SNAPPY } from '../../../utils/motion';
 import '../../../styles/_story-export.scss';
 
-const STUDIO_TABS: Array<{ id: StoryStudioTab; label: string; icon: React.FC<IconProps> }> = [
+const STUDIO_TABS: StudioTabDef[] = [
     { id: 'layout', label: 'Layout', icon: StoryLayoutTabIcon },
     { id: 'filters', label: 'Filters', icon: StoryFiltersTabIcon },
     { id: 'frames', label: 'Frames', icon: StoryFramesTabIcon },
     { id: 'badges', label: 'Badges', icon: StoryBadgesTabIcon },
 ];
+
+/** Focus inside these handles â†/â†’ itself, so the modal-wide tab shortcut stays out of the way. */
+const ARROW_KEY_OWNERS = '[role="tablist"], .story-thumbs, [data-story-popover]';
 
 interface StoryExportModalProps {
     isOpen: boolean;
@@ -60,14 +60,9 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
 }) => {
     const canShare = useCanShare();
     const prefersReducedMotion = useReducedMotion();
-    const isMobileWidth = useMediaQuery('(max-width: 860px)');
-    const isShortHeight = useMediaQuery('(max-height: 550px)');
-    const isLandscape = useMediaQuery('(orientation: landscape)');
-
-    const isLandscapeMobile = isLandscape && (isShortHeight || isMobileWidth);
-    const isPortraitMobile = isMobileWidth && !isLandscapeMobile;
-    const isMobile = isPortraitMobile || isLandscapeMobile;
-    const [isMobilePopoverOpen, setIsMobilePopoverOpen] = useState(false);
+    const layoutMode = useStoryLayoutMode();
+    const isSheetMode = layoutMode === 'sheet';
+    const [isSheetOpen, setIsSheetOpen] = useState(false);
 
     const photoRecord = useMemo(() => (typeof photo === 'string' ? { original: photo, thumb: photo } : photo), [photo]);
 
@@ -132,21 +127,16 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         setActiveFilterId,
         filterStrength,
         setFilterStrength,
-        selectedFilterCategory,
-        setSelectedFilterCategory,
-        filterCategoryCounts,
-        displayedFilters,
+        recentFilterIds,
         activeFrameId,
         setActiveFrameId,
-        selectedFrameCategory,
-        setSelectedFrameCategory,
         frameColorChoice,
         setFrameColorChoice,
         frameCustomColor,
         setFrameCustomColor,
         effectiveFrameColor,
-        displayedFrames,
-        categoryCounts,
+        availableFrames,
+        recentFrameIds,
         frameContext,
         isExporting,
         isDownloaded,
@@ -158,6 +148,12 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         handleExportAction,
         activePhotoIndex,
         handleSelectPhotoIndex,
+        isFrameAnimated,
+        setIsFrameAnimated,
+        videoSupport,
+        exportProgress,
+        cancelExport,
+        hasPendingVideo,
     } = useStoryStudio({
         photoObj,
         naturalDimensions,
@@ -175,21 +171,39 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         onClose,
     });
 
+    const videoSupported = videoSupport === null ? null : Boolean(videoSupport);
+    const studioTabs = STUDIO_TABS;
+
+    // Desktop hover / keyboard-focus previews from the Frames / Filters browsers. They only change what
+    // the preview shows (never the export, recents or the downloaded state), and only while their tab is open.
+    const [hoverFrameId, setHoverFrameId] = useState<StoryFrameId | null>(null);
+    const [hoverFilterId, setHoverFilterId] = useState<StoryPhotoFilterId | null>(null);
+    const previewFrameId = activeStudioTab === 'frames' ? hoverFrameId : null;
+    const previewFilterId = activeStudioTab === 'filters' ? hoverFilterId : null;
+    const shownFrameId = previewFrameId ?? activeFrameId;
+    const shownFilterId = previewFilterId ?? activeFilterId;
+    // A previewed frame is shown still; the selected one keeps animating (its assets stay loaded).
+    const shownFrameAnimated = isFrameAnimated && shownFrameId === activeFrameId;
+
     const handleSelectEmptyBurstPanel = useCallback(
         (panelIdx: number) => {
             setActiveStudioTab('layout');
             setBurstActiveStep(panelIdx);
-            if (isPortraitMobile) {
-                setIsMobilePopoverOpen(true);
+            if (isSheetMode) {
+                setIsSheetOpen(true);
             }
         },
-        [setActiveStudioTab, setBurstActiveStep, isPortraitMobile]
+        [setActiveStudioTab, setBurstActiveStep, isSheetMode]
     );
 
     const activePhotoSrc = photoObj.burst?.frameSources?.[activePhotoIndex] || originalSrc;
     const activePhotoThumb = photoObj.burst?.frameThumbs?.[activePhotoIndex] || activePhotoSrc;
     const activePhotoDisplay = getPhotoDisplayUrl(activePhotoSrc);
     const activeLoadedImage = (loadedBurstImages && loadedBurstImages[activePhotoIndex]) || loadedImage;
+    // Frames / Filters thumbs crop around the photo's subject, like the preview does
+    const thumbFocusX = photoObj.burst?.frameFocusX?.[activePhotoIndex] ?? photoObj.focusX ?? 0.5;
+    const thumbFocusY = photoObj.burst?.frameFocusY?.[activePhotoIndex] ?? photoObj.focusY ?? 0.5;
+    const thumbFocusPosition = `${(thumbFocusX * 100).toFixed(1)}% ${(thumbFocusY * 100).toFixed(1)}%`;
 
     const [prevActivePhotoIndex, setPrevActivePhotoIndex] = useState(activePhotoIndex);
     if (activePhotoIndex !== prevActivePhotoIndex) {
@@ -219,18 +233,23 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         if (!isOpen) return;
 
         const handleKeyDown = (e: KeyboardEvent) => {
+            // Already handled (tab bar / chip row roving focus)
+            if (e.defaultPrevented) return;
+            const active = document.activeElement;
             // Ignore keystrokes if focused inside an input, textarea, or select
             if (
-                document.activeElement instanceof HTMLInputElement ||
-                document.activeElement instanceof HTMLTextAreaElement ||
-                document.activeElement instanceof HTMLSelectElement
+                active instanceof HTMLInputElement ||
+                active instanceof HTMLTextAreaElement ||
+                active instanceof HTMLSelectElement
             ) {
                 return;
             }
+            // ...or inside controls that use arrow keys themselves (chips, filmstrip, popovers)
+            if (active instanceof Element && active.closest(ARROW_KEY_OWNERS)) return;
 
             if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
                 e.preventDefault();
-                const tabIds: StoryStudioTab[] = ['layout', 'filters', 'frames', 'badges'];
+                const tabIds: StoryStudioTab[] = studioTabs.map((t) => t.id);
                 const currentIndex = tabIds.indexOf(activeStudioTab);
                 if (currentIndex === -1) return;
                 const offset = e.key === 'ArrowLeft' ? -1 : 1;
@@ -241,30 +260,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
 
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isOpen, activeStudioTab, setActiveStudioTab]);
-
-    // Close mobile popover when pressing Escape
-    useEffect(() => {
-        if (!isOpen || !isMobile || !isMobilePopoverOpen) return;
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') {
-                e.stopPropagation();
-                e.stopImmediatePropagation();
-                setIsMobilePopoverOpen(false);
-            }
-        };
-        window.addEventListener('keydown', handleKeyDown, true);
-        return () => window.removeEventListener('keydown', handleKeyDown, true);
-    }, [isOpen, isMobile, isMobilePopoverOpen]);
-
-    const handleDockTabClick = (tabId: StoryStudioTab) => {
-        if (isMobilePopoverOpen && activeStudioTab === tabId) {
-            setIsMobilePopoverOpen(false);
-        } else {
-            setActiveStudioTab(tabId);
-            setIsMobilePopoverOpen(true);
-        }
-    };
+    }, [isOpen, activeStudioTab, setActiveStudioTab, studioTabs]);
 
     const targetBurstCount = burstPanelCount ?? (photoObj.burst?.total === 2 ? 2 : 3);
     // Which preview layout is showing; a change triggers the SOLO / DUET / TRIPTYCH slide transition.
@@ -296,90 +292,40 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
         });
     }, [photoObj.burst, burstSelectedIndices, targetBurstCount]);
 
-    const footer = (
-        <div className="story-export-modal__footer-container">
-            <AnimatePresence>
-                {statusToast && (
-                    <motion.div
-                        key="story-toast"
-                        className={`story-export-modal__toast ${
-                            statusToast.toLowerCase().includes('fail') ||
-                            statusToast.toLowerCase().includes('unavailable') ||
-                            statusToast.toLowerCase().includes('lacks') ||
-                            statusToast.toLowerCase().includes('error')
-                                ? 'story-export-modal__toast--error'
-                                : ''
-                        }`}
-                        role="status"
-                        aria-live="polite"
-                        initial={{ opacity: 0, y: 4, scale: 0.98 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 4, scale: 0.98, transition: { duration: DURATION.instant } }}
-                        transition={{ duration: DURATION.fast, ease: EASE_OUT_EXPO }}
-                    >
-                        {statusToast}
-                    </motion.div>
-                )}
-            </AnimatePresence>
-            <button
-                className={`story-export-modal__primary-action ${
-                    isDownloaded ? 'is-done story-export-modal__primary-action--done' : ''
-                }`}
-                onClick={handleExportAction}
-                disabled={
-                    isExporting ||
-                    isTainted ||
-                    (activeMode === 'burst'
-                        ? burstLoading ||
-                          (loadedBurstImages?.length ?? 0) < targetBurstCount ||
-                          validBurstCount < targetBurstCount
-                        : !activeLoadedImage) ||
-                    isDownloaded
-                }
-                title={
-                    isDownloaded
-                        ? canShare
-                            ? 'Story Card Shared'
-                            : 'Story Card Downloaded'
-                        : isTainted
-                          ? 'Export unavailable: Image lacks cross-origin permissions.'
-                          : activeMode === 'burst' && validBurstCount < targetBurstCount
-                            ? `Pick ${targetBurstCount - validBurstCount} more ${
-                                  burst?.isTriptych ? 'photo' : 'frame'
-                              }${targetBurstCount - validBurstCount === 1 ? '' : 's'} to download`
-                            : canShare
-                              ? 'Share Story Card'
-                              : 'Download Story Card'
-                }
-                aria-label={
-                    isDownloaded
-                        ? canShare
-                            ? 'Story Card Shared'
-                            : 'Story Card Downloaded'
-                        : isTainted
-                          ? 'Export unavailable: Image lacks cross-origin permissions.'
-                          : activeMode === 'burst' && validBurstCount < targetBurstCount
-                            ? `Pick ${targetBurstCount - validBurstCount} more ${
-                                  burst?.isTriptych ? 'photo' : 'frame'
-                              }${targetBurstCount - validBurstCount === 1 ? '' : 's'} to download`
-                            : canShare
-                              ? 'Share Story Card'
-                              : 'Download Story Card'
-                }
-            >
-                {isDownloaded ? (
-                    <>
-                        <Check size={18} />
-                        <span>{canShare ? 'Shared' : 'Downloaded'}</span>
-                    </>
-                ) : (
-                    <>
-                        {canShare ? <Share2 size={18} /> : <Download size={18} />}
-                        <span>{canShare ? 'Share Story Card' : 'Download Story Card'}</span>
-                    </>
-                )}
-            </button>
-        </div>
+    const isExportBlocked =
+        isTainted ||
+        (activeMode === 'burst'
+            ? burstLoading || (loadedBurstImages?.length ?? 0) < targetBurstCount || validBurstCount < targetBurstCount
+            : !activeLoadedImage);
+    const isRenderingVideo = exportProgress !== null;
+    const exportActionLabel = canShare ? 'Share Story Card' : 'Download Story Card';
+    const exportDoneLabel = canShare ? 'Story Card Shared' : 'Story Card Downloaded';
+    const primaryActionLabel = isDownloaded
+        ? exportDoneLabel
+        : isTainted
+          ? 'Export unavailable: Image lacks cross-origin permissions.'
+          : activeMode === 'burst' && validBurstCount < targetBurstCount
+            ? `Pick ${targetBurstCount - validBurstCount} more ${
+                  burst?.isTriptych ? 'photo' : 'frame'
+              }${targetBurstCount - validBurstCount === 1 ? '' : 's'} to download`
+            : isRenderingVideo
+              ? `Rendering video, ${exportProgress}%`
+              : hasPendingVideo && canShare
+                ? 'Story Card ready: share'
+                : exportActionLabel;
+
+    const exportButton = (
+        <StoryExportButton
+            canShare={canShare}
+            isDownloaded={isDownloaded}
+            isExporting={isExporting}
+            isBlocked={isExportBlocked}
+            progress={exportProgress}
+            accessibleLabel={primaryActionLabel}
+            statusToast={statusToast}
+            onExport={handleExportAction}
+            onCancel={cancelExport}
+        />
     );
 
     const headerActions = !isDefaultConfig ? (
@@ -433,11 +379,12 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                             onPanChange={handleBurstPanChange}
                             badges={effectiveBadges}
                             theme={cardTheme}
-                            frameId={activeFrameId}
+                            frameId={shownFrameId}
                             frameColorOverride={effectiveFrameColor}
                             frameContext={frameContext}
+                            isFrameAnimated={shownFrameAnimated}
                             exif={photoObj.exif}
-                            filterId={activeFilterId}
+                            filterId={shownFilterId}
                             filterStrength={filterStrength}
                             panelCount={targetBurstCount}
                             activeStep={burstActiveStep}
@@ -456,14 +403,15 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                             paddedConfig={paddedConfig}
                             badges={effectiveBadges}
                             theme={cardTheme}
-                            frameId={activeFrameId}
+                            frameId={shownFrameId}
                             frameColorOverride={effectiveFrameColor}
+                            isFrameAnimated={shownFrameAnimated}
                             exif={
                                 photoObj.burst?.frameSources?.[activePhotoIndex] === photoObj.original
                                     ? photoObj.exif
                                     : undefined
                             }
-                            filterId={activeFilterId}
+                            filterId={shownFilterId}
                             filterStrength={filterStrength}
                             onChange={handleCropChange}
                             onImageLoaded={(w, h) =>
@@ -531,10 +479,8 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                     setFilterStrength={setFilterStrength}
                     previewImageUrl={withBuild(activePhotoThumb || activePhotoDisplay)}
                     setIsDownloaded={setIsDownloaded}
-                    selectedFilterCategory={selectedFilterCategory}
-                    setSelectedFilterCategory={setSelectedFilterCategory}
-                    categoryCounts={filterCategoryCounts}
-                    displayedFilters={displayedFilters}
+                    recentFilterIds={recentFilterIds}
+                    onPreviewFilter={setHoverFilterId}
                 />
             )}
 
@@ -543,10 +489,8 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                 <StoryFramesTab
                     activeFrameId={activeFrameId}
                     setActiveFrameId={setActiveFrameId}
-                    selectedFrameCategory={selectedFrameCategory}
-                    setSelectedFrameCategory={setSelectedFrameCategory}
-                    categoryCounts={categoryCounts}
-                    displayedFrames={displayedFrames}
+                    frames={availableFrames}
+                    recentFrameIds={recentFrameIds}
                     frameColorChoice={frameColorChoice}
                     setFrameColorChoice={setFrameColorChoice}
                     frameCustomColor={frameCustomColor}
@@ -554,6 +498,11 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                     effectiveFrameColor={effectiveFrameColor}
                     frameContext={frameContext}
                     setIsDownloaded={setIsDownloaded}
+                    isFrameAnimated={isFrameAnimated}
+                    setIsFrameAnimated={setIsFrameAnimated}
+                    videoSupported={videoSupported}
+                    previewImageUrl={withBuild(activePhotoThumb || activePhotoDisplay)}
+                    onPreviewFrame={setHoverFrameId}
                 />
             )}
 
@@ -579,165 +528,36 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
             title="STORY MAKER"
             ariaLabel="Story Maker"
             maxWidth="wide"
-            className={`story-export-modal ${isPortraitMobile ? 'story-export-modal--mobile' : ''} ${
-                isLandscapeMobile ? 'story-export-modal--landscape' : ''
-            }`}
+            className={`story-export-modal story-export-modal--${layoutMode}`}
             headerActions={headerActions}
-            footer={footer}
         >
             <StorySvgFilters filterStrength={filterStrength} />
-            {isPortraitMobile ? (
-                <div
-                    className="story-export-modal__mobile-stage"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        if (isMobilePopoverOpen) setIsMobilePopoverOpen(false);
-                    }}
-                    onPointerDown={(e) => e.stopPropagation()}
-                >
-                    {/* Visual 9:16 Canvas Hero Preview */}
-                    <div className="story-export-modal__mobile-hero">{previewContent}</div>
+            <div
+                className={`story-studio story-studio--${layoutMode} ${
+                    layoutMode === 'sheet' && isSheetOpen ? 'story-studio--sheet-open' : ''
+                }`}
+                style={{ '--story-thumb-focus': thumbFocusPosition } as React.CSSProperties}
+            >
+                <div className="story-studio__layout">
+                    {/* Visual 9:16 canvas preview, sized to the space the mode leaves for it */}
+                    <div className="story-studio__stage">
+                        <div className="story-studio__preview">{previewContent}</div>
+                    </div>
 
-                    {/* Floating Quick-Tools Capsule Dock */}
-                    <StoryMobileDock
-                        tabs={STUDIO_TABS}
+                    {/* Tab bar â†’ tab content â†’ Download / Share (inline, or a bottom sheet in sheet mode) */}
+                    <StoryStudioPanel
+                        mode={layoutMode}
+                        tabs={studioTabs}
                         activeTab={activeStudioTab}
-                        isOpen={isMobilePopoverOpen}
-                        onTabClick={handleDockTabClick}
-                    />
-
-                    {/* Pop-over Editor Drawer */}
-                    <StoryMobilePopover
-                        isOpen={isMobilePopoverOpen}
-                        onClose={() => setIsMobilePopoverOpen(false)}
-                        activeTab={activeStudioTab}
-                        tabs={STUDIO_TABS}
                         onSelectTab={setActiveStudioTab}
+                        isSheetOpen={isSheetOpen}
+                        onSheetOpenChange={setIsSheetOpen}
+                        footer={exportButton}
                     >
                         {activeTabPanelContent}
-                    </StoryMobilePopover>
+                    </StoryStudioPanel>
                 </div>
-            ) : isLandscapeMobile ? (
-                <div
-                    className="story-export-modal__landscape-stage"
-                    onClick={(e) => e.stopPropagation()}
-                    onPointerDown={(e) => e.stopPropagation()}
-                >
-                    {/* Visual 9:16 Canvas Preview filling height on the left */}
-                    <div className="story-export-modal__landscape-preview">{previewContent}</div>
-
-                    {/* Studio Control Tabs and Panel on the right */}
-                    <div className="story-export-modal__landscape-controls">
-                        <LayoutGroup id="storyLandscapeTabs">
-                            <div
-                                className="story-export-modal__tab-nav story-export-modal__studio-tabs story-export-modal__landscape-tabs"
-                                role="tablist"
-                                aria-label="Story Studio Navigation"
-                            >
-                                {STUDIO_TABS.map((tab) => {
-                                    const IconComponent = tab.icon;
-                                    const isActive = activeStudioTab === tab.id;
-                                    return (
-                                        <button
-                                            key={tab.id}
-                                            type="button"
-                                            role="tab"
-                                            aria-selected={isActive}
-                                            aria-controls={`tabpanel-${tab.id}`}
-                                            id={`landscape-tab-${tab.id}`}
-                                            className={`story-export-modal__tab-btn story-export-modal__studio-tab-btn ${
-                                                isActive
-                                                    ? 'active story-export-modal__tab-btn--active story-export-modal__studio-tab-btn--active'
-                                                    : ''
-                                            }`}
-                                            onClick={() => setActiveStudioTab(tab.id)}
-                                        >
-                                            {isActive && (
-                                                <motion.span
-                                                    className="portfolio__segment-pill story-export-modal__studio-tab-pill"
-                                                    layoutId="landscapeActiveTabPill"
-                                                    transition={SPRING_SNAPPY}
-                                                />
-                                            )}
-                                            <IconComponent size={16} className="story-export-modal__studio-tab-icon" />
-                                            <span className="story-export-modal__tab-label story-export-modal__studio-tab-label">
-                                                {tab.label}
-                                            </span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </LayoutGroup>
-
-                        <div
-                            className="story-export-modal__tab-panel story-export-modal__landscape-tab-panel"
-                            role="tabpanel"
-                            key={`landscape-panel-${activeStudioTab}`}
-                        >
-                            {activeTabPanelContent}
-                        </div>
-                    </div>
-                </div>
-            ) : (
-                <div
-                    className="story-export-modal__body"
-                    onClick={(e) => e.stopPropagation()}
-                    onPointerDown={(e) => e.stopPropagation()}
-                >
-                    {/* Visual Canvas Stage / Preview Workspace */}
-                    <div className="story-export-modal__preview-pane">
-                        <div className="story-export-modal__viewport-card">{previewContent}</div>
-                    </div>
-
-                    {/* Studio Control Tabs Panel */}
-                    <div className="story-export-modal__controls-pane">
-                        <LayoutGroup id="storyStudioTabs">
-                            <div
-                                className="story-export-modal__tab-nav story-export-modal__studio-tabs"
-                                role="tablist"
-                                aria-label="Story Studio Navigation"
-                            >
-                                {STUDIO_TABS.map((tab) => {
-                                    const IconComponent = tab.icon;
-                                    const isActive = activeStudioTab === tab.id;
-                                    return (
-                                        <button
-                                            key={tab.id}
-                                            type="button"
-                                            role="tab"
-                                            aria-selected={isActive}
-                                            aria-controls={`tabpanel-${tab.id}`}
-                                            id={`tab-${tab.id}`}
-                                            className={`story-export-modal__tab-btn story-export-modal__studio-tab-btn ${
-                                                isActive
-                                                    ? 'active story-export-modal__tab-btn--active story-export-modal__studio-tab-btn--active'
-                                                    : ''
-                                            }`}
-                                            onClick={() => setActiveStudioTab(tab.id)}
-                                        >
-                                            {isActive && (
-                                                <motion.span
-                                                    className="portfolio__segment-pill story-export-modal__studio-tab-pill"
-                                                    layoutId="studioActiveTabPill"
-                                                    transition={SPRING_SNAPPY}
-                                                />
-                                            )}
-                                            <IconComponent size={18} className="story-export-modal__studio-tab-icon" />
-                                            <span className="story-export-modal__tab-label story-export-modal__studio-tab-label">
-                                                {tab.label}
-                                            </span>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        </LayoutGroup>
-
-                        <div className="story-export-modal__tab-panel" role="tabpanel" key={`panel-${activeStudioTab}`}>
-                            {activeTabPanelContent}
-                        </div>
-                    </div>
-                </div>
-            )}
+            </div>
         </ModalShell>
     );
 };

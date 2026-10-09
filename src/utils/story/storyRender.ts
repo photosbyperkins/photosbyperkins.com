@@ -1,6 +1,5 @@
 import {
     STORY_WIDTH,
-    STORY_HEIGHT,
     hexToRgba,
     isColorLight,
     getStoryFilterCss,
@@ -10,101 +9,122 @@ import {
 import type { StoryRenderConfig, BurstStoryOptions, StoryPhotoFilterId } from './storyConstants';
 import { calculateBurstPanelCrop, calculateCardCornerRadii, getCardRectFromCrop } from './storyMath';
 import { resolveBadgeCoords } from './badgePlacement';
-import {
-    drawRoundRect,
-    drawCameraLogoIcon,
-    drawStoryFrameToCanvas,
-    applyFastBlurAndAdjust,
-    applyStoryFilterToImageData,
-    drawImageWithStoryFilter,
-} from './storyDraw';
-import type { StoryFrameContext } from '../../components/sections/Portfolio/storyFrames/types';
+import { drawRoundRect, drawCameraLogoIcon, drawImageWithStoryFilter } from './storyDraw';
 import { formatTeamName } from '../formatters';
+import { FINAL_ANIM_STATE, getStoryLayoutKind, isFinalAnimState } from './storyAnimation';
+import type { StoryAnimState, StoryPanelAnim } from './storyAnimation';
+import { getImageNaturalSize, getStoryTargetSize, prepareStoryAssets } from './storyAssets';
+import type { StoryAssets, StoryImageInput, StoryImageSource } from './storyAssets';
+import { drawFrameMotion, drawFrameMotionFallback } from './storyFrameMotionDraw';
 
 /**
  * Renders the story image onto an HTML5 Canvas.
  */
 export async function renderStoryToCanvas(
-    img: HTMLImageElement | HTMLCanvasElement | (HTMLImageElement | HTMLCanvasElement | null | undefined)[],
+    img: StoryImageInput,
     config: StoryRenderConfig,
     targetCanvas?: HTMLCanvasElement
 ): Promise<HTMLCanvasElement> {
-    // Ensure all custom web fonts (e.g. Outfit, Barlow Condensed) are fully loaded before rasterization
-    if (typeof document !== 'undefined' && 'fonts' in document && document.fonts?.ready) {
-        try {
-            await document.fonts.ready;
-        } catch {
-            // Ignore font loading errors, proceed with fallback fonts
-        }
-    }
-
     const canvas = targetCanvas || document.createElement('canvas');
 
-    // Parse target resolution
-    let targetW = STORY_WIDTH;
-    let targetH = STORY_HEIGHT;
-    if (config.resolution === '1440x2560') {
-        targetW = 1440;
-        targetH = 2560;
-    } else if (config.resolution === '2160x3840') {
-        targetW = 2160;
-        targetH = 3840;
-    }
-
+    const { targetW, targetH } = getStoryTargetSize(config.resolution);
     canvas.width = targetW;
     canvas.height = targetH;
 
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) throw new Error('Could not get 2D canvas context');
 
+    // Async work (fonts, frosted background, frame rasterization) happens once up front
+    const assets = await prepareStoryAssets(img, config, { targetW, targetH });
+    if (!assets) return canvas;
+
+    drawStoryScene(ctx, assets, config);
+    return canvas;
+}
+
+/**
+ * Draws one complete story frame synchronously from prepared assets.
+ *
+ * `anim` describes an in-progress animation (see storyAnimation.ts); the default `FINAL_ANIM_STATE`
+ * draws the static design, which is exactly what the still export produces.
+ */
+export function drawStoryScene(
+    ctx: CanvasRenderingContext2D,
+    assets: StoryAssets,
+    config: StoryRenderConfig,
+    anim: StoryAnimState = FINAL_ANIM_STATE
+): void {
+    const { targetW, targetH } = assets;
+
     // Enable high quality image smoothing
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
 
-    const resScale = targetW / STORY_WIDTH;
-    const imageList: (HTMLImageElement | HTMLCanvasElement | null | undefined)[] = Array.isArray(img) ? img : [img];
-    const primaryImg = imageList.find((i): i is HTMLImageElement | HTMLCanvasElement => Boolean(i));
-    if (!primaryImg && config.mode !== 'burst') return canvas;
-
-    const naturalW = primaryImg ? ('naturalWidth' in primaryImg ? primaryImg.naturalWidth : primaryImg.width) : 1080;
-    const naturalH = primaryImg ? ('naturalHeight' in primaryImg ? primaryImg.naturalHeight : primaryImg.height) : 1920;
-
-    if (!naturalW || !naturalH) {
-        return canvas;
+    // Animated frames may fade / move layers, so start from a clean black frame each time
+    if (!isFinalAnimState(anim)) {
+        ctx.save();
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, targetW, targetH);
+        ctx.restore();
     }
 
-    // Resolve optional photo filter with strength
-    const filterCss = config.filterId ? getStoryFilterCss(config.filterId, config.filterStrength ?? 1.0) : '';
+    const resScale = targetW / STORY_WIDTH;
+    const imageList = assets.images;
+    const primaryImg = imageList.find((i): i is StoryImageSource => Boolean(i));
+    const rawPrimaryImg = assets.rawImages.find((i): i is StoryImageSource => Boolean(i)) ?? primaryImg;
+    if (!primaryImg && config.mode !== 'burst') return;
+
+    const naturalW = primaryImg ? getImageNaturalSize(primaryImg).w : 1080;
+    const naturalH = primaryImg ? getImageNaturalSize(primaryImg).h : 1920;
+
+    if (!naturalW || !naturalH) {
+        return;
+    }
+
+    // Resolve optional photo filter with strength. When the filter is baked into the assets, drawing
+    // the (already graded) images must not apply it again; backgrounds still grade the raw image.
+    const rawFilterCss = config.filterId ? getStoryFilterCss(config.filterId, config.filterStrength ?? 1.0) : '';
+    const filterCss = assets.filterBaked ? '' : rawFilterCss;
+    const drawFilterId: StoryPhotoFilterId | undefined = assets.filterBaked ? undefined : config.filterId;
 
     // ==========================================
     // 1. RENDER MODE: BURST (3-PANEL STACK)
     // ==========================================
     if (config.mode === 'burst') {
-        renderBurstPanels(ctx, imageList, config, targetW, targetH, resScale, filterCss);
+        renderBurstPanels(
+            ctx,
+            imageList,
+            assets.filterBaked ? { ...config, filterId: undefined } : config,
+            targetW,
+            targetH,
+            resScale,
+            filterCss,
+            { panelAnims: anim.panels, glowImages: assets.rawImages }
+        );
     }
     // ==========================================
     // 2. RENDER MODE: SOLO (UNIFIED), CROP & PADDED (requires primaryImg)
     // ==========================================
     else if (primaryImg) {
         const isSolo = config.mode === 'solo' || !config.mode;
-        const isLegacyPadded = config.mode === 'padded';
 
         // In solo mode, determine whether photo is padded (zoomed out) or full-bleed cover (zoom >= 1.0)
-        const isPadded =
-            isLegacyPadded ||
-            (isSolo &&
-                Boolean(
-                    config.crop && (config.crop.zoom < 0.999 || config.crop.width > 1.001 || config.crop.height > 1.001)
-                ));
+        const isPadded = getStoryLayoutKind(config) === 'padded';
 
         if (!isPadded) {
             // Full-bleed 9:16 cover rendering (Zoom >= 1.0 or legacy crop)
-            const { crop } = config;
+            const crop = anim.crop ?? config.crop;
             const sx = Math.max(0, crop.x * naturalW);
             const sy = Math.max(0, crop.y * naturalH);
             const sw = Math.min(naturalW - sx, crop.width * naturalW);
             const sh = Math.min(naturalH - sy, crop.height * naturalH);
 
+            const fading = anim.photoOpacity !== undefined;
+            if (fading) {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, Math.min(1, anim.photoOpacity!));
+            }
             drawImageWithStoryFilter(
                 ctx,
                 primaryImg,
@@ -116,10 +136,11 @@ export async function renderStoryToCanvas(
                 0,
                 targetW,
                 targetH,
-                config.filterId,
+                drawFilterId,
                 config.filterStrength ?? 1.0,
                 filterCss
             );
+            if (fading) ctx.restore();
         } else {
             const padded = config.padded || {
                 style: 'frosted',
@@ -129,59 +150,39 @@ export async function renderStoryToCanvas(
             };
             const cornerRadius = (padded.cardCornerRadius || 24) * (targetW / STORY_WIDTH);
 
+            // Optional slow background scale (around the frame centre) for animated stories
+            const bgScale = anim.background?.scale;
+            if (bgScale !== undefined) {
+                ctx.save();
+                ctx.translate(targetW / 2, targetH / 2);
+                ctx.scale(bgScale, bgScale);
+                ctx.translate(-targetW / 2, -targetH / 2);
+            }
             // --- A. Background Rendering ---
             const isFrosted = padded.style === 'frosted' || padded.style === 'glass';
             if (isFrosted) {
-                // Draw scaled background image
-                const bgScale = Math.max(targetW / naturalW, targetH / naturalH);
-                const bgW = naturalW * bgScale;
-                const bgH = naturalH * bgScale;
-                const bgX = (targetW - bgW) / 2;
-                const bgY = (targetH - bgH) / 2;
+                if (assets.frostedBackground) {
+                    // Pre-blurred, graded background prepared once in prepareStoryAssets
+                    ctx.save();
+                    ctx.imageSmoothingEnabled = true;
+                    ctx.imageSmoothingQuality = 'high';
+                    ctx.drawImage(assets.frostedBackground, 0, 0, targetW, targetH);
+                    ctx.restore();
+                } else if (rawPrimaryImg) {
+                    // Draw scaled background image with a CSS blur (pixel path unavailable)
+                    const { w: rawW, h: rawH } = getImageNaturalSize(rawPrimaryImg);
+                    const coverScale = Math.max(targetW / rawW, targetH / rawH);
+                    const bgW = rawW * coverScale;
+                    const bgH = rawH * coverScale;
+                    const bgX = (targetW - bgW) / 2;
+                    const bgY = (targetH - bgH) / 2;
 
-                let blurred = false;
-                if (typeof document !== 'undefined') {
-                    try {
-                        const sw = 64;
-                        const sh = Math.round(64 * (targetH / targetW));
-                        const smallCanvas = document.createElement('canvas');
-                        smallCanvas.width = sw;
-                        smallCanvas.height = sh;
-                        const sCtx = smallCanvas.getContext('2d', { willReadFrequently: true });
-                        if (sCtx && typeof sCtx.getImageData === 'function') {
-                            const sScale = Math.max(sw / naturalW, sh / naturalH);
-                            const sW = naturalW * sScale;
-                            const sH = naturalH * sScale;
-                            const sX = (sw - sW) / 2;
-                            const sY = (sh - sH) / 2;
-                            sCtx.drawImage(primaryImg, sX, sY, sW, sH);
-
-                            const imgData = sCtx.getImageData(0, 0, sw, sh);
-                            if (config.filterId && config.filterId !== 'none') {
-                                applyStoryFilterToImageData(imgData, config.filterId, config.filterStrength ?? 1.0);
-                            }
-                            applyFastBlurAndAdjust(imgData, 4, 1.8, 0.65);
-                            sCtx.putImageData(imgData, 0, 0);
-
-                            ctx.save();
-                            ctx.imageSmoothingEnabled = true;
-                            ctx.imageSmoothingQuality = 'high';
-                            ctx.drawImage(smallCanvas, 0, 0, targetW, targetH);
-                            ctx.restore();
-                            blurred = true;
-                        }
-                    } catch {
-                        blurred = false;
-                    }
-                }
-
-                if (!blurred) {
                     ctx.save();
                     if ('filter' in ctx) {
                         const blurEffect = `blur(${Math.round(48 * (targetW / STORY_WIDTH))}px) saturate(180%) brightness(0.65)`;
-                        ctx.filter = filterCss ? `${blurEffect} ${filterCss}` : blurEffect;
+                        ctx.filter = rawFilterCss ? `${blurEffect} ${rawFilterCss}` : blurEffect;
                     }
-                    ctx.drawImage(primaryImg, bgX, bgY, bgW, bgH);
+                    ctx.drawImage(rawPrimaryImg, bgX, bgY, bgW, bgH);
                     ctx.restore();
                 }
 
@@ -202,6 +203,8 @@ export async function renderStoryToCanvas(
                 ctx.fillStyle = grad;
                 ctx.fillRect(0, 0, targetW, targetH);
             }
+
+            if (bgScale !== undefined) ctx.restore();
 
             // --- B. Foreground Card Rendering ---
             let cardX: number;
@@ -243,6 +246,18 @@ export async function renderStoryToCanvas(
             );
             const isCustomBgLight = Boolean(padded.customColor && isColorLight(padded.customColor));
 
+            // Optional card transform (scale around its centre, vertical drift, fade) for animated stories
+            const cardAnim = anim.card;
+            if (cardAnim) {
+                const cx = cardX + cardW / 2;
+                const cy = cardY + cardH / 2;
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, Math.min(1, cardAnim.opacity));
+                ctx.translate(cx, cy + cardAnim.dy * targetH);
+                ctx.scale(cardAnim.scale, cardAnim.scale);
+                ctx.translate(-cx, -cy);
+            }
+
             // Render Drop Shadow
             ctx.save();
             ctx.shadowColor = isCustomBgLight ? 'rgba(0, 0, 0, 0.25)' : 'rgba(0, 0, 0, 0.55)';
@@ -270,7 +285,7 @@ export async function renderStoryToCanvas(
                 cardY,
                 cardW,
                 cardH,
-                config.filterId,
+                drawFilterId,
                 config.filterStrength ?? 1.0,
                 filterCss
             );
@@ -280,24 +295,27 @@ export async function renderStoryToCanvas(
             ctx.lineWidth = Math.max(1.5, 2 * (targetW / STORY_WIDTH));
             ctx.stroke();
             ctx.restore();
+
+            if (cardAnim) ctx.restore();
         }
     }
 
     // ==========================================
     // 2.5. RENDER OPTIONAL DECORATIVE FRAME
     // ==========================================
-    if (config.frameId && config.frameId !== 'none') {
-        const frameContext: StoryFrameContext = {
-            hasScoreboard: Boolean(
-                !config.badges.isEventAmbiguous &&
-                    config.badges.showScoreboard &&
-                    (config.badges.scoreboardTitle || config.badges.teams?.length)
-            ),
-            hasAttribution: Boolean(config.badges.showAttribution),
-            layoutMode: config.mode,
-            exif: config.exif,
-        };
-        await drawStoryFrameToCanvas(ctx, config.frameId, targetW, targetH, config.frameColorOverride, frameContext);
+    if (config.frameId && config.frameId !== 'none' && assets.frameImage) {
+        const frameAnim = anim.frame;
+        try {
+            if (frameAnim && assets.frameMotion) {
+                drawFrameMotion(ctx, assets.frameMotion, frameAnim, targetW, targetH);
+            } else if (frameAnim) {
+                drawFrameMotionFallback(ctx, assets.frameImage, frameAnim, targetW, targetH);
+            } else {
+                ctx.drawImage(assets.frameImage, 0, 0, targetW, targetH);
+            }
+        } catch (err) {
+            console.warn('Failed to draw story frame to canvas:', err);
+        }
     }
 
     // ==========================================
@@ -384,6 +402,7 @@ export async function renderStoryToCanvas(
         const { x: cardX, y: badgeY } = resolveBadgeCoords(sbPos, cardW, cardH, targetW, targetH, resScale);
 
         const isLight = (config.badgeTheme || config.cardTheme) === 'light';
+
 
         // Draw Card Background (Frosted Glass)
         ctx.save();
@@ -485,6 +504,7 @@ export async function renderStoryToCanvas(
             ctx.fillText(singleTitle, currX, centerY);
             ctx.restore();
         }
+
     }
 
     // --- Attribution Badge (nav__logo style) ---
@@ -521,6 +541,7 @@ export async function renderStoryToCanvas(
         const pillW = contentW + padH * 2;
         const atPos = badges.attributionPosition || DEFAULT_ATTRIBUTION_POSITION;
         const { x: pillX, y: attrY } = resolveBadgeCoords(atPos, pillW, pillH, targetW, targetH, resScale);
+
 
         // Draw pill background (frosted glass)
         ctx.save();
@@ -566,29 +587,17 @@ export async function renderStoryToCanvas(
             ctx.fillText(' ' + domainText, curX, centerY);
         }
         ctx.restore();
-    }
 
-    return canvas;
+    }
 }
 
 /**
  * Exports the canvas as a JPEG Blob ready for download or navigator.share.
  */
-export async function renderStoryToBlob(
-    img: HTMLImageElement | HTMLCanvasElement | (HTMLImageElement | HTMLCanvasElement | null | undefined)[],
-    config: StoryRenderConfig
-): Promise<Blob> {
+export async function renderStoryToBlob(img: StoryImageInput, config: StoryRenderConfig): Promise<Blob> {
     if (typeof OffscreenCanvas !== 'undefined') {
         try {
-            let targetW = STORY_WIDTH;
-            let targetH = STORY_HEIGHT;
-            if (config.resolution === '1440x2560') {
-                targetW = 1440;
-                targetH = 2560;
-            } else if (config.resolution === '2160x3840') {
-                targetW = 2160;
-                targetH = 3840;
-            }
+            const { targetW, targetH } = getStoryTargetSize(config.resolution);
             const offscreen = new OffscreenCanvas(targetW, targetH);
             await renderStoryToCanvas(img, config, offscreen as unknown as HTMLCanvasElement);
             if (typeof offscreen.convertToBlob === 'function') {
@@ -633,6 +642,46 @@ export async function renderStoryToBlob(
     });
 }
 
+/** Optional per-frame extras for `renderBurstPanels` (animated exports). */
+export interface BurstRenderOptions {
+    /** Per-panel animation (offsets, zoom multiplier, opacity); omitted → static layout. */
+    panelAnims?: StoryPanelAnim[];
+    /** Unfiltered images for the gutter-style background glow (keeps parity when filters are baked). */
+    glowImages?: (HTMLImageElement | HTMLCanvasElement | null | undefined)[];
+}
+
+const IDENTITY_PANEL: StoryPanelAnim = { dx: 0, dy: 0, zoomMul: 1, opacity: 1, detailOpacity: 1 };
+
+/** How far a panel has landed (1 = at rest), used to fade layout chrome in with the panels. */
+const panelLanded = (p: StoryPanelAnim) => Math.max(0, 1 - Math.min(1, Math.max(Math.abs(p.dx), Math.abs(p.dy)))) * p.opacity;
+
+/** Applies a panel's animated transform; returns true when ctx.save() was called (caller must restore). */
+function beginPanelTransform(
+    ctx: CanvasRenderingContext2D,
+    pa: StoryPanelAnim,
+    panelW: number,
+    panelH: number
+): boolean {
+    if (pa === IDENTITY_PANEL || (pa.dx === 0 && pa.dy === 0 && pa.opacity === 1)) return false;
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, Math.min(1, pa.opacity));
+    ctx.translate(pa.dx * panelW, pa.dy * panelH);
+    return true;
+}
+
+/** Runs `draw` with the given alpha (skips the save/restore entirely at full opacity). */
+function withAlpha(ctx: CanvasRenderingContext2D, alpha: number, draw: () => void) {
+    if (alpha >= 1) {
+        draw();
+        return;
+    }
+    if (alpha <= 0) return;
+    ctx.save();
+    ctx.globalAlpha *= alpha;
+    draw();
+    ctx.restore();
+}
+
 /**
  * Renders 3 stacked landscape photos for sequential burst action stories.
  */
@@ -643,7 +692,8 @@ export function renderBurstPanels(
     targetW: number,
     targetH: number,
     resScale: number,
-    filterCss: string
+    filterCss: string,
+    options: BurstRenderOptions = {}
 ) {
     const burst: BurstStoryOptions = config.burst || {
         dividerStyle: 'hairline',
@@ -674,13 +724,19 @@ export function renderBurstPanels(
         panelCount === 2
             ? [images[0] ?? null, images[1] ?? null]
             : [images[0] ?? null, images[1] ?? null, images[2] ?? null];
+    const panelAnim = (i: number): StoryPanelAnim => options.panelAnims?.[i] ?? IDENTITY_PANEL;
 
     if (style === 'gutter') {
         // Dark background with blurred middle image glow
         ctx.fillStyle = '#08090e';
         ctx.fillRect(0, 0, targetW, targetH);
 
-        const midImg = panelImages.find((img): img is HTMLImageElement | HTMLCanvasElement => Boolean(img));
+        const glowSources = options.glowImages
+            ? panelCount === 2
+                ? [options.glowImages[0], options.glowImages[1]]
+                : [options.glowImages[0], options.glowImages[1], options.glowImages[2]]
+            : panelImages;
+        const midImg = glowSources.find((img): img is HTMLImageElement | HTMLCanvasElement => Boolean(img));
         if (midImg) {
             const mw = 'naturalWidth' in midImg ? midImg.naturalWidth : midImg.width;
             const mh = 'naturalHeight' in midImg ? midImg.naturalHeight : midImg.height;
@@ -708,6 +764,8 @@ export function renderBurstPanels(
             const pImg = panelImages[i];
             const panelY = topBottomMargin + i * (panelH + gutter);
             const pan = panOffsets[i] || { x: 0.5, y: 0.45 };
+            const pa = panelAnim(i);
+            const transformed = beginPanelTransform(ctx, pa, panelW, panelH);
 
             ctx.save();
             // Drop shadow for card
@@ -737,7 +795,8 @@ export function renderBurstPanels(
                     pan.zoom,
                     filterCss,
                     config.filterId,
-                    config.filterStrength
+                    config.filterStrength,
+                    pa.zoomMul
                 );
                 ctx.restore();
 
@@ -751,7 +810,9 @@ export function renderBurstPanels(
 
                 if (showTimeStamps) {
                     const dt = timeStamps[i] ?? 0;
-                    drawTimestampPill(ctx, panelX, panelY, panelW, panelH, dt, resScale);
+                    withAlpha(ctx, pa.detailOpacity, () =>
+                        drawTimestampPill(ctx, panelX, panelY, panelW, panelH, dt, resScale)
+                    );
                 }
             } else {
                 // Blank area for missing frame
@@ -764,6 +825,8 @@ export function renderBurstPanels(
                 ctx.stroke();
                 ctx.restore();
             }
+
+            if (transformed) ctx.restore();
         }
     } else if (style === 'filmstrip') {
         // Cinematic Contact Sheet
@@ -800,6 +863,8 @@ export function renderBurstPanels(
             const pImg = panelImages[i];
             const panelY = topBottomMargin + i * (panelH + gutter);
             const pan = panOffsets[i] || { x: 0.5, y: 0.45 };
+            const pa = panelAnim(i);
+            const transformed = beginPanelTransform(ctx, pa, panelW, panelH);
 
             if (pImg) {
                 ctx.save();
@@ -815,13 +880,16 @@ export function renderBurstPanels(
                     pan.zoom,
                     filterCss,
                     config.filterId,
-                    config.filterStrength
+                    config.filterStrength,
+                    pa.zoomMul
                 );
                 ctx.restore();
 
                 if (showTimeStamps) {
                     const dt = timeStamps[i] ?? 0;
-                    drawTimestampPill(ctx, panelX, panelY, panelW, panelH, dt, resScale);
+                    withAlpha(ctx, pa.detailOpacity, () =>
+                        drawTimestampPill(ctx, panelX, panelY, panelW, panelH, dt, resScale)
+                    );
                 }
             } else {
                 // Blank area for missing frame
@@ -846,6 +914,8 @@ export function renderBurstPanels(
             ctx.textBaseline = 'top';
             ctx.fillText(`0${i + 1}A`, panelX - Math.round(10 * resScale), panelY + Math.round(6 * resScale));
             ctx.restore();
+
+            if (transformed) ctx.restore();
         }
     } else {
         // Clean Hairline (default)
@@ -862,6 +932,8 @@ export function renderBurstPanels(
             const panelY = i * (panelH + gap);
             const currentH = i === panelCount - 1 ? targetH - panelY : panelH;
             const pan = panOffsets[i] || { x: 0.5, y: 0.45 };
+            const pa = panelAnim(i);
+            const transformed = beginPanelTransform(ctx, pa, targetW, currentH);
 
             if (pImg) {
                 ctx.save();
@@ -877,13 +949,16 @@ export function renderBurstPanels(
                     pan.zoom,
                     filterCss,
                     config.filterId,
-                    config.filterStrength
+                    config.filterStrength,
+                    pa.zoomMul
                 );
                 ctx.restore();
 
                 if (showTimeStamps) {
                     const dt = timeStamps[i] ?? 0;
-                    drawTimestampPill(ctx, panelX, panelY, targetW, currentH, dt, resScale);
+                    withAlpha(ctx, pa.detailOpacity, () =>
+                        drawTimestampPill(ctx, panelX, panelY, targetW, currentH, dt, resScale)
+                    );
                 }
             } else {
                 // Blank area for missing frame
@@ -893,13 +968,19 @@ export function renderBurstPanels(
                 ctx.restore();
             }
 
-            // Hairline separator
-            if (i < panelCount - 1) {
+            if (transformed) ctx.restore();
+        }
+
+        // Hairline separators (drawn after the panels so they fade in as neighbouring panels land)
+        for (let i = 0; i < panelCount - 1; i++) {
+            const panelY = i * (panelH + gap);
+            const alpha = Math.min(panelLanded(panelAnim(i)), panelLanded(panelAnim(i + 1)));
+            withAlpha(ctx, alpha, () => {
                 ctx.save();
                 ctx.fillStyle = 'rgba(255, 255, 255, 0.16)';
-                ctx.fillRect(0, panelY + currentH, targetW, gap);
+                ctx.fillRect(0, panelY + panelH, targetW, gap);
                 ctx.restore();
-            }
+            });
         }
     }
 }
@@ -916,14 +997,20 @@ function drawImageFocalCrop(
     zoom?: number,
     filterCss = '',
     filterId?: StoryPhotoFilterId,
-    filterStrength = 1.0
+    filterStrength = 1.0,
+    zoomMul = 1
 ) {
     const nw = 'naturalWidth' in img ? img.naturalWidth : img.width;
     const nh = 'naturalHeight' in img ? img.naturalHeight : img.height;
     if (!nw || !nh) return;
 
     const panelAspect = dw / dh;
-    const crop = calculateBurstPanelCrop(nw, nh, panX, panY, zoom, panelAspect);
+    let effectiveZoom = zoom;
+    if (zoomMul !== 1) {
+        const baseZoom = calculateBurstPanelCrop(nw, nh, panX, panY, zoom, panelAspect).zoom;
+        effectiveZoom = baseZoom * zoomMul;
+    }
+    const crop = calculateBurstPanelCrop(nw, nh, panX, panY, effectiveZoom, panelAspect);
 
     const sx = crop.x * nw;
     const sy = crop.y * nh;

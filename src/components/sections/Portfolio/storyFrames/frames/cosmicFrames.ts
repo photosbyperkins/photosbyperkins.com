@@ -1,8 +1,8 @@
 import type { StoryFrameDefinition } from '../types';
-import { defineFrame } from './helper';
+import { defineLayeredFrame } from './helper';
 
 export const COSMIC_FRAMES: StoryFrameDefinition[] = [
-    defineFrame(
+    defineLayeredFrame(
         'unicorns',
         'Unicorn',
         'cosmic',
@@ -17,31 +17,54 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
             const hasScoreboard = context?.hasScoreboard ?? true;
 
             const topY = hasAttribution ? 148 : 80;
-            const unicornTransform = hasScoreboard
-                ? 'translate(860, 1630) scale(0.92)'
-                : 'translate(860, 1660) scale(1.05)';
+            // Mascot placement; the layer pivots (cloud base, horn tip) are derived from it.
+            const u = hasScoreboard ? { x: 860, y: 1630, s: 0.92 } : { x: 860, y: 1660, s: 1.05 };
+            const unicornTransform = `translate(${u.x}, ${u.y}) scale(${u.s})`;
+            const mascot = (inner: string) => `<g transform="${unicornTransform}">${inner}</g>`;
+            const dreamCloud = (inner: string) => `<g transform="translate(980, ${topY})">${inner}</g>`;
+            const cloudBase = { x: u.x + 124 * u.s, y: u.y + 248 * u.s };
 
-            return `
-                <!-- Top-Left Rainbow Arch and Clouds -->
+            return {
+                layers: [
+                    // Top-Left Rainbow Arch and Clouds
+                    {
+                        id: 'arch',
+                        svg: `
                 <path d="M-30,220 C100,220 220,100 220,-30" stroke="${c1}" stroke-width="16" fill="none" />
                 <path d="M-30,200 C85,200 200,85 200,-30" stroke="${c2}" stroke-width="16" fill="none" />
                 <path d="M-30,180 C70,180 180,70 180,-30" stroke="${c3}" stroke-width="16" fill="none" />
-                <path d="M-30,160 C55,160 160,55 160,-30" stroke="${c4}" stroke-width="16" fill="none" />
+                <path d="M-30,160 C55,160 160,55 160,-30" stroke="${c4}" stroke-width="16" fill="none" />`,
+                    },
+                    {
+                        id: 'archCloudTop',
+                        svg: `
                 <circle cx="190" cy="50" r="26" fill="#ffffff" opacity="0.85" />
-                <circle cx="220" cy="65" r="20" fill="#ffffff" opacity="0.85" />
-                <circle cx="65" cy="190" r="24" fill="#ffffff" opacity="0.85" />
+                <circle cx="220" cy="65" r="20" fill="#ffffff" opacity="0.85" />`,
+                    },
+                    { id: 'archCloudLeft', svg: `<circle cx="65" cy="190" r="24" fill="#ffffff" opacity="0.85" />` },
 
-                <!-- Top-Right Dream Cloud and Magic Starbursts -->
-                <g transform="translate(980, ${topY})">
+                    // Top-Right Dream Cloud and Magic Starbursts
+                    {
+                        id: 'dreamCloud',
+                        svg: dreamCloud(`
                     <circle cx="10" cy="-10" r="24" fill="#ffffff" opacity="0.85" />
                     <circle cx="-16" cy="6" r="20" fill="#ffffff" opacity="0.85" />
-                    <circle cx="28" cy="10" r="18" fill="#ffffff" opacity="0.85" />
+                    <circle cx="28" cy="10" r="18" fill="#ffffff" opacity="0.85" />`),
+                    },
+                    {
+                        id: 'dreamStar',
+                        svg: dreamCloud(`
                     <polygon points="0,-35 4,-12 25,0 4,12 0,35 -4,12 -25,0 -4,-12" fill="${c4}" />
-                    <circle cx="0" cy="0" r="3" fill="#ffffff" />
-                </g>
+                    <circle cx="0" cy="0" r="3" fill="#ffffff" />`),
+                        pivot: { x: 980, y: topY },
+                    },
 
-                <!-- Bottom Unicorn Mascot on Cloud Flank -->
-                <g transform="${unicornTransform}">
+                    // Bottom Unicorn Mascot on Cloud Flank (body, horn-tip sparkles, face + cloud; the body and
+                    // face share the cloud-base pivot so they always move as one)
+                    {
+                        id: 'unicorn',
+                        pivot: cloudBase,
+                        svg: mascot(`
                     <path d="M96,62 C125,40 170,44 198,68 C212,80 214,96 198,104 C184,110 172,100 178,88 C182,78 165,62 118,74 Z" fill="${c2}" />
                     <path d="M112,82 C145,68 190,78 214,105 C226,118 225,134 208,142 C194,148 184,136 190,125 C195,114 175,98 124,106 Z" fill="${c3}" />
                     <path d="M120,112 C152,102 195,114 218,144 C228,158 226,174 208,182 C194,188 185,176 190,165 C195,152 176,134 128,142 Z" fill="${c1}" />
@@ -68,14 +91,22 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
                     <path d="M45,21 Q50,18 54,18" stroke="#d97706" stroke-width="1.8" stroke-linecap="round" fill="none" />
                     <path d="M52,38 Q58,35 62,34" stroke="#d97706" stroke-width="1.8" stroke-linecap="round" fill="none" />
                     <path d="M60,54 Q66,50 71,49" stroke="#d97706" stroke-width="1.8" stroke-linecap="round" fill="none" />
-                    <path d="M46,7 L54,28 L62,48" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" opacity="0.8" />
-
+                    <path d="M46,7 L54,28 L62,48" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" opacity="0.8" />`),
+                    },
+                    {
+                        id: 'hornSparkle',
+                        pivot: { x: u.x + 46 * u.s, y: u.y + 4 * u.s },
+                        svg: mascot(`
                     <polygon points="46,-9 48,2 59,4 48,6 46,17 44,6 33,4 44,2" fill="${c4}" />
                     <polygon points="46,-4 47,2 53,4 47,6 46,12 45,6 39,4 45,2" fill="#ffffff" />
                     <circle cx="46" cy="4" r="2.2" fill="#ffffff" />
                     <polygon points="30,-2 31,3 36,4 31,5 30,10 29,5 24,4 29,3" fill="#ffffff" opacity="0.9" />
-                    <polygon points="60,-5 61,-1 65,0 61,1 60,5 59,1 55,0 59,-1" fill="${c3}" opacity="0.85" />
-
+                    <polygon points="60,-5 61,-1 65,0 61,1 60,5 59,1 55,0 59,-1" fill="${c3}" opacity="0.85" />`),
+                    },
+                    {
+                        id: 'unicornFace',
+                        pivot: cloudBase,
+                        svg: mascot(`
                     <path d="M55,102 Q64,94 74,101" stroke="#1e1b4b" stroke-width="2.6" stroke-linecap="round" fill="none" />
                     <line x1="72" y1="100" x2="79" y2="94" stroke="#1e1b4b" stroke-width="2.2" stroke-linecap="round" />
                     <line x1="67" y1="97" x2="72" y2="90" stroke="#1e1b4b" stroke-width="2.2" stroke-linecap="round" />
@@ -90,12 +121,13 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
                         <circle cx="140" cy="225" r="24" />
                         <ellipse cx="174" cy="232" rx="26" ry="18" />
                         <circle cx="122" cy="228" r="20" />
-                    </g>
-                </g>
-            `;
+                    </g>`),
+                    },
+                ],
+            };
         }
     ),
-    defineFrame(
+    defineLayeredFrame(
         'intergalactic',
         'Cosmos',
         'cosmic',
@@ -109,11 +141,18 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
             const hasScoreboard = context?.hasScoreboard ?? true;
 
             const topY = hasAttribution ? 148 : 100;
-            const moonTransform = hasScoreboard ? 'translate(90, 1730)' : 'translate(90, 1800)';
-            const rightAnchorTransform = hasScoreboard ? 'translate(980, 1730)' : 'translate(980, 1800)';
+            const bottomY = hasScoreboard ? 1730 : 1800;
+            const moonTransform = `translate(90, ${bottomY})`;
+            const rightAnchorTransform = `translate(980, ${bottomY})`;
+            const starburst = (inner: string) => `<g transform="${rightAnchorTransform}">${inner}</g>`;
 
-            return `
-                <!-- Top-Right Ringed Celestial Planet -->
+            return {
+                layers: [
+                    // Top-Right Ringed Celestial Planet
+                    {
+                        id: 'planet',
+                        pivot: { x: 950, y: topY },
+                        svg: `
                 <g transform="translate(950, ${topY}) rotate(-22)">
                     <path d="M-85,0 A85,18 0 0,1 85,0" stroke="${p2}" stroke-width="6" fill="none" opacity="0.8" />
                     <path d="M-66,0 A66,13 0 0,1 66,0" stroke="${p1}" stroke-width="3.5" fill="none" opacity="0.9" />
@@ -124,45 +163,85 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
                     <path d="M85,0 A85,18 0 0,1 -85,0" stroke="${p2}" stroke-width="6" fill="none" opacity="0.95" />
                     <path d="M66,0 A66,13 0 0,1 -66,0" stroke="${p1}" stroke-width="3.5" fill="none" opacity="0.95" />
                     <path d="M78,0 A78,16 0 0,1 -78,0" stroke="#ffffff" stroke-width="1.2" fill="none" opacity="0.75" />
-                </g>
+                </g>`,
+                    },
 
-                <!-- Top-Left Streaking Comet and Orbit Rays -->
+                    // Top-Left Streaking Comet and Orbit Rays
+                    {
+                        id: 'comet',
+                        svg: `
                 <g opacity="0.95">
                     <line x1="-30" y1="80" x2="200" y2="190" stroke="${p2}" stroke-width="3" opacity="0.85" />
                     <line x1="10" y1="75" x2="195" y2="182" stroke="#ffffff" stroke-width="1.5" opacity="0.9" />
                     <polygon points="200,186 210,190 200,194 194,190" fill="#ffffff" />
                     <circle cx="198" cy="190" r="5" fill="${p2}" opacity="0.6" />
-                </g>
-                <path d="M-20,130 A260,260 0 0,1 260,-20" stroke="${p2}" stroke-width="2" stroke-dasharray="10 8" fill="none" opacity="0.6" />
+                </g>`,
+                    },
+                    {
+                        id: 'orbit',
+                        svg: `
+                <path d="M-20,130 A260,260 0 0,1 260,-20" stroke="${p2}" stroke-width="2" stroke-dasharray="10 8" fill="none" opacity="0.6" />`,
+                    },
 
-                <!-- Flank Constellation Points -->
-                <polygon points="80,290 84,302 96,306 84,310 80,322 76,310 64,306 76,302" fill="#ffffff" opacity="0.9" />
-                <polygon points="1010,480 1013,490 1023,493 1013,496 1010,506 1007,496 997,493 1007,490" fill="${gold}" opacity="0.85" />
-                <polyline points="50,420 75,490 35,570 85,660 50,740" stroke="${p2}" stroke-width="1.8" stroke-dasharray="5 5" fill="none" opacity="0.65" />
+                    // Flank Constellation Points
+                    {
+                        id: 'starL',
+                        pivot: { x: 80, y: 306 },
+                        svg: `
+                <polygon points="80,290 84,302 96,306 84,310 80,322 76,310 64,306 76,302" fill="#ffffff" opacity="0.9" />`,
+                    },
+                    {
+                        id: 'starR',
+                        pivot: { x: 1010, y: 493 },
+                        svg: `
+                <polygon points="1010,480 1013,490 1023,493 1013,496 1010,506 1007,496 997,493 1007,490" fill="${gold}" opacity="0.85" />`,
+                    },
+                    {
+                        id: 'constellationLine',
+                        svg: `
+                <polyline points="50,420 75,490 35,570 85,660 50,740" stroke="${p2}" stroke-width="1.8" stroke-dasharray="5 5" fill="none" opacity="0.65" />`,
+                    },
+                    {
+                        id: 'constellationStars',
+                        svg: `
                 <circle cx="50" cy="420" r="4.5" fill="#ffffff" />
                 <circle cx="75" cy="490" r="5" fill="${gold}" />
                 <circle cx="35" cy="570" r="4" fill="#ffffff" />
                 <circle cx="85" cy="660" r="5" fill="${p1}" />
-                <circle cx="50" cy="740" r="4.5" fill="${gold}" />
+                <circle cx="50" cy="740" r="4.5" fill="${gold}" />`,
+                    },
 
-                <!-- Bottom-Left Moon and Orbit -->
+                    // Bottom-Left Moon and Orbit
+                    {
+                        id: 'moon',
+                        pivot: { x: 90, y: bottomY },
+                        svg: `
                 <g transform="${moonTransform}">
                     <path d="M-18,-28 A30,30 0 0,0 20,28 A24,24 0 0,1 -18,-28 Z" fill="${gold}" />
                     <ellipse cx="32" cy="6" rx="36" ry="12" stroke="${p2}" stroke-width="1.8" stroke-dasharray="6 4" fill="none" transform="rotate(-15 32 6)" opacity="0.8" />
                     <circle cx="32" cy="6" r="3.5" fill="#ffffff" />
-                </g>
+                </g>`,
+                    },
 
-                <!-- Bottom-Right Golden Starburst Flank -->
-                <g transform="${rightAnchorTransform}">
+                    // Bottom-Right Golden Starburst Flank (the star and its satellite dots twinkle separately)
+                    {
+                        id: 'burstStar',
+                        pivot: { x: 980, y: bottomY },
+                        svg: starburst(`
                     <polygon points="0,-18 5,-5 18,0 5,5 0,18 -5,5 -18,0 -5,-5" fill="${gold}" />
-                    <circle cx="0" cy="0" r="3" fill="#ffffff" />
+                    <circle cx="0" cy="0" r="3" fill="#ffffff" />`),
+                    },
+                    {
+                        id: 'burstDots',
+                        svg: starburst(`
                     <circle cx="-24" cy="-14" r="3" fill="${p2}" />
-                    <circle cx="-16" cy="18" r="2" fill="${p1}" />
-                </g>
-            `;
+                    <circle cx="-16" cy="18" r="2" fill="${p1}" />`),
+                    },
+                ],
+            };
         }
     ),
-    defineFrame(
+    defineLayeredFrame(
         // Id stays 'celestial-moon' so persisted story settings / recent frames keep resolving.
         'celestial-moon',
         'Lunar',
@@ -212,8 +291,18 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
                 <g transform="translate(${x}, ${y}) scale(${s})">
                     <path d="M0,-14 Q1.5,-1.5 14,0 Q1.5,1.5 0,14 Q-1.5,1.5 -14,0 Q-1.5,-1.5 0,-14 Z" fill="${col}" />
                 </g>`;
+            // Star-dust sparkle layer, pivoting on its own centre
+            const dust = (id: string, x: number, y: number, s: number, col: string) => ({
+                id,
+                svg: twinkle(x, y, s, col),
+                pivot: { x, y },
+            });
+            const moonAt = (inner: string) => `
+                <g transform="translate(40, ${moonY})">${inner}
+                </g>`;
 
-            return `
+            return {
+                defs: `
                 <defs>
                     <radialGradient id="lunar-surface" cx="0.62" cy="0.38" r="0.75">
                         <stop offset="0" stop-color="#ffffff" />
@@ -224,11 +313,18 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
                         <stop offset="0.55" stop-color="${glow}" stop-opacity="0.35" />
                         <stop offset="1" stop-color="${glow}" stop-opacity="0" />
                     </radialGradient>
-                </defs>
-
-                <!-- Top-Left Full Moon (cropped by the edge) with halo and craters -->
-                <g transform="translate(40, ${moonY})">
-                    <circle cx="0" cy="0" r="250" fill="url(#lunar-halo)" />
+                </defs>`,
+                layers: [
+                    // Top-Left Full Moon (cropped by the edge) with halo and craters
+                    {
+                        id: 'halo',
+                        pivot: { x: 40, y: moonY },
+                        svg: moonAt(`
+                    <circle cx="0" cy="0" r="250" fill="url(#lunar-halo)" />`),
+                    },
+                    {
+                        id: 'moon',
+                        svg: moonAt(`
                     <circle cx="0" cy="0" r="150" fill="url(#lunar-surface)" />
                     <g fill="${slate}" fill-opacity="0.38">
                         <circle cx="62" cy="-48" r="26" />
@@ -242,23 +338,34 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
                         <path d="M40,-62 A26,26 0 0,1 84,-30" />
                         <path d="M6,48 A34,34 0 0,1 58,52" />
                     </g>
-                    <circle cx="0" cy="0" r="150" fill="none" stroke="#ffffff" stroke-opacity="0.6" stroke-width="2" />
-                </g>
+                    <circle cx="0" cy="0" r="150" fill="none" stroke="#ffffff" stroke-opacity="0.6" stroke-width="2" />`),
+                    },
 
-                <!-- Dashed orbit sweeping from the moon down the left flank -->
+                    // Dashed orbit sweeping from the moon down the left flank
+                    {
+                        id: 'orbit',
+                        svg: `
                 <path d="M210,${moonY + 40} C330,${moonY + 360} 120,${moonY + 700} 34,${moonY + 980}" stroke="${silver}" stroke-width="1.5" stroke-dasharray="3 10" stroke-linecap="round" fill="none" opacity="0.7" />
-                <circle cx="34" cy="${moonY + 980}" r="5" fill="${glow}" />
+                <circle cx="34" cy="${moonY + 980}" r="5" fill="${glow}" />`,
+                    },
 
-                <!-- Right-Edge Lunar Phase Track -->
+                    // Right-Edge Lunar Phase Track (glyphs every 120px, so an 8-step type reveals one per step)
+                    {
+                        id: 'track',
+                        svg: `
                 <line x1="1022" y1="470" x2="1022" y2="1410" stroke="${silver}" stroke-width="1" opacity="0.35" />
-                ${phaseTrack}
+                ${phaseTrack}`,
+                    },
 
-                <!-- Star Dust -->
-                ${twinkle(300, moonY - 60, 0.9, glow)}
-                ${twinkle(960, 300, 1.2, silver)}
-                ${twinkle(70, 1250, 0.8, silver)}
-                ${twinkle(120, bottomY, 1.4, glow)}
-                ${twinkle(960, bottomY + 30, 1, silver)}
+                    // Star Dust
+                    dust('dust1', 300, moonY - 60, 0.9, glow),
+                    dust('dust2', 960, 300, 1.2, silver),
+                    dust('dust3', 70, 1250, 0.8, silver),
+                    dust('dust4', 120, bottomY, 1.4, glow),
+                    dust('dust5', 960, bottomY + 30, 1, silver),
+                    {
+                        id: 'dots',
+                        svg: `
                 <g fill="${silver}">
                     <circle cx="250" cy="${moonY + 190}" r="2.5" opacity="0.8" />
                     <circle cx="880" cy="220" r="2" opacity="0.7" />
@@ -267,11 +374,13 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
                     <circle cx="200" cy="${bottomY + 70}" r="2.5" opacity="0.8" />
                     <circle cx="900" cy="${bottomY - 40}" r="2" opacity="0.7" />
                     <circle cx="1040" cy="1520" r="2" opacity="0.6" />
-                </g>
-            `;
+                </g>`,
+                    },
+                ],
+            };
         }
     ),
-    defineFrame(
+    defineLayeredFrame(
         'golden-sparkle',
         'Sparkle',
         'cosmic',
@@ -294,25 +403,28 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
                     <circle cx="-28" cy="28" r="2.5" fill="${gold}" />
                 </g>
             `;
+            // One corner sparkle, pivoting on its centre
+            const corner = (id: string, x: number, y: number) => ({
+                id,
+                svg: `
+                <g transform="translate(${x}, ${y})">
+                    ${sparkle(0.85)}
+                </g>`,
+                pivot: { x, y },
+            });
 
-            return `
-                <!-- 4 Symmetrical Glamour Sparkles -->
-                <g transform="translate(90, ${topY})">
-                    ${sparkle(0.85)}
-                </g>
-                <g transform="translate(990, ${topY})">
-                    ${sparkle(0.85)}
-                </g>
-                <g transform="translate(90, ${bottomY})">
-                    ${sparkle(0.85)}
-                </g>
-                <g transform="translate(990, ${bottomY})">
-                    ${sparkle(0.85)}
-                </g>
-            `;
+            return {
+                // 4 Symmetrical Glamour Sparkles
+                layers: [
+                    corner('sparkleTL', 90, topY),
+                    corner('sparkleTR', 990, topY),
+                    corner('sparkleBL', 90, bottomY),
+                    corner('sparkleBR', 990, bottomY),
+                ],
+            };
         }
     ),
-    defineFrame(
+    defineLayeredFrame(
         'roller-disco',
         'Disco',
         'cosmic',
@@ -331,48 +443,43 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
                 <ellipse cx="0" cy="0" rx="34" ry="10" stroke="${gold}" stroke-width="1.5" fill="none" opacity="0.6" />
                 <ellipse cx="0" cy="0" rx="34" ry="20" stroke="${gold}" stroke-width="1.5" fill="none" opacity="0.6" />
                 <line x1="-34" y1="0" x2="34" y2="0" stroke="${gold}" stroke-width="1.5" opacity="0.6" />
-                <line x1="0" y1="-34" x2="0" y2="34" stroke="${gold}" stroke-width="1.5" opacity="0.6" />
-                <polygon points="0,-52 5,-36 20,-36 8,-26 12,-10 0,-20 -12,-10 -8,-26 -20,-36 -5,-36" fill="${pink}" opacity="0.85" />
-            `;
+                <line x1="0" y1="-34" x2="0" y2="34" stroke="${gold}" stroke-width="1.5" opacity="0.6" />`;
+            const discoStar = `<polygon points="0,-52 5,-36 20,-36 8,-26 12,-10 0,-20 -12,-10 -8,-26 -20,-36 -5,-36" fill="${pink}" opacity="0.85" />`;
+            const at = (x: number, y: number, inner: string) => `<g transform="translate(${x}, ${y})">${inner}</g>`;
+            const sparkle = `
+                    <polygon points="0,-20 4,-5 20,0 4,5 0,20 -4,5 -20,0 -4,-5" fill="${gold}" />
+                    <circle cx="0" cy="0" r="2.5" fill="#ffffff" />`;
 
-            return `
-                <!-- Symmetrical Top Mirror Balls -->
-                <g transform="translate(100, ${topY})">
-                    ${mirrorBall}
-                </g>
-                <g transform="translate(980, ${topY})">
-                    ${mirrorBall}
-                </g>
-
-                <!-- Symmetrical Bottom Disco Neon Floor Curves -->
-                <path d="M0,1740 Q180,1740 180,1920" stroke="${pink}" stroke-width="4" fill="none" opacity="0.8" />
+            return {
+                layers: [
+                    // Symmetrical top mirror balls (each ball's star is drawn right after it)
+                    { id: 'ballL', svg: at(100, topY, mirrorBall) },
+                    { id: 'discoStarL', svg: at(100, topY, discoStar), pivot: { x: 100, y: topY - 31 } },
+                    { id: 'ballR', svg: at(980, topY, mirrorBall) },
+                    { id: 'discoStarR', svg: at(980, topY, discoStar), pivot: { x: 980, y: topY - 31 } },
+                    // Symmetrical bottom disco neon floor curves
+                    {
+                        id: 'floorL',
+                        svg: `<path d="M0,1740 Q180,1740 180,1920" stroke="${pink}" stroke-width="4" fill="none" opacity="0.8" />
                 <path d="M0,1760 Q160,1760 160,1920" stroke="${purple}" stroke-width="3" fill="none" opacity="0.7" />
-                <path d="M0,1780 Q140,1780 140,1920" stroke="${gold}" stroke-width="2" fill="none" opacity="0.6" />
-                <path d="M1080,1740 Q900,1740 900,1920" stroke="${pink}" stroke-width="4" fill="none" opacity="0.8" />
+                <path d="M0,1780 Q140,1780 140,1920" stroke="${gold}" stroke-width="2" fill="none" opacity="0.6" />`,
+                    },
+                    {
+                        id: 'floorR',
+                        svg: `<path d="M1080,1740 Q900,1740 900,1920" stroke="${pink}" stroke-width="4" fill="none" opacity="0.8" />
                 <path d="M1080,1760 Q920,1760 920,1920" stroke="${purple}" stroke-width="3" fill="none" opacity="0.7" />
-                <path d="M1080,1780 Q940,1780 940,1920" stroke="${gold}" stroke-width="2" fill="none" opacity="0.6" />
-
-                <!-- Mid-Flank Disco Sparkles -->
-                <g transform="translate(60, 480)">
-                    <polygon points="0,-20 4,-5 20,0 4,5 0,20 -4,5 -20,0 -4,-5" fill="${gold}" />
-                    <circle cx="0" cy="0" r="2.5" fill="#ffffff" />
-                </g>
-                <g transform="translate(1020, 480)">
-                    <polygon points="0,-20 4,-5 20,0 4,5 0,20 -4,5 -20,0 -4,-5" fill="${gold}" />
-                    <circle cx="0" cy="0" r="2.5" fill="#ffffff" />
-                </g>
-                <g transform="translate(60, 1200)">
-                    <polygon points="0,-20 4,-5 20,0 4,5 0,20 -4,5 -20,0 -4,-5" fill="${gold}" />
-                    <circle cx="0" cy="0" r="2.5" fill="#ffffff" />
-                </g>
-                <g transform="translate(1020, 1200)">
-                    <polygon points="0,-20 4,-5 20,0 4,5 0,20 -4,5 -20,0 -4,-5" fill="${gold}" />
-                    <circle cx="0" cy="0" r="2.5" fill="#ffffff" />
-                </g>
-            `;
+                <path d="M1080,1780 Q940,1780 940,1920" stroke="${gold}" stroke-width="2" fill="none" opacity="0.6" />`,
+                    },
+                    // Mid-flank disco sparkles
+                    { id: 'sparkle1', svg: at(60, 480, sparkle) },
+                    { id: 'sparkle2', svg: at(1020, 480, sparkle) },
+                    { id: 'sparkle3', svg: at(60, 1200, sparkle) },
+                    { id: 'sparkle4', svg: at(1020, 1200, sparkle) },
+                ],
+            };
         }
     ),
-    defineFrame(
+    defineLayeredFrame(
         'mystic-tarot',
         'Tarot',
         'cosmic',
@@ -382,47 +489,59 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
             const gold = override || '#eab308';
             const lightGold = override || '#fef08a';
 
-            return `
-                <rect x="36" y="36" width="1008" height="1848" rx="14" stroke="${gold}" stroke-width="3" fill="none" />
-                <rect x="48" y="48" width="984" height="1824" rx="10" stroke="${gold}" stroke-width="1.5" stroke-dasharray="12 8" fill="none" opacity="0.7" />
-                <g transform="translate(52, 52)">
-                    <circle cx="0" cy="0" r="28" fill="rgba(17,17,22,0.85)" stroke="${gold}" stroke-width="2" />
+            // Corner medallion: the disc and its sunburst are separate layers sharing the centre pivot
+            const medallion = (corner: string, x: number, y: number) => [
+                {
+                    id: `disc${corner}`,
+                    pivot: { x, y },
+                    svg: `
+                <g transform="translate(${x}, ${y})">
+                    <circle cx="0" cy="0" r="28" fill="rgba(17,17,22,0.85)" stroke="${gold}" stroke-width="2" /></g>`,
+                },
+                {
+                    id: `sun${corner}`,
+                    pivot: { x, y },
+                    svg: `<g transform="translate(${x}, ${y})">
                     <polygon points="0,-18 4,-5 18,0 4,5 0,18 -4,5 -18,0 -4,-5" fill="${lightGold}" />
                     <circle cx="0" cy="0" r="4" fill="#ffffff" />
-                </g>
-                <g transform="translate(1028, 52)">
-                    <circle cx="0" cy="0" r="28" fill="rgba(17,17,22,0.85)" stroke="${gold}" stroke-width="2" />
-                    <polygon points="0,-18 4,-5 18,0 4,5 0,18 -4,5 -18,0 -4,-5" fill="${lightGold}" />
-                    <circle cx="0" cy="0" r="4" fill="#ffffff" />
-                </g>
-                <g transform="translate(52, 1868)">
-                    <circle cx="0" cy="0" r="28" fill="rgba(17,17,22,0.85)" stroke="${gold}" stroke-width="2" />
-                    <polygon points="0,-18 4,-5 18,0 4,5 0,18 -4,5 -18,0 -4,-5" fill="${lightGold}" />
-                    <circle cx="0" cy="0" r="4" fill="#ffffff" />
-                </g>
-                <g transform="translate(1028, 1868)">
-                    <circle cx="0" cy="0" r="28" fill="rgba(17,17,22,0.85)" stroke="${gold}" stroke-width="2" />
-                    <polygon points="0,-18 4,-5 18,0 4,5 0,18 -4,5 -18,0 -4,-5" fill="${lightGold}" />
-                    <circle cx="0" cy="0" r="4" fill="#ffffff" />
-                </g>
-                <g transform="translate(540, 48)">
+                </g>`,
+                },
+            ];
+            const ornament = (id: string, y: number) => ({
+                id,
+                svg: `
+                <g transform="translate(540, ${y})">
                     <polygon points="0,-16 10,0 0,16 -10,0" fill="${gold}" />
                     <line x1="-80" y1="0" x2="-20" y2="0" stroke="${gold}" stroke-width="2" />
                     <line x1="20" y1="0" x2="80" y2="0" stroke="${gold}" stroke-width="2" />
                     <circle cx="-50" cy="0" r="3" fill="${lightGold}" />
                     <circle cx="50" cy="0" r="3" fill="${lightGold}" />
-                </g>
-                <g transform="translate(540, 1872)">
-                    <polygon points="0,-16 10,0 0,16 -10,0" fill="${gold}" />
-                    <line x1="-80" y1="0" x2="-20" y2="0" stroke="${gold}" stroke-width="2" />
-                    <line x1="20" y1="0" x2="80" y2="0" stroke="${gold}" stroke-width="2" />
-                    <circle cx="-50" cy="0" r="3" fill="${lightGold}" />
-                    <circle cx="50" cy="0" r="3" fill="${lightGold}" />
-                </g>
-            `;
+                </g>`,
+            });
+
+            return {
+                layers: [
+                    {
+                        id: 'border',
+                        svg: `
+                <rect x="36" y="36" width="1008" height="1848" rx="14" stroke="${gold}" stroke-width="3" fill="none" />`,
+                    },
+                    {
+                        id: 'borderDash',
+                        svg: `
+                <rect x="48" y="48" width="984" height="1824" rx="10" stroke="${gold}" stroke-width="1.5" stroke-dasharray="12 8" fill="none" opacity="0.7" />`,
+                    },
+                    ...medallion('TL', 52, 52),
+                    ...medallion('TR', 1028, 52),
+                    ...medallion('BL', 52, 1868),
+                    ...medallion('BR', 1028, 1868),
+                    ornament('ornamentTop', 48),
+                    ornament('ornamentBottom', 1872),
+                ],
+            };
         }
     ),
-    defineFrame(
+    defineLayeredFrame(
         'hearts',
         'Hearts',
         'cosmic',
@@ -439,7 +558,8 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
             const bottomY = hasScoreboard ? 1700 : 1790;
 
             // Unit heart roughly 100 wide, centred on (0,0).
-            const HEART = 'M0,38 C-8,30 -50,4 -50,-20 C-50,-40 -34,-50 -20,-50 C-10,-50 -3,-44 0,-36 C3,-44 10,-50 20,-50 C34,-50 50,-40 50,-20 C50,4 8,30 0,38 Z';
+            const HEART =
+                'M0,38 C-8,30 -50,4 -50,-20 C-50,-40 -34,-50 -20,-50 C-10,-50 -3,-44 0,-36 C3,-44 10,-50 20,-50 C34,-50 50,-40 50,-20 C50,4 8,30 0,38 Z';
 
             const solid = (x: number, y: number, s: number, rot: number, col: string) => `
                 <g transform="translate(${x}, ${y}) rotate(${rot}) scale(${s})">
@@ -457,42 +577,72 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
                     <path d="M0,-12 Q1.5,-1.5 12,0 Q1.5,1.5 0,12 Q-1.5,1.5 -12,0 Q-1.5,-1.5 0,-12 Z" fill="${col}" />
                 </g>`;
 
-            const corner = (x: number, y: number, flip: boolean) => `
-                <g transform="translate(${x}, ${y})${flip ? ' scale(-1, 1)' : ''}">
-                    ${solid(0, 0, 1.25, -14, red)}
-                    ${solid(92, -38, 0.7, 12, pink)}
-                    ${solid(70, 62, 0.5, -6, rose)}
-                    ${outline(-6, 108, 0.55, 10, pink)}
-                    ${sparkle(140, 20, 1, '#ffffff')}
-                    ${sparkle(30, -86, 0.7, pink)}
+            const cornerAt = (x: number, y: number, flip: boolean, inner: string) => `
+                <g transform="translate(${x}, ${y})${flip ? ' scale(-1, 1)' : ''}">${inner}
                 </g>`;
+            // Top corner cluster: the big heart (beats), its small hearts and its sparkles, all pivoting on the
+            // big heart so the small ones spring out of it
+            const corner = (side: string, x: number, y: number, flip: boolean) => [
+                { id: `beat${side}`, pivot: { x, y }, svg: cornerAt(x, y, flip, solid(0, 0, 1.25, -14, red)) },
+                {
+                    id: `hearts${side}`,
+                    pivot: { x, y },
+                    svg: cornerAt(
+                        x,
+                        y,
+                        flip,
+                        solid(92, -38, 0.7, 12, pink) + solid(70, 62, 0.5, -6, rose) + outline(-6, 108, 0.55, 10, pink)
+                    ),
+                },
+                {
+                    id: `sparkles${side}`,
+                    svg: cornerAt(x, y, flip, sparkle(140, 20, 1, '#ffffff') + sparkle(30, -86, 0.7, pink)),
+                },
+            ];
 
-            return `
-                <!-- Top Corner Heart Clusters -->
-                ${corner(90, topY, false)}
-                ${corner(990, topY, true)}
+            return {
+                layers: [
+                    // Top Corner Heart Clusters
+                    ...corner('TL', 90, topY, false),
+                    ...corner('TR', 990, topY, true),
 
-                <!-- Side Edge Drifting Hearts -->
-                ${outline(48, 640, 0.35, -12, rose)}
-                ${solid(64, 900, 0.28, 8, pink)}
-                ${outline(40, 1180, 0.3, 14, red)}
-                ${solid(1030, 760, 0.3, -10, rose)}
-                ${outline(1040, 1040, 0.35, 6, pink)}
-                ${solid(1020, 1320, 0.26, -14, red)}
-                ${sparkle(80, 780, 0.6, '#ffffff')}
-                ${sparkle(1000, 1180, 0.6, '#ffffff')}
+                    // Side Edge Drifting Hearts
+                    {
+                        id: 'sideL',
+                        svg:
+                            outline(48, 640, 0.35, -12, rose) +
+                            solid(64, 900, 0.28, 8, pink) +
+                            outline(40, 1180, 0.3, 14, red),
+                    },
+                    {
+                        id: 'sideR',
+                        svg:
+                            solid(1030, 760, 0.3, -10, rose) +
+                            outline(1040, 1040, 0.35, 6, pink) +
+                            solid(1020, 1320, 0.26, -14, red),
+                    },
+                    { id: 'sideSparkles', svg: sparkle(80, 780, 0.6, '#ffffff') + sparkle(1000, 1180, 0.6, '#ffffff') },
 
-                <!-- Bottom Corner Hearts -->
-                ${solid(110, bottomY, 0.9, 10, rose)}
-                ${outline(190, bottomY + 60, 0.45, -8, red)}
-                ${solid(970, bottomY, 0.9, -10, red)}
-                ${outline(890, bottomY + 60, 0.45, 8, pink)}
-                ${sparkle(60, bottomY - 80, 0.8, pink)}
-                ${sparkle(1020, bottomY - 80, 0.8, pink)}
-            `;
+                    // Bottom Corner Hearts
+                    {
+                        id: 'bottomL',
+                        pivot: { x: 110, y: bottomY },
+                        svg: solid(110, bottomY, 0.9, 10, rose) + outline(190, bottomY + 60, 0.45, -8, red),
+                    },
+                    {
+                        id: 'bottomR',
+                        pivot: { x: 970, y: bottomY },
+                        svg: solid(970, bottomY, 0.9, -10, red) + outline(890, bottomY + 60, 0.45, 8, pink),
+                    },
+                    {
+                        id: 'bottomSparkles',
+                        svg: sparkle(60, bottomY - 80, 0.8, pink) + sparkle(1020, bottomY - 80, 0.8, pink),
+                    },
+                ],
+            };
         }
     ),
-    defineFrame(
+    defineLayeredFrame(
         'rainbows',
         'Rainbows',
         'cosmic',
@@ -542,35 +692,44 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
                 return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${sun}" stroke-width="6" stroke-linecap="round" />`;
             }).join('');
 
-            return `
-                <!-- Top-Left Corner Rainbow, clouds capping both ends -->
+            const topLeft = (inner: string) => `
                 <g transform="translate(0, ${topShift})">
-                    ${arc(-20, -20, 340, 1, 1)}
-                    ${cloud(255, 20, 0.9)}
-                    ${cloud(20, 275, 0.85)}
-                </g>
-
-                <!-- Top-Right Sunshine -->
+                    ${inner}
+                </g>`;
+            const sunAt = (inner: string) => `
                 <g transform="translate(980, ${150 + topShift})">
-                    <circle cx="0" cy="0" r="32" fill="${sun}" />
-                    ${rays}
-                </g>
+                    ${inner}
+                </g>`;
+            const sunCentre = { x: 980, y: 150 + topShift };
 
-                <!-- Bottom-Right Corner Rainbow, clouds capping both ends -->
-                ${arc(1100, 1940, 340, -1, -1)}
-                ${cloud(825, 1900, 0.9)}
-                ${cloud(1060, 1645, 0.85)}
+            // Edge-cropped clouds pivot on the canvas edge that crops them, so a pop never exposes the cut.
+            return {
+                layers: [
+                    // Top-Left Corner Rainbow, clouds capping both ends
+                    { id: 'arcTL', pivot: { x: -20, y: -20 + topShift }, svg: topLeft(arc(-20, -20, 340, 1, 1)) },
+                    { id: 'cloudTLTop', pivot: { x: 255, y: 0 }, svg: topLeft(cloud(255, 20, 0.9)) },
+                    { id: 'cloudTLSide', pivot: { x: 0, y: 275 + topShift }, svg: topLeft(cloud(20, 275, 0.85)) },
 
-                <!-- Bottom-Left Cloud -->
-                ${cloud(90, bottomY, 0.6)}
+                    // Top-Right Sunshine
+                    { id: 'sunDisc', pivot: sunCentre, svg: sunAt(`<circle cx="0" cy="0" r="32" fill="${sun}" />`) },
+                    { id: 'sunRays', pivot: sunCentre, svg: sunAt(rays) },
 
-                <!-- Side Edge Mini Clouds -->
-                ${cloud(40, 900, 0.45)}
-                ${cloud(1040, 1150, 0.45)}
-            `;
+                    // Bottom-Right Corner Rainbow, clouds capping both ends
+                    { id: 'arcBR', pivot: { x: 1100, y: 1940 }, svg: arc(1100, 1940, 340, -1, -1) },
+                    { id: 'cloudBRBottom', pivot: { x: 825, y: 1920 }, svg: cloud(825, 1900, 0.9) },
+                    { id: 'cloudBRSide', pivot: { x: 1080, y: 1645 }, svg: cloud(1060, 1645, 0.85) },
+
+                    // Bottom-Left Cloud
+                    { id: 'cloudBL', svg: cloud(90, bottomY, 0.6) },
+
+                    // Side Edge Mini Clouds
+                    { id: 'cloudSideL', svg: cloud(40, 900, 0.45) },
+                    { id: 'cloudSideR', svg: cloud(1040, 1150, 0.45) },
+                ],
+            };
         }
     ),
-    defineFrame(
+    defineLayeredFrame(
         'sol',
         'Sol',
         'cosmic',
@@ -595,26 +754,45 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
                 const r0 = 150;
                 const r1 = long ? 235 : 200;
                 const hw = long ? 0.11 : 0.09;
-                const p = (r: number, da: number) => `${(Math.cos(a + da) * r).toFixed(1)},${(Math.sin(a + da) * r).toFixed(1)}`;
+                const p = (r: number, da: number) =>
+                    `${(Math.cos(a + da) * r).toFixed(1)},${(Math.sin(a + da) * r).toFixed(1)}`;
                 return `<polygon points="${p(r0, -hw)} ${p(r1, 0)} ${p(r0, hw)}" fill="${long ? orange : yellow}" />`;
             }).join('');
 
-            const miniSun = (x: number, y: number, s: number) => `
+            // Mini sun = ray ring (spins: 8 rays, 45° symmetric) + smiling face, sharing the centre pivot
+            const miniAt = (x: number, y: number, s: number, inner: string) => `
                 <g transform="translate(${x}, ${y}) scale(${s})">
-                    ${Array.from({ length: 8 }, (_, i) => {
-                        const a = (i * 45 * Math.PI) / 180;
-                        return `<line x1="${(Math.cos(a) * 26).toFixed(1)}" y1="${(Math.sin(a) * 26).toFixed(1)}" x2="${(Math.cos(a) * 38).toFixed(1)}" y2="${(Math.sin(a) * 38).toFixed(1)}" stroke="${orange}" stroke-width="5" stroke-linecap="round" />`;
-                    }).join('')}
-                    <circle cx="0" cy="0" r="20" fill="${yellow}" />
-                    <path d="M-8,4 Q0,11 8,4" stroke="${ink}" stroke-width="2.5" stroke-linecap="round" fill="none" />
+                    ${inner}
                 </g>`;
+            const miniRays = Array.from({ length: 8 }, (_, i) => {
+                const a = (i * 45 * Math.PI) / 180;
+                return `<line x1="${(Math.cos(a) * 26).toFixed(1)}" y1="${(Math.sin(a) * 26).toFixed(1)}" x2="${(Math.cos(a) * 38).toFixed(1)}" y2="${(Math.sin(a) * 38).toFixed(1)}" stroke="${orange}" stroke-width="5" stroke-linecap="round" />`;
+            }).join('');
+            const miniFace = `
+                    <circle cx="0" cy="0" r="20" fill="${yellow}" />
+                    <path d="M-8,4 Q0,11 8,4" stroke="${ink}" stroke-width="2.5" stroke-linecap="round" fill="none" />`;
+            const miniSun = (side: string, x: number, y: number, s: number) => [
+                { id: `miniRays${side}`, pivot: { x, y }, svg: miniAt(x, y, s, miniRays) },
+                { id: `miniFace${side}`, pivot: { x, y }, svg: miniAt(x, y, s, miniFace) },
+            ];
 
             const sparkle = (x: number, y: number, s: number, col: string) => `
                 <g transform="translate(${x}, ${y}) scale(${s})">
                     <path d="M0,-14 Q1.5,-1.5 14,0 Q1.5,1.5 0,14 Q-1.5,1.5 -14,0 Q-1.5,-1.5 0,-14 Z" fill="${col}" />
                 </g>`;
+            // Sparkle layer, pivoting on its own centre
+            const spark = (id: string, x: number, y: number, s: number, col: string) => ({
+                id,
+                svg: sparkle(x, y, s, col),
+                pivot: { x, y },
+            });
+            const sunAt = (inner: string) => `
+                <g transform="translate(930, ${sunY})">${inner}
+                </g>`;
+            const sunCentre = { x: 930, y: sunY };
 
-            return `
+            return {
+                defs: `
                 <defs>
                     <radialGradient id="sol-face" cx="0.4" cy="0.35" r="0.7">
                         <stop offset="0" stop-color="#fef9c3" />
@@ -625,12 +803,26 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
                         <stop offset="0.5" stop-color="${yellow}" stop-opacity="0.35" />
                         <stop offset="1" stop-color="${yellow}" stop-opacity="0" />
                     </radialGradient>
-                </defs>
-
-                <!-- Top-Right Smiling Sun (slightly cropped by the corner) -->
-                <g transform="translate(930, ${sunY})">
-                    <circle cx="0" cy="0" r="300" fill="url(#sol-glow)" />
-                    <g transform="rotate(8)">${rays}</g>
+                </defs>`,
+                layers: [
+                    // Top-Right Smiling Sun (slightly cropped by the corner: glow and rays only ever grow or
+                    // reveal in place, never shrink or rotate, so the cut edge stays off-canvas)
+                    {
+                        id: 'glow',
+                        pivot: sunCentre,
+                        svg: sunAt(`
+                    <circle cx="0" cy="0" r="300" fill="url(#sol-glow)" />`),
+                    },
+                    {
+                        id: 'rays',
+                        pivot: sunCentre,
+                        svg: sunAt(`
+                    <g transform="rotate(8)">${rays}</g>`),
+                    },
+                    {
+                        id: 'face',
+                        pivot: sunCentre,
+                        svg: sunAt(`
                     <circle cx="0" cy="0" r="140" fill="url(#sol-face)" stroke="${deep}" stroke-width="5" />
                     <!-- Happy closed eyes -->
                     <path d="M-62,-20 Q-44,-42 -26,-20" stroke="${ink}" stroke-width="9" stroke-linecap="round" fill="none" />
@@ -642,30 +834,35 @@ export const COSMIC_FRAMES: StoryFrameDefinition[] = [
                     <path d="M-50,30 Q0,92 50,30 Q0,58 -50,30 Z" fill="${ink}" />
                     <path d="M-22,58 Q0,70 22,58 Q0,64 -22,58 Z" fill="#fb7185" />
                     <!-- Face shine -->
-                    <path d="M-92,-70 Q-70,-104 -30,-112" stroke="#ffffff" stroke-width="8" stroke-linecap="round" fill="none" opacity="0.6" />
-                </g>
+                    <path d="M-92,-70 Q-70,-104 -30,-112" stroke="#ffffff" stroke-width="8" stroke-linecap="round" fill="none" opacity="0.6" />`),
+                    },
 
-                <!-- Side edge sparkles and light dots -->
-                ${sparkle(60, 560, 0.9, yellow)}
-                ${sparkle(44, 960, 0.6, orange)}
-                ${sparkle(64, 1320, 0.8, yellow)}
-                ${sparkle(1024, 820, 0.7, orange)}
-                ${sparkle(1036, 1180, 0.9, yellow)}
+                    // Side edge sparkles and light dots
+                    spark('spark1', 60, 560, 0.9, yellow),
+                    spark('spark2', 44, 960, 0.6, orange),
+                    spark('spark3', 64, 1320, 0.8, yellow),
+                    spark('spark4', 1024, 820, 0.7, orange),
+                    spark('spark5', 1036, 1180, 0.9, yellow),
+                    {
+                        id: 'dots',
+                        svg: `
                 <g fill="${yellow}">
                     <circle cx="38" cy="760" r="4" opacity="0.8" />
                     <circle cx="70" cy="1140" r="3" opacity="0.7" />
                     <circle cx="1046" cy="1000" r="4" opacity="0.8" />
                     <circle cx="1020" cy="1420" r="3" opacity="0.7" />
-                </g>
+                </g>`,
+                    },
 
-                <!-- Top-left sparkle and bottom mini suns -->
-                ${sparkle(90, hasAttribution ? 170 : 110, 1.4, yellow)}
-                ${sparkle(170, hasAttribution ? 250 : 190, 0.8, orange)}
-                ${miniSun(110, bottomY, 1.3)}
-                ${miniSun(970, bottomY, 1)}
-                ${sparkle(200, bottomY + 70, 0.9, yellow)}
-                ${sparkle(880, bottomY - 60, 0.9, orange)}
-            `;
+                    // Top-left sparkle and bottom mini suns
+                    spark('sparkTL', 90, hasAttribution ? 170 : 110, 1.4, yellow),
+                    spark('sparkTL2', 170, hasAttribution ? 250 : 190, 0.8, orange),
+                    ...miniSun('L', 110, bottomY, 1.3),
+                    ...miniSun('R', 970, bottomY, 1),
+                    spark('sparkBL', 200, bottomY + 70, 0.9, yellow),
+                    spark('sparkBR', 880, bottomY - 60, 0.9, orange),
+                ],
+            };
         }
     ),
 ];

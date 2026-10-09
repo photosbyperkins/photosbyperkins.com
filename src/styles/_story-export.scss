@@ -4,9 +4,9 @@
 @use './globals' as *;
 @use './story/story-base';
 @use './story/story-layout';
-@use './story/story-filters';
 @use './story/story-frames';
 @use './story/story-badges';
 @use './story/story-cropper';
 @use './story/story-burst-cropper';
-@use './story/story-mobile';
+@use './story/story-studio-panel';
+@use './story/story-browser';

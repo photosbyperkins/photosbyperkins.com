@@ -31,6 +31,7 @@ import GearInfoHeader from './GearInfoHeader';
 import PortfolioYearNav from './PortfolioYearNav';
 import PortfolioSeasonStrip from './PortfolioSeasonStrip';
 import { BatchActionBar } from './eventComponents/BatchActionBar';
+import { prefetchStoryVideoSupport } from '../../../utils/story/storyVideoSupport';
 
 const LightboxContainer = React.lazy(() => import('./LightboxContainer'));
 const GlobalSearchOverlay = React.lazy(() => import('./GlobalSearchOverlay'));
@@ -57,6 +58,11 @@ export default function Portfolio({ years }: PortfolioProps) {
     const [hasEverOpenedSearch, setHasEverOpenedSearch] = useState(initialSearchOpen);
 
     const isFirstRender = useRef(true);
+
+    // Know whether Animated Story (MP4) export works before Story Maker opens (idle-time, memoised)
+    useEffect(() => {
+        prefetchStoryVideoSupport();
+    }, []);
 
     useEffect(() => {
         if (isFirstRender.current) {

@@ -121,30 +121,58 @@ export async function drawStoryFrameToCanvas(
     colorOverride?: string,
     context?: StoryFrameContext
 ): Promise<void> {
-    if (!frameId || frameId === 'none') return;
-    const def = STORY_FRAMES_MAP[frameId];
-    if (!def) return;
+    const img = await loadStoryFrameImage(frameId, colorOverride, context);
+    if (!img) return;
+    try {
+        if (typeof ctx.drawImage === 'function') {
+            ctx.drawImage(img, 0, 0, targetW, targetH);
+        }
+    } catch (err) {
+        console.warn('Failed to draw story frame to canvas:', err);
+    }
+}
 
-    if (typeof Image === 'undefined') return;
+/**
+ * Rasterizes an SVG decorative frame into a decoded image ready for (repeated) `drawImage` calls.
+ * Resolves to `null` for 'none', unknown frames, load errors or a timeout.
+ */
+export async function loadStoryFrameImage(
+    frameId: StoryFrameId | undefined,
+    colorOverride?: string,
+    context?: StoryFrameContext
+): Promise<HTMLImageElement | null> {
+    if (!frameId || frameId === 'none') return null;
+    const def = STORY_FRAMES_MAP[frameId];
+    if (!def) return null;
+
+    if (typeof Image === 'undefined') return null;
 
     const svgString = await def.getSvgString(colorOverride, context);
-    if (!svgString) return;
+    if (!svgString) return null;
 
+    return loadSvgStringImage(svgString, `Story frame "${frameId}"`);
+}
+
+/**
+ * Loads a complete SVG document string as a decoded image (WebKit-safe; 3.5s timeout → null).
+ */
+export function loadSvgStringImage(svgString: string, label = 'SVG'): Promise<HTMLImageElement | null> {
+    if (typeof Image === 'undefined') return Promise.resolve(null);
     const dataUri = svgToDataUri(svgString);
 
-    await new Promise<void>((resolve) => {
+    return new Promise<HTMLImageElement | null>((resolve) => {
         const img = new Image();
         let settled = false;
         let timer: ReturnType<typeof setTimeout> | null = null;
 
-        const cleanup = () => {
+        const finish = (result: HTMLImageElement | null) => {
             if (timer) {
                 clearTimeout(timer);
                 timer = null;
             }
             if (!settled) {
                 settled = true;
-                resolve();
+                resolve(result);
             }
         };
 
@@ -168,27 +196,24 @@ export async function drawStoryFrameToCanvas(
                         setTimeout(r, 40);
                     }
                 });
-
-                if (typeof ctx.drawImage === 'function') {
-                    ctx.drawImage(img, 0, 0, targetW, targetH);
-                }
+                finish(img);
             } catch (err) {
-                console.warn('Failed to draw story frame to canvas:', err);
+                console.warn('Failed to rasterize story frame:', err);
+                finish(null);
             }
-            cleanup();
         };
 
         img.onerror = (e) => {
             console.warn('Failed to load story frame SVG image:', e);
-            cleanup();
+            finish(null);
         };
 
         img.src = dataUri;
 
         // Generous safety timeout (3.5s) so mobile devices under CPU throttling don't prematurely abort frame rendering
         timer = setTimeout(() => {
-            console.warn(`Story frame "${frameId}" render timed out`);
-            cleanup();
+            console.warn(`${label} render timed out`);
+            finish(null);
         }, 3500);
     });
 }

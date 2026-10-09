@@ -26,6 +26,7 @@ interface StoryCropperProps {
     theme?: 'dark' | 'light';
     frameId?: StoryFrameId;
     frameColorOverride?: string;
+    isFrameAnimated?: boolean;
     exif?: ExifData;
     filterId?: StoryPhotoFilterId;
     filterStrength?: number;
@@ -45,6 +46,7 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
     theme,
     frameId,
     frameColorOverride,
+    isFrameAnimated = false,
     exif,
     filterId,
     filterStrength,
@@ -148,7 +150,11 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
     const handlePointerDown = (e: React.PointerEvent) => {
         e.stopPropagation();
         setIsDragging(true);
-        (e.target as HTMLElement).setPointerCapture(e.pointerId);
+        try {
+            (e.target as HTMLElement).setPointerCapture(e.pointerId);
+        } catch {
+            // Ignore capture error on synthetic events (e.g. preview drag handover)
+        }
         dragStartRef.current = {
             mouseX: e.clientX,
             mouseY: e.clientY,
@@ -419,6 +425,7 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
                             frameId={frameId || 'none'}
                             colorOverride={frameColorOverride}
                             context={frameContext}
+                            animated={isFrameAnimated}
                         />
                     );
                 })()}

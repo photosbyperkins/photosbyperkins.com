@@ -1,0 +1,848 @@
+@use '../globals' as *;
+@use './story-mixins' as *;
+
+// =====================================================================
+// Shared browser primitives for the Frames and Filters tabs:
+// options row → sectioned thumbnail browser (grids on desktop, filmstrip on touch).
+// =====================================================================
+
+// The options row stays pinned under the tab bar: the panel doesn't scroll, the thumb list does.
+.story-studio-panel__content:has(> .story-tab--browser) {
+    overflow: hidden;
+}
+
+.story-tab--browser {
+    position: relative; // anchors the "Jump to" menu
+    flex: 1 1 auto;
+    min-height: 0;
+    gap: 10px;
+}
+
+// ---------------- Options row ----------------
+.story-options-row {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-height: 34px;
+
+    &__start {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+
+    &__end {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: none;
+    }
+
+    &__hint {
+        min-width: 0;
+        font-size: 0.74rem;
+        color: var(--color-text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
+.story-pill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 32px;
+    padding: 0 12px;
+    box-sizing: border-box;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+    font-family: var(--font-condensed);
+    font-size: 0.74rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    cursor: pointer;
+    touch-action: manipulation;
+    transition:
+        background-color var(--transition-fast),
+        border-color var(--transition-fast),
+        color var(--transition-fast),
+        box-shadow var(--transition-fast),
+        transform var(--dur-fast) var(--ease-out-expo);
+
+    html[data-theme='light'] & {
+        background: rgba(0, 0, 0, 0.04);
+        border-color: rgba(0, 0, 0, 0.12);
+    }
+
+    @media (hover: hover) {
+        &:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: var(--color-border-hover);
+
+            html[data-theme='light'] & {
+                background: rgba(0, 0, 0, 0.07);
+            }
+        }
+    }
+
+    &:active:not(:disabled) {
+        transform: scale(0.96);
+        transition-duration: var(--dur-press);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--color-accent);
+        outline-offset: 2px;
+    }
+
+    &:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+}
+
+// Animate: label + Off / On segmented control (base styles shared with the Badges tab toggles)
+.story-animate-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    &__label {
+        flex: none;
+        font-family: var(--font-condensed);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--color-text-muted);
+    }
+
+    &__control.story-export-modal__scores-toggle {
+        margin-left: 0;
+        height: 30px;
+        box-sizing: border-box;
+
+        .story-export-modal__scores-btn {
+            min-width: 44px;
+        }
+
+        // Unavailable (no frame / no video support): a quiet grey "Off", with the reason shown inline
+        &.is-disabled {
+            border-style: dashed;
+
+            .story-export-modal__scores-btn {
+                cursor: not-allowed;
+                color: var(--color-text-dim);
+            }
+
+            .story-export-modal__scores-btn--active {
+                color: var(--color-text-muted);
+            }
+
+            .portfolio__segment-pill {
+                background: rgba(255, 255, 255, 0.1);
+                box-shadow: none;
+
+                html[data-theme='light'] & {
+                    background: rgba(0, 0, 0, 0.08);
+                }
+            }
+        }
+    }
+}
+
+// Tint button + popover
+.story-tint {
+    position: relative;
+
+    &__trigger.is-open {
+        border-color: var(--color-accent);
+    }
+
+    &__dot {
+        width: 14px;
+        height: 14px;
+        flex: none;
+        border-radius: 50%;
+        border: 1px solid rgba(255, 255, 255, 0.45);
+        box-sizing: border-box;
+
+        html[data-theme='light'] & {
+            border-color: rgba(0, 0, 0, 0.25);
+        }
+
+        &--default {
+            background: linear-gradient(135deg, #e60000 0%, #fbbf24 50%, #06b6d4 100%);
+        }
+    }
+
+    &__popover {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        z-index: 30;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+        padding: 10px 12px 9px;
+        border-radius: 12px;
+        background: rgba(26, 28, 36, 0.98);
+        border: 1px solid var(--color-border);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+        animation: storyTabFadeIn 160ms var(--ease-out-expo);
+
+        html[data-theme='light'] & {
+            background: #ffffff;
+            border-color: rgba(0, 0, 0, 0.12);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        }
+    }
+
+    &__swatch {
+        width: 26px;
+        height: 26px;
+        flex: none;
+        padding: 0;
+        border-radius: 50%;
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        cursor: pointer;
+        transition:
+            transform var(--transition-fast),
+            box-shadow var(--transition-fast);
+
+        html[data-theme='light'] & {
+            border-color: rgba(0, 0, 0, 0.2);
+        }
+
+        @media (hover: hover) {
+            &:hover {
+                transform: scale(1.1);
+            }
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--color-accent);
+            outline-offset: 2px;
+        }
+
+        &--default {
+            background: linear-gradient(135deg, #e60000 0%, #fbbf24 50%, #06b6d4 100%);
+        }
+
+        &.is-active {
+            box-shadow:
+                0 0 0 2px rgba(20, 20, 26, 0.95),
+                0 0 0 4px var(--color-accent);
+        }
+    }
+
+    &__divider {
+        width: 1px;
+        height: 20px;
+        background: var(--color-border);
+    }
+
+    &__custom {
+        position: relative;
+        width: 26px;
+        height: 26px;
+        flex: none;
+        border-radius: 7px;
+        overflow: hidden;
+        border: 1px solid var(--color-border);
+        cursor: pointer;
+
+        &.is-active {
+            box-shadow:
+                0 0 0 2px rgba(20, 20, 26, 0.95),
+                0 0 0 4px var(--color-accent);
+        }
+    }
+
+    &__custom-swatch {
+        display: block;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+
+        // Not in use yet: a colour wheel says "pick any colour"
+        &--wheel {
+            background: conic-gradient(#ef4444, #f59e0b, #eab308, #22c55e, #06b6d4, #3b82f6, #a855f7, #ec4899, #ef4444);
+        }
+    }
+
+    &__custom-icon {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 12px;
+        height: 12px;
+        transform: translate(-50%, -50%);
+        pointer-events: none;
+        filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4));
+    }
+
+    &__custom-input {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        border: none;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    // Trigger reads "Tint · Gold"
+    &__current {
+        color: var(--color-text-muted);
+        font-weight: 500;
+
+        &::before {
+            content: '·';
+            margin-right: 6px;
+            color: var(--color-text-dim);
+        }
+    }
+
+    &__swatches {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    // Name of the hovered / focused swatch (else the current tint)
+    &__name {
+        font-family: var(--font-condensed);
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--color-text-muted);
+        line-height: 1;
+    }
+}
+
+// Filter strength slider
+.story-strength {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    max-width: 340px;
+    min-width: 0;
+
+    &__label {
+        flex: none;
+        font-family: var(--font-condensed);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--color-text-muted);
+    }
+
+    &__slider.story-export-modal__slider {
+        flex: 1 1 auto;
+        min-width: 80px;
+        margin: 0;
+    }
+
+    &__value {
+        flex: none;
+        width: 3.2em;
+        text-align: right;
+        font-size: 0.74rem;
+        color: var(--color-text-muted);
+        font-variant-numeric: tabular-nums;
+    }
+
+    // Filmstrip: "Strength 80%" pill that opens the slider
+    &__toggle-value {
+        color: var(--color-text-muted);
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+// Selected filter: name + what it does
+.story-filter-info {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+    overflow: hidden;
+
+    &__name {
+        flex: none;
+        font-family: var(--font-condensed);
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        color: var(--color-text);
+    }
+
+    &__desc {
+        min-width: 0;
+        font-size: 0.76rem;
+        color: var(--color-text-muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
+// Desktop: the description sits under the strength row
+.story-filter-caption {
+    flex: none;
+    min-width: 0;
+    margin-top: -4px;
+}
+
+// ---------------- Thumbnail browser ----------------
+// Sections: None (untitled) → Recent → one per category.
+$story-section-header-h: 16px;
+$story-section-header-gap: 6px;
+
+.story-thumb-section {
+    min-width: 0;
+
+    &__header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        height: $story-section-header-h;
+        min-width: 0;
+    }
+
+    &__title {
+        flex: none;
+        font-family: var(--font-condensed);
+        font-size: 0.7rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        line-height: $story-section-header-h;
+        text-transform: uppercase;
+        white-space: nowrap;
+        color: var(--color-text-muted);
+    }
+
+    &__count {
+        flex: none;
+        min-width: 16px;
+        height: 14px;
+        padding: 0 4px;
+        box-sizing: border-box;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.08);
+        font-size: 0.6rem;
+        font-weight: 700;
+        line-height: 14px;
+        text-align: center;
+        color: var(--color-text-dim);
+        font-variant-numeric: tabular-nums;
+
+        html[data-theme='light'] & {
+            background: rgba(0, 0, 0, 0.06);
+        }
+    }
+
+    &__desc {
+        flex: 0 1 auto;
+        min-width: 0;
+        margin-left: 2px;
+        font-size: 0.7rem;
+        color: var(--color-text-dim);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    // Filmstrip: the pinned title opens "Jump to…"
+    &__jump {
+        display: inline-flex;
+        align-items: center;
+        gap: 3px;
+        height: $story-section-header-h;
+        padding: 0;
+        background: none;
+        border: none;
+        cursor: pointer;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+        transition: color var(--transition-fast);
+
+        svg {
+            width: 9px;
+            height: 9px;
+            transition: transform var(--dur-fast) var(--ease-out-expo);
+        }
+
+        &[aria-expanded='true'] {
+            color: var(--color-text);
+
+            svg {
+                transform: rotate(180deg);
+            }
+        }
+
+        @media (hover: hover) {
+            &:hover {
+                color: var(--color-text);
+            }
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--color-text);
+            outline-offset: 2px;
+            border-radius: 3px;
+        }
+    }
+}
+
+.story-thumbs {
+    position: relative;
+    min-width: 0;
+
+    // Desktop: the list scrolls on its own (under the pinned options row); sections stack, each a 3-up grid.
+    &--grid {
+        @include thin-scrollbar;
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        container-type: inline-size;
+        // Room for focus / selection rings; extra at the bottom so the last row clears the fade
+        margin: 0 -6px -14px;
+        padding: 6px 6px 28px;
+        // Soft edges where thumbs scroll under the options row and into the footer
+        -webkit-mask-image: linear-gradient(to bottom, transparent, #000 6px, #000 calc(100% - 24px), transparent);
+        mask-image: linear-gradient(to bottom, transparent, #000 6px, #000 calc(100% - 24px), transparent);
+
+        .story-thumb-section {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .story-thumb-section--untitled .story-thumb-section__header {
+            display: none;
+        }
+
+        // Hairline rule after the title
+        .story-thumb-section__header::after {
+            content: '';
+            flex: 1 1 12px;
+            min-width: 12px;
+            height: 1px;
+            background: var(--color-border);
+        }
+
+        .story-thumb-section__items {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px 10px;
+            align-content: start;
+        }
+
+        @container (min-width: 560px) {
+            .story-thumb-section__items {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+        }
+    }
+
+    // Touch / narrow: one horizontal snap filmstrip of sections; thumbs size themselves to the strip's
+    // height and each section's title sticks to the left edge while its thumbs scroll past.
+    &--strip {
+        flex: 1 1 0;
+        min-height: 130px;
+        max-height: 320px;
+        display: flex;
+        gap: 18px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        overscroll-behavior-x: contain;
+        scroll-snap-type: x proximity;
+        scrollbar-width: none;
+        container-type: size;
+        margin: 0 -12px;
+        padding: 6px 12px;
+        scroll-padding-inline: 12px;
+
+        &::-webkit-scrollbar {
+            display: none;
+        }
+
+        .story-thumb-section {
+            flex: none;
+            display: flex;
+            flex-direction: column;
+            gap: $story-section-header-gap;
+            height: 100%;
+        }
+
+        .story-thumb-section__header {
+            position: sticky;
+            left: 0;
+            align-self: flex-start;
+            flex: none;
+        }
+
+        .story-thumb-section__items {
+            flex: 1 1 auto;
+            min-height: 0;
+            display: flex;
+            gap: 10px;
+        }
+
+        .story-thumb {
+            flex: 0 0 auto;
+            height: 100%;
+            // 22px = label + gap under the 9:16 media
+            width: calc((100cqh - 22px - #{$story-section-header-h + $story-section-header-gap}) * 9 / 16);
+            scroll-snap-align: center;
+        }
+    }
+}
+
+.story-thumb {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    padding: 0;
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    text-align: center;
+    cursor: pointer;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+
+    &__media {
+        position: relative;
+        display: block;
+        width: 100%;
+        aspect-ratio: 9 / 16;
+        border-radius: 10px;
+        overflow: hidden;
+        background: #0a0a14;
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        transition:
+            border-color var(--transition-fast),
+            box-shadow var(--transition-fast),
+            transform var(--dur-fast) var(--ease-out-expo);
+
+        html[data-theme='light'] & {
+            background: #d4d4d8;
+            border-color: rgba(0, 0, 0, 0.08);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+    }
+
+    &__photo {
+        position: absolute;
+        inset: 0;
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: var(--story-thumb-focus, 50% 50%);
+        pointer-events: none;
+
+        &--empty {
+            background: rgba(120, 120, 128, 0.25);
+        }
+    }
+
+    // Frames sit over a dark, softly blurred photo so thin frame artwork reads at thumb size.
+    // (Scaled up a touch so the blur doesn't leave soft edges.)
+    &--frame &__photo {
+        filter: brightness(0.45) saturate(0.7) blur(1px);
+        transform: scale(1.04);
+    }
+
+    &__overlay {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+    }
+
+    &__none {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.6rem;
+        color: rgba(255, 255, 255, 0.8);
+        text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+    }
+
+    &__label {
+        display: block;
+        height: 16px;
+        font-family: var(--font-condensed);
+        font-size: 0.68rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        line-height: 16px;
+        text-transform: uppercase;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        transition: color var(--transition-fast);
+    }
+
+    @media (hover: hover) {
+        &:hover:not(.story-thumb--selected) {
+            color: var(--color-text);
+
+            .story-thumb__media {
+                border-color: var(--color-border-hover);
+                transform: translateY(-1px);
+            }
+        }
+    }
+
+    &:active &__media {
+        transform: scale(0.97);
+        transition-duration: var(--dur-press);
+    }
+
+    // Keyboard focus: an ink (white / black) ring outside the accent selection ring, so the two never look alike
+    &:focus-visible {
+        outline: none;
+
+        .story-thumb__media {
+            outline: 2px solid var(--color-text);
+            outline-offset: 4px;
+        }
+    }
+
+    // Selected: accent ring, check badge and accent label
+    &--selected {
+        color: var(--color-accent);
+
+        .story-thumb__media {
+            border-color: var(--color-accent);
+            box-shadow:
+                0 0 0 2px var(--color-accent),
+                0 4px 16px var(--color-accent-glow);
+
+            &::after {
+                content: '';
+                position: absolute;
+                top: 6px;
+                right: 6px;
+                z-index: 2;
+                width: 18px;
+                height: 18px;
+                border-radius: 50%;
+                background: var(--color-accent)
+                    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E")
+                    center / 11px no-repeat;
+                box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+            }
+        }
+    }
+}
+
+// "Jump to…" menu, opened from a pinned section title in the filmstrip
+.story-thumb-jump {
+    @include thin-scrollbar;
+    position: absolute;
+    left: 0;
+    z-index: 30;
+    display: flex;
+    flex-direction: column;
+    min-width: 180px;
+    max-width: calc(100% - 8px);
+    padding: 6px;
+    box-sizing: border-box;
+    overflow-y: auto;
+    border-radius: 12px;
+    background: #1a1c24;
+    border: 1px solid var(--color-border);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+    animation: storyTabFadeIn 160ms var(--ease-out-expo);
+    animation-fill-mode: both;
+
+    html[data-theme='light'] & {
+        background: #ffffff;
+        border-color: rgba(0, 0, 0, 0.12);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    }
+
+    &__item {
+        flex: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        min-height: 36px;
+        padding: 0 10px;
+        border: none;
+        border-radius: 8px;
+        background: none;
+        color: var(--color-text);
+        font-family: var(--font-condensed);
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        text-align: left;
+        cursor: pointer;
+        touch-action: manipulation;
+
+        @media (hover: hover) {
+            &:hover {
+                background: rgba(255, 255, 255, 0.07);
+
+                html[data-theme='light'] & {
+                    background: rgba(0, 0, 0, 0.05);
+                }
+            }
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--color-text);
+            outline-offset: -2px;
+        }
+    }
+
+    &__count {
+        color: var(--color-text-dim);
+        font-variant-numeric: tabular-nums;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .story-thumb__media,
+    .story-pill-btn,
+    .story-thumb-section__jump svg {
+        transition: none;
+    }
+
+    .story-thumb-jump {
+        animation: none;
+    }
+}

@@ -12,9 +12,13 @@ vi.mock('./Lightbox', () => ({
     ),
 }));
 
-vi.mock('framer-motion', () => ({
-    AnimatePresence: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
-}));
+vi.mock('framer-motion', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('framer-motion')>();
+    return {
+        ...actual,
+        AnimatePresence: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+    };
+});
 
 describe('LightboxContainer', () => {
     beforeEach(() => {

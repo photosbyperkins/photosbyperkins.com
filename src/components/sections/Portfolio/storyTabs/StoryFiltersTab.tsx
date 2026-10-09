@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
-import type { StoryPhotoFilter, StoryPhotoFilterId, StoryPhotoFilterTabCategory } from '../../../../utils/storyCanvas';
-import { STORY_FILTER_CATEGORIES, STORY_PHOTO_FILTERS, STORY_PHOTO_FILTERS_MAP } from '../../../../utils/storyCanvas';
+import React, { useMemo, useState } from 'react';
+import type { StoryPhotoFilterId } from '../../../../utils/storyCanvas';
+import { STORY_FILTER_CATEGORIES, STORY_PHOTO_FILTERS } from '../../../../utils/storyCanvas';
 import { triggerHaptic, triggerScrubberHaptic } from '../../../../utils/haptics';
-import { StoryCategoryBar } from './StoryCategoryBar';
+import { useStoryPanelLayout } from '../storyStudio/panelLayout';
+import { StoryOptionsRow } from './shared/StoryOptionsRow';
+import { StoryThumb, StoryThumbBrowser } from './shared/StoryThumbBrowser';
+import { buildThumbSections } from './shared/thumbSections';
 
 interface StoryFiltersTabProps {
     activeFilterId: StoryPhotoFilterId;
@@ -11,11 +14,14 @@ interface StoryFiltersTabProps {
     setFilterStrength: (strength: number) => void;
     previewImageUrl?: string;
     setIsDownloaded: (val: boolean) => void;
-    selectedFilterCategory?: StoryPhotoFilterTabCategory;
-    setSelectedFilterCategory?: (cat: StoryPhotoFilterTabCategory) => void;
-    categoryCounts?: Record<string, number>;
-    displayedFilters?: StoryPhotoFilter[];
+    /** Most recently exported filters, newest first. */
+    recentFilterIds?: readonly StoryPhotoFilterId[];
+    /** Desktop hover / keyboard focus preview of a filter on the main preview (`null` to stop previewing). */
+    onPreviewFilter?: (id: StoryPhotoFilterId | null) => void;
 }
+
+const FILTER_THEME_CATEGORIES = STORY_FILTER_CATEGORIES.filter((c) => c.group === 'themes');
+const STRENGTH_PANEL_ID = 'story-filter-strength';
 
 export const StoryFiltersTab: React.FC<StoryFiltersTabProps> = ({
     activeFilterId,
@@ -24,125 +30,146 @@ export const StoryFiltersTab: React.FC<StoryFiltersTabProps> = ({
     setFilterStrength,
     previewImageUrl,
     setIsDownloaded,
-    selectedFilterCategory: controlledCategory,
-    setSelectedFilterCategory: controlledSetCategory,
-    categoryCounts: controlledCounts,
-    displayedFilters: controlledDisplayedFilters,
+    recentFilterIds,
+    onPreviewFilter,
 }) => {
-    // Uncontrolled fallback for isolated rendering or standalone tests
-    const [internalCategory, setInternalCategory] = useState<StoryPhotoFilterTabCategory>('all');
-    const selectedCategory = controlledCategory ?? internalCategory;
-    const setSelectedCategory = controlledSetCategory ?? setInternalCategory;
+    const { browse } = useStoryPanelLayout();
+    const isStrip = browse === 'strip';
+    // Filmstrip: the strength slider replaces the filter description on demand (tap the selected filter
+    // again, or the Strength button), so the controls stay one row tall on phones.
+    const [isStrengthOpen, setIsStrengthOpen] = useState(false);
 
-    const displayedFilters =
-        controlledDisplayedFilters ??
-        (selectedCategory === 'all'
-            ? STORY_PHOTO_FILTERS
-            : selectedCategory === 'recent'
-              ? [STORY_PHOTO_FILTERS_MAP['none']]
-              : STORY_PHOTO_FILTERS.filter((f) => f.id === 'none' || f.category === selectedCategory));
+    const sections = useMemo(
+        () =>
+            buildThumbSections({
+                items: STORY_PHOTO_FILTERS,
+                getId: (f) => f.id,
+                getCategory: (f) => f.category,
+                categories: FILTER_THEME_CATEGORIES,
+                recentIds: recentFilterIds,
+            }),
+        [recentFilterIds]
+    );
 
-    const categoryCounts =
-        controlledCounts ??
-        STORY_FILTER_CATEGORIES.reduce(
-            (acc, cat) => {
-                acc[cat.id] =
-                    cat.id === 'all'
-                        ? STORY_PHOTO_FILTERS.length
-                        : cat.id === 'recent'
-                          ? 0
-                          : STORY_PHOTO_FILTERS.filter((f) => f.id === 'none' || f.category === cat.id).length;
-                return acc;
-            },
-            {} as Record<string, number>
+    const activeFilter = STORY_PHOTO_FILTERS.find((f) => f.id === activeFilterId);
+    const hasFilter = activeFilterId !== 'none';
+    const strengthPercent = Math.round(filterStrength * 100);
+    const showSlider = hasFilter && (!isStrip || isStrengthOpen);
+
+    const slider = (
+        <label className="story-strength" id={STRENGTH_PANEL_ID}>
+            <span className="story-strength__label">Strength</span>
+            <input
+                type="range"
+                min="0.1"
+                max="1"
+                step="0.05"
+                value={filterStrength}
+                onChange={(e) => {
+                    setFilterStrength(Math.max(0.1, Math.min(1.0, parseFloat(e.target.value))));
+                    setIsDownloaded(false);
+                    triggerScrubberHaptic();
+                }}
+                className="story-export-modal__slider story-strength__slider"
+                aria-label="Filter Strength"
+            />
+            <span className="story-strength__value">{strengthPercent}%</span>
+        </label>
+    );
+
+    const filterInfo = activeFilter && hasFilter && (
+        <span className="story-filter-info">
+            <span className="story-filter-info__name">{activeFilter.label}</span>
+            <span className="story-filter-info__desc">{activeFilter.description}</span>
+        </span>
+    );
+
+    let start: React.ReactNode;
+    let end: React.ReactNode = null;
+    if (!hasFilter) {
+        start = <span className="story-options-row__hint">Pick a filter to adjust its strength</span>;
+    } else if (showSlider) {
+        start = slider;
+        if (isStrip) {
+            end = (
+                <button
+                    type="button"
+                    className="story-pill-btn story-strength__done"
+                    onClick={() => setIsStrengthOpen(false)}
+                >
+                    Done
+                </button>
+            );
+        }
+    } else {
+        start = filterInfo;
+        end = (
+            <button
+                type="button"
+                className="story-pill-btn story-strength__toggle"
+                aria-expanded={false}
+                aria-label={`Adjust filter strength (${strengthPercent}%)`}
+                onClick={() => {
+                    triggerHaptic('tick');
+                    setIsStrengthOpen(true);
+                }}
+            >
+                Strength <span className="story-strength__toggle-value">{strengthPercent}%</span>
+            </button>
         );
+    }
 
     return (
-        <div className="story-export-modal__tab-content story-export-modal__tab-content--filters">
-            <div className="story-export-modal__section story-export-modal__section--filters">
-                <div className="story-export-modal__accordion-header story-export-modal__filters-header">
-                    <div className="story-export-modal__accordion-title">
-                        <span className="story-export-modal__section-heading">FILTER</span>
-                        <span className="story-export-modal__filter-current-badge">
-                            {STORY_PHOTO_FILTERS_MAP[activeFilterId]?.label || 'None'}
-                        </span>
-                    </div>
+        <div className="story-export-modal__tab-content story-tab story-tab--browser story-tab--filters">
+            <StoryOptionsRow start={start} end={end} />
+            {/* Desktop grid: the slider has the row, so the description sits underneath */}
+            {!isStrip && filterInfo && <div className="story-filter-caption">{filterInfo}</div>}
 
-                    {activeFilterId !== 'none' && (
-                        <div className="story-export-modal__filters-header-slider">
-                            <input
-                                type="range"
-                                min="0.1"
-                                max="1"
-                                step="0.05"
-                                value={filterStrength}
-                                onChange={(e) => {
-                                    setFilterStrength(Math.max(0.1, Math.min(1.0, parseFloat(e.target.value))));
-                                    setIsDownloaded(false);
-                                    triggerScrubberHaptic();
+            <StoryThumbBrowser
+                id="story-export-filters-grid"
+                ariaLabel="Photo filters"
+                sections={sections}
+                getKey={(filter) => filter.id}
+                selectedKey={activeFilterId}
+                onPreview={onPreviewFilter ? (key) => onPreviewFilter(key as StoryPhotoFilterId | null) : undefined}
+                renderThumb={(filter, isSelected) => (
+                    <StoryThumb
+                        thumbKey={filter.id}
+                        label={filter.label}
+                        isSelected={isSelected}
+                        title={filter.description}
+                        ariaLabel={`Photo filter: ${filter.label}`}
+                        className="story-thumb--filter"
+                        onSelect={() => {
+                            triggerHaptic('tap');
+                            if (filter.id === activeFilterId) {
+                                // Tap the selected filter again to show / hide its strength (filmstrip)
+                                if (isStrip && hasFilter) setIsStrengthOpen((open) => !open);
+                                return;
+                            }
+                            setIsStrengthOpen(false);
+                            setActiveFilterId(filter.id);
+                            setIsDownloaded(false);
+                        }}
+                    >
+                        {previewImageUrl ? (
+                            <img
+                                src={previewImageUrl}
+                                alt=""
+                                className="story-thumb__photo"
+                                style={{
+                                    filter: filter.cssFilter || 'none',
+                                    WebkitFilter: filter.cssFilter || 'none',
                                 }}
-                                className="story-export-modal__slider story-export-modal__slider--header"
-                                aria-label="Filter Strength"
+                                loading="eager"
+                                decoding="sync"
                             />
-                        </div>
-                    )}
-                </div>
-
-                {/* Category Filter Pills: scope row (All / Recent) above the filter categories */}
-                <StoryCategoryBar<StoryPhotoFilterTabCategory>
-                    categories={STORY_FILTER_CATEGORIES}
-                    selectedCategory={selectedCategory}
-                    onSelectCategory={setSelectedCategory}
-                    categoryCounts={categoryCounts}
-                    ariaLabel="Filter categories"
-                    controlsId="story-export-filters-grid"
-                />
-
-                <div id="story-export-filters-grid" className="story-export-modal__filters-grid">
-                    {displayedFilters.map((filter) => {
-                        const isSelected = activeFilterId === filter.id;
-                        return (
-                            <button
-                                key={filter.id}
-                                type="button"
-                                className={`story-export-modal__filter-pill ${
-                                    isSelected ? 'active story-export-modal__filter-pill--active' : ''
-                                }`}
-                                onClick={() => {
-                                    triggerHaptic('tap');
-                                    setActiveFilterId(filter.id);
-                                    setIsDownloaded(false);
-                                }}
-                                title={filter.description}
-                                aria-label={`Photo filter: ${filter.label}`}
-                            >
-                                {previewImageUrl ? (
-                                    <img
-                                        src={previewImageUrl}
-                                        alt=""
-                                        className="story-export-modal__filter-preview-swatch"
-                                        style={{
-                                            filter: filter.cssFilter || 'none',
-                                            WebkitFilter: filter.cssFilter || 'none',
-                                        }}
-                                        loading="eager"
-                                        decoding="sync"
-                                    />
-                                ) : (
-                                    <div className="story-export-modal__filter-preview-swatch" />
-                                )}
-                                <span className="story-export-modal__filter-label">{filter.label}</span>
-                            </button>
-                        );
-                    })}
-                </div>
-
-                {selectedCategory === 'recent' && (categoryCounts['recent'] ?? 0) === 0 && (
-                    <div className="story-export-modal__empty-recent-hint">
-                        Filters you download or export will appear here for quick access.
-                    </div>
+                        ) : (
+                            <span className="story-thumb__photo story-thumb__photo--empty" />
+                        )}
+                    </StoryThumb>
                 )}
-            </div>
+            />
         </div>
     );
 };

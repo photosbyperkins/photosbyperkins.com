@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
 import { StoryFiltersTab } from './StoryFiltersTab';
+import { STORY_PHOTO_FILTERS } from '../../../../utils/storyCanvas';
+import { StoryPanelLayoutContext } from '../storyStudio/panelLayout';
 
 describe('StoryFiltersTab', () => {
     afterEach(() => {
@@ -21,15 +23,16 @@ describe('StoryFiltersTab', () => {
             />
         );
 
-        // Header badge shows 'None'
-        const badge = container.querySelector('.story-export-modal__filter-current-badge');
+        // Selected thumb is 'None'
+        const badge = container.querySelector('.story-thumb--selected .story-thumb__label');
         expect(badge?.textContent).toBe('None');
 
         // Strength slider should NOT be present when filter is 'none'
         expect(screen.queryByRole('slider')).toBeNull();
+        expect(screen.getByText('Pick a filter to adjust its strength')).toBeDefined();
 
-        // Click a filter pill (exact name 'Photo filter: B&W')
-        const bwBtn = screen.getByRole('button', { name: /^photo filter: b&w$/i });
+        // Click a filter pill (exact name 'Photo filter: Mono')
+        const bwBtn = screen.getByRole('button', { name: /^photo filter: mono$/i });
         fireEvent.click(bwBtn);
 
         expect(setActiveFilterId).toHaveBeenCalledWith('bw');
@@ -51,8 +54,8 @@ describe('StoryFiltersTab', () => {
             />
         );
 
-        // Header shows active badge
-        const badge = container.querySelector('.story-export-modal__filter-current-badge');
+        // Selected thumb shows the active filter
+        const badge = container.querySelector('.story-thumb--selected .story-thumb__label');
         expect(badge?.textContent).toBe('Vintage');
 
         // Strength slider is rendered
@@ -66,7 +69,56 @@ describe('StoryFiltersTab', () => {
         expect(setIsDownloaded).toHaveBeenCalledWith(false);
     });
 
-    it('applies previewImageUrl to filter preview swatches', () => {
+    it('describes the selected filter under the strength row', () => {
+        const { container } = render(
+            <StoryFiltersTab
+                activeFilterId="warm"
+                setActiveFilterId={vi.fn()}
+                filterStrength={0.8}
+                setFilterStrength={vi.fn()}
+                setIsDownloaded={vi.fn()}
+            />
+        );
+
+        const caption = container.querySelector('.story-filter-caption')!;
+        expect(caption.querySelector('.story-filter-info__name')?.textContent).toBe('Vintage');
+        expect(caption.querySelector('.story-filter-info__desc')?.textContent).toBe(
+            STORY_PHOTO_FILTERS.find((f) => f.id === 'warm')!.description
+        );
+    });
+
+    it('opens the strength slider on demand in the filmstrip', () => {
+        const setActiveFilterId = vi.fn();
+        render(
+            <StoryPanelLayoutContext.Provider value={{ mode: 'sheet', browse: 'strip' }}>
+                <StoryFiltersTab
+                    activeFilterId="warm"
+                    setActiveFilterId={setActiveFilterId}
+                    filterStrength={0.8}
+                    setFilterStrength={vi.fn()}
+                    setIsDownloaded={vi.fn()}
+                />
+            </StoryPanelLayoutContext.Provider>
+        );
+
+        // One compact row: filter info + a Strength pill; no slider yet
+        expect(screen.queryByRole('slider')).toBeNull();
+        fireEvent.click(screen.getByRole('button', { name: 'Adjust filter strength (80%)' }));
+        expect(screen.getByRole('slider')).toBeDefined();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Done' }));
+        expect(screen.queryByRole('slider')).toBeNull();
+
+        // Tapping the selected filter again toggles the slider without re-selecting it
+        const vintage = screen.getByRole('button', { name: /^photo filter: vintage$/i });
+        fireEvent.click(vintage);
+        expect(screen.getByRole('slider')).toBeDefined();
+        fireEvent.click(vintage);
+        expect(screen.queryByRole('slider')).toBeNull();
+        expect(setActiveFilterId).not.toHaveBeenCalled();
+    });
+
+    it('applies previewImageUrl to filter thumbs', () => {
         const { container } = render(
             <StoryFiltersTab
                 activeFilterId="none"
@@ -78,7 +130,7 @@ describe('StoryFiltersTab', () => {
             />
         );
 
-        const swatches = container.querySelectorAll('.story-export-modal__filter-preview-swatch');
+        const swatches = container.querySelectorAll('.story-thumb__photo');
         expect(swatches.length).toBe(22);
         expect((swatches[0] as HTMLImageElement).src).toContain('/photos/sample_thumb.jpg');
     });
@@ -97,8 +149,8 @@ describe('StoryFiltersTab', () => {
             />
         );
 
-        // Header shows Red Pop badge
-        const badge = container.querySelector('.story-export-modal__filter-current-badge');
+        // Selected thumb is Red Pop
+        const badge = container.querySelector('.story-thumb--selected .story-thumb__label');
         expect(badge?.textContent).toBe('Red Pop');
 
         // Verify Green Pop, Blue Pop, Yellow Pop, Purple Pop buttons exist
@@ -125,7 +177,7 @@ describe('StoryFiltersTab', () => {
         const setActiveFilterId = vi.fn();
         render(
             <StoryFiltersTab
-                activeFilterId="cinematic"
+                activeFilterId="none"
                 setActiveFilterId={setActiveFilterId}
                 filterStrength={1.0}
                 setFilterStrength={vi.fn()}
@@ -133,7 +185,7 @@ describe('StoryFiltersTab', () => {
             />
         );
 
-        const cinematicBtn = screen.getByRole('button', { name: /^photo filter: cinematic$/i });
+        const cinematicBtn = screen.getByRole('button', { name: /^photo filter: teal & orange$/i });
         const neonBtn = screen.getByRole('button', { name: /^photo filter: neon$/i });
         const duotoneBtn = screen.getByRole('button', { name: /^photo filter: duotone$/i });
         const bleachBtn = screen.getByRole('button', { name: /^photo filter: bleach$/i });
@@ -151,71 +203,25 @@ describe('StoryFiltersTab', () => {
         expect(setActiveFilterId).toHaveBeenCalledWith('bleach');
     });
 
-    it('renders category filter pills bar and filters displayed options', () => {
+    it('does not re-select the filter that is already active', () => {
         const setActiveFilterId = vi.fn();
-        const { container } = render(
+        const setIsDownloaded = vi.fn();
+        render(
             <StoryFiltersTab
-                activeFilterId="none"
+                activeFilterId="cinematic"
                 setActiveFilterId={setActiveFilterId}
                 filterStrength={1.0}
                 setFilterStrength={vi.fn()}
-                setIsDownloaded={vi.fn()}
+                setIsDownloaded={setIsDownloaded}
             />
         );
 
-        // Verify category pills are rendered
-        const categoryBar = container.querySelector('.story-export-modal__category-bar');
-        expect(categoryBar).not.toBeNull();
-        expect(categoryBar?.getAttribute('role')).toBe('tablist');
-
-        const tabs = screen.getAllByRole('tab');
-        expect(tabs.length).toBe(6);
-
-        // Default active tab is 'All'
-        expect(tabs[0].textContent).toContain('All');
-        expect(tabs[0].classList.contains('story-export-modal__category-pill--active')).toBe(true);
-        expect(tabs[0].getAttribute('aria-selected')).toBe('true');
-
-        // Check category count badges
-        expect(tabs[0].textContent).toContain('22'); // All: 22
-        expect(tabs[1].textContent).toContain('0'); // Recent: 0
-        expect(tabs[2].textContent).toContain('8'); // Classic: 8
-        expect(tabs[3].textContent).toContain('8'); // Cinematic: 8
-        expect(tabs[4].textContent).toContain('6'); // Pop: 6
-        expect(tabs[5].textContent).toContain('3'); // Stylized: 3
-
-        // In 'All', 22 filter pills are displayed
-        let filterPills = container.querySelectorAll('.story-export-modal__filter-pill');
-        expect(filterPills.length).toBe(22);
-
-        // Click 'Recent' category tab
-        fireEvent.click(tabs[1]);
-        expect(tabs[1].classList.contains('story-export-modal__category-pill--active')).toBe(true);
-        filterPills = container.querySelectorAll('.story-export-modal__filter-pill');
-        expect(filterPills.length).toBe(1); // Only None
-
-        // Click 'Stylized' category tab
-        fireEvent.click(tabs[5]);
-        expect(tabs[5].classList.contains('story-export-modal__category-pill--active')).toBe(true);
-
-        // Filter pills should now only be None, Neon, and Duotone (3 items)
-        filterPills = container.querySelectorAll('.story-export-modal__filter-pill');
-        expect(filterPills.length).toBe(3);
-        expect(screen.getByRole('button', { name: /^photo filter: none$/i })).toBeDefined();
-        expect(screen.getByRole('button', { name: /^photo filter: neon$/i })).toBeDefined();
-        expect(screen.getByRole('button', { name: /^photo filter: duotone$/i })).toBeDefined();
-
-        // Click 'Pop' category tab
-        fireEvent.click(tabs[4]);
-        filterPills = container.querySelectorAll('.story-export-modal__filter-pill');
-        expect(filterPills.length).toBe(6); // None + 5 pop filters
-        expect(screen.getByRole('button', { name: /^photo filter: none$/i })).toBeDefined();
-        expect(screen.getByRole('button', { name: /^photo filter: red pop$/i })).toBeDefined();
-        expect(screen.getByRole('button', { name: /^photo filter: purple pop$/i })).toBeDefined();
+        fireEvent.click(screen.getByRole('button', { name: /^photo filter: teal & orange$/i }));
+        expect(setActiveFilterId).not.toHaveBeenCalled();
+        expect(setIsDownloaded).not.toHaveBeenCalled();
     });
 
-    it('works cleanly in controlled category mode', () => {
-        const setSelectedFilterCategory = vi.fn();
+    it('lists None first, then titled category sections instead of chips', () => {
         const { container } = render(
             <StoryFiltersTab
                 activeFilterId="none"
@@ -223,21 +229,68 @@ describe('StoryFiltersTab', () => {
                 filterStrength={1.0}
                 setFilterStrength={vi.fn()}
                 setIsDownloaded={vi.fn()}
-                selectedFilterCategory="cinematic"
-                setSelectedFilterCategory={setSelectedFilterCategory}
             />
         );
 
-        const tabs = screen.getAllByRole('tab');
-        expect(tabs[3].classList.contains('story-export-modal__category-pill--active')).toBe(true);
+        expect(screen.queryAllByRole('tab')).toHaveLength(0);
+        expect(container.querySelector('.story-chip-row')).toBeNull();
 
-        // Clicking 'Classic' triggers callback
-        fireEvent.click(tabs[2]);
-        expect(setSelectedFilterCategory).toHaveBeenCalledWith('classic');
+        const sections = Array.from(container.querySelectorAll('.story-thumb-section'));
+        const titles = sections.map((s) => s.querySelector('.story-thumb-section__title')?.textContent ?? null);
+        // No history yet, so no Recent section. None is pinned as the first thumb of the first section.
+        expect(titles).toEqual(['Classic', 'Cinematic', 'Pop', 'Stylized']);
+        expect(sections.map((s) => s.querySelectorAll('.story-thumb').length)).toEqual([8, 7, 5, 2]);
+        const classic = screen.getByRole('group', { name: 'Classic' });
+        expect(within(classic).getAllByRole('button')[0].getAttribute('aria-label')).toBe('Photo filter: None');
 
-        // Displayed filters show 8 items (None + 7 cinematic)
-        const filterPills = container.querySelectorAll('.story-export-modal__filter-pill');
-        expect(filterPills.length).toBe(8);
-        expect(screen.getByRole('button', { name: /^photo filter: cinematic$/i })).toBeDefined();
+        const stylized = screen.getByRole('group', { name: 'Stylized' });
+        expect(within(stylized).getByRole('button', { name: /^photo filter: neon$/i })).toBeDefined();
+        expect(within(stylized).getByRole('button', { name: /^photo filter: duotone$/i })).toBeDefined();
+    });
+
+    it('shows recently used filters in a Recent section (max 4, newest first)', () => {
+        const setActiveFilterId = vi.fn();
+        render(
+            <StoryFiltersTab
+                activeFilterId="none"
+                setActiveFilterId={setActiveFilterId}
+                filterStrength={1.0}
+                setFilterStrength={vi.fn()}
+                setIsDownloaded={vi.fn()}
+                recentFilterIds={['neon', 'none', 'bw', 'cinematic', 'warm', 'duotone']}
+            />
+        );
+
+        const recent = screen.getByRole('group', { name: 'Recent' });
+        const names = within(recent)
+            .getAllByRole('button')
+            .map((b) => b.getAttribute('aria-label'));
+        expect(names).toEqual([
+            'Photo filter: None',
+            'Photo filter: Neon',
+            'Photo filter: Mono',
+            'Photo filter: Teal & Orange',
+            'Photo filter: Vintage',
+        ]);
+
+        fireEvent.click(within(recent).getByRole('button', { name: /^photo filter: neon$/i }));
+        expect(setActiveFilterId).toHaveBeenCalledWith('neon');
+    });
+
+    it('previews a hovered filter', () => {
+        const onPreviewFilter = vi.fn();
+        render(
+            <StoryFiltersTab
+                activeFilterId="none"
+                setActiveFilterId={vi.fn()}
+                filterStrength={1.0}
+                setFilterStrength={vi.fn()}
+                setIsDownloaded={vi.fn()}
+                onPreviewFilter={onPreviewFilter}
+            />
+        );
+
+        fireEvent.pointerOver(screen.getByRole('button', { name: /^photo filter: neon$/i }), { pointerType: 'mouse' });
+        expect(onPreviewFilter).toHaveBeenLastCalledWith('neon');
     });
 });

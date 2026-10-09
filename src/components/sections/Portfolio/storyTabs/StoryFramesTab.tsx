@@ -1,23 +1,27 @@
-import React from 'react';
+import React, { memo, useMemo } from 'react';
+import { motion, LayoutGroup } from 'framer-motion';
 import type {
     StoryFrameColorChoice,
     StoryFrameContext,
     StoryFrameDefinition,
-    StoryFrameFilterCategory,
     StoryFrameId,
 } from '../storyFrames/types';
 import { STORY_FRAME_CATEGORIES } from '../storyFrames/types';
-import { STORY_FRAMES_MAP } from '../storyFrames/frameDefinitions';
+import { frameContextKey } from '../storyFrames/frameContextKey';
 import { triggerHaptic } from '../../../../utils/haptics';
-import { StoryCategoryBar } from './StoryCategoryBar';
+import { SPRING_SNAPPY } from '../../../../utils/motion';
+import { StoryOptionsRow } from './shared/StoryOptionsRow';
+import { StoryThumb, StoryThumbBrowser } from './shared/StoryThumbBrowser';
+import { StoryTintPopover } from './shared/StoryTintPopover';
+import { buildThumbSections } from './shared/thumbSections';
 
 interface StoryFramesTabProps {
     activeFrameId: StoryFrameId;
     setActiveFrameId: (id: StoryFrameId) => void;
-    selectedFrameCategory: StoryFrameFilterCategory;
-    setSelectedFrameCategory: (cat: StoryFrameFilterCategory) => void;
-    categoryCounts: Record<string, number>;
-    displayedFrames: StoryFrameDefinition[];
+    /** Every frame available for this photo (including "none"). */
+    frames: StoryFrameDefinition[];
+    /** Most recently exported frames, newest first. */
+    recentFrameIds?: readonly StoryFrameId[];
     frameColorChoice: StoryFrameColorChoice;
     setFrameColorChoice: (choice: StoryFrameColorChoice) => void;
     frameCustomColor: string;
@@ -25,15 +29,48 @@ interface StoryFramesTabProps {
     effectiveFrameColor?: string;
     frameContext?: StoryFrameContext;
     setIsDownloaded: (val: boolean) => void;
+    isFrameAnimated: boolean;
+    setIsFrameAnimated: (val: boolean) => void;
+    videoSupported: boolean | null;
+    /** Current photo thumbnail, shown under each frame thumb. */
+    previewImageUrl?: string;
+    /** Desktop hover / keyboard focus preview of a frame on the main preview (`null` to stop previewing). */
+    onPreviewFrame?: (id: StoryFrameId | null) => void;
 }
+
+const ANIMATE_HINT_ID = 'story-frames-animate-hint';
+const FRAME_THEME_CATEGORIES = STORY_FRAME_CATEGORIES.filter((c) => c.group === 'themes').map((c) => ({
+    id: c.id,
+    label: c.label,
+    description: c.vibe,
+}));
+
+interface FrameThumbArtProps {
+    frame: StoryFrameDefinition;
+    color?: string;
+    context?: StoryFrameContext;
+}
+
+/**
+ * Frame artwork for a thumb. Each one is a full inline SVG, so it only re-renders when the frame, tint or
+ * the artwork-relevant context changes (not on every hover preview / unrelated studio update).
+ */
+const FrameThumbArt = memo(
+    ({ frame, color, context }: FrameThumbArtProps) => (
+        <svg viewBox="0 0 1080 1920" className="story-thumb__overlay" preserveAspectRatio="none">
+            {frame.renderSvg(color, context)}
+        </svg>
+    ),
+    (a, b) =>
+        a.frame === b.frame && a.color === b.color && frameContextKey(a.context) === frameContextKey(b.context)
+);
+FrameThumbArt.displayName = 'FrameThumbArt';
 
 export const StoryFramesTab: React.FC<StoryFramesTabProps> = ({
     activeFrameId,
     setActiveFrameId,
-    selectedFrameCategory,
-    setSelectedFrameCategory,
-    categoryCounts,
-    displayedFrames,
+    frames,
+    recentFrameIds,
     frameColorChoice,
     setFrameColorChoice,
     frameCustomColor,
@@ -41,193 +78,146 @@ export const StoryFramesTab: React.FC<StoryFramesTabProps> = ({
     effectiveFrameColor,
     frameContext,
     setIsDownloaded,
+    isFrameAnimated,
+    setIsFrameAnimated,
+    videoSupported,
+    previewImageUrl,
+    onPreviewFrame,
 }) => {
-    return (
-        <div className="story-export-modal__tab-content story-export-modal__tab-content--frames">
-            <div className="story-export-modal__section story-export-modal__section--frames">
-                <div className="story-export-modal__accordion-header story-export-modal__frames-header">
-                    <div className="story-export-modal__accordion-title">
-                        <span className="story-export-modal__section-heading">FRAME</span>
-                        <span className="story-export-modal__frame-current-badge">
-                            {STORY_FRAMES_MAP[activeFrameId]?.label || 'None'}
-                        </span>
-                    </div>
+    const animateDisabledReason =
+        activeFrameId === 'none'
+            ? 'Pick a frame to animate'
+            : videoSupported === false
+              ? 'Video export isn’t supported in this browser'
+              : null;
+    const isAnimateOn = isFrameAnimated && !animateDisabledReason;
 
-                    {/* Frame Tint Color Picker & Quick Swatches (Right-Aligned in Header) */}
-                    {activeFrameId !== 'none' && (
-                        <div className="story-export-modal__frames-header-tint">
-                            <div className="story-export-modal__quick-swatches">
-                                {[
-                                    { id: 'signature', label: 'Default', isDefault: true, color: undefined },
-                                    { id: 'white', label: 'White', isDefault: false, color: '#ffffff' },
-                                    { id: 'gold', label: 'Gold', isDefault: false, color: '#f59e0b' },
-                                    { id: 'red', label: 'Red', isDefault: false, color: '#e60000' },
-                                    { id: 'cyan', label: 'Cyan', isDefault: false, color: '#06b6d4' },
-                                ].map((preset) => {
-                                    const isSelected =
-                                        preset.id === 'signature'
-                                            ? frameColorChoice === 'signature'
-                                            : preset.id === 'white'
-                                              ? frameColorChoice === 'white' ||
-                                                (frameColorChoice === 'custom' &&
-                                                    frameCustomColor.toLowerCase() === '#ffffff')
-                                              : preset.id === 'gold'
-                                                ? frameColorChoice === 'gold' ||
-                                                  (frameColorChoice === 'custom' &&
-                                                      (frameCustomColor.toLowerCase() === '#f59e0b' ||
-                                                          frameCustomColor.toLowerCase() === '#fbbf24'))
-                                                : preset.id === 'red'
-                                                  ? frameColorChoice === 'red' ||
-                                                    (frameColorChoice === 'custom' &&
-                                                        frameCustomColor.toLowerCase() === '#e60000')
-                                                  : frameColorChoice === 'custom' &&
-                                                    frameCustomColor.toLowerCase() === '#06b6d4';
+    const sections = useMemo(
+        () =>
+            buildThumbSections({
+                items: frames,
+                getId: (f) => f.id,
+                getCategory: (f) => f.category,
+                categories: FRAME_THEME_CATEGORIES,
+                recentIds: recentFrameIds,
+            }),
+        [frames, recentFrameIds]
+    );
 
-                                    return (
-                                        <button
-                                            key={preset.id}
-                                            type="button"
-                                            className={`story-export-modal__quick-swatch ${
-                                                preset.isDefault ? 'story-export-modal__quick-swatch--default' : ''
-                                            } ${isSelected ? 'is-active' : ''}`}
-                                            style={preset.color ? { backgroundColor: preset.color } : undefined}
-                                            onClick={() => {
-                                                triggerHaptic('tick');
-                                                if (preset.id === 'signature') {
-                                                    setFrameColorChoice('signature');
-                                                } else if (preset.id === 'white') {
-                                                    setFrameColorChoice('white');
-                                                    setFrameCustomColor('#ffffff');
-                                                } else if (preset.id === 'gold') {
-                                                    setFrameColorChoice('gold');
-                                                    setFrameCustomColor('#f59e0b');
-                                                } else if (preset.id === 'red') {
-                                                    setFrameColorChoice('red');
-                                                    setFrameCustomColor('#e60000');
-                                                } else {
-                                                    setFrameColorChoice('custom');
-                                                    setFrameCustomColor('#06b6d4');
-                                                }
-                                                setIsDownloaded(false);
-                                            }}
-                                            title={preset.label}
-                                            aria-label={`Frame tint: ${preset.label}`}
-                                        />
-                                    );
-                                })}
-                            </div>
-                            {(() => {
-                                const isAnyPresetActive =
-                                    frameColorChoice === 'signature' ||
-                                    frameColorChoice === 'white' ||
-                                    frameColorChoice === 'gold' ||
-                                    frameColorChoice === 'red' ||
-                                    (frameColorChoice === 'custom' &&
-                                        ['#ffffff', '#f59e0b', '#fbbf24', '#e60000', '#06b6d4'].includes(
-                                            (frameCustomColor || '').toLowerCase()
-                                        ));
-                                const isCustomPickerActive = frameColorChoice === 'custom' && !isAnyPresetActive;
-                                const pickerValue =
-                                    frameColorChoice === 'white'
-                                        ? '#ffffff'
-                                        : frameColorChoice === 'gold'
-                                          ? '#f59e0b'
-                                          : frameColorChoice === 'red'
-                                            ? '#e60000'
-                                            : frameColorChoice === 'custom' && frameCustomColor
-                                              ? frameCustomColor
-                                              : '#06b6d4';
+    const setAnimated = (on: boolean) => {
+        if (on === isFrameAnimated) return;
+        triggerHaptic('tick');
+        setIsFrameAnimated(on);
+    };
 
-                                return (
-                                    <label
-                                        className={`story-export-modal__color-picker ${
-                                            isCustomPickerActive ? 'is-active' : ''
-                                        }`}
-                                        title="Choose custom frame tint color"
-                                    >
-                                        <span
-                                            className="story-export-modal__color-swatch"
-                                            style={{
-                                                backgroundColor:
-                                                    frameColorChoice === 'signature'
-                                                        ? frameCustomColor || '#ffffff'
-                                                        : pickerValue,
-                                            }}
-                                        />
-                                        <input
-                                            type="color"
-                                            value={
-                                                frameColorChoice === 'signature'
-                                                    ? frameCustomColor || '#ffffff'
-                                                    : pickerValue
-                                            }
-                                            onChange={(e) => {
-                                                setFrameColorChoice('custom');
-                                                setFrameCustomColor(e.target.value);
-                                                setIsDownloaded(false);
-                                            }}
-                                            className="story-export-modal__color-input"
-                                            aria-label="Custom frame tint color"
-                                        />
-                                    </label>
-                                );
-                            })()}
-                        </div>
-                    )}
-                </div>
-
-                {/* Category Filter Pills: scope row (All / Recent) above the theme categories */}
-                <StoryCategoryBar<StoryFrameFilterCategory>
-                    categories={STORY_FRAME_CATEGORIES}
-                    selectedCategory={selectedFrameCategory}
-                    onSelectCategory={setSelectedFrameCategory}
-                    categoryCounts={categoryCounts}
-                    ariaLabel="Frame categories"
-                    controlsId="story-export-frames-grid"
-                />
-
-                <div id="story-export-frames-grid" className="story-export-modal__frames-grid">
-                    {displayedFrames.map((frame) => {
-                        const isSelected = activeFrameId === frame.id;
+    // Segmented Off / On, matching the Show / Hide toggles on the Badges tab
+    const animateToggle = (
+        <div className="story-animate-toggle">
+            <span className="story-animate-toggle__label" id="story-frames-animate-label">
+                Animate
+            </span>
+            <LayoutGroup id="storyAnimateToggle">
+                <div
+                    className={`portfolio__segmented-toggle story-export-modal__scores-toggle story-animate-toggle__control ${
+                        animateDisabledReason ? 'is-disabled' : ''
+                    }`}
+                    role="group"
+                    aria-labelledby="story-frames-animate-label"
+                    aria-describedby={animateDisabledReason ? ANIMATE_HINT_ID : undefined}
+                    title={isAnimateOn ? 'Downloads as a video' : undefined}
+                >
+                    {[false, true].map((on) => {
+                        const isActive = isAnimateOn === on;
                         return (
                             <button
-                                key={frame.id}
+                                key={on ? 'on' : 'off'}
                                 type="button"
-                                className={`story-export-modal__frame-card ${
-                                    isSelected ? 'story-export-modal__frame-card--active' : ''
+                                className={`story-export-modal__scores-btn ${
+                                    isActive ? 'active story-export-modal__scores-btn--active' : ''
                                 }`}
-                                onClick={() => {
-                                    triggerHaptic('tap');
-                                    setActiveFrameId(frame.id);
-                                    setIsDownloaded(false);
-                                }}
-                                title={frame.vibe}
+                                aria-pressed={isActive}
+                                disabled={Boolean(animateDisabledReason)}
+                                onClick={() => setAnimated(on)}
                             >
-                                <div className="story-export-modal__frame-thumb">
-                                    {frame.id === 'none' ? (
-                                        <div className="story-export-modal__frame-none-icon">⊘</div>
-                                    ) : (
-                                        <svg
-                                            viewBox="0 0 1080 1920"
-                                            className="story-export-modal__frame-thumb-svg"
-                                            preserveAspectRatio="none"
-                                        >
-                                            {frame.renderSvg(effectiveFrameColor, frameContext)}
-                                        </svg>
-                                    )}
-                                </div>
-                                <span className="story-export-modal__frame-name">{frame.label}</span>
+                                {isActive && (
+                                    <motion.span
+                                        className="portfolio__segment-pill"
+                                        layoutId="storyAnimateTogglePill"
+                                        transition={SPRING_SNAPPY}
+                                    />
+                                )}
+                                <span>{on ? 'On' : 'Off'}</span>
                             </button>
                         );
                     })}
                 </div>
+            </LayoutGroup>
+        </div>
+    );
 
-                {selectedFrameCategory === 'recent' && (categoryCounts['recent'] ?? 0) === 0 && (
-                    <div className="story-export-modal__empty-recent-hint">
-                        Frames you download or export will appear here for quick access.
-                    </div>
+    return (
+        <div className="story-export-modal__tab-content story-tab story-tab--browser story-tab--frames">
+            <StoryOptionsRow
+                start={
+                    <>
+                        {activeFrameId !== 'none' && (
+                            <StoryTintPopover
+                                frameColorChoice={frameColorChoice}
+                                setFrameColorChoice={setFrameColorChoice}
+                                frameCustomColor={frameCustomColor}
+                                setFrameCustomColor={setFrameCustomColor}
+                                setIsDownloaded={setIsDownloaded}
+                            />
+                        )}
+                        {animateDisabledReason && (
+                            <span id={ANIMATE_HINT_ID} className="story-options-row__hint">
+                                {animateDisabledReason}
+                            </span>
+                        )}
+                    </>
+                }
+                end={animateToggle}
+            />
+
+            <StoryThumbBrowser
+                id="story-export-frames-grid"
+                ariaLabel="Frames"
+                sections={sections}
+                getKey={(frame) => frame.id}
+                selectedKey={activeFrameId}
+                onPreview={onPreviewFrame ? (key) => onPreviewFrame(key as StoryFrameId | null) : undefined}
+                renderThumb={(frame, isSelected) => (
+                    <StoryThumb
+                        thumbKey={frame.id}
+                        label={frame.label}
+                        isSelected={isSelected}
+                        title={frame.vibe}
+                        className="story-thumb--frame"
+                        onSelect={() => {
+                            triggerHaptic('tap');
+                            setActiveFrameId(frame.id);
+                            setIsDownloaded(false);
+                        }}
+                    >
+                        {previewImageUrl && (
+                            <img
+                                src={previewImageUrl}
+                                alt=""
+                                className="story-thumb__photo"
+                                loading="lazy"
+                                decoding="async"
+                            />
+                        )}
+                        {frame.id === 'none' ? (
+                            <span className="story-thumb__none" aria-hidden="true">
+                                ⊘
+                            </span>
+                        ) : (
+                            <FrameThumbArt frame={frame} color={effectiveFrameColor} context={frameContext} />
+                        )}
+                    </StoryThumb>
                 )}
-            </div>
+            />
         </div>
     );
 };

@@ -46,4 +46,24 @@ describe('StoryFrameOverlay', () => {
 
         expect(svg?.classList.contains('custom-overlay-class')).toBe(true);
     });
+
+    it('renders canvas element when animated is true', () => {
+        const targetId = STORY_FRAME_DEFINITIONS[1].id;
+        const { container } = render(<StoryFrameOverlay frameId={targetId} animated={true} />);
+        const canvas = container.querySelector('canvas');
+
+        expect(canvas).not.toBeNull();
+        expect(canvas?.width).toBe(1080);
+        expect(canvas?.height).toBe(1920);
+        expect(canvas?.classList.contains('story-frame-overlay')).toBe(true);
+    });
+
+    it('does not render canvas when animated is false', () => {
+        const targetId = STORY_FRAME_DEFINITIONS[1].id;
+        const { container } = render(<StoryFrameOverlay frameId={targetId} animated={false} />);
+        const canvas = container.querySelector('canvas');
+
+        expect(canvas).toBeNull();
+        expect(container.querySelector('svg')).not.toBeNull();
+    });
 });

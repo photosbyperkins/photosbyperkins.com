@@ -32,6 +32,7 @@ export interface StoryBurstCropperProps {
     theme?: 'dark' | 'light';
     frameId?: StoryFrameId;
     frameColorOverride?: string;
+    isFrameAnimated?: boolean;
     frameContext?: StoryFrameContext;
     exif?: ExifData;
     filterId?: StoryPhotoFilterId;
@@ -125,7 +126,11 @@ const StoryBurstPanel: React.FC<StoryBurstPanelProps> = ({
     const handlePointerDown = (e: React.PointerEvent) => {
         if (!src || isPinchingRef.current) return;
         e.stopPropagation();
-        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+        try {
+            (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+        } catch {
+            // Ignore capture error on synthetic events (e.g. preview drag handover)
+        }
         setIsDragging(true);
         onDragChange?.(panelIdx, true);
         onSelectPanel?.(panelIdx);
@@ -403,6 +408,7 @@ export const StoryBurstCropper: React.FC<StoryBurstCropperProps> = ({
     theme,
     frameId,
     frameColorOverride,
+    isFrameAnimated = false,
     frameContext,
     exif: _exif,
     filterId,
@@ -482,6 +488,7 @@ export const StoryBurstCropper: React.FC<StoryBurstCropperProps> = ({
                     frameId={frameId || 'none'}
                     colorOverride={frameColorOverride}
                     context={frameContext}
+                    animated={isFrameAnimated}
                 />
 
                 {/* Slot Pills Layer (rendered on top of decorative frame overlay) */}

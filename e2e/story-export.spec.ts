@@ -1,4 +1,18 @@
 import { test, expect } from '@playwright/test';
+import {
+    collapseSheet,
+    expectSelectedThumb,
+    exportButton,
+    exportCancelButton,
+    getStoryLayoutMode,
+    openFirstPhotoLightbox,
+    openStoryMakerFromLightbox,
+    openStudioTab,
+    studioPanel,
+    studioTab,
+    studioTabPanel,
+    thumbByLabel,
+} from './helpers/storyStudio';
 
 test.describe('Story Maker (9:16)', () => {
     test.beforeEach(async ({ page, isMobile }) => {
@@ -48,16 +62,18 @@ test.describe('Story Maker (9:16)', () => {
         const count = await presetPills.count();
         expect(count).toBeGreaterThan(0);
 
-        // Check 4 studio tabs
-        await expect(studioModal.locator('.story-export-modal__studio-tab-btn')).toHaveCount(4);
-        await expect(studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Layout")')).toBeVisible();
-        await expect(studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Filters")')).toBeVisible();
-        await expect(studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Frames")')).toBeVisible();
-        await expect(studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Badges")')).toBeVisible();
+        // Check 4 studio tabs in the single tab bar
+        const tabBar = studioModal.locator('.story-tab-bar[role="tablist"][aria-label="Story Studio Navigation"]');
+        await expect(tabBar).toHaveCount(1);
+        await expect(tabBar.locator('[role="tab"]')).toHaveCount(4);
+        for (const name of ['Layout', 'Filters', 'Frames', 'Badges'] as const) {
+            await expect(studioTab(studioModal, name)).toBeVisible();
+        }
+        await expect(studioTab(studioModal, 'Layout')).toHaveAttribute('aria-selected', 'true');
 
-        // Check download action button
-        const downloadBtn = studioModal.locator('.story-export-modal__primary-action');
-        await expect(downloadBtn).toContainText('Download Story Card');
+        // Check download action button (labels crossfade, so the state lives in aria-label)
+        const downloadBtn = exportButton(studioModal);
+        await expect(downloadBtn).toHaveAttribute('aria-label', 'Download Story Card');
 
         // Press Escape to close Story Studio
         await page.keyboard.press('Escape');
@@ -84,23 +100,11 @@ test.describe('Story Maker (9:16)', () => {
     });
 
     test('should switch to Padded mode and render padded elements', async ({ page }) => {
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
+        await openFirstPhotoLightbox(page);
+        const studioModal = await openStoryMakerFromLightbox(page);
 
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 10000 });
-
-        await page.keyboard.press('c');
-        const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
-        await expect(studioModal).toBeVisible({ timeout: 8000 });
-
-        // If on mobile layout, open layout popover
-        const mobileDock = studioModal.locator('.story-mobile-dock');
-        if (await mobileDock.isVisible()) {
-            await studioModal.locator('.story-mobile-dock button:has-text("Layout")').click();
-            await expect(studioModal.locator('.story-mobile-popover')).toBeVisible({ timeout: 5000 });
-        }
+        // Show the Layout tab (opens the sheet in sheet mode)
+        await openStudioTab(studioModal, 'Layout');
 
         // Click Padded preset
         const paddedBtn = studioModal.locator('button:has-text("Padded")');
@@ -134,32 +138,34 @@ test.describe('Story Maker (9:16)', () => {
         await expect(studioModal).not.toBeVisible({ timeout: 5000 });
     });
 
-    test('should render Share/Download button pinned in modal footer bar', async ({ page }) => {
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
+    test('should render Share/Download button pinned in the studio panel footer', async ({ page }) => {
+        await openFirstPhotoLightbox(page);
+        const studioModal = await openStoryMakerFromLightbox(page);
 
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 10000 });
+        // The export button lives in the panel footer (no separate modal footer bar any more)
+        const panel = studioPanel(studioModal);
+        const footer = panel.locator('.story-studio-panel__footer');
+        await expect(footer).toBeVisible();
 
-        await page.keyboard.press('c');
-        const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
-        await expect(studioModal).toBeVisible({ timeout: 8000 });
-
-        // Verify modal footer bar is rendered and pinned to bottom
-        const footerBar = studioModal.locator('.modal-shell__footer-bar');
-        await expect(footerBar).toBeVisible();
-
-        const actionBtn = footerBar.locator('.story-export-modal__primary-action');
+        const actionBtn = footer.locator('.story-export-modal__primary-action');
         await expect(actionBtn).toBeVisible();
-        const btnText = await actionBtn.textContent();
-        expect(btnText).toMatch(/Download Story Card|Share Story Card/);
+        await expect(actionBtn).toHaveAttribute('aria-label', /Download Story Card|Share Story Card/);
 
-        // Verify footer bar touches the bottom of the viewport (within safe-area / subpixel tolerance)
-        const footerBox = await footerBar.boundingBox();
+        // Integrated cancel segment is always in the DOM but inert while idle
+        const cancelBtn = footer.locator('.story-export-button__cancel');
+        await expect(cancelBtn).toHaveAttribute('aria-label', 'Cancel video export');
+        await expect(cancelBtn).toBeDisabled();
+        await expect(cancelBtn).toHaveAttribute('aria-hidden', 'true');
+
+        // Footer is pinned to the bottom of the panel and the panel's bottom stays on screen
+        const footerBox = await footer.boundingBox();
+        const panelBox = await panel.boundingBox();
         const viewport = page.viewportSize();
-        if (footerBox && viewport) {
-            expect(Math.abs((footerBox.y + footerBox.height) - viewport.height)).toBeLessThanOrEqual(60);
+        expect(footerBox).not.toBeNull();
+        expect(panelBox).not.toBeNull();
+        expect(Math.abs(footerBox!.y + footerBox!.height - (panelBox!.y + panelBox!.height))).toBeLessThanOrEqual(24);
+        if (viewport) {
+            expect(footerBox!.y + footerBox!.height).toBeLessThanOrEqual(viewport.height + 1);
         }
 
         // Close modal
@@ -168,16 +174,8 @@ test.describe('Story Maker (9:16)', () => {
     });
 
     test('should display cropper image and remain open when clicking controls, presets, or cropper', async ({ page }) => {
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
-
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 10000 });
-
-        await page.keyboard.press('c');
-        const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
-        await expect(studioModal).toBeVisible({ timeout: 8000 });
+        const lightbox = await openFirstPhotoLightbox(page);
+        const studioModal = await openStoryMakerFromLightbox(page);
 
         // 1. Verify cropper image is displayed and rendered
         const cropperImg = studioModal.locator('.story-cropper__image');
@@ -215,8 +213,12 @@ test.describe('Story Maker (9:16)', () => {
         await expect(studioModal).toBeVisible();
         await expect(lightbox).toBeVisible();
 
-        const centerBtn = studioModal.locator('button:has-text("Center"), button:has-text("Subject")').first();
-        await centerBtn.click();
+        // Presets are photo-dependent (Center / Subject / Lead / Close-up ...): use the first non-Padded one
+        const cropPresetBtn = studioModal
+            .locator('[role="group"][aria-label="Framing presets"] button:not(:has-text("Padded"))')
+            .first();
+        await cropPresetBtn.click();
+        await expect(cropPresetBtn).toHaveAttribute('aria-pressed', 'true');
         await expect(studioModal).toBeVisible();
         await expect(lightbox).toBeVisible();
 
@@ -233,16 +235,8 @@ test.describe('Story Maker (9:16)', () => {
     });
 
     test('should render scoreboard and attribution overlays in cropper preview', async ({ page }) => {
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
-
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 10000 });
-
-        await page.keyboard.press('c');
-        const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
-        await expect(studioModal).toBeVisible({ timeout: 8000 });
+        await openFirstPhotoLightbox(page);
+        const studioModal = await openStoryMakerFromLightbox(page);
 
         // 1. Verify attribution overlay badge is displayed with nav__logo style and @photosbyperkins at the top
         const attributionBadge = studioModal.locator('.story-cropper__badge--attribution');
@@ -273,30 +267,26 @@ test.describe('Story Maker (9:16)', () => {
             expect(Math.abs(scoreboardCenterX - viewportCenterX)).toBeLessThan(5);
         }
 
-        // 3. Test toggling attribution badge checkbox updates preview
-        await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Badges")').click();
-        const attributionCheckbox = studioModal.locator('label:has-text("Photographer Attribution") input[type="checkbox"]');
-        await attributionCheckbox.uncheck();
+        // 3. Test toggling attribution badge visibility (Show / Hide segmented toggle) updates preview
+        await openStudioTab(studioModal, 'Badges');
+        const attributionToggle = studioModal.locator('[role="group"][aria-label="Photographer Attribution visibility"]');
+        const hideAttribution = attributionToggle.locator('button[aria-label="Hide attribution badge"]');
+        const showAttribution = attributionToggle.locator('button[aria-label="Show attribution badge"]');
+        await hideAttribution.click();
+        await expect(hideAttribution).toHaveAttribute('aria-pressed', 'true');
         await expect(attributionBadge).not.toBeVisible();
 
-        await attributionCheckbox.check();
+        await showAttribution.click();
+        await expect(showAttribution).toHaveAttribute('aria-pressed', 'true');
         await expect(attributionBadge).toBeVisible();
     });
 
     test('should toggle story card light and dark theme', async ({ page }) => {
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
-
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 10000 });
-
-        await page.keyboard.press('c');
-        const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
-        await expect(studioModal).toBeVisible({ timeout: 8000 });
+        await openFirstPhotoLightbox(page);
+        const studioModal = await openStoryMakerFromLightbox(page);
 
         // Switch to Badges tab where theme toggle is now located
-        await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Badges")').click();
+        await openStudioTab(studioModal, 'Badges');
 
         // Find story card theme switcher toggle
         const themeToggle = studioModal.locator('.story-export-modal__theme-toggle');
@@ -336,22 +326,14 @@ test.describe('Story Maker (9:16)', () => {
     });
 
     test('should toggle scores on and off in event badge', async ({ page }) => {
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
-
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 10000 });
-
-        await page.keyboard.press('c');
-        const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
-        await expect(studioModal).toBeVisible({ timeout: 8000 });
+        await openFirstPhotoLightbox(page);
+        const studioModal = await openStoryMakerFromLightbox(page);
 
         // Navigate to Badges tab
-        await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Badges")').click();
+        await openStudioTab(studioModal, 'Badges');
 
-        // Check if event has scores toggle
-        const scoresToggle = studioModal.locator('.story-export-modal__scores-toggle');
+        // Check if event has scores toggle (Scores / Event / Hide)
+        const scoresToggle = studioModal.locator('[role="group"][aria-label="Event badge visibility and scores"]');
         if (await scoresToggle.isVisible()) {
             const scoreboardBadge = studioModal.locator('.story-cropper__badge--scoreboard');
             const previewScores = studioModal.locator('.story-export-modal__preview-team-score');
@@ -360,8 +342,8 @@ test.describe('Story Maker (9:16)', () => {
             await expect(scoreboardBadge.locator('.story-cropper__team-score').first()).toBeVisible();
             await expect(previewScores.first()).toBeVisible();
 
-            // Toggle scores off
-            const offBtn = scoresToggle.locator('button:has-text("Off")');
+            // Toggle scores off (event badge without scores)
+            const offBtn = scoresToggle.locator('button[aria-label="Show event badge without scores"]');
             await offBtn.click();
             await expect(offBtn).toHaveClass(/story-export-modal__scores-btn--active/);
 
@@ -370,7 +352,7 @@ test.describe('Story Maker (9:16)', () => {
             await expect(previewScores).toHaveCount(0);
 
             // Toggle scores back on
-            const scoresBtn = scoresToggle.locator('button:has-text("Scores")');
+            const scoresBtn = scoresToggle.locator('button[aria-label="Show event badge with scores"]');
             await scoresBtn.click();
             await expect(scoresBtn).toHaveClass(/story-export-modal__scores-btn--active/);
 
@@ -381,16 +363,8 @@ test.describe('Story Maker (9:16)', () => {
     });
 
     test('should maintain identical badge sizes between 9:16 crop and Padded modes', async ({ page }) => {
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
-
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 10000 });
-
-        await page.keyboard.press('c');
-        const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
-        await expect(studioModal).toBeVisible({ timeout: 8000 });
+        await openFirstPhotoLightbox(page);
+        const studioModal = await openStoryMakerFromLightbox(page);
 
         // Get badge bounding box in crop mode
         const cropAttribution = studioModal.locator('.story-cropper__badge--attribution');
@@ -398,12 +372,8 @@ test.describe('Story Maker (9:16)', () => {
         const cropBox = await cropAttribution.boundingBox();
         expect(cropBox).not.toBeNull();
 
-        // If on mobile layout, open layout popover
-        const mobileDock = studioModal.locator('.story-mobile-dock');
-        if (await mobileDock.isVisible()) {
-            await studioModal.locator('.story-mobile-dock button:has-text("Layout")').click();
-            await expect(studioModal.locator('.story-mobile-popover')).toBeVisible({ timeout: 5000 });
-        }
+        // Show the Layout tab (opens the sheet in sheet mode)
+        await openStudioTab(studioModal, 'Layout');
 
         // Switch to Padded mode
         const paddedBtn = studioModal.locator('button:has-text("Padded")');
@@ -421,24 +391,17 @@ test.describe('Story Maker (9:16)', () => {
     });
 
     test('should reset to default settings when closed and reopened', async ({ page }) => {
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
-
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 10000 });
+        await openFirstPhotoLightbox(page);
 
         // 1. Open Story Maker
-        await page.keyboard.press('c');
-        let studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
-        await expect(studioModal).toBeVisible({ timeout: 8000 });
+        let studioModal = await openStoryMakerFromLightbox(page);
+        await openStudioTab(studioModal, 'Layout');
 
-        // If on mobile layout, open layout popover
-        const mobileDock = studioModal.locator('.story-mobile-dock');
-        if (await mobileDock.isVisible()) {
-            await studioModal.locator('.story-mobile-dock button:has-text("Layout")').click();
-            await expect(studioModal.locator('.story-mobile-popover')).toBeVisible({ timeout: 5000 });
-        }
+        // Remember the photo's default framing preset (labels depend on the photo: Center / Subject / Lead ...)
+        const presetGroup = () => studioModal.locator('[role="group"][aria-label="Framing presets"]');
+        const defaultPresetLabel = ((await presetGroup().locator('button[aria-pressed="true"]').first().textContent()) ?? '').trim();
+        expect(defaultPresetLabel).not.toBe('');
+        expect(defaultPresetLabel).not.toBe('Padded');
 
         // Switch to Padded mode and Solid background
         const paddedBtn = studioModal.locator('button:has-text("Padded")');
@@ -447,68 +410,59 @@ test.describe('Story Maker (9:16)', () => {
         await solidBtn.click();
         await expect(studioModal.locator('.story-export-modal__custom-color-row')).toBeVisible();
 
-        // 2. Close Story Maker
+        // 2. Close Story Maker (collapse the sheet first in sheet mode: Escape only collapses an open sheet)
+        await collapseSheet(page, studioModal);
         await page.keyboard.press('Escape');
         await expect(studioModal).not.toBeVisible({ timeout: 5000 });
 
         // 3. Reopen Story Maker
-        await page.keyboard.press('c');
-        studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
-        await expect(studioModal).toBeVisible({ timeout: 8000 });
+        studioModal = await openStoryMakerFromLightbox(page);
+        await openStudioTab(studioModal, 'Layout');
 
-        // If on mobile layout, open layout popover
-        const mobileDockReopen = studioModal.locator('.story-mobile-dock');
-        if (await mobileDockReopen.isVisible()) {
-            await studioModal.locator('.story-mobile-dock button:has-text("Layout")').click();
-            await expect(studioModal.locator('.story-mobile-popover')).toBeVisible({ timeout: 5000 });
-        }
-
-        // Verify it reset back to default Center / Subject framing (not Padded)
-        const centerBtn = studioModal.locator('button:has-text("Center"), button:has-text("Subject")').first();
-        await expect(centerBtn).toHaveClass(/active/);
+        // Verify it reset back to the default framing (not Padded)
+        const defaultBtn = presetGroup().getByRole('button', { name: defaultPresetLabel, exact: true });
+        await expect(defaultBtn).toHaveAttribute('aria-pressed', 'true');
+        await expect(defaultBtn).toHaveClass(/active/);
+        await expect(presetGroup().getByRole('button', { name: 'Padded', exact: true })).toHaveAttribute(
+            'aria-pressed',
+            'false'
+        );
     });
 
     test('should support selecting frames and applying tint', async ({ page }) => {
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
-
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 10000 });
-
-        await page.keyboard.press('c');
-        const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
-        await expect(studioModal).toBeVisible({ timeout: 8000 });
+        await openFirstPhotoLightbox(page);
+        const studioModal = await openStoryMakerFromLightbox(page);
+        const preview = studioModal.locator('.story-studio__preview');
 
         // Switch to Frames tab
-        await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Frames")').click();
+        await openStudioTab(studioModal, 'Frames');
 
-        // Locate Frame header
-        const framesHeader = studioModal.locator('.story-export-modal__frames-header');
-        await expect(framesHeader).toBeVisible();
-        await expect(studioModal.locator('.story-export-modal__frame-current-badge')).toHaveText('None');
-
-        // Initially no frame overlay in viewport
-        await expect(studioModal.locator('.story-frame-overlay')).toHaveCount(0);
-
-        // Frames grid is visible in Frames tab
-        const framesGrid = studioModal.locator('.story-export-modal__frames-grid');
+        // Thumb browser renders; the selected thumb (not a header badge) shows the current frame
+        const framesGrid = studioModal.locator('#story-export-frames-grid');
         await expect(framesGrid).toBeVisible();
+        await expectSelectedThumb(framesGrid, 'None');
+
+        // Initially no frame overlay in viewport, and no tint trigger
+        await expect(preview.locator('.story-frame-overlay')).toHaveCount(0);
+        const tintTrigger = studioModal.locator('button.story-tint__trigger');
+        await expect(tintTrigger).toHaveCount(0);
 
         // Select "Grizzly" frame
-        const bearCard = framesGrid.locator('button:has-text("Grizzly")');
+        const bearCard = thumbByLabel(framesGrid, 'Grizzly');
         await expect(bearCard).toBeVisible();
         await bearCard.click();
 
-        // Verify badge updates and frame overlay appears in preview
-        await expect(studioModal.locator('.story-export-modal__frame-current-badge')).toHaveText('Grizzly');
-        const frameOverlay = studioModal.locator('.story-frame-overlay');
+        // Verify selection and frame overlay appears in preview
+        await expect(bearCard).toHaveAttribute('aria-pressed', 'true');
+        await expect(bearCard).toHaveClass(/story-thumb--selected/);
+        await expectSelectedThumb(framesGrid, 'Grizzly');
+        const frameOverlay = preview.locator('.story-frame-overlay');
         await expect(frameOverlay).toBeVisible();
         await expect(frameOverlay.locator('.story-frame-sac-bear')).toBeVisible();
 
-        // Verify Frame Tint swatches appeared in header
-        const tintRow = studioModal.locator('.story-export-modal__frames-header-tint');
-        await expect(tintRow).toBeVisible();
+        // Verify Frame Tint trigger appeared in the options row
+        await expect(tintTrigger).toBeVisible();
+        await expect(tintTrigger).toHaveAttribute('aria-label', 'Frame tint: Default. Change tint');
 
         // Verify no icons in 9:16 / Padded buttons, zoom header, frame header, or badge list
         await expect(studioModal.locator('.story-export-modal__seg-btn svg')).toHaveCount(0);
@@ -516,111 +470,112 @@ test.describe('Story Maker (9:16)', () => {
         await expect(studioModal.locator('.story-export-modal__accordion-title svg')).toHaveCount(0);
         await expect(studioModal.locator('.story-export-modal__badge-icon')).toHaveCount(0);
 
-        // Click Gold tint swatch
-        const goldBtn = tintRow.locator('button[title="Gold"]');
+        // Open tint popover and click Gold swatch
+        await tintTrigger.click();
+        const tintPopover = studioModal.locator('#story-tint-popover');
+        await expect(tintPopover).toBeVisible();
+        const goldBtn = tintPopover.locator('button[aria-label="Frame tint: Gold"]');
         await goldBtn.click();
         await expect(goldBtn).toHaveClass(/is-active/);
+        await expect(goldBtn).toHaveAttribute('aria-pressed', 'true');
+        await expect(tintTrigger).toHaveAttribute('aria-label', 'Frame tint: Gold. Change tint');
 
         // Verify color picker input is present
-        const customColorInput = tintRow.locator('input[type="color"]');
+        const customColorInput = tintPopover.locator('input[type="color"][aria-label="Custom frame tint color"]');
         await expect(customColorInput).toHaveCount(1);
 
+        // Escape closes only the popover, not the modal
+        await page.keyboard.press('Escape');
+        await expect(tintPopover).toHaveCount(0);
+        await expect(studioModal).toBeVisible();
+
         // Switch to Claws
-        const clawCard = framesGrid.locator('button:has-text("Claws")');
+        const clawCard = thumbByLabel(framesGrid, 'Claws');
         await clawCard.click();
-        await expect(studioModal.locator('.story-export-modal__frame-current-badge')).toHaveText('Claws');
+        await expectSelectedThumb(framesGrid, 'Claws');
         await expect(frameOverlay.locator('.story-frame-claw-marks')).toBeVisible();
 
         // Select "None"
-        const noneCard = framesGrid.locator('button:has-text("None")');
+        const noneCard = thumbByLabel(framesGrid, 'None');
         await noneCard.click();
-        await expect(studioModal.locator('.story-export-modal__frame-current-badge')).toHaveText('None');
-        await expect(studioModal.locator('.story-frame-overlay')).toHaveCount(0);
-        await expect(studioModal.locator('.story-export-modal__frames-header-tint')).not.toBeVisible();
+        await expectSelectedThumb(framesGrid, 'None');
+        await expect(preview.locator('.story-frame-overlay')).toHaveCount(0);
+        await expect(tintTrigger).toHaveCount(0);
     });
 
     test('should dynamically relocate frame elements based on context when badges are toggled', async ({ page }) => {
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
-
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 10000 });
-
-        await page.keyboard.press('c');
-        const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
-        await expect(studioModal).toBeVisible({ timeout: 8000 });
+        await openFirstPhotoLightbox(page);
+        const studioModal = await openStoryMakerFromLightbox(page);
 
         // Switch to Frames tab and select Grizzly
-        await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Frames")').click();
-        const bearCard = studioModal.locator('.story-export-modal__frames-grid button:has-text("Grizzly")');
+        await openStudioTab(studioModal, 'Frames');
+        const bearCard = thumbByLabel(studioModal.locator('#story-export-frames-grid'), 'Grizzly');
         await bearCard.click();
 
-        const frameOverlay = studioModal.locator('.story-frame-overlay');
+        const frameOverlay = studioModal.locator('.story-studio__preview .story-frame-overlay');
         await expect(frameOverlay).toBeVisible();
 
-        // Switch to Badges tab to check/toggle event scoreboard badge
-        await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Badges")').click();
-        const scoreboardCheckbox = studioModal.locator('label:has-text("Event Badge") input[type="checkbox"]');
-        if (await scoreboardCheckbox.isVisible() && (await scoreboardCheckbox.isChecked())) {
+        // Switch to Badges tab to check/toggle event scoreboard badge (Show/Scores/Event | Hide segmented toggle)
+        await openStudioTab(studioModal, 'Badges');
+        const hideEventBadge = studioModal.locator('button[aria-label="Hide event badge"]');
+        const showEventBadge = studioModal
+            .locator('button[aria-label="Show event badge with scores"], button[aria-label="Show event badge"]')
+            .first();
+        if (await hideEventBadge.isVisible() && (await hideEventBadge.getAttribute('aria-pressed')) === 'false') {
             // When scoreboard badge is active, bear is elevated into the flank
             const bearGroup = frameOverlay.locator('.story-frame-sac-bear g[transform*="1530"]');
             await expect(bearGroup).toBeVisible();
 
-            // Uncheck scoreboard badge
-            await scoreboardCheckbox.uncheck();
+            // Hide scoreboard badge
+            await hideEventBadge.click();
 
             // Bear dynamically repositions down to the bottom corner
             const bearLowerGroup = frameOverlay.locator('.story-frame-sac-bear g[transform*="1690"]');
             await expect(bearLowerGroup).toBeVisible();
 
-            // Re-check scoreboard badge -> bear dynamically elevates back
-            await scoreboardCheckbox.check();
+            // Show scoreboard badge again -> bear dynamically elevates back
+            await showEventBadge.click();
             await expect(bearGroup).toBeVisible();
         }
     });
 
     test('should transition download button to confirmed state on download and reset when card is altered', async ({ page }) => {
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
+        await openFirstPhotoLightbox(page);
+        const studioModal = await openStoryMakerFromLightbox(page);
 
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 10000 });
-
-        await page.keyboard.press('c');
-        const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
-        await expect(studioModal).toBeVisible({ timeout: 8000 });
-
-        const downloadBtn = studioModal.locator('.story-export-modal__primary-action');
-        await expect(downloadBtn).toContainText('Download Story Card');
+        const downloadBtn = exportButton(studioModal);
+        const buttonShell = studioModal.locator('.story-export-button');
+        const cancelBtn = exportCancelButton(studioModal);
+        await expect(downloadBtn).toHaveAttribute('aria-label', 'Download Story Card');
         await expect(downloadBtn).not.toHaveClass(/is-done/);
+        await expect(buttonShell).toHaveClass(/story-export-button--idle/);
+        await expect(downloadBtn).toBeEnabled({ timeout: 10000 });
+        await expect(cancelBtn).toBeDisabled();
 
         // Click download
         await downloadBtn.click();
 
         // Button transitions to confirmed Downloaded state with is-done
-        await expect(downloadBtn).toContainText('Downloaded');
+        await expect(downloadBtn).toHaveAttribute('aria-label', 'Story Card Downloaded');
         await expect(downloadBtn).toHaveClass(/is-done/);
+        await expect(buttonShell).toHaveClass(/story-export-button--done/);
         await expect(downloadBtn).toBeDisabled();
+        await expect(cancelBtn).toBeDisabled();
 
         // Altering card (e.g. clicking an alternate preset) resets button back to Download Story Card
-        const mobileDock = studioModal.locator('.story-mobile-dock');
-        if (await mobileDock.isVisible()) {
-            await studioModal.locator('.story-mobile-dock button:has-text("Layout")').click();
-            await expect(studioModal.locator('.story-mobile-popover')).toBeVisible({ timeout: 5000 });
-        }
+        await openStudioTab(studioModal, 'Layout');
 
         const altPreset = studioModal.locator('.story-export-modal__preset-pill:not(.active)').first();
         await altPreset.click();
 
-        await expect(downloadBtn).toContainText('Download Story Card');
+        await expect(downloadBtn).toHaveAttribute('aria-label', 'Download Story Card');
         await expect(downloadBtn).not.toHaveClass(/is-done/);
+        await expect(buttonShell).toHaveClass(/story-export-button--idle/);
         await expect(downloadBtn).toBeEnabled();
 
         // Download altered card -> transitions to Downloaded again
         await downloadBtn.click();
-        await expect(downloadBtn).toContainText('Downloaded');
+        await expect(downloadBtn).toHaveAttribute('aria-label', 'Story Card Downloaded');
         await expect(downloadBtn).toHaveClass(/is-done/);
         await expect(downloadBtn).toBeDisabled();
 
@@ -632,31 +587,23 @@ test.describe('Story Maker (9:16)', () => {
             el.dispatchEvent(new Event('change', { bubbles: true }));
         });
 
-        await expect(downloadBtn).toContainText('Download Story Card');
+        await expect(downloadBtn).toHaveAttribute('aria-label', 'Download Story Card');
         await expect(downloadBtn).not.toHaveClass(/is-done/);
         await expect(downloadBtn).toBeEnabled();
     });
 
     test('should render Through the Lens frame when EXIF is present and display camera telemetry', async ({ page }) => {
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
-
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 10000 });
-
-        await page.keyboard.press('c');
-        const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
-        await expect(studioModal).toBeVisible({ timeout: 8000 });
+        await openFirstPhotoLightbox(page);
+        const studioModal = await openStoryMakerFromLightbox(page);
 
         // Switch to Frames tab
-        await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Frames")').click();
+        await openStudioTab(studioModal, 'Frames');
 
-        const ttlCard = studioModal.locator('.story-export-modal__frames-grid button').filter({ hasText: /^Camera$/ });
+        const ttlCard = thumbByLabel(studioModal.locator('#story-export-frames-grid'), 'Camera');
         if (await ttlCard.isVisible()) {
             await ttlCard.click();
 
-            const frameOverlay = studioModal.locator('.story-frame-overlay');
+            const frameOverlay = studioModal.locator('.story-studio__preview .story-frame-overlay');
             await expect(frameOverlay).toBeVisible();
 
             const ttlGroup = frameOverlay.locator('.story-frame-through-the-lens');
@@ -675,54 +622,38 @@ test.describe('Story Maker (9:16)', () => {
     });
 
     test('should apply photo filters to image while keeping frames and badges unfiltered', async ({ page }) => {
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
-
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 10000 });
-
-        await page.keyboard.press('c');
-        const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
-        await expect(studioModal).toBeVisible({ timeout: 8000 });
+        await openFirstPhotoLightbox(page);
+        const studioModal = await openStoryMakerFromLightbox(page);
 
         // Switch to Filters tab
-        const mobileDock = studioModal.locator('.story-mobile-dock');
-        if (await mobileDock.isVisible()) {
-            await studioModal.locator('.story-mobile-dock button:has-text("Filters")').click();
-            await expect(studioModal.locator('.story-mobile-popover')).toBeVisible({ timeout: 5000 });
-        } else {
-            await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Filters")').click();
-        }
+        await openStudioTab(studioModal, 'Filters');
 
-        // Verify filter section and initial state
-        const filterSection = studioModal.locator('.story-export-modal__section--filters');
+        // Verify filter section and initial state (selected thumb replaces the old header badge)
+        const filterSection = studioModal.locator('.story-tab--filters');
         await expect(filterSection).toBeVisible();
-        const currentFilterBadge = filterSection.locator('.story-export-modal__filter-current-badge');
-        await expect(currentFilterBadge).toHaveText('None');
+        const filtersGrid = filterSection.locator('#story-export-filters-grid');
+        await expectSelectedThumb(filtersGrid, 'None');
+        await expect(filterSection.locator('input[aria-label="Filter Strength"]')).toHaveCount(0);
 
         const cropperImg = studioModal.locator('.story-cropper__image');
         await expect(cropperImg).toBeVisible();
 
-        // Select B&W filter
-        const bwBtn = filterSection.getByRole('button', { name: 'Photo filter: B&W', exact: true });
+        // Select Mono (B&W) filter
+        const bwBtn = filterSection.getByRole('button', { name: 'Photo filter: Mono', exact: true });
         await bwBtn.click();
-        await expect(currentFilterBadge).toHaveText('B&W');
-        await expect(bwBtn).toHaveClass(/active/);
+        await expectSelectedThumb(filtersGrid, 'Mono');
+        await expect(bwBtn).toHaveAttribute('aria-pressed', 'true');
+        await expect(bwBtn).toHaveClass(/story-thumb--selected/);
 
         // Verify cropper image has grayscale filter applied
         await expect(cropperImg).toHaveCSS('filter', /grayscale\(1\)|grayscale\(100%\)/);
 
         // Switch to Frames tab and select Grizzly frame
-        if (await mobileDock.isVisible()) {
-            await studioModal.locator('.story-mobile-dock button:has-text("Frames")').click();
-        } else {
-            await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Frames")').click();
-        }
-        const bearCard = studioModal.locator('.story-export-modal__frames-grid button:has-text("Grizzly")');
+        await openStudioTab(studioModal, 'Frames');
+        const bearCard = thumbByLabel(studioModal.locator('#story-export-frames-grid'), 'Grizzly');
         await bearCard.click();
 
-        const frameOverlay = studioModal.locator('.story-frame-overlay');
+        const frameOverlay = studioModal.locator('.story-studio__preview .story-frame-overlay');
         await expect(frameOverlay).toBeVisible();
         const bearSvg = frameOverlay.locator('.story-frame-sac-bear');
         await expect(bearSvg).toBeVisible();
@@ -731,257 +662,163 @@ test.describe('Story Maker (9:16)', () => {
         await expect(frameOverlay).toHaveCSS('filter', 'none');
         await expect(bearSvg).toHaveCSS('filter', 'none');
 
-        // Switch back to Filters tab and select B&W+ filter
-        if (await mobileDock.isVisible()) {
-            await studioModal.locator('.story-mobile-dock button:has-text("Filters")').click();
-        } else {
-            await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Filters")').click();
-        }
-        const bwContrastBtn = filterSection.locator('button:has-text("B&W+")');
+        // Switch back to Filters tab and select Hi-Con Mono (B&W+) filter
+        await openStudioTab(studioModal, 'Filters');
+        const bwContrastBtn = filterSection.getByRole('button', { name: 'Photo filter: Hi-Con Mono', exact: true });
         await bwContrastBtn.click();
-        await expect(currentFilterBadge).toHaveText('B&W+');
-        await expect(bwContrastBtn).toHaveClass(/active/);
+        await expectSelectedThumb(filtersGrid, 'Hi-Con Mono');
+        await expect(bwContrastBtn).toHaveAttribute('aria-pressed', 'true');
         await expect(cropperImg).toHaveCSS('filter', /grayscale\(1\)|grayscale\(100%\)/);
 
         // Select None to restore
-        const noneFilterBtn = filterSection.locator('button:has-text("None")');
+        const noneFilterBtn = filterSection.getByRole('button', { name: 'Photo filter: None', exact: true });
         await noneFilterBtn.click();
-        await expect(currentFilterBadge).toHaveText('None');
+        await expectSelectedThumb(filtersGrid, 'None');
         await expect(cropperImg).toHaveCSS('filter', 'none');
     });
 
     test('should support selective color filters (Red Pop, Green Pop, Blue Pop) and export successfully', async ({ page }) => {
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
-
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 10000 });
-
-        await page.keyboard.press('c');
-        const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
-        await expect(studioModal).toBeVisible({ timeout: 8000 });
+        await openFirstPhotoLightbox(page);
+        const studioModal = await openStoryMakerFromLightbox(page);
 
         // Switch to Filters tab
-        const mobileDock = studioModal.locator('.story-mobile-dock');
-        if (await mobileDock.isVisible()) {
-            await studioModal.locator('.story-mobile-dock button:has-text("Filters")').click();
-            await expect(studioModal.locator('.story-mobile-popover')).toBeVisible({ timeout: 5000 });
-        } else {
-            await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Filters")').click();
-        }
+        await openStudioTab(studioModal, 'Filters');
 
-        const filterSection = studioModal.locator('.story-export-modal__section--filters');
+        const filterSection = studioModal.locator('.story-tab--filters');
         await expect(filterSection).toBeVisible();
-        const currentFilterBadge = filterSection.locator('.story-export-modal__filter-current-badge');
+        const filtersGrid = filterSection.locator('#story-export-filters-grid');
         const cropperImg = studioModal.locator('.story-cropper__image');
+        const filterBtn = (label: string) =>
+            filterSection.getByRole('button', { name: `Photo filter: ${label}`, exact: true });
 
         // 1. Test Red Pop
-        const redPopBtn = filterSection.locator('button:has-text("Red Pop")');
+        const redPopBtn = filterBtn('Red Pop');
         await redPopBtn.click();
-        await expect(currentFilterBadge).toHaveText('Red Pop');
-        await expect(redPopBtn).toHaveClass(/active/);
+        await expectSelectedThumb(filtersGrid, 'Red Pop');
+        await expect(redPopBtn).toHaveAttribute('aria-pressed', 'true');
         await expect(cropperImg).toHaveCSS('filter', /url\("#?story-filter-selective-red"\)/);
 
         // Verify strength slider is active
-        const slider = filterSection.locator('input[type="range"][aria-label="Filter Strength"]');
+        const slider = filterSection.locator('.story-strength input[type="range"][aria-label="Filter Strength"]');
         await expect(slider).toBeVisible();
 
         // 2. Test Green Pop & Blue Pop
-        const greenPopBtn = filterSection.locator('button:has-text("Green Pop")');
-        await greenPopBtn.click();
-        await expect(currentFilterBadge).toHaveText('Green Pop');
+        await filterBtn('Green Pop').click();
+        await expectSelectedThumb(filtersGrid, 'Green Pop');
         await expect(cropperImg).toHaveCSS('filter', /url\("#?story-filter-selective-green"\)/);
 
-        const bluePopBtn = filterSection.locator('button:has-text("Blue Pop")');
-        await bluePopBtn.click();
-        await expect(currentFilterBadge).toHaveText('Blue Pop');
+        await filterBtn('Blue Pop').click();
+        await expectSelectedThumb(filtersGrid, 'Blue Pop');
         await expect(cropperImg).toHaveCSS('filter', /url\("#?story-filter-selective-blue"\)/);
 
         // 3. Test Yellow Pop & Purple Pop
-        const yellowPopBtn = filterSection.locator('button:has-text("Yellow Pop")');
-        await yellowPopBtn.click();
-        await expect(currentFilterBadge).toHaveText('Yellow Pop');
+        await filterBtn('Yellow Pop').click();
+        await expectSelectedThumb(filtersGrid, 'Yellow Pop');
         await expect(cropperImg).toHaveCSS('filter', /url\("#?story-filter-selective-yellow"\)/);
 
-        const purplePopBtn = filterSection.locator('button:has-text("Purple Pop")');
-        await purplePopBtn.click();
-        await expect(currentFilterBadge).toHaveText('Purple Pop');
+        await filterBtn('Purple Pop').click();
+        await expectSelectedThumb(filtersGrid, 'Purple Pop');
         await expect(cropperImg).toHaveCSS('filter', /url\("#?story-filter-selective-purple"\)/);
 
-        // 4. Test Cinematic, Neon, Bleach, and Duotone
-        const cinematicBtn = filterSection.locator('.story-export-modal__filter-pill:has-text("Cinematic")');
-        await cinematicBtn.click();
-        await expect(currentFilterBadge).toHaveText('Cinematic');
+        // 4. Test Teal & Orange (cinematic), Neon, Bleach, and Duotone
+        await filterBtn('Teal & Orange').click();
+        await expectSelectedThumb(filtersGrid, 'Teal & Orange');
         await expect(cropperImg).toHaveCSS('filter', /url\("#?story-filter-cinematic"\)/);
 
-        const neonBtn = filterSection.locator('.story-export-modal__filter-pill:has-text("Neon")');
-        await neonBtn.click();
-        await expect(currentFilterBadge).toHaveText('Neon');
+        await filterBtn('Neon').click();
+        await expectSelectedThumb(filtersGrid, 'Neon');
         await expect(cropperImg).toHaveCSS('filter', /url\("#?story-filter-neon"\)/);
 
-        const bleachBtn = filterSection.locator('.story-export-modal__filter-pill:has-text("Bleach")');
-        await bleachBtn.click();
-        await expect(currentFilterBadge).toHaveText('Bleach');
+        await filterBtn('Bleach').click();
+        await expectSelectedThumb(filtersGrid, 'Bleach');
         await expect(cropperImg).toHaveCSS('filter', /contrast\(135%\)|contrast\(1\.35\)/);
 
-        const duotoneBtn = filterSection.locator('.story-export-modal__filter-pill:has-text("Duotone")');
-        await duotoneBtn.click();
-        await expect(currentFilterBadge).toHaveText('Duotone');
+        await filterBtn('Duotone').click();
+        await expectSelectedThumb(filtersGrid, 'Duotone');
         await expect(cropperImg).toHaveCSS('filter', /url\("#?story-filter-duotone"\)/);
 
         // 5. Download story with Duotone filter active to ensure canvas export succeeds
-        const downloadBtn = studioModal.locator('.story-export-modal__primary-action');
+        const downloadBtn = exportButton(studioModal);
+        await expect(downloadBtn).toBeEnabled({ timeout: 10000 });
         await downloadBtn.click();
 
         // Check for download confirmation state
-        await expect(downloadBtn).toContainText('Downloaded', { timeout: 10000 });
+        await expect(downloadBtn).toHaveAttribute('aria-label', 'Story Card Downloaded', { timeout: 10000 });
     });
 
-    test('should display categories and Recent tab for filters, initially empty, and populate it only upon download/share', async ({ page }) => {
-        // Clear recent filters in localStorage before starting
-        await page.evaluate(() => {
-            localStorage.removeItem('story-recent-filters');
-        });
+    // The thumbnail lists are sectioned: Recent (only once something was exported), then one section per
+    // category, with None pinned first in the first section. Selecting alone records nothing; a download
+    // records the item and surfaces it in Recent.
+    test('should record a filter as Recent only upon download/share', async ({ page }) => {
+        await openFirstPhotoLightbox(page);
+        const studioModal = await openStoryMakerFromLightbox(page);
+        const readRecent = () =>
+            page.evaluate(() => JSON.parse(localStorage.getItem('story-recent-filters') || '[]') as string[]);
+        expect(await readRecent()).toEqual([]);
 
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
-
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 10000 });
-
-        await page.keyboard.press('c');
-        const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
-        await expect(studioModal).toBeVisible({ timeout: 8000 });
-
-        // Switch to Filters tab
-        const mobileDock = studioModal.locator('.story-mobile-dock');
-        if (await mobileDock.isVisible()) {
-            await studioModal.locator('.story-mobile-dock button:has-text("Filters")').click();
-            await expect(studioModal.locator('.story-mobile-popover')).toBeVisible({ timeout: 5000 });
-        } else {
-            await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Filters")').click();
-        }
-
-        const filterSection = studioModal.locator('.story-export-modal__section--filters');
-        await expect(filterSection).toBeVisible();
-
-        // Verify Recent category pill is present
-        const recentPill = filterSection.locator('.story-export-modal__category-pill:has-text("Recent")');
-        await expect(recentPill).toBeVisible();
-
-        // Click Recent tab
-        await recentPill.click();
-        await expect(recentPill).toHaveClass(/--active/);
-
-        // Verify "None" filter is shown initially when recent is empty
-        const filtersGrid = filterSection.locator('.story-export-modal__filters-grid');
-        await expect(filtersGrid.locator('button:has-text("None")')).toBeVisible();
-
-        // Switch to Pop category and select Red Pop
-        const popPill = filterSection.locator('.story-export-modal__category-pill:has-text("Pop")');
-        await popPill.click();
-
-        const redPopCard = filtersGrid.locator('button:has-text("Red Pop")');
-        await expect(redPopCard).toBeVisible();
+        // Switch to Filters tab and select Red Pop by its thumb label
+        await openStudioTab(studioModal, 'Filters');
+        const filtersGrid = studioModal.locator('#story-export-filters-grid');
+        await expect(thumbByLabel(filtersGrid, 'None')).toBeVisible();
+        const redPopCard = thumbByLabel(filtersGrid, 'Red Pop');
         await redPopCard.click();
 
-        // Verify Red Pop is active, but Recent pill count is still 0 (selecting alone does not record)
-        await expect(filterSection.locator('.story-export-modal__filter-current-badge')).toHaveText('Red Pop');
-        await expect(recentPill.locator('.story-export-modal__category-count')).toHaveText('0');
+        // Selecting alone does not record a recent filter
+        await expectSelectedThumb(filtersGrid, 'Red Pop');
+        expect(await readRecent()).toEqual([]);
+        await expect(filtersGrid.getByRole('group', { name: 'Recent', exact: true })).toHaveCount(0);
 
         // Download the story card
-        const downloadBtn = studioModal.locator('.story-export-modal__primary-action');
+        const downloadBtn = exportButton(studioModal);
+        await expect(downloadBtn).toBeEnabled({ timeout: 10000 });
         await downloadBtn.click();
-        await expect(downloadBtn).toContainText('Downloaded', { timeout: 10000 });
+        await expect(downloadBtn).toHaveAttribute('aria-label', 'Story Card Downloaded', { timeout: 10000 });
 
-        // Now Recent category pill count should be 1
-        await expect(recentPill.locator('.story-export-modal__category-count')).toHaveText('1');
-
-        // Switch to Recent tab
-        await recentPill.click();
-
-        // Red Pop is now shown alongside None
-        await expect(filtersGrid.locator('button:has-text("None")')).toBeVisible();
-        await expect(filtersGrid.locator('button:has-text("Red Pop")')).toBeVisible();
+        // Now exactly one recent filter is recorded and listed under Recent
+        await expect.poll(async () => (await readRecent()).length).toBe(1);
+        await expect(
+            thumbByLabel(filtersGrid.getByRole('group', { name: 'Recent', exact: true }), 'Red Pop')
+        ).toBeVisible();
     });
 
-    test('should display Recent tab for frames, initially empty, and populate it only upon download/share', async ({ page }) => {
-        // Clear recent frames in localStorage before starting
-        await page.evaluate(() => {
-            localStorage.removeItem('story-recent-frames');
-        });
+    test('should record a frame as Recent only upon download/share', async ({ page }) => {
+        await openFirstPhotoLightbox(page);
+        const studioModal = await openStoryMakerFromLightbox(page);
+        const readRecent = () =>
+            page.evaluate(() => JSON.parse(localStorage.getItem('story-recent-frames') || '[]') as string[]);
+        expect(await readRecent()).toEqual([]);
 
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
-
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 10000 });
-
-        await page.keyboard.press('c');
-        const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
-        await expect(studioModal).toBeVisible({ timeout: 8000 });
-
-        // Switch to Frames tab
-        await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Frames")').click();
-
-        // Verify Recent category pill is present
-        const recentPill = studioModal.locator('.story-export-modal__category-pill:has-text("Recent")');
-        await expect(recentPill).toBeVisible();
-
-        // Click Recent tab
-        await recentPill.click();
-        await expect(recentPill).toHaveClass(/--active/);
-
-        // Verify "None" frame is shown initially when recent is empty
-        const framesGrid = studioModal.locator('.story-export-modal__frames-grid');
-        await expect(framesGrid.locator('button:has-text("None")')).toBeVisible();
-
-        // Switch to Derby category and select Grizzly
-        const derbyPill = studioModal.locator('.story-export-modal__category-pill:has-text("Derby")');
-        await derbyPill.click();
-
-        const grizzlyCard = framesGrid.locator('button:has-text("Grizzly")');
-        await expect(grizzlyCard).toBeVisible();
+        // Switch to Frames tab and select Grizzly by its thumb label
+        await openStudioTab(studioModal, 'Frames');
+        const framesGrid = studioModal.locator('#story-export-frames-grid');
+        await expect(thumbByLabel(framesGrid, 'None')).toBeVisible();
+        const grizzlyCard = thumbByLabel(framesGrid, 'Grizzly');
         await grizzlyCard.click();
 
-        // Verify Grizzly is active, but Recent pill count is still 0 (selecting alone does not record)
-        await expect(studioModal.locator('.story-export-modal__frame-current-badge')).toHaveText('Grizzly');
-        await expect(recentPill.locator('.story-export-modal__category-count')).toHaveText('0');
+        // Selecting alone does not record a recent frame
+        await expectSelectedThumb(framesGrid, 'Grizzly');
+        expect(await readRecent()).toEqual([]);
+        await expect(framesGrid.getByRole('group', { name: 'Recent', exact: true })).toHaveCount(0);
 
         // Download the story card
-        const downloadBtn = studioModal.locator('.story-export-modal__primary-action');
+        const downloadBtn = exportButton(studioModal);
+        await expect(downloadBtn).toBeEnabled({ timeout: 10000 });
         await downloadBtn.click();
-        await expect(downloadBtn).toContainText('Downloaded', { timeout: 10000 });
+        await expect(downloadBtn).toHaveAttribute('aria-label', 'Story Card Downloaded', { timeout: 10000 });
 
-        // Now Recent category pill count should be 1
-        await expect(recentPill.locator('.story-export-modal__category-count')).toHaveText('1');
-
-        // Switch to Recent tab
-        await recentPill.click();
-
-        // Grizzly is now shown alongside None
-        await expect(framesGrid.locator('button:has-text("None")')).toBeVisible();
-        await expect(framesGrid.locator('button:has-text("Grizzly")')).toBeVisible();
+        // Now exactly one recent frame is recorded and listed under Recent
+        await expect.poll(async () => (await readRecent()).length).toBe(1);
+        await expect(
+            thumbByLabel(framesGrid.getByRole('group', { name: 'Recent', exact: true }), 'Grizzly')
+        ).toBeVisible();
     });
 
     test('should not automatically switch to Padded mode when changing background color or frosting style', async ({ page }) => {
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
-
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 10000 });
-
-        await page.keyboard.press('c');
-        const studioModal = page.locator('[role="dialog"][aria-label="Story Maker"]');
-        await expect(studioModal).toBeVisible({ timeout: 8000 });
+        await openFirstPhotoLightbox(page);
+        const studioModal = await openStoryMakerFromLightbox(page);
 
         // Ensure we are in Layout tab
-        const layoutTab = studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Layout")');
-        await layoutTab.click();
+        await openStudioTab(studioModal, 'Layout');
 
         // Check active preset is not Padded
         const paddedPill = studioModal.locator('.story-export-modal__preset-pill:has-text("Padded")');
@@ -1010,5 +847,164 @@ test.describe('Story Maker (9:16)', () => {
     });
 });
 
+/**
+ * Layout modes: one tab bar in every mode; the panel is docked (side), stacked under the preview,
+ * or a collapsible bottom sheet (phones).
+ */
+test.describe('Story Maker layout modes', () => {
+    test.beforeEach(async ({ page, isMobile }) => {
+        test.skip(isMobile, 'Viewport-driven layout mode tests run on desktop browsers');
+        await page.goto('/');
+        await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
+    });
 
+    test.describe('phone portrait (sheet)', () => {
+        test.use({ viewport: { width: 393, height: 851 } });
 
+        test('collapsed sheet shows tab bar + export button; tabs open, switch and collapse the sheet', async ({ page }) => {
+            await openFirstPhotoLightbox(page);
+            const studioModal = await openStoryMakerFromLightbox(page);
+
+            expect(await getStoryLayoutMode(studioModal)).toBe('sheet');
+            await expect(page.locator('.story-export-modal--sheet')).toHaveCount(1);
+
+            const panel = studioPanel(studioModal);
+            await expect(panel).toHaveClass(/story-studio-panel--sheet/);
+            await expect(panel).not.toHaveClass(/story-studio-panel--open/);
+            await expect(panel.locator('.story-studio-panel__handle')).toBeVisible();
+            await expect(studioModal.locator('.story-tab-bar')).toHaveCount(1);
+            await expect(studioModal.locator('.story-tab-bar [role="tab"]')).toHaveCount(4);
+            // Collapsed: no tab is shown open, content not rendered
+            await expect(studioModal.locator('.story-tab-bar__tab.is-active')).toHaveCount(0);
+            await expect(studioTabPanel(studioModal)).toHaveCount(0);
+            await expect(studioModal.locator('.story-studio-panel__backdrop')).toHaveCount(0);
+            await expect(exportButton(studioModal)).toBeVisible();
+
+            // Tap Frames -> sheet opens on Frames
+            const framesTab = studioTab(studioModal, 'Frames');
+            await framesTab.click();
+            await expect(panel).toHaveClass(/story-studio-panel--open/);
+            await expect(framesTab).toHaveAttribute('aria-expanded', 'true');
+            await expect(framesTab).toHaveClass(/is-active/);
+            await expect(studioTabPanel(studioModal)).toBeVisible();
+            await expect(studioModal.locator('#story-export-frames-grid')).toBeVisible();
+            await expect(studioModal.locator('.story-studio-panel__backdrop')).toBeVisible();
+            await expect(exportButton(studioModal)).toBeVisible();
+
+            // Tap Filters -> stays open, switches content
+            const filtersTab = studioTab(studioModal, 'Filters');
+            await filtersTab.click();
+            await expect(panel).toHaveClass(/story-studio-panel--open/);
+            await expect(filtersTab).toHaveAttribute('aria-expanded', 'true');
+            await expect(framesTab).toHaveAttribute('aria-expanded', 'false');
+            await expect(studioModal.locator('#story-export-filters-grid')).toBeVisible();
+
+            // Tap the active tab again -> collapses
+            await filtersTab.click();
+            await expect(panel).not.toHaveClass(/story-studio-panel--open/);
+            await expect(filtersTab).toHaveAttribute('aria-expanded', 'false');
+            await expect(studioTabPanel(studioModal)).toHaveCount(0);
+
+            // Escape collapses an open sheet without closing the modal
+            await openStudioTab(studioModal, 'Layout');
+            await page.keyboard.press('Escape');
+            await expect(panel).not.toHaveClass(/story-studio-panel--open/);
+            await expect(studioModal).toBeVisible();
+
+            // Backdrop click collapses the sheet
+            await openStudioTab(studioModal, 'Badges');
+            const backdrop = studioModal.locator('.story-studio-panel__backdrop');
+            await expect(backdrop).toBeVisible();
+            await backdrop.click({ position: { x: 10, y: 10 } });
+            await expect(panel).not.toHaveClass(/story-studio-panel--open/);
+            await expect(studioModal).toBeVisible();
+
+            // With the sheet collapsed, Escape closes the modal
+            await page.keyboard.press('Escape');
+            await expect(studioModal).not.toBeVisible({ timeout: 5000 });
+        });
+
+        test('edits made in the sheet apply to the preview', async ({ page }) => {
+            await openFirstPhotoLightbox(page);
+            const studioModal = await openStoryMakerFromLightbox(page);
+
+            // Layout -> Padded
+            await openStudioTab(studioModal, 'Layout');
+            await studioModal.locator('button:has-text("Padded")').click();
+            await expect(studioModal.locator('.story-cropper__image-wrapper--padded')).toBeVisible({ timeout: 5000 });
+
+            // Frames -> Grizzly; selection persists after collapsing
+            await openStudioTab(studioModal, 'Frames');
+            const framesGrid = studioModal.locator('#story-export-frames-grid');
+            await thumbByLabel(framesGrid, 'Grizzly').click();
+            await expectSelectedThumb(framesGrid, 'Grizzly');
+            await collapseSheet(page, studioModal);
+            await expect(studioModal.locator('.story-studio__preview .story-frame-overlay')).toBeVisible();
+
+            await openStudioTab(studioModal, 'Frames');
+            await expectSelectedThumb(studioModal.locator('#story-export-frames-grid'), 'Grizzly');
+        });
+    });
+
+    test.describe('tablet portrait (stacked)', () => {
+        test.use({ viewport: { width: 1024, height: 1366 } });
+
+        test('preview sits above an always-open panel', async ({ page }) => {
+            await openFirstPhotoLightbox(page);
+            const studioModal = await openStoryMakerFromLightbox(page);
+
+            expect(await getStoryLayoutMode(studioModal)).toBe('stacked');
+            await expect(page.locator('.story-export-modal--stacked')).toHaveCount(1);
+
+            const panel = studioPanel(studioModal);
+            await expect(panel).toHaveClass(/story-studio-panel--stacked/);
+            await expect(panel.locator('.story-studio-panel__handle')).toHaveCount(0);
+            await expect(studioModal.locator('.story-studio-panel__backdrop')).toHaveCount(0);
+            await expect(studioTabPanel(studioModal)).toBeVisible();
+            await expect(studioTab(studioModal, 'Layout')).toHaveClass(/is-active/);
+            await expect(studioTab(studioModal, 'Layout')).not.toHaveAttribute('aria-expanded', /.*/);
+
+            const previewBox = await studioModal.locator('.story-studio__preview').boundingBox();
+            const panelBox = await panel.boundingBox();
+            expect(previewBox).not.toBeNull();
+            expect(panelBox).not.toBeNull();
+            expect(previewBox!.y + previewBox!.height).toBeLessThanOrEqual(panelBox!.y + 1);
+
+            // Clicking the active tab never collapses the panel outside sheet mode
+            await studioTab(studioModal, 'Frames').click();
+            await expect(studioModal.locator('#story-export-frames-grid')).toBeVisible();
+            await studioTab(studioModal, 'Frames').click();
+            await expect(studioTabPanel(studioModal)).toBeVisible();
+
+            await page.keyboard.press('Escape');
+            await expect(studioModal).not.toBeVisible({ timeout: 5000 });
+        });
+    });
+
+    test.describe('landscape phone (side)', () => {
+        test.use({ viewport: { width: 851, height: 393 } });
+
+        test('preview on the left, panel docked on the right', async ({ page }) => {
+            await openFirstPhotoLightbox(page);
+            const studioModal = await openStoryMakerFromLightbox(page);
+
+            expect(await getStoryLayoutMode(studioModal)).toBe('side');
+            await expect(page.locator('.story-export-modal--side')).toHaveCount(1);
+
+            const panel = studioPanel(studioModal);
+            await expect(panel).toHaveClass(/story-studio-panel--side/);
+            await expect(panel.locator('.story-studio-panel__handle')).toHaveCount(0);
+            await expect(studioTabPanel(studioModal)).toBeVisible();
+            await expect(exportButton(studioModal)).toBeVisible();
+
+            const previewBox = await studioModal.locator('.story-studio__preview').boundingBox();
+            const panelBox = await panel.boundingBox();
+            expect(previewBox).not.toBeNull();
+            expect(panelBox).not.toBeNull();
+            expect(previewBox!.x + previewBox!.width).toBeLessThanOrEqual(panelBox!.x + 1);
+
+            await openStudioTab(studioModal, 'Filters');
+            await expect(studioModal.locator('#story-export-filters-grid')).toBeVisible();
+        });
+    });
+});

@@ -3,6 +3,7 @@ import { render, screen, within, fireEvent, cleanup } from '@testing-library/rea
 import { StoryExportModal } from './StoryExportModal';
 import { useAppStore } from '../../../store/useAppStore';
 import type { PhotoRecord } from '../../../types';
+import { STORY_COMPACT_QUERY, STORY_PORTRAIT_QUERY } from '../../../hooks/useStoryLayoutMode';
 
 vi.mock('../../../hooks/useCanShare', () => ({
     useCanShare: () => false,
@@ -28,7 +29,7 @@ describe('StoryExportModal', () => {
         cleanup();
     });
 
-    it('renders the modal structure with viewport-card and controls-pane', () => {
+    it('renders the unified studio: preview stage plus a docked panel with tabs and the export footer', () => {
         const { baseElement } = render(
             <StoryExportModal
                 isOpen={true}
@@ -40,17 +41,25 @@ describe('StoryExportModal', () => {
             />
         );
 
-        // Verify body and preview pane
-        expect(baseElement.querySelector('.story-export-modal__body')).not.toBeNull();
-        expect(baseElement.querySelector('.story-export-modal__preview-pane')).not.toBeNull();
-        expect(baseElement.querySelector('.story-export-modal__viewport-card')).not.toBeNull();
-        expect(baseElement.querySelector('.story-export-modal__controls-pane')).not.toBeNull();
+        // Landscape test window -> side mode
+        expect(baseElement.querySelector('.story-export-modal--side')).not.toBeNull();
+        expect(baseElement.querySelector('.story-studio--side')).not.toBeNull();
 
-        // In default crop mode, StoryCropper is rendered inside viewport-card
-        const viewportCard = baseElement.querySelector('.story-export-modal__viewport-card');
+        // In default crop mode, StoryCropper is rendered inside the preview
+        const preview = baseElement.querySelector('.story-studio__preview');
         const storyCropper = baseElement.querySelector('.story-cropper');
         expect(storyCropper).not.toBeNull();
-        expect(viewportCard?.contains(storyCropper!)).toBe(true);
+        expect(preview?.contains(storyCropper!)).toBe(true);
+
+        // Panel: tab bar header, tab content, export button pinned in the panel footer
+        const panel = baseElement.querySelector('.story-studio-panel--side') as HTMLElement;
+        expect(panel).not.toBeNull();
+        expect(within(panel).getAllByRole('tab')).toHaveLength(4);
+        expect(panel.querySelector('#story-studio-tabpanel')).not.toBeNull();
+        expect(panel.querySelector('.story-studio-panel__footer .story-export-modal__primary-action')).not.toBeNull();
+
+        // Export button no longer lives in the modal shell footer
+        expect(baseElement.querySelector('.modal-shell__footer .story-export-modal__primary-action')).toBeNull();
     });
 
     it('hides reset button when at defaults, shows it when altered, and restores defaults on click without toasts', () => {
@@ -237,165 +246,111 @@ describe('StoryExportModal', () => {
         expect(panels).toHaveLength(2);
     });
 
-    describe('Mobile alternative layout (<= 860px)', () => {
+    const originalMatchMedia = window.matchMedia;
+    const mockMatchMedia = (matches: (query: string) => boolean) => {
+        window.matchMedia = vi.fn().mockImplementation((query: string) => ({
+            matches: matches(query),
+            media: query,
+            onchange: null,
+            addListener: vi.fn(),
+            removeListener: vi.fn(),
+            addEventListener: vi.fn(),
+            removeEventListener: vi.fn(),
+            dispatchEvent: vi.fn(),
+        })) as unknown as typeof window.matchMedia;
+    };
+
+    const renderSingle = () =>
+        render(
+            <StoryExportModal
+                isOpen={true}
+                onClose={mockOnClose}
+                photo={samplePhoto}
+                eventName="2024.10.22 - Championship Match - Team A vs Team B"
+                year="2024"
+                index={0}
+            />
+        );
+
+    describe('Sheet layout (phones / short portrait windows)', () => {
         beforeEach(() => {
-            window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-                matches: query === '(max-width: 860px)',
-                media: query,
-                onchange: null,
-                addListener: vi.fn(),
-                removeListener: vi.fn(),
-                addEventListener: vi.fn(),
-                removeEventListener: vi.fn(),
-                dispatchEvent: vi.fn(),
-            }));
+            mockMatchMedia((query) => query === STORY_PORTRAIT_QUERY || query === STORY_COMPACT_QUERY);
         });
 
-        it('renders mobile stage, hero preview, and floating quick-tools dock, omitting desktop controls pane', () => {
-            const { baseElement } = render(
-                <StoryExportModal
-                    isOpen={true}
-                    onClose={mockOnClose}
-                    photo={samplePhoto}
-                    eventName="2024.10.22 - Championship Match - Team A vs Team B"
-                    year="2024"
-                    index={0}
-                />
-            );
-
-            expect(baseElement.querySelector('.story-export-modal--mobile')).not.toBeNull();
-            expect(baseElement.querySelector('.story-export-modal__mobile-stage')).not.toBeNull();
-            expect(baseElement.querySelector('.story-export-modal__mobile-hero')).not.toBeNull();
-            expect(baseElement.querySelector('.story-mobile-dock')).not.toBeNull();
-            expect(baseElement.querySelector('.story-export-modal__controls-pane')).toBeNull();
-
-            // Preview is rendered inside mobile hero
-            const hero = baseElement.querySelector('.story-export-modal__mobile-hero');
-            expect(hero?.querySelector('.story-cropper')).not.toBeNull();
-
-            // Header and Footer remain present
-            expect(baseElement.querySelector('.modal-shell__title')?.textContent).toBe('STORY MAKER');
-            expect(baseElement.querySelector('.story-export-modal__primary-action')).not.toBeNull();
-
-            // Popover drawer is initially closed
-            expect(baseElement.querySelector('.story-mobile-popover')).toBeNull();
+        afterEach(() => {
+            window.matchMedia = originalMatchMedia;
         });
 
-        it('opens popover when a dock button is tapped, toggles it on re-click, and switches tabs', () => {
-            const { baseElement } = render(
-                <StoryExportModal
-                    isOpen={true}
-                    onClose={mockOnClose}
-                    photo={samplePhoto}
-                    eventName="2024.10.22 - Championship Match - Team A vs Team B"
-                    year="2024"
-                    index={0}
-                />
-            );
+        it('starts collapsed: preview, tab bar and export button visible, tab content hidden', () => {
+            const { baseElement } = renderSingle();
 
-            const dock = baseElement.querySelector('.story-mobile-dock')!;
-            const layoutDockBtn = within(dock as HTMLElement).getByRole('button', { name: /^layout$/i });
+            expect(baseElement.querySelector('.story-export-modal--sheet')).not.toBeNull();
+            const panel = baseElement.querySelector('.story-studio-panel--sheet') as HTMLElement;
+            expect(panel).not.toBeNull();
+            expect(panel.classList.contains('story-studio-panel--open')).toBe(false);
 
-            // Click Layout -> Opens popover
-            fireEvent.click(layoutDockBtn);
-            expect(baseElement.querySelector('.story-mobile-popover')).not.toBeNull();
-            expect(layoutDockBtn.classList.contains('is-active')).toBe(true);
+            // Preview fills the stage
+            expect(baseElement.querySelector('.story-studio__preview .story-cropper')).not.toBeNull();
 
-            // Popover shows Layout tab controls (e.g., Framing preset buttons)
-            expect(
-                within(baseElement.querySelector('.story-mobile-popover') as HTMLElement).getByRole('button', {
-                    name: /^padded$/i,
-                })
-            ).not.toBeNull();
+            // Collapsed sheet: tabs + export button only
+            expect(within(panel).getAllByRole('tab')).toHaveLength(4);
+            expect(panel.querySelector('.story-export-modal__primary-action')).not.toBeNull();
+            expect(baseElement.querySelector('#story-studio-tabpanel')).toBeNull();
 
-            // Click Layout again -> Toggles/closes popover
-            fireEvent.click(layoutDockBtn);
-            expect(baseElement.querySelector('.story-mobile-popover')).toBeNull();
-            expect(layoutDockBtn.classList.contains('is-active')).toBe(false);
-
-            // Click Filters -> Opens popover on Filters tab
-            const filtersDockBtn = within(dock as HTMLElement).getByRole('button', { name: /^filters$/i });
-            fireEvent.click(filtersDockBtn);
-            expect(baseElement.querySelector('.story-mobile-popover')).not.toBeNull();
-            expect(filtersDockBtn.classList.contains('is-active')).toBe(true);
+            const layoutTab = within(panel).getByRole('tab', { name: /^layout$/i });
+            expect(layoutTab.getAttribute('aria-selected')).toBe('true');
+            expect(layoutTab.getAttribute('aria-expanded')).toBe('false');
+            expect(layoutTab.classList.contains('is-active')).toBe(false);
         });
 
-        it('allows switching tabs inside the popover and closing via the popover close button or backdrop', () => {
-            const { baseElement } = render(
-                <StoryExportModal
-                    isOpen={true}
-                    onClose={mockOnClose}
-                    photo={samplePhoto}
-                    eventName="2024.10.22 - Championship Match - Team A vs Team B"
-                    year="2024"
-                    index={0}
-                />
-            );
+        it('expands on tab tap, switches tabs while open, and collapses when the active tab is tapped again', () => {
+            const { baseElement } = renderSingle();
+            const layoutTab = within(baseElement).getByRole('tab', { name: /^layout$/i });
 
-            // Open popover via Layout dock button
-            const layoutDockBtn = within(baseElement.querySelector('.story-mobile-dock') as HTMLElement).getByRole(
-                'button',
-                { name: /^layout$/i }
-            );
-            fireEvent.click(layoutDockBtn);
+            // Tap Layout -> sheet opens on Layout
+            fireEvent.click(layoutTab);
+            const tabpanel = baseElement.querySelector('#story-studio-tabpanel') as HTMLElement;
+            expect(tabpanel).not.toBeNull();
+            expect(layoutTab.getAttribute('aria-expanded')).toBe('true');
+            expect(layoutTab.classList.contains('is-active')).toBe(true);
+            expect(within(tabpanel).getByRole('button', { name: /^padded$/i })).not.toBeNull();
 
-            const popover = baseElement.querySelector('.story-mobile-popover') as HTMLElement;
-            expect(popover).not.toBeNull();
+            // Tap Filters -> stays open, switches tab
+            const filtersTab = within(baseElement).getByRole('tab', { name: /^filters$/i });
+            fireEvent.click(filtersTab);
+            expect(baseElement.querySelector('#story-studio-tabpanel')).not.toBeNull();
+            expect(filtersTab.getAttribute('aria-selected')).toBe('true');
+            expect(filtersTab.getAttribute('aria-expanded')).toBe('true');
 
-            // Switch to Frames tab directly inside the popover tab switcher
-            const framesPopoverTab = within(popover).getByRole('tab', { name: /frames/i });
-            fireEvent.click(framesPopoverTab);
-            expect(framesPopoverTab.getAttribute('aria-selected')).toBe('true');
+            // Tap Filters again -> collapses
+            fireEvent.click(filtersTab);
+            expect(baseElement.querySelector('#story-studio-tabpanel')).toBeNull();
+            expect(filtersTab.getAttribute('aria-selected')).toBe('true');
+            expect(filtersTab.getAttribute('aria-expanded')).toBe('false');
+        });
 
-            // Frames button on dock is also updated in sync
-            const framesDockBtn = within(baseElement.querySelector('.story-mobile-dock') as HTMLElement).getByRole(
-                'button',
-                { name: /^frames$/i }
-            );
-            expect(framesDockBtn.classList.contains('is-active')).toBe(true);
+        it('collapses when the backdrop is tapped', () => {
+            const { baseElement } = renderSingle();
+            fireEvent.click(within(baseElement).getByRole('tab', { name: /^frames$/i }));
+            expect(baseElement.querySelector('#story-studio-tabpanel')).not.toBeNull();
 
-            // Close via close button in popover header
-            const closeBtn = within(popover).getByRole('button', { name: /close controls/i });
-            fireEvent.click(closeBtn);
-            expect(baseElement.querySelector('.story-mobile-popover')).toBeNull();
-
-            // Re-open and close via backdrop click
-            fireEvent.click(layoutDockBtn);
-            expect(baseElement.querySelector('.story-mobile-popover')).not.toBeNull();
-
-            const backdrop = baseElement.querySelector('.story-mobile-popover__backdrop') as HTMLElement;
+            const backdrop = baseElement.querySelector('.story-studio-panel__backdrop') as HTMLElement;
             expect(backdrop).not.toBeNull();
             fireEvent.click(backdrop);
-            expect(baseElement.querySelector('.story-mobile-popover')).toBeNull();
+            expect(baseElement.querySelector('#story-studio-tabpanel')).toBeNull();
         });
 
-        it('closes the popover when pressing Escape without closing the modal', () => {
-            const { baseElement } = render(
-                <StoryExportModal
-                    isOpen={true}
-                    onClose={mockOnClose}
-                    photo={samplePhoto}
-                    eventName="2024.10.22 - Championship Match - Team A vs Team B"
-                    year="2024"
-                    index={0}
-                />
-            );
+        it('collapses the sheet on Escape without closing the modal', () => {
+            const { baseElement } = renderSingle();
+            fireEvent.click(within(baseElement).getByRole('tab', { name: /^layout$/i }));
+            expect(baseElement.querySelector('#story-studio-tabpanel')).not.toBeNull();
 
-            // Open popover
-            const layoutDockBtn = within(baseElement.querySelector('.story-mobile-dock') as HTMLElement).getByRole(
-                'button',
-                { name: /^layout$/i }
-            );
-            fireEvent.click(layoutDockBtn);
-            expect(baseElement.querySelector('.story-mobile-popover')).not.toBeNull();
-
-            // Press Escape
             fireEvent.keyDown(window, { key: 'Escape' });
-            expect(baseElement.querySelector('.story-mobile-popover')).toBeNull();
+            expect(baseElement.querySelector('#story-studio-tabpanel')).toBeNull();
             expect(mockOnClose).not.toHaveBeenCalled();
         });
 
-        it('automatically opens the layout popover and switches to that frame selector when tapping an empty frame', () => {
+        it('opens the sheet on the Layout tab with that slot selected when tapping an empty burst panel', () => {
             const duetPhoto: PhotoRecord = {
                 ...samplePhoto,
                 burst: {
@@ -421,107 +376,60 @@ describe('StoryExportModal', () => {
                 />
             );
 
-            // Popover starts closed
-            expect(baseElement.querySelector('.story-mobile-popover')).toBeNull();
+            // Open the sheet on Layout and clear the 2nd slot
+            const layoutTab = within(baseElement).getByRole('tab', { name: /^layout$/i });
+            fireEvent.click(layoutTab);
+            let tabpanel = baseElement.querySelector('#story-studio-tabpanel') as HTMLElement;
+            expect(tabpanel).not.toBeNull();
 
-            // Open layout popover to deselect the 2nd slot
-            const layoutDockBtn = within(baseElement.querySelector('.story-mobile-dock') as HTMLElement).getByRole(
-                'button',
-                { name: /^layout$/i }
-            );
-            fireEvent.click(layoutDockBtn);
+            fireEvent.click(within(tabpanel).getByRole('button', { name: /Step 2 \(BTM\): Frame 2/i }));
+            fireEvent.click(within(tabpanel).getByRole('button', { name: /Assigned to BTM panel/i }));
 
-            const popover = baseElement.querySelector('.story-mobile-popover') as HTMLElement;
-            expect(popover).not.toBeNull();
+            // Switch to Filters, then collapse the sheet
+            const filtersTab = within(baseElement).getByRole('tab', { name: /^filters$/i });
+            fireEvent.click(filtersTab);
+            fireEvent.click(filtersTab);
+            expect(baseElement.querySelector('#story-studio-tabpanel')).toBeNull();
 
-            // Step 2 button is initially assigned to Frame 2. Click it to activate step 2
-            const btmStepBtn = within(popover).getByRole('button', {
-                name: /Step 2 \(BTM\): Frame 2/i,
-            });
-            fireEvent.click(btmStepBtn);
-
-            // In the burst strip, click Frame 2 to deselect it
-            const frame2Thumb = within(popover).getByRole('button', {
-                name: /Assigned to BTM panel/i,
-            });
-            fireEvent.click(frame2Thumb);
-
-            // Close the popover via close button
-            const closeBtn = within(popover).getByRole('button', { name: /close controls/i });
-            fireEvent.click(closeBtn);
-            expect(baseElement.querySelector('.story-mobile-popover')).toBeNull();
-
-            // Find the empty panel (slot 2)
+            // Tap the empty panel in the preview
             const emptyPanel = baseElement.querySelector<HTMLElement>('.story-burst-cropper__panel--empty');
             expect(emptyPanel).not.toBeNull();
-
-            // Tap the empty panel in the preview hero
             fireEvent.click(emptyPanel!);
 
-            // 1. Popover should automatically open
-            const reopenedPopover = baseElement.querySelector('.story-mobile-popover');
-            expect(reopenedPopover).not.toBeNull();
-
-            // 2. Active dock tab should be layout
-            expect(layoutDockBtn.classList.contains('is-active')).toBe(true);
-
-            // 3. Step 2 (BTM) selector should be active in the layout tab
-            const btmEmptyBtn = within(reopenedPopover as HTMLElement).getByRole('button', {
-                name: /Step 2 \(BTM\): Empty/i,
-            });
+            // Sheet reopens on Layout with Step 2 (BTM) active
+            tabpanel = baseElement.querySelector('#story-studio-tabpanel') as HTMLElement;
+            expect(tabpanel).not.toBeNull();
+            expect(layoutTab.getAttribute('aria-selected')).toBe('true');
+            const btmEmptyBtn = within(tabpanel).getByRole('button', { name: /Step 2 \(BTM\): Empty/i });
             expect(btmEmptyBtn.getAttribute('aria-pressed')).toBe('true');
         });
     });
 
-    describe('Landscape Mobile layout', () => {
+    describe('Stacked layout (tall portrait windows)', () => {
         beforeEach(() => {
-            window.matchMedia = vi.fn().mockImplementation((query: string) => ({
-                matches: query === '(orientation: landscape)' || query === '(max-height: 550px)',
-                media: query,
-                onchange: null,
-                addListener: vi.fn(),
-                removeListener: vi.fn(),
-                addEventListener: vi.fn(),
-                removeEventListener: vi.fn(),
-                dispatchEvent: vi.fn(),
-            }));
+            mockMatchMedia((query) => query === STORY_PORTRAIT_QUERY);
         });
 
-        it('renders 2-column landscape stage with left preview and right controls pane', () => {
-            const { baseElement } = render(
-                <StoryExportModal
-                    isOpen={true}
-                    onClose={mockOnClose}
-                    photo={samplePhoto}
-                    eventName="2024.10.22 - Championship Match - Team A vs Team B"
-                    year="2024"
-                    index={0}
-                />
-            );
+        afterEach(() => {
+            window.matchMedia = originalMatchMedia;
+        });
 
-            expect(baseElement.querySelector('.story-export-modal--landscape')).not.toBeNull();
-            expect(baseElement.querySelector('.story-export-modal__landscape-stage')).not.toBeNull();
-            expect(baseElement.querySelector('.story-export-modal__landscape-preview')).not.toBeNull();
-            expect(baseElement.querySelector('.story-export-modal__landscape-controls')).not.toBeNull();
+        it('keeps the panel permanently open beneath the preview', () => {
+            const { baseElement } = renderSingle();
 
-            // Preview is rendered inside landscape preview container
-            const preview = baseElement.querySelector('.story-export-modal__landscape-preview');
-            expect(preview?.querySelector('.story-cropper')).not.toBeNull();
+            expect(baseElement.querySelector('.story-export-modal--stacked')).not.toBeNull();
+            const panel = baseElement.querySelector('.story-studio-panel--stacked') as HTMLElement;
+            expect(panel).not.toBeNull();
+            expect(baseElement.querySelector('#story-studio-tabpanel')).not.toBeNull();
+            expect(baseElement.querySelector('.story-studio-panel__backdrop')).toBeNull();
+            expect(baseElement.querySelector('.story-studio-panel__handle')).toBeNull();
 
-            // Dock and mobile-stage are omitted in landscape mode
-            expect(baseElement.querySelector('.story-mobile-dock')).toBeNull();
-            expect(baseElement.querySelector('.story-export-modal__mobile-stage')).toBeNull();
-
-            // Tab bar is present in landscape controls
-            const controls = baseElement.querySelector('.story-export-modal__landscape-controls')!;
-            const layoutTab = within(controls as HTMLElement).getByRole('tab', { name: /^layout$/i });
-            expect(layoutTab).not.toBeNull();
-            expect(layoutTab.getAttribute('aria-selected')).toBe('true');
-
-            // Switch tabs in landscape mode
-            const filtersTab = within(controls as HTMLElement).getByRole('tab', { name: /^filters$/i });
-            fireEvent.click(filtersTab);
-            expect(filtersTab.getAttribute('aria-selected')).toBe('true');
+            // Tapping the active tab never collapses the panel
+            const layoutTab = within(panel).getByRole('tab', { name: /^layout$/i });
+            expect(layoutTab.hasAttribute('aria-expanded')).toBe(false);
+            fireEvent.click(layoutTab);
+            expect(baseElement.querySelector('#story-studio-tabpanel')).not.toBeNull();
+            expect(layoutTab.classList.contains('is-active')).toBe(true);
         });
     });
 

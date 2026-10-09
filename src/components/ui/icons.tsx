@@ -445,6 +445,33 @@ export const StoryBadgesTabIcon = createIcon(
     </>
 );
 
+
+/**
+ * Play / PlayIcon
+ * Balanced play triangle, optically centred.
+ */
+export const Play = createIcon(<path d="M7 4.5v15l12.5-7.5L7 4.5Z" />);
+export const PlayIcon = Play;
+
+/**
+ * Pause / PauseIcon
+ * Two rounded bars, matching the Play triangle's height.
+ */
+export const Pause = createIcon(
+    <>
+        <rect x="6" y="4.5" width="4" height="15" rx="1" />
+        <rect x="14" y="4.5" width="4" height="15" rx="1" />
+    </>
+);
+export const PauseIcon = Pause;
+
+/**
+ * Square / SquareIcon
+ * Rounded square (media stop).
+ */
+export const Square = createIcon(<rect x="5.5" y="5.5" width="13" height="13" rx="2" />);
+export const SquareIcon = Square;
+
 /* =========================================================================
    Pass 5: Legal Modals, Trust Badges & Social Brand Logomarks
    ========================================================================= */

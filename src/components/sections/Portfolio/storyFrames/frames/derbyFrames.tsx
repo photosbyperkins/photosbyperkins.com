@@ -1,7 +1,73 @@
-import type { StoryFrameDefinition } from '../types';
-import { defineFrame, createSvgString } from './helper';
+import type { StoryFrameContext, StoryFrameDefinition, StoryFrameLayers } from '../types';
+import { defineLayeredFrame, createSvgString, joinFrameLayers } from './helper';
 import { SacBearGraphic } from '../sacBearOverlay';
 import { loadSacBearPaths } from '../sacBearLoader';
+
+/** Sac-bear as layers (canvas export and animation). Async: the bear paths are fetched on demand. */
+async function sacBearLayers(override?: string, context?: StoryFrameContext): Promise<StoryFrameLayers> {
+    const primary = override || '#f59e0b';
+    const accent = override || '#e60000';
+    const highlight = override || '#fbbf24';
+    const hasScoreboard = context?.hasScoreboard ?? true;
+    const hasAttribution = context?.hasAttribution ?? true;
+
+    const bearTransform = hasScoreboard
+        ? 'translate(760, 1530) scale(0.68) translate(-200, -180)'
+        : 'translate(680, 1690) scale(0.78) translate(-200, -180)';
+
+    // Dashed top rule: one layer per segment, so each can march (scroll by one dash period) in its own extent
+    const dash = (x1: number, x2: number) =>
+        `<line x1="${x1}" y1="117" x2="${x2}" y2="117" stroke="${primary}" stroke-width="4" stroke-dasharray="16 8" />`;
+    /** Exact line extent (the trimmed bbox has padding, which would let marching dashes overrun the ends). */
+    const dashClip = (x1: number, x2: number) => ({ x: x1, y: 113, w: x2 - x1, h: 8 });
+    const topLines = hasAttribution
+        ? [
+              { id: 'topLineL', svg: dash(140, 250), clip: dashClip(140, 250) },
+              { id: 'topLineR', svg: dash(830, 940), clip: dashClip(830, 940) },
+          ]
+        : [{ id: 'topLineL', svg: dash(140, 940), clip: dashClip(140, 940) }];
+
+    const bottomLines = hasScoreboard
+        ? `<line x1="40" y1="1870" x2="200" y2="1870" stroke="${accent}" stroke-width="6" />
+                   <line x1="40" y1="1882" x2="200" y2="1882" stroke="${primary}" stroke-width="3" />
+                   <line x1="880" y1="1870" x2="1040" y2="1870" stroke="${accent}" stroke-width="6" />
+                   <line x1="880" y1="1882" x2="1040" y2="1882" stroke="${primary}" stroke-width="3" />`
+        : `<line x1="40" y1="1850" x2="1040" y2="1850" stroke="${accent}" stroke-width="8" />
+                   <line x1="40" y1="1864" x2="1040" y2="1864" stroke="${primary}" stroke-width="3" />`;
+
+    const paths = await loadSacBearPaths();
+    const bearPathsSvg = paths
+        .map((p) => {
+            const col = p.type === 'accent' ? accent : p.type === 'highlight' ? highlight : primary;
+            return `<path d="${p.d}" fill="${col}" />`;
+        })
+        .join('');
+
+    const bracket = (d: string) => `<path d="${d}" stroke="${primary}" stroke-width="4" fill="none" />`;
+
+    return {
+        layers: [
+            {
+                id: 'starL',
+                svg: `<polygon points="90,70 102,106 140,106 110,128 121,164 90,142 59,164 70,128 40,106 78,106" fill="${accent}" />`,
+                pivot: { x: 90, y: 121 },
+            },
+            {
+                id: 'starR',
+                svg: `<polygon points="990,70 978,106 940,106 970,128 959,164 990,142 1021,164 1010,128 1040,106 1002,106" fill="${accent}" />`,
+                pivot: { x: 990, y: 121 },
+            },
+            ...topLines,
+            { id: 'bottomLines', svg: bottomLines },
+            // Always emitted (an empty group when the paths failed to load); empty layers are skipped at rasterization
+            { id: 'bear', svg: `<g transform="${bearTransform}">${bearPathsSvg}</g>` },
+            { id: 'bracketTL', svg: bracket('M40,240 L40,160 L120,160') },
+            { id: 'bracketTR', svg: bracket('M1040,240 L1040,160 L960,160') },
+            { id: 'bracketBL', svg: bracket('M40,1680 L40,1760 L120,1760') },
+            { id: 'bracketBR', svg: bracket('M1040,1680 L1040,1760 L960,1760') },
+        ],
+    };
+}
 
 export const DERBY_FRAMES: StoryFrameDefinition[] = [
     {
@@ -88,54 +154,10 @@ export const DERBY_FRAMES: StoryFrameDefinition[] = [
                 </g>
             );
         },
-        getSvgString: async (override, context) => {
-            const primary = override || '#f59e0b';
-            const accent = override || '#e60000';
-            const highlight = override || '#fbbf24';
-            const hasScoreboard = context?.hasScoreboard ?? true;
-            const hasAttribution = context?.hasAttribution ?? true;
-
-            const bearTransform = hasScoreboard
-                ? 'translate(760, 1530) scale(0.68) translate(-200, -180)'
-                : 'translate(680, 1690) scale(0.78) translate(-200, -180)';
-
-            const topLines = hasAttribution
-                ? `<line x1="140" y1="117" x2="250" y2="117" stroke="${primary}" stroke-width="4" stroke-dasharray="16 8" />
-                   <line x1="830" y1="117" x2="940" y2="117" stroke="${primary}" stroke-width="4" stroke-dasharray="16 8" />`
-                : `<line x1="140" y1="117" x2="940" y2="117" stroke="${primary}" stroke-width="4" stroke-dasharray="16 8" />`;
-
-            const bottomLines = hasScoreboard
-                ? `<line x1="40" y1="1870" x2="200" y2="1870" stroke="${accent}" stroke-width="6" />
-                   <line x1="40" y1="1882" x2="200" y2="1882" stroke="${primary}" stroke-width="3" />
-                   <line x1="880" y1="1870" x2="1040" y2="1870" stroke="${accent}" stroke-width="6" />
-                   <line x1="880" y1="1882" x2="1040" y2="1882" stroke="${primary}" stroke-width="3" />`
-                : `<line x1="40" y1="1850" x2="1040" y2="1850" stroke="${accent}" stroke-width="8" />
-                   <line x1="40" y1="1864" x2="1040" y2="1864" stroke="${primary}" stroke-width="3" />`;
-
-            const paths = await loadSacBearPaths();
-            const bearPathsSvg = paths
-                .map((p) => {
-                    const col = p.type === 'accent' ? accent : p.type === 'highlight' ? highlight : primary;
-                    return `<path d="${p.d}" fill="${col}" />`;
-                })
-                .join('');
-
-            return createSvgString(`
-                <polygon points="90,70 102,106 140,106 110,128 121,164 90,142 59,164 70,128 40,106 78,106" fill="${accent}" />
-                <polygon points="990,70 978,106 940,106 970,128 959,164 990,142 1021,164 1010,128 1040,106 1002,106" fill="${accent}" />
-                ${topLines}
-                ${bottomLines}
-                <g transform="${bearTransform}">
-                    ${bearPathsSvg}
-                </g>
-                <path d="M40,240 L40,160 L120,160" stroke="${primary}" stroke-width="4" fill="none" />
-                <path d="M1040,240 L1040,160 L960,160" stroke="${primary}" stroke-width="4" fill="none" />
-                <path d="M40,1680 L40,1760 L120,1760" stroke="${primary}" stroke-width="4" fill="none" />
-                <path d="M1040,1680 L1040,1760 L960,1760" stroke="${primary}" stroke-width="4" fill="none" />
-            `);
-        },
+        getSvgString: async (override, context) => createSvgString(joinFrameLayers(await sacBearLayers(override, context))),
+        getLayers: (override, context) => sacBearLayers(override, context),
     },
-    defineFrame(
+    defineLayeredFrame(
         'derby-quads',
         'Quads',
         'derby',
@@ -150,12 +172,13 @@ export const DERBY_FRAMES: StoryFrameDefinition[] = [
             const skateTransform = hasScoreboard ? 'translate(45, 1660) scale(1.3)' : 'translate(60, 1720) scale(1.45)';
             const flagTransform = hasScoreboard ? 'translate(895, 1720) scale(1.2)' : 'translate(875, 1760) scale(1.3)';
 
-            const hashes = [320, 470, 620, 770, 920, 1070, 1220, 1370, 1520]
-                .map(
-                    (y) => `
-                <line x1="30" y1="${y}" x2="60" y2="${y - 15}" stroke="${primary}" stroke-width="4" />
-                <line x1="1050" y1="${y}" x2="1020" y2="${y - 15}" stroke="${primary}" stroke-width="4" />`
-                )
+            // Track hashes down each edge (left and right sets are separate layers; they never overlap)
+            const hashYs = [320, 470, 620, 770, 920, 1070, 1220, 1370, 1520];
+            const hashesL = hashYs
+                .map((y) => `<line x1="30" y1="${y}" x2="60" y2="${y - 15}" stroke="${primary}" stroke-width="4" />`)
+                .join('');
+            const hashesR = hashYs
+                .map((y) => `<line x1="1050" y1="${y}" x2="1020" y2="${y - 15}" stroke="${primary}" stroke-width="4" />`)
                 .join('');
 
             const topConnector = hasAttribution
@@ -163,13 +186,25 @@ export const DERBY_FRAMES: StoryFrameDefinition[] = [
                    <line x1="830" y1="120" x2="930" y2="120" stroke="${primary}" stroke-width="3" stroke-dasharray="12 8" opacity="0.6" />`
                 : `<line x1="150" y1="120" x2="930" y2="120" stroke="${primary}" stroke-width="3" stroke-dasharray="12 8" opacity="0.6" />`;
 
-            return `
-                <!-- Twin Jammer Stars -->
-                <polygon points="100,80 110,110 142,110 116,128 126,158 100,140 74,158 84,128 58,110 90,110" fill="${primary}" />
-                <polygon points="980,80 990,110 1022,110 996,128 1006,158 980,140 954,158 964,128 938,110 970,110" fill="${primary}" />
-                ${topConnector}
-                ${hashes}
-                <g transform="${skateTransform}">
+            return {
+                layers: [
+                    // Twin jammer stars
+                    {
+                        id: 'starL',
+                        svg: `<polygon points="100,80 110,110 142,110 116,128 126,158 100,140 74,158 84,128 58,110 90,110" fill="${primary}" />`,
+                        pivot: { x: 100, y: 119 },
+                    },
+                    {
+                        id: 'starR',
+                        svg: `<polygon points="980,80 990,110 1022,110 996,128 1006,158 980,140 954,158 964,128 938,110 970,110" fill="${primary}" />`,
+                        pivot: { x: 980, y: 119 },
+                    },
+                    { id: 'connector', svg: topConnector },
+                    { id: 'hashesL', svg: hashesL },
+                    { id: 'hashesR', svg: hashesR },
+                    {
+                        id: 'skate',
+                        svg: `<g transform="${skateTransform}">
                     <path d="M20,60 L20,10 C20,8 24,6 30,6 L45,10 L50,30 L75,38 C80,40 85,50 85,60 Z" fill="${accent}" />
                     <rect x="18" y="60" width="70" height="6" rx="2" fill="#e2e8f0" />
                     <circle cx="32" cy="74" r="11" fill="${primary}" stroke="#ffffff" stroke-width="2" />
@@ -177,8 +212,11 @@ export const DERBY_FRAMES: StoryFrameDefinition[] = [
                     <circle cx="74" cy="74" r="11" fill="${primary}" stroke="#ffffff" stroke-width="2" />
                     <circle cx="74" cy="74" r="4" fill="#334155" />
                     <path d="M85,63 L92,67 L88,73 L82,68 Z" fill="#64748b" />
-                </g>
-                <g transform="${flagTransform}">
+                </g>`,
+                    },
+                    {
+                        id: 'flag',
+                        svg: `<g transform="${flagTransform}">
                     <rect x="0" y="0" width="30" height="20" fill="${primary}" />
                     <rect x="30" y="0" width="30" height="20" fill="#ffffff" />
                     <rect x="60" y="0" width="30" height="20" fill="${primary}" />
@@ -187,11 +225,13 @@ export const DERBY_FRAMES: StoryFrameDefinition[] = [
                     <rect x="30" y="20" width="30" height="20" fill="${primary}" />
                     <rect x="60" y="20" width="30" height="20" fill="#ffffff" />
                     <rect x="90" y="20" width="30" height="20" fill="${primary}" />
-                </g>
-            `;
+                </g>`,
+                    },
+                ],
+            };
         }
     ),
-    defineFrame(
+    defineLayeredFrame(
         'ref-zebra',
         'Zebra',
         'derby',
@@ -207,57 +247,62 @@ export const DERBY_FRAMES: StoryFrameDefinition[] = [
             const bottomOffset = hasScoreboard ? 1670 : 1770;
             const whistleY = hasAttribution ? 120 : 90;
 
-            return `
-                <!-- Balanced Top Left and Right Zebra Chevrons -->
-                <g transform="translate(0, ${topOffset})">
-                    <polygon points="0,0 160,0 130,26 0,26" fill="${stripeColor}" opacity="0.9" />
-                    <polygon points="0,38 160,38 130,64 0,64" fill="${stripeColor}" opacity="0.9" />
-                    <polygon points="0,76 160,76 130,102 0,102" fill="${stripeColor}" opacity="0.9" />
-                </g>
-                <g transform="translate(920, ${topOffset})">
-                    <polygon points="160,0 0,0 30,26 160,26" fill="${stripeColor}" opacity="0.9" />
-                    <polygon points="160,38 0,38 30,64 160,64" fill="${stripeColor}" opacity="0.9" />
-                    <polygon points="160,76 0,76 30,102 160,102" fill="${stripeColor}" opacity="0.9" />
-                </g>
+            // Balanced top / bottom, left / right zebra chevrons: one layer per stripe so they can stagger in
+            const leftStripes = ['0,0 160,0 130,26 0,26', '0,38 160,38 130,64 0,64', '0,76 160,76 130,102 0,102'];
+            const rightStripes = ['160,0 0,0 30,26 160,26', '160,38 0,38 30,64 160,64', '160,76 0,76 30,102 160,102'];
+            const chevrons = [
+                { id: 'stripesTL', x: 0, y: topOffset, stripes: leftStripes },
+                { id: 'stripesTR', x: 920, y: topOffset, stripes: rightStripes },
+                { id: 'stripesBL', x: 0, y: bottomOffset, stripes: leftStripes },
+                { id: 'stripesBR', x: 920, y: bottomOffset, stripes: rightStripes },
+            ];
 
-                <!-- Balanced Bottom Left and Right Zebra Chevrons -->
-                <g transform="translate(0, ${bottomOffset})">
-                    <polygon points="0,0 160,0 130,26 0,26" fill="${stripeColor}" opacity="0.9" />
-                    <polygon points="0,38 160,38 130,64 0,64" fill="${stripeColor}" opacity="0.9" />
-                    <polygon points="0,76 160,76 130,102 0,102" fill="${stripeColor}" opacity="0.9" />
-                </g>
-                <g transform="translate(920, ${bottomOffset})">
-                    <polygon points="160,0 0,0 30,26 160,26" fill="${stripeColor}" opacity="0.9" />
-                    <polygon points="160,38 0,38 30,64 160,64" fill="${stripeColor}" opacity="0.9" />
-                    <polygon points="160,76 0,76 30,102 160,102" fill="${stripeColor}" opacity="0.9" />
-                </g>
+            const whistle = (inner: string) => `<g transform="translate(50, ${whistleY})">${inner}</g>`;
+            const bracket = (d: string) => `<path d="${d}" stroke="${stripeColor}" stroke-width="4" fill="none" />`;
 
-                <!-- Whistle Icon on Top Left Flank -->
-                <g transform="translate(50, ${whistleY})">
+            return {
+                layers: [
+                    ...chevrons.flatMap(({ id, x, y, stripes }) =>
+                        stripes.map((points, i) => ({
+                            id: `${id}${i}`,
+                            svg: `<g transform="translate(${x}, ${y})"><polygon points="${points}" fill="${stripeColor}" opacity="0.9" /></g>`,
+                        }))
+                    ),
+                    // Whistle Icon on Top Left Flank (body, then the blast arcs pivoting on the mouthpiece)
+                    {
+                        id: 'whistle',
+                        svg: whistle(`
                     <circle cx="20" cy="20" r="14" stroke="${accent}" stroke-width="3" fill="none" />
                     <rect x="28" y="14" width="38" height="12" rx="3" fill="${stripeColor}" />
                     <circle cx="78" cy="20" r="18" fill="${stripeColor}" />
                     <circle cx="78" cy="20" r="8" fill="#111116" />
-                    <polygon points="28,14 16,17 16,23 28,26" fill="${stripeColor}" />
+                    <polygon points="28,14 16,17 16,23 28,26" fill="${stripeColor}" />`),
+                    },
+                    {
+                        id: 'whistleBlast',
+                        svg: whistle(`
                     <path d="M102,12 Q112,20 102,28" stroke="${accent}" stroke-width="3" fill="none" />
-                    <path d="M110,6 Q124,20 110,34" stroke="${accent}" stroke-width="2.5" fill="none" opacity="0.7" />
-                </g>
-
-                <!-- Technical Officials Penalty Marker on Top Right Flank -->
-                <g transform="translate(920, ${whistleY + 20})">
+                    <path d="M110,6 Q124,20 110,34" stroke="${accent}" stroke-width="2.5" fill="none" opacity="0.7" />`),
+                        pivot: { x: 146, y: whistleY + 20 },
+                    },
+                    // Technical Officials Penalty Marker on Top Right Flank
+                    {
+                        id: 'penalty',
+                        svg: `<g transform="translate(920, ${whistleY + 20})">
                     <text x="100" y="0" fill="${accent}" font-family="monospace" font-size="15" font-weight="bold" letter-spacing="0.12em" text-anchor="end">BOX // 0:30</text>
                     <text x="100" y="18" fill="${stripeColor}" font-family="monospace" font-size="11" font-weight="bold" letter-spacing="0.1em" opacity="0.8" text-anchor="end">OFFICIAL // WFTDA</text>
-                </g>
-
-                <!-- 4 Corner Athletic Brackets -->
-                <path d="M40,240 L40,160 L120,160" stroke="${stripeColor}" stroke-width="4" fill="none" />
-                <path d="M1040,240 L1040,160 L960,160" stroke="${stripeColor}" stroke-width="4" fill="none" />
-                <path d="M40,1680 L40,1760 L120,1760" stroke="${stripeColor}" stroke-width="4" fill="none" />
-                <path d="M1040,1680 L1040,1760 L960,1760" stroke="${stripeColor}" stroke-width="4" fill="none" />
-            `;
+                </g>`,
+                    },
+                    // 4 Corner Athletic Brackets
+                    { id: 'bracketTL', svg: bracket('M40,240 L40,160 L120,160') },
+                    { id: 'bracketTR', svg: bracket('M1040,240 L1040,160 L960,160') },
+                    { id: 'bracketBL', svg: bracket('M40,1680 L40,1760 L120,1760') },
+                    { id: 'bracketBR', svg: bracket('M1040,1680 L1040,1760 L960,1760') },
+                ],
+            };
         }
     ),
-    defineFrame(
+    defineLayeredFrame(
         'bout-day',
         'Bout Day',
         'derby',
@@ -288,38 +333,52 @@ export const DERBY_FRAMES: StoryFrameDefinition[] = [
                 </g>
             `;
 
-            return `
-                <path d="M40,160 L40,80 L120,80" stroke="${gold}" stroke-width="6" fill="none" />
-                <path d="M1040,160 L1040,80 L960,80" stroke="${gold}" stroke-width="6" fill="none" />
-                <path d="M40,1760 L40,1840 L120,1840" stroke="${gold}" stroke-width="6" fill="none" />
-                <path d="M1040,1760 L1040,1840 L960,1840" stroke="${gold}" stroke-width="6" fill="none" />
-                <line x1="56" y1="96" x2="104" y2="96" stroke="${gold}" stroke-width="2" />
-                <line x1="56" y1="96" x2="56" y2="144" stroke="${gold}" stroke-width="2" />
-                <line x1="976" y1="96" x2="1024" y2="96" stroke="${gold}" stroke-width="2" />
-                <line x1="1024" y1="96" x2="1024" y2="144" stroke="${gold}" stroke-width="2" />
+            const bracket = (d: string) => `<path d="${d}" stroke="${gold}" stroke-width="6" fill="none" />`;
+            const rule = (x1: number, y1: number, x2: number, y2: number) =>
+                `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${gold}" stroke-width="2" />`;
+            const crest = (x: number, inner: string) => `<g transform="translate(${x}, ${topY})">${inner}</g>`;
+            const crestRing = `<circle cx="0" cy="0" r="30" stroke="${gold}" stroke-width="3" fill="rgba(245,158,11,0.15)" />`;
+            // 1360px = 34 whole 24+16 dash periods from a dash start: clipped to the line, it marches seamlessly
+            const track = (x: number) => ({
+                svg: `<line x1="${x}" y1="280" x2="${x}" y2="1640" stroke="${gold}" stroke-width="3" stroke-dasharray="24 16" opacity="0.6" />`,
+                clip: { x: x - 4, y: 280, w: 8, h: 1360 },
+            });
 
-                <!-- Left: Jammer Star Helmet Crest -->
-                <g transform="translate(110, ${topY})">
-                    <circle cx="0" cy="0" r="30" stroke="${gold}" stroke-width="3" fill="rgba(245,158,11,0.15)" />
-                    <polygon points="0,-20 6,-6 20,-6 9,3 13,17 0,9 -13,17 -9,3 -20,-6 -6,-6" fill="${starColor}" />
-                </g>
-
-                <!-- Right: Pivot Stripe Helmet Crest -->
-                <g transform="translate(970, ${topY})">
-                    <circle cx="0" cy="0" r="30" stroke="${gold}" stroke-width="3" fill="rgba(245,158,11,0.15)" />
-                    <rect x="-6" y="-20" width="12" height="40" rx="3" fill="${starColor}" />
-                </g>
-
-                ${centerBadge}
-                ${bottomLeadJammer}
-
-                <!-- Symmetrical Dashed Track Lines -->
-                <line x1="30" y1="280" x2="30" y2="1640" stroke="${gold}" stroke-width="3" stroke-dasharray="24 16" opacity="0.6" />
-                <line x1="1050" y1="280" x2="1050" y2="1640" stroke="${gold}" stroke-width="3" stroke-dasharray="24 16" opacity="0.6" />
-            `;
+            return {
+                layers: [
+                    { id: 'bracketTL', svg: bracket('M40,160 L40,80 L120,80') },
+                    { id: 'bracketTR', svg: bracket('M1040,160 L1040,80 L960,80') },
+                    { id: 'bracketBL', svg: bracket('M40,1760 L40,1840 L120,1840') },
+                    { id: 'bracketBR', svg: bracket('M1040,1760 L1040,1840 L960,1840') },
+                    { id: 'innerTL', svg: rule(56, 96, 104, 96) + rule(56, 96, 56, 144) },
+                    { id: 'innerTR', svg: rule(976, 96, 1024, 96) + rule(1024, 96, 1024, 144) },
+                    // Left: Jammer Star Helmet Crest
+                    { id: 'crestL', svg: crest(110, crestRing) },
+                    {
+                        id: 'crestStar',
+                        svg: crest(
+                            110,
+                            `<polygon points="0,-20 6,-6 20,-6 9,3 13,17 0,9 -13,17 -9,3 -20,-6 -6,-6" fill="${starColor}" />`
+                        ),
+                        pivot: { x: 110, y: topY },
+                    },
+                    // Right: Pivot Stripe Helmet Crest
+                    { id: 'crestR', svg: crest(970, crestRing) },
+                    {
+                        id: 'crestStripe',
+                        svg: crest(970, `<rect x="-6" y="-20" width="12" height="40" rx="3" fill="${starColor}" />`),
+                        pivot: { x: 970, y: topY },
+                    },
+                    ...(centerBadge ? [{ id: 'badgeTop', svg: centerBadge }] : []),
+                    ...(bottomLeadJammer ? [{ id: 'badgeBottom', svg: bottomLeadJammer }] : []),
+                    // Symmetrical Dashed Track Lines
+                    { id: 'trackL', ...track(30) },
+                    { id: 'trackR', ...track(1050) },
+                ],
+            };
         }
     ),
-    defineFrame(
+    defineLayeredFrame(
         'derby-punk',
         'Punk',
         'derby',
@@ -359,7 +418,7 @@ export const DERBY_FRAMES: StoryFrameDefinition[] = [
                     <path d="M -${r * 0.72},-${r * 0.2} A ${r * 0.75},${r * 0.75} 0 0 1 -${r * 0.2},-${r * 0.72}" stroke="rgba(255,255,255,0.75)" stroke-width="3" stroke-linecap="round" fill="none" />
                 </g>`;
 
-            return `
+            const defs = `
                 <defs>
                     <!-- 1970s Xerox zine halftone dot pattern -->
                     <pattern id="punk-halftone" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
@@ -386,89 +445,146 @@ export const DERBY_FRAMES: StoryFrameDefinition[] = [
                         <rect width="20" height="40" fill="${hazardYellow}" />
                         <rect x="20" width="20" height="40" fill="${zineBlack}" />
                     </pattern>
-                </defs>
+                </defs>`;
 
-                <!-- ================= TOP-LEFT CORNER ================= -->
+            return {
+                defs,
+                layers: [
+                    // ================= TOP-LEFT CORNER =================
+                    {
+                        id: 'scrap',
+                        svg: `
                 <!-- Torn zine paper drop shadow -->
                 <path d="M-10,-10 L280,-10 L270,45 L290,95 L260,140 L285,190 L240,245 L180,260 L140,295 L80,280 L35,320 L-10,310 Z" fill="rgba(0,0,0,0.55)" transform="translate(6, 6)" />
                 <!-- White torn paper backing with jagged fibrous edge -->
                 <path d="M-10,-10 L275,-10 L265,45 L285,95 L255,140 L280,190 L235,245 L175,260 L135,295 L75,280 L30,320 L-10,310 Z" fill="#fafafa" stroke="${zineBlack}" stroke-width="3" />
                 <!-- Halftone screenprint inset on torn scrap -->
-                <path d="M-10,-10 L245,-10 L238,40 L255,85 L230,125 L250,170 L210,220 L155,235 L120,265 L65,250 L25,285 L-10,275 Z" fill="url(#punk-halftone)" stroke="${zineBlack}" stroke-width="2" />
-
-                <!-- 1970s Jamie Reid Ransom-Note Cutout Typography Collage: P - U - N - K mounted on zine scrap -->
-                <!-- Letter Tile 'P' (Black on white) -->
+                <path d="M-10,-10 L245,-10 L238,40 L255,85 L230,125 L250,170 L210,220 L155,235 L120,265 L65,250 L25,285 L-10,275 Z" fill="url(#punk-halftone)" stroke="${zineBlack}" stroke-width="2" />`,
+                    },
+                    // 1970s Jamie Reid Ransom-Note Cutout Typography Collage: P - U - N - K mounted on zine scrap
+                    {
+                        // Letter Tile 'P' (Black on white)
+                        id: 'tileP',
+                        svg: `
                 <g transform="translate(40, 95) rotate(-7)">
                     <rect x="-3" y="-3" width="36" height="46" fill="rgba(0,0,0,0.6)" />
                     <polygon points="0,0 35,-2 37,43 1,42" fill="#18181b" stroke="${zineBlack}" stroke-width="2" />
                     <text x="18" y="32" fill="#fafafa" font-family="Impact, 'Arial Black', sans-serif" font-size="33" font-weight="900" text-anchor="middle">P</text>
-                </g>
-                <!-- Letter Tile 'U' (Black on Hazard Yellow) -->
+                </g>`,
+                    },
+                    {
+                        // Letter Tile 'U' (Black on Hazard Yellow)
+                        id: 'tileU',
+                        svg: `
                 <g transform="translate(84, 88) rotate(5)">
                     <rect x="-3" y="-3" width="35" height="47" fill="rgba(0,0,0,0.6)" />
                     <polygon points="-1,1 35,-1 33,45 0,46" fill="${hazardYellow}" stroke="${zineBlack}" stroke-width="2" />
                     <text x="17" y="33" fill="${zineBlack}" font-family="Impact, 'Arial Black', sans-serif" font-size="33" font-weight="900" text-anchor="middle">U</text>
-                </g>
-                <!-- Letter Tile 'N' (White on Crimson Red) -->
+                </g>`,
+                    },
+                    {
+                        // Letter Tile 'N' (White on Crimson Red)
+                        id: 'tileN',
+                        svg: `
                 <g transform="translate(126, 92) rotate(-5)">
                     <rect x="-3" y="-3" width="36" height="46" fill="rgba(0,0,0,0.6)" />
                     <polygon points="0,0 35,2 34,45 2,42" fill="${crimsonRed}" stroke="${zineBlack}" stroke-width="2" />
                     <text x="18" y="32" fill="#fafafa" font-family="Impact, 'Arial Black', sans-serif" font-size="33" font-weight="900" text-anchor="middle">N</text>
-                </g>
-                <!-- Letter Tile 'K' (Black on Paper White) -->
+                </g>`,
+                    },
+                    {
+                        // Letter Tile 'K' (Black on Paper White)
+                        id: 'tileK',
+                        svg: `
                 <g transform="translate(168, 85) rotate(8)">
                     <rect x="-3" y="-3" width="35" height="47" fill="rgba(0,0,0,0.6)" />
                     <polygon points="1,-2 35,1 33,45 -1,43" fill="#fafafa" stroke="${zineBlack}" stroke-width="2" />
                     <text x="17" y="32" fill="${zineBlack}" font-family="Impact, 'Arial Black', sans-serif" font-size="33" font-weight="900" text-anchor="middle">K</text>
-                </g>
+                </g>`,
+                    },
 
-                <!-- ================= TOP-RIGHT CORNER ================= -->
-                <!-- Black jagged spray paint drips -->
+                    // ================= TOP-RIGHT CORNER =================
+                    // Black jagged spray paint drips (one layer per drip, pivoted on the top edge so they can ooze)
+                    {
+                        id: 'dripBlack1',
+                        svg: `
                 <path d="M 850,-10 L 850,75 C 850,88 842,98 847,108 C 852,118 862,118 867,108 C 872,98 864,88 864,75 L 864,-10 Z" fill="${zineBlack}" />
                 <circle cx="857" cy="130" r="4.5" fill="${zineBlack}" />
-                <circle cx="857" cy="150" r="2.5" fill="${zineBlack}" />
-
+                <circle cx="857" cy="150" r="2.5" fill="${zineBlack}" />`,
+                        pivot: { x: 857, y: 0 },
+                    },
+                    {
+                        id: 'dripBlack2',
+                        svg: `
                 <path d="M 940,-10 L 940,140 C 940,158 930,170 937,184 C 944,198 958,198 965,184 C 972,170 962,158 962,140 L 962,-10 Z" fill="${zineBlack}" />
                 <circle cx="951" cy="214" r="5" fill="${zineBlack}" />
                 <circle cx="951" cy="238" r="3" fill="${zineBlack}" />
-                <circle cx="951" cy="254" r="1.5" fill="${zineBlack}" />
-
-                <!-- Crimson Red spray paint drips overlapping -->
+                <circle cx="951" cy="254" r="1.5" fill="${zineBlack}" />`,
+                        pivot: { x: 951, y: 0 },
+                    },
+                    // Crimson Red spray paint drips overlapping
+                    {
+                        id: 'dripRed1',
+                        svg: `
                 <path d="M 885,-10 L 885,115 C 885,130 876,142 882,154 C 888,166 900,166 906,154 C 912,142 903,130 903,115 L 903,-10 Z" fill="${crimsonRed}" />
                 <circle cx="894" cy="178" r="4.5" fill="${crimsonRed}" />
-                <circle cx="894" cy="198" r="2.5" fill="${crimsonRed}" />
-
+                <circle cx="894" cy="198" r="2.5" fill="${crimsonRed}" />`,
+                        pivot: { x: 894, y: 0 },
+                    },
+                    {
+                        id: 'dripRed2',
+                        svg: `
                 <path d="M 1010,-10 L 1010,85 C 1010,98 1002,108 1007,118 C 1012,128 1024,128 1029,118 C 1034,108 1026,98 1026,85 L 1026,-10 Z" fill="${crimsonRed}" />
-                <circle cx="1018" cy="138" r="4" fill="${crimsonRed}" />
+                <circle cx="1018" cy="138" r="4" fill="${crimsonRed}" />`,
+                        pivot: { x: 1018, y: 0 },
+                    },
 
-                <!-- ================= RIGHT BORDER ================= -->
-                <!-- Fishnet Tights Mesh Patch -->
+                    // ================= RIGHT BORDER =================
+                    {
+                        // Fishnet Tights Mesh Patch
+                        id: 'fishnet',
+                        svg: `
                 <path d="M 1085,620 L 990,640 L 1010,700 L 975,760 L 1005,820 L 980,880 L 1085,900 Z" fill="#fafafa" stroke="${zineBlack}" stroke-width="3" />
-                <path d="M 1085,630 L 1005,648 L 1020,705 L 990,758 L 1018,815 L 995,870 L 1085,888 Z" fill="url(#punk-fishnet)" />
-
-                <!-- Stencil Tally Marks (|||| /) -->
+                <path d="M 1085,630 L 1005,648 L 1020,705 L 990,758 L 1018,815 L 995,870 L 1085,888 Z" fill="url(#punk-fishnet)" />`,
+                    },
+                    {
+                        // Stencil Tally Marks (|||| /)
+                        id: 'tally',
+                        svg: `
                 <g stroke="${hazardYellow}" stroke-width="4.5" stroke-linecap="round">
                     <line x1="1025" y1="960" x2="1030" y2="1010" />
                     <line x1="1040" y1="958" x2="1045" y2="1008" />
                     <line x1="1055" y1="962" x2="1060" y2="1012" />
                     <line x1="1070" y1="960" x2="1075" y2="1010" />
                     <line x1="1015" y1="1000" x2="1080" y2="970" stroke="${crimsonRed}" stroke-width="5" />
-                </g>
+                </g>`,
+                    },
 
-                <!-- ================= LEFT BORDER ================= -->
-                <!-- Long cracked concrete fissure -->
+                    // ================= LEFT BORDER =================
+                    {
+                        // Long cracked concrete fissure
+                        id: 'crack',
+                        svg: `
                 <path d="M -5,820 L 45,860 L 20,910 L 60,970 L 35,1030 L 55,1080 L 15,1140 L 40,1190 L -5,1230" stroke="${zineBlack}" stroke-width="2.5" fill="none" stroke-linejoin="round" />
-                <path d="M -5,820 L 45,860 L 20,910 L 60,970 L 35,1030 L 55,1080 L 15,1140 L 40,1190 L -5,1230" stroke="rgba(255,255,255,0.4)" stroke-width="1" fill="none" stroke-linejoin="round" transform="translate(1, 1)" />
+                <path d="M -5,820 L 45,860 L 20,910 L 60,970 L 35,1030 L 55,1080 L 15,1140 L 40,1190 L -5,1230" stroke="rgba(255,255,255,0.4)" stroke-width="1" fill="none" stroke-linejoin="round" transform="translate(1, 1)" />`,
+                    },
 
-                <!-- ================= BOTTOM-LEFT CORNER ================= -->
-                <!-- Torn Hazard Caution Tape Strip -->
+                    // ================= BOTTOM-LEFT CORNER =================
+                    {
+                        // Torn Hazard Caution Tape Strip
+                        id: 'tape',
+                        svg: `
                 <g transform="translate(-15, 1720) rotate(22)">
                     <polygon points="0,-4 240,-2 238,58 -2,56" fill="rgba(0,0,0,0.55)" />
                     <path d="M 0,4 L 6,-1 L 12,3 L 18,-1 L 225,-1 L 232,5 L 228,52 L 234,57 L 226,54 L 14,54 L 8,58 L 0,54 Z" fill="url(#punk-caution)" stroke="${zineBlack}" stroke-width="2.5" />
-                </g>
+                </g>`,
+                    },
 
-                <!-- ================= BOTTOM-RIGHT CORNER ================= -->
-                <!-- Large Torn Battle Patch with Halftone -->
+                    // ================= BOTTOM-RIGHT CORNER =================
+                    {
+                        // Large Torn Battle Patch with Halftone
+                        id: 'patch',
+                        svg: `
                 <g>
                     <!-- Patch drop shadow -->
                     <path d="M 820,1925 L 800,1840 L 835,1790 L 795,1730 L 830,1670 L 880,1630 L 950,1650 L 1010,1610 L 1090,1625 L 1090,1925 Z" fill="rgba(0,0,0,0.6)" transform="translate(6, 6)" />
@@ -476,11 +592,16 @@ export const DERBY_FRAMES: StoryFrameDefinition[] = [
                     <path d="M 815,1925 L 795,1840 L 830,1790 L 790,1730 L 825,1670 L 875,1630 L 945,1650 L 1005,1610 L 1090,1625 L 1090,1925 Z" fill="#fafafa" stroke="${zineBlack}" stroke-width="3" />
                     <!-- Halftone screenprint inset on patch -->
                     <path d="M 845,1925 L 830,1850 L 860,1805 L 825,1750 L 855,1695 L 900,1660 L 965,1680 L 1020,1645 L 1090,1655 L 1090,1925 Z" fill="url(#punk-halftone)" stroke="${zineBlack}" stroke-width="2" />
-
-                    <!-- DIY 1-inch Pinback Button Badge with Punk Mohawk Skull pinned to battle patch -->
-                    ${drawSkullBadge(935, 1740, 35, -10)}
-                </g>
-            `;
+                </g>`,
+                    },
+                    {
+                        // DIY 1-inch Pinback Button Badge with Punk Mohawk Skull pinned to battle patch
+                        id: 'badge',
+                        svg: `<g>${drawSkullBadge(935, 1740, 35, -10)}</g>`,
+                        pivot: { x: 935, y: 1740 },
+                    },
+                ],
+            };
         }
     ),
 ];

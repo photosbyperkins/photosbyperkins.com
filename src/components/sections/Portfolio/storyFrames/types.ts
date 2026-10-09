@@ -70,6 +70,24 @@ export interface StoryFrameContext {
     exif?: ExifData;
 }
 
+/** One independently animatable group of a frame, as inner SVG markup in the 1080x1920 space. */
+export interface StoryFrameLayer {
+    /** Matches a key in the frame's motion recipe (`frameMotion/recipes`). */
+    id: string;
+    svg: string;
+    /** Scale / rotation origin in design px (defaults to the layer's bounding-box centre). */
+    pivot?: { x: number; y: number };
+    /** Clip rectangle in design px (e.g. the visible extent of a scrolling pattern). */
+    clip?: { x: number; y: number; w: number; h: number };
+}
+
+export interface StoryFrameLayers {
+    /** Shared `<defs>…</defs>` markup, prepended to every layer and to the flattened frame. */
+    defs?: string;
+    /** Bottom-to-top draw order; joined in order they must reproduce the static frame. */
+    layers: StoryFrameLayer[];
+}
+
 export interface StoryFrameDefinition {
     id: StoryFrameId;
     label: string;
@@ -78,6 +96,8 @@ export interface StoryFrameDefinition {
     signaturePalette: string[];
     renderSvg: (colorOverride?: string, context?: StoryFrameContext) => React.ReactNode;
     getSvgString: (colorOverride?: string, context?: StoryFrameContext) => string | Promise<string>;
+    /** Optional layer split used by animated story exports. */
+    getLayers?: (colorOverride?: string, context?: StoryFrameContext) => StoryFrameLayers | Promise<StoryFrameLayers>;
 }
 
 export interface BearPathDef {

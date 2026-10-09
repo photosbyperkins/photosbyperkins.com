@@ -1,13 +1,14 @@
 import { test, expect } from '@playwright/test';
 import * as path from 'path';
+import { collapseSheet, openStudioTab, thumbByLabel } from './helpers/storyStudio';
 
 const ARTIFACT_DIR = 'C:/Users/micha/.gemini/antigravity/brain/c75a3805-ef02-4dfb-a348-ae4696ad5adc';
 
 test.describe('Design Review Screenshot Capture', () => {
-    test.setTimeout(90000);
+    test.setTimeout(150000);
     test('capture Story Maker across desktop and mobile', async ({ page }) => {
-        // Desktop Story Maker capture
-        await page.setViewportSize({ width: 1280, height: 800 });
+        // Desktop Story Maker capture (side layout)
+        await page.setViewportSize({ width: 1440, height: 900 });
         await page.goto('/');
         const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
         await photo.waitFor({ timeout: 15000 });
@@ -35,9 +36,9 @@ test.describe('Design Review Screenshot Capture', () => {
         await page.screenshot({ path: path.join(ARTIFACT_DIR, 'review_story_desktop_layout_padded.png') });
 
         // 3. Desktop Tab 2: Filters
-        await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Filters")').click();
+        await openStudioTab(studioModal, 'Filters');
         await page.waitForTimeout(400);
-        const vividFilter = studioModal.locator('.story-export-modal__filter-pill:has-text("Vivid")');
+        const vividFilter = studioModal.getByRole('button', { name: 'Photo filter: Vivid', exact: true });
         if (await vividFilter.isVisible()) {
             await vividFilter.click();
             await page.waitForTimeout(300);
@@ -45,9 +46,9 @@ test.describe('Design Review Screenshot Capture', () => {
         await page.screenshot({ path: path.join(ARTIFACT_DIR, 'review_story_desktop_filters.png') });
 
         // 4. Desktop Tab 3: Frames
-        await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Frames")').click();
+        await openStudioTab(studioModal, 'Frames');
         await page.waitForTimeout(400);
-        const bearFrame = studioModal.locator('.story-export-modal__frames-grid button:has-text("Grizzly")');
+        const bearFrame = thumbByLabel(studioModal.locator('#story-export-frames-grid'), 'Grizzly');
         if (await bearFrame.isVisible()) {
             await bearFrame.click();
             await page.waitForTimeout(400);
@@ -55,17 +56,18 @@ test.describe('Design Review Screenshot Capture', () => {
         await page.screenshot({ path: path.join(ARTIFACT_DIR, 'review_story_desktop_frames.png') });
 
         // 5. Desktop Tab 4: Badges
-        await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Badges")').click();
+        await openStudioTab(studioModal, 'Badges');
         await page.waitForTimeout(400);
         await page.screenshot({ path: path.join(ARTIFACT_DIR, 'review_story_desktop_badges.png') });
 
         // Close modal and lightbox
         await studioModal.locator('button[aria-label="Close"]').click();
+        await expect(studioModal).not.toBeVisible({ timeout: 5000 });
         await page.waitForTimeout(300);
         await lightbox.locator('button[aria-label="Close"]').click();
         await page.waitForTimeout(300);
 
-        // Mobile Story Maker capture (Pixel 5: 393 x 851)
+        // Mobile Story Maker capture (Pixel 5: 393 x 851, bottom-sheet layout)
         await page.setViewportSize({ width: 393, height: 851 });
         await photo.click();
         await expect(lightbox).toBeVisible();
@@ -73,9 +75,16 @@ test.describe('Design Review Screenshot Capture', () => {
         await expect(studioModal).toBeVisible();
         await page.waitForTimeout(600);
 
-        // Mobile Layout Crop
-        await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Layout")').click();
-        await studioModal.locator('button:has-text("9:16")').first().click();
+        // Mobile collapsed sheet (preview + tab bar + export button)
+        await page.screenshot({ path: path.join(ARTIFACT_DIR, 'review_story_mobile_sheet_collapsed.png') });
+
+        // Mobile Layout Crop (tap Layout to open the sheet)
+        await openStudioTab(studioModal, 'Layout');
+        // First non-Padded framing preset ("9:16" only exists for burst photos)
+        await studioModal
+            .locator('[role="group"][aria-label="Framing presets"] button:not(:has-text("Padded"))')
+            .first()
+            .click();
         await page.waitForTimeout(300);
         await page.screenshot({ path: path.join(ARTIFACT_DIR, 'review_story_mobile_layout_crop.png') });
 
@@ -85,19 +94,46 @@ test.describe('Design Review Screenshot Capture', () => {
         await page.screenshot({ path: path.join(ARTIFACT_DIR, 'review_story_mobile_layout_padded.png') });
 
         // Mobile Filters
-        await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Filters")').click();
+        await openStudioTab(studioModal, 'Filters');
         await page.waitForTimeout(300);
         await page.screenshot({ path: path.join(ARTIFACT_DIR, 'review_story_mobile_filters.png') });
 
         // Mobile Frames
-        await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Frames")').click();
+        await openStudioTab(studioModal, 'Frames');
         await page.waitForTimeout(300);
         await page.screenshot({ path: path.join(ARTIFACT_DIR, 'review_story_mobile_frames.png') });
 
         // Mobile Badges
-        await studioModal.locator('.story-export-modal__studio-tab-btn:has-text("Badges")').click();
+        await openStudioTab(studioModal, 'Badges');
         await page.waitForTimeout(300);
         await page.screenshot({ path: path.join(ARTIFACT_DIR, 'review_story_mobile_badges.png') });
+
+        // Collapse the sheet, then close the modal
+        await collapseSheet(page, studioModal);
+        await page.keyboard.press('Escape');
+        await expect(studioModal).not.toBeVisible({ timeout: 5000 });
+
+        // Landscape phone (851 x 393, side layout)
+        await page.setViewportSize({ width: 851, height: 393 });
+        await page.keyboard.press('c');
+        await expect(studioModal).toBeVisible({ timeout: 8000 });
+        await page.waitForTimeout(600);
+        await page.screenshot({ path: path.join(ARTIFACT_DIR, 'review_story_landscape_layout.png') });
+        await openStudioTab(studioModal, 'Frames');
+        await page.waitForTimeout(300);
+        await page.screenshot({ path: path.join(ARTIFACT_DIR, 'review_story_landscape_frames.png') });
+        await page.keyboard.press('Escape');
+        await expect(studioModal).not.toBeVisible({ timeout: 5000 });
+
+        // Tablet portrait (1024 x 1366, stacked layout)
+        await page.setViewportSize({ width: 1024, height: 1366 });
+        await page.keyboard.press('c');
+        await expect(studioModal).toBeVisible({ timeout: 8000 });
+        await page.waitForTimeout(600);
+        await page.screenshot({ path: path.join(ARTIFACT_DIR, 'review_story_tablet_layout.png') });
+        await openStudioTab(studioModal, 'Filters');
+        await page.waitForTimeout(300);
+        await page.screenshot({ path: path.join(ARTIFACT_DIR, 'review_story_tablet_filters.png') });
     });
 
     test('capture Core Pages and Features across desktop and mobile', async ({ page }) => {

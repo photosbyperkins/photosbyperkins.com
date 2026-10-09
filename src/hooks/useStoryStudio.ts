@@ -37,6 +37,11 @@ import type {
     StoryFrameId,
 } from '../components/sections/Portfolio/storyFrames/types';
 import type { EventScore, PhotoRecord } from '../types';
+import {
+    canExportStoryVideo,
+    getStoryVideoSupportSync,
+    type StoryVideoSupport,
+} from '../utils/story/storyVideoSupport';
 
 export type StoryStudioTab = 'layout' | 'filters' | 'frames' | 'badges';
 
@@ -488,7 +493,27 @@ export function useStoryStudio({
     }
 
     // Studio Tab State
-    const [activeStudioTab, setActiveStudioTab] = useState<StoryStudioTab>('layout');
+    const [rawStudioTab, setActiveStudioTab] = useState<StoryStudioTab>('layout');
+
+    // Animated frame state
+    const [isFrameAnimated, setIsFrameAnimatedState] = useState<boolean>(
+        () => Boolean(storySettings.isFrameAnimated)
+    );
+    // null while detecting; false disables the Animate toggle (e.g. browsers that cannot record MP4).
+    const [videoSupport, setVideoSupport] = useState<StoryVideoSupport | null>(
+        () => getStoryVideoSupportSync() ?? null
+    );
+    useEffect(() => {
+        let alive = true;
+        canExportStoryVideo()
+            .then((support) => alive && setVideoSupport(support))
+            .catch(() => alive && setVideoSupport(false));
+        return () => {
+            alive = false;
+        };
+    }, []);
+    const effectiveIsFrameAnimated = videoSupport === false ? false : isFrameAnimated;
+    const activeStudioTab: StoryStudioTab = rawStudioTab;
 
     // Photo Filter State
     const [activeFilterId, setActiveFilterId] = useState<StoryPhotoFilterId>(() => storySettings.filterId || 'none');
@@ -795,24 +820,42 @@ export function useStoryStudio({
     const exportImage =
         activeMode === 'burst' && activePanelImages.length >= targetPanelCount ? activePanelImages : activeSingleImage;
 
-    const { isExporting, isDownloaded, setIsDownloaded, statusToast, handleExportAction, resetExportState } =
-        useStoryExport({
-            loadedImage: exportImage,
-            currentConfig,
-            eventTitle: eventInfo.title,
-            year,
-            canShare,
-            photoKey,
-            isTainted,
-            onExportSuccess: (cfg) => {
-                if (cfg.frameId && cfg.frameId !== 'none') {
-                    addRecentFrame(cfg.frameId);
-                }
-                if (cfg.filterId && cfg.filterId !== 'none') {
-                    addRecentFilter(cfg.filterId);
-                }
-            },
-        });
+    const {
+        isExporting,
+        isDownloaded,
+        setIsDownloaded,
+        statusToast,
+        handleExportAction,
+        resetExportState,
+        exportProgress,
+        cancelExport,
+        hasPendingVideo,
+    } = useStoryExport({
+        loadedImage: exportImage,
+        currentConfig,
+        eventTitle: eventInfo.title,
+        year,
+        canShare,
+        photoKey,
+        isTainted,
+        onExportSuccess: (cfg) => {
+            if (cfg.frameId && cfg.frameId !== 'none') {
+                addRecentFrame(cfg.frameId);
+            }
+            if (cfg.filterId && cfg.filterId !== 'none') {
+                addRecentFilter(cfg.filterId);
+            }
+        },
+        isFrameAnimated: effectiveIsFrameAnimated,
+    });
+
+    const setIsFrameAnimated = useCallback(
+        (val: boolean) => {
+            setIsFrameAnimatedState(val);
+            setIsDownloaded(false);
+        },
+        [setIsDownloaded]
+    );
 
     const handleSetBurstPanelCount = useCallback(
         (newCount: 2 | 3) => {
@@ -884,6 +927,7 @@ export function useStoryStudio({
             showAttribution: badges.showAttribution,
             showScoreboard: badges.showScoreboard,
             showScores: badges.showScores ?? true,
+            isFrameAnimated: effectiveIsFrameAnimated,
         });
     }, [
         activeMode,
@@ -907,6 +951,7 @@ export function useStoryStudio({
         burstPanOffsets,
         targetPanelCount,
         isMultiPhoto,
+        effectiveIsFrameAnimated,
         setStorySettings,
     ]);
 
@@ -914,6 +959,7 @@ export function useStoryStudio({
         resetStorySettings();
         resetExportState();
         setActiveStudioTab('layout');
+        setIsFrameAnimatedState(false);
         setCardTheme('dark');
         setActiveFilterId('none');
         setFilterStrength(1.0);
@@ -1095,8 +1141,11 @@ export function useStoryStudio({
         if (badges.scoreboardPosition && badges.scoreboardPosition !== DEFAULT_SCOREBOARD_POSITION) return false;
         if (badges.attributionPosition && badges.attributionPosition !== DEFAULT_ATTRIBUTION_POSITION) return false;
 
+        if (effectiveIsFrameAnimated) return false;
+
         return true;
     }, [
+        effectiveIsFrameAnimated,
         cardTheme,
         activeFilterId,
         filterStrength,
@@ -1276,6 +1325,9 @@ export function useStoryStudio({
         effectiveFrameColor,
         displayedFrames,
         categoryCounts,
+        availableFrames,
+        recentFrameIds,
+        recentFilterIds,
         frameContext,
         currentConfig,
         isExporting,
@@ -1287,5 +1339,12 @@ export function useStoryStudio({
         handleClose,
         handleExportAction,
         isTainted,
+        isFrameAnimated: effectiveIsFrameAnimated,
+        setIsFrameAnimated,
+        videoSupport,
+        exportImage,
+        exportProgress,
+        cancelExport,
+        hasPendingVideo,
     };
 }
