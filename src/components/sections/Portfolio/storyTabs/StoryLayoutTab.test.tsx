@@ -1218,11 +1218,25 @@ describe('StoryLayoutTab - Single Photo Selector and Crop Zoom Removal', () => {
         expect(bgHeader).not.toBeNull();
         expect(bgHeader?.textContent).toContain('Background');
 
-        // Color picker and swatches are located inside the header tint row
+        // Colour pill (same picker as Frame tint) sits inside the header row
         const headerTint = bgHeader?.querySelector('.story-export-modal__background-header-tint');
         expect(headerTint).not.toBeNull();
-        expect(headerTint?.querySelectorAll('.story-export-modal__quick-swatch').length).toBeGreaterThan(0);
-        expect(headerTint?.querySelector('.story-export-modal__color-picker')).not.toBeNull();
+        const colorTrigger = screen.getByRole('button', { name: 'Background color: Ink. Change color' });
+        expect(headerTint?.contains(colorTrigger)).toBe(true);
+        expect(document.getElementById('story-bg-color-popover')).toBeNull();
+
+        // Opening the popover shows presets + custom picker; picking a preset updates the colour
+        fireEvent.click(colorTrigger);
+        expect(document.getElementById('story-bg-color-popover')).not.toBeNull();
+        expect(screen.getByRole('button', { name: 'Background color: Ink' }).getAttribute('aria-pressed')).toBe('true');
+        fireEvent.click(screen.getByRole('button', { name: 'Background color: Red' }));
+        const presetUpdater = setPaddedConfig.mock.calls.at(-1)?.[0];
+        expect(presetUpdater({ style: 'frosted', customColor: '#0a0a14' }).customColor).toBe('#e60000');
+
+        fireEvent.change(screen.getByLabelText('Frosted tint color'), { target: { value: '#123456' } });
+        const customUpdater = setPaddedConfig.mock.calls.at(-1)?.[0];
+        expect(customUpdater({ style: 'frosted', customColor: '#0a0a14' }).customColor).toBe('#123456');
+        setPaddedConfig.mockClear();
 
         // Second row has Frosted and Solid toggle
         const frostedBtn = screen.getByRole('button', { name: 'Frosted' });

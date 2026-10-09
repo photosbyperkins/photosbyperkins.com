@@ -6,6 +6,17 @@ import type { NormalizedCrop, PaddedStyleOptions, StoryPreset } from '../../../.
 import { calculateFitZoom, calculateNormalizedCrop } from '../../../../utils/storyCanvas';
 import { isFrameValidForWizardStep } from '../../../../utils/story';
 import type { BurstMetadata } from '../../../../types';
+import { StoryColorPopover, type StoryColorPreset } from './shared/StoryColorPopover';
+
+const DEFAULT_BACKGROUND = '#0a0a14';
+
+const BACKGROUND_PRESETS: StoryColorPreset[] = [
+    { id: 'ink', label: 'Ink', color: DEFAULT_BACKGROUND },
+    { id: 'white', label: 'White', color: '#ffffff' },
+    { id: 'gold', label: 'Gold', color: '#f59e0b' },
+    { id: 'red', label: 'Red', color: '#e60000' },
+    { id: 'cyan', label: 'Cyan', color: '#06b6d4' },
+];
 
 interface StoryLayoutTabProps {
     activeMode: 'solo' | 'crop' | 'padded' | 'burst';
@@ -70,6 +81,11 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
 }) => {
     const isSoloMode = activeMode !== 'burst';
     const fitZoom = calculateFitZoom(naturalDimensions.width, naturalDimensions.height, paddedConfig.cardScale || 0.92);
+
+    const setBackgroundColor = (color: string) => {
+        setPaddedConfig((prev) => ({ ...prev, customColor: color }));
+        setIsDownloaded(false);
+    };
 
     const handleZoomSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const newZoom = parseFloat(e.target.value);
@@ -1006,70 +1022,34 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                 {isSoloMode && (
                     <div className="story-export-modal__section">
                         <div className="story-export-modal__padded-settings">
-                            {/* Row 1: Header with "Background" label on left and inline color swatches + picker on right (like Frame) */}
+                            {/* Row 1: "Background" label on the left, colour pill + popover on the right (same picker as Frame tint) */}
                             <div className="story-export-modal__toggle-row story-export-modal__background-header">
                                 <div className="story-export-modal__label-with-badge">
                                     <span>Background</span>
                                 </div>
 
-                                <div className="story-export-modal__frames-header-tint story-export-modal__background-header-tint story-export-modal__custom-color-row">
-                                    <div className="story-export-modal__quick-swatches">
-                                        {['#0a0a14', '#ffffff', '#f59e0b', '#e60000', '#06b6d4'].map((color) => {
-                                            const currentColor = (paddedConfig.customColor || '#0a0a14').toLowerCase();
-                                            const isSelected = currentColor === color.toLowerCase();
-                                            return (
-                                                <button
-                                                    key={color}
-                                                    type="button"
-                                                    className={`story-export-modal__quick-swatch ${
-                                                        isSelected ? 'is-active' : ''
-                                                    }`}
-                                                    style={{ backgroundColor: color }}
-                                                    onClick={() => {
-                                                        setPaddedConfig((prev) => ({
-                                                            ...prev,
-                                                            customColor: color,
-                                                        }));
-                                                        setIsDownloaded(false);
-                                                    }}
-                                                    title={color}
-                                                    aria-label={`Select background color ${color}`}
-                                                />
-                                            );
-                                        })}
-                                    </div>
-                                    <label
-                                        className="story-export-modal__color-picker"
-                                        title={
+                                <div className="story-export-modal__background-header-tint">
+                                    <StoryColorPopover
+                                        popoverId="story-bg-color-popover"
+                                        triggerText="Color"
+                                        ariaNoun="Background color"
+                                        customAriaLabel={
                                             paddedConfig.style === 'solid' || paddedConfig.style === 'custom'
-                                                ? 'Choose solid background color'
-                                                : 'Choose frosted tint color'
+                                                ? 'Solid background color'
+                                                : 'Frosted tint color'
                                         }
-                                    >
-                                        <span
-                                            className="story-export-modal__color-swatch"
-                                            style={{
-                                                backgroundColor: paddedConfig.customColor || '#0a0a14',
-                                            }}
-                                        />
-                                        <input
-                                            type="color"
-                                            value={paddedConfig.customColor || '#0a0a14'}
-                                            onChange={(e) => {
-                                                setPaddedConfig((prev) => ({
-                                                    ...prev,
-                                                    customColor: e.target.value,
-                                                }));
-                                                setIsDownloaded(false);
-                                            }}
-                                            className="story-export-modal__color-input"
-                                            aria-label={
-                                                paddedConfig.style === 'solid' || paddedConfig.style === 'custom'
-                                                    ? 'Solid background color'
-                                                    : 'Frosted tint color'
-                                            }
-                                        />
-                                    </label>
+                                        presets={BACKGROUND_PRESETS}
+                                        activePresetId={
+                                            BACKGROUND_PRESETS.find(
+                                                (p) =>
+                                                    p.color === (paddedConfig.customColor || DEFAULT_BACKGROUND).toLowerCase()
+                                            )?.id ?? null
+                                        }
+                                        currentColor={paddedConfig.customColor || DEFAULT_BACKGROUND}
+                                        onSelectPreset={(preset) => setBackgroundColor(preset.color!)}
+                                        onCustomColor={setBackgroundColor}
+                                        align="end"
+                                    />
                                 </div>
                             </div>
 

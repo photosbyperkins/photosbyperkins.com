@@ -257,10 +257,11 @@ export function StoryThumbBrowser<T>({
             setJumpFrom(null);
             findOpener(openerSection)?.focus({ preventScroll: true });
         };
-        document.addEventListener('pointerdown', handlePointerDown);
+        // Capture phase: the modal shell stops pointerdown propagation, so a bubbling listener would never fire.
+        document.addEventListener('pointerdown', handlePointerDown, true);
         window.addEventListener('keydown', handleKeyDown, true);
         return () => {
-            document.removeEventListener('pointerdown', handlePointerDown);
+            document.removeEventListener('pointerdown', handlePointerDown, true);
             window.removeEventListener('keydown', handleKeyDown, true);
         };
     }, [isMenuOpen, openerSection, findOpener]);

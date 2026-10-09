@@ -121,13 +121,13 @@ test.describe('Story Maker (9:16)', () => {
         await expect(studioModal.locator('button:has-text("Frosted")')).toBeVisible();
         await expect(studioModal.locator('button:has-text("Solid")')).toBeVisible();
 
-        // Color row is visible in Frosted mode
-        await expect(studioModal.locator('.story-export-modal__custom-color-row')).toBeVisible();
-        await expect(studioModal.locator('.story-export-modal__color-picker')).toBeVisible();
+        // Background colour pill is visible in Frosted mode
+        const bgColorTrigger = studioModal.locator('.story-export-modal__background-header-tint .story-tint__trigger');
+        await expect(bgColorTrigger).toBeVisible();
 
-        // Clicking Solid keeps custom color row visible for solid fill
+        // Clicking Solid keeps the colour pill visible for solid fill
         await studioModal.locator('button:has-text("Solid")').click();
-        await expect(studioModal.locator('.story-export-modal__custom-color-row')).toBeVisible();
+        await expect(bgColorTrigger).toBeVisible();
 
         // Verify photo zoom slider is visible
         const zoomSlider = studioModal.locator('input[aria-label="Photo Zoom"]');
@@ -408,7 +408,7 @@ test.describe('Story Maker (9:16)', () => {
         await paddedBtn.click();
         const solidBtn = studioModal.locator('button:has-text("Solid")');
         await solidBtn.click();
-        await expect(studioModal.locator('.story-export-modal__custom-color-row')).toBeVisible();
+        await expect(studioModal.locator('.story-export-modal__background-header-tint .story-tint__trigger')).toBeVisible();
 
         // 2. Close Story Maker (collapse the sheet first in sheet mode: Escape only collapses an open sheet)
         await collapseSheet(page, studioModal);
@@ -835,8 +835,9 @@ test.describe('Story Maker (9:16)', () => {
         await expect(paddedPill).not.toHaveClass(/active/);
         await expect(studioModal.locator('.story-cropper--padded')).toHaveCount(0);
 
-        // Click a quick swatch color (e.g. Red)
-        const redSwatch = studioModal.locator('.story-export-modal__quick-swatch[title="#e60000"]');
+        // Pick a background colour preset (e.g. Red) from the colour popover
+        await studioModal.locator('.story-export-modal__background-header-tint .story-tint__trigger').click();
+        const redSwatch = studioModal.locator('#story-bg-color-popover button[aria-label="Background color: Red"]');
         await expect(redSwatch).toBeVisible();
         await redSwatch.click();
         await expect(redSwatch).toHaveClass(/is-active/);

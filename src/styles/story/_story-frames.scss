@@ -3,30 +3,11 @@
 // Frames tab layout lives in _story-browser.scss (chips → options → thumbnail browser).
 
 .story-export-modal {
-    // Inline tint swatch row (Layout tab's padded background picker reuses the old frames-header tint styles)
-    &__frames-header-tint,
+    // Layout tab's background colour pill (shared StoryColorPopover), pushed to the right of the "Background" label
     &__background-header-tint {
         display: flex;
         align-items: center;
-        gap: 6px;
         margin-left: auto;
-
-        .story-export-modal__quick-swatches {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-
-        .story-export-modal__quick-swatch {
-            width: 20px;
-            height: 20px;
-        }
-
-        .story-export-modal__color-picker {
-            width: 24px;
-            height: 24px;
-            margin-left: 1px;
-        }
     }
 }
 

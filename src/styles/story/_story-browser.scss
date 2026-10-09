@@ -206,6 +206,13 @@
             border-color: rgba(0, 0, 0, 0.12);
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
         }
+
+        // Trigger sits on the right of its row: open leftwards
+        &--end {
+            left: auto;
+            right: 0;
+            align-items: flex-end;
+        }
     }
 
     &__swatch {
