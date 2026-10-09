@@ -179,7 +179,7 @@
     &--sheet {
         --sheet-handle-h: 18px;
         --sheet-header-h: 52px;
-        --sheet-footer-h: calc(66px + env(safe-area-inset-bottom));
+        --sheet-footer-h: calc(72px + env(safe-area-inset-bottom, 0px));
         --sheet-collapsed-h: calc(var(--sheet-handle-h) + var(--sheet-header-h) + var(--sheet-footer-h));
         // Expanded tab content. Fixed (content scrolls) so the preview can resize to sit above the sheet.
         --sheet-content-h: clamp(220px, 38cqh, 330px);
@@ -319,7 +319,9 @@
 
         .story-studio-panel__footer {
             height: var(--sheet-footer-h);
-            padding: 8px 12px calc(10px + env(safe-area-inset-bottom));
+            padding: 8px max(20px, calc(16px + env(safe-area-inset-right, 0px)))
+                calc(16px + env(safe-area-inset-bottom, 0px))
+                max(20px, calc(16px + env(safe-area-inset-left, 0px)));
             box-sizing: border-box;
         }
     }
@@ -486,7 +488,7 @@
     height: 48px;
     box-sizing: border-box;
     border: 2px solid transparent;
-    border-radius: 10px;
+    border-radius: 12px;
     overflow: hidden;
     background: var(--color-accent);
     color: #ffffff;
