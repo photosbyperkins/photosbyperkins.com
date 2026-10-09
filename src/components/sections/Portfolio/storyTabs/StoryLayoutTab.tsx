@@ -640,30 +640,85 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                 {activeMode === 'burst' && burst && burst.total >= 2 && (
                     <div className="story-export-modal__section">
                         <div className="story-export-modal__padded-settings">
-                            <div
-                                className="story-export-modal__toggle-row story-export-modal__slot-header"
-                                style={{ marginTop: 0, marginBottom: isFrameSelectorSuppressed ? 0 : '0.5rem' }}
-                            >
-                                <div className="story-export-modal__label-with-badge">
-                                    <span>
-                                        {burst.isTriptych
-                                            ? isDuetLayout
-                                                ? 'Duet Photos'
-                                                : 'Triptych Photos'
-                                            : isDuetLayout
-                                              ? 'Duet Frames'
-                                              : 'Burst Frames'}
-                                    </span>
-                                    {!isMultiPhoto && <span>+Δt</span>}
-                                    {burstShowTimeStamps && activeTimeDeltaText && (
-                                        <span
-                                            className="story-export-modal__delta-badge"
-                                            data-testid="burst-delta-badge"
+                            {/* Dedicated Delta Timestamps (+Δt) Row (when continuous burst with deltas) */}
+                            {!isMultiPhoto && (
+                                <div
+                                    className="story-export-modal__toggle-row story-export-modal__timestamp-row"
+                                    style={{ marginTop: 0, marginBottom: isFrameSelectorSuppressed ? 0 : '0.625rem' }}
+                                >
+                                    <div className="story-export-modal__label-with-badge">
+                                        <span>+Δt</span>
+                                        <span>Timestamps</span>
+                                        {burstShowTimeStamps && activeTimeDeltaText && (
+                                            <span
+                                                className="story-export-modal__delta-badge"
+                                                data-testid="burst-delta-badge"
+                                            >
+                                                ({activeTimeDeltaText})
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div
+                                        className="portfolio__segmented-toggle story-export-modal__pill-group story-export-modal__pill-group--inline"
+                                        role="group"
+                                        aria-label="Show timestamp"
+                                    >
+                                        <button
+                                            type="button"
+                                            className={`story-export-modal__pill ${
+                                                burstShowTimeStamps ? 'active story-export-modal__pill--active' : ''
+                                            }`}
+                                            onClick={() => handleToggleTimeStamps(true)}
+                                            aria-pressed={Boolean(burstShowTimeStamps)}
                                         >
-                                            ({activeTimeDeltaText})
+                                            {burstShowTimeStamps && (
+                                                <motion.span
+                                                    className="portfolio__segment-pill"
+                                                    layoutId="storyBurstTimestampsPill"
+                                                    transition={SPRING_SNAPPY}
+                                                />
+                                            )}
+                                            <span>Show</span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={`story-export-modal__pill ${
+                                                !burstShowTimeStamps
+                                                    ? 'active story-export-modal__pill--active'
+                                                    : ''
+                                            }`}
+                                            onClick={() => handleToggleTimeStamps(false)}
+                                            aria-pressed={!burstShowTimeStamps}
+                                        >
+                                            {!burstShowTimeStamps && (
+                                                <motion.span
+                                                    className="portfolio__segment-pill"
+                                                    layoutId="storyBurstTimestampsPill"
+                                                    transition={SPRING_SNAPPY}
+                                                />
+                                            )}
+                                            <span>Hide</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Frame Slots Header: Duet / Triptych frame selection status and Swap / Reverse action */}
+                            {!isFrameSelectorSuppressed && (
+                                <div
+                                    className="story-export-modal__toggle-row story-export-modal__slot-header"
+                                    style={{ marginTop: 0, marginBottom: '0.5rem' }}
+                                >
+                                    <div className="story-export-modal__label-with-badge">
+                                        <span>
+                                            {burst.isTriptych
+                                                ? isDuetLayout
+                                                    ? 'Duet Photos'
+                                                    : 'Triptych Photos'
+                                                : isDuetLayout
+                                                  ? 'Duet Frames'
+                                                  : 'Burst Frames'}
                                         </span>
-                                    )}
-                                    {!isFrameSelectorSuppressed && (
                                         <span
                                             className="story-export-modal__hint-tag"
                                             style={{
@@ -676,84 +731,40 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                         >
                                             {feedbackText}
                                         </span>
-                                    )}
-                                </div>
-                                <div className="story-export-modal__slot-header-actions">
-                                    {!isMultiPhoto && (
-                                        <div
-                                            className="portfolio__segmented-toggle story-export-modal__pill-group story-export-modal__pill-group--inline"
-                                            role="group"
-                                            aria-label="Show timestamp"
-                                        >
+                                    </div>
+                                    <div className="story-export-modal__slot-header-actions">
+                                        {isDuetLayout && (
                                             <button
                                                 type="button"
-                                                className={`story-export-modal__pill ${
-                                                    burstShowTimeStamps ? 'active story-export-modal__pill--active' : ''
+                                                className={`story-export-modal__reverse-btn story-export-modal__swap-pill ${
+                                                    isSwapDisabled ? 'story-export-modal__swap-pill--disabled' : ''
                                                 }`}
-                                                onClick={() => handleToggleTimeStamps(true)}
-                                                aria-pressed={Boolean(burstShowTimeStamps)}
+                                                onClick={handleSwapSlots}
+                                                disabled={isSwapDisabled}
+                                                title={isSwapDisabled ? undefined : 'Swap Top and Bottom photos'}
+                                                aria-label="Swap Top and Bottom photos"
+                                                aria-disabled={isSwapDisabled}
+                                                tabIndex={isSwapDisabled ? -1 : 0}
                                             >
-                                                {burstShowTimeStamps && (
-                                                    <motion.span
-                                                        className="portfolio__segment-pill"
-                                                        layoutId="storyBurstTimestampsPill"
-                                                        transition={SPRING_SNAPPY}
-                                                    />
-                                                )}
-                                                <span>Show</span>
+                                                <ArrowLeftRight size={13} />
+                                                <span>Swap</span>
                                             </button>
+                                        )}
+                                        {canReverseTriptych && (
                                             <button
                                                 type="button"
-                                                className={`story-export-modal__pill ${
-                                                    !burstShowTimeStamps
-                                                        ? 'active story-export-modal__pill--active'
-                                                        : ''
-                                                }`}
-                                                onClick={() => handleToggleTimeStamps(false)}
-                                                aria-pressed={!burstShowTimeStamps}
+                                                className="story-export-modal__reverse-btn"
+                                                onClick={handleReverseTriptychSlots}
+                                                title="Reverse frame sequence (invert top and bottom)"
+                                                aria-label="Reverse frame sequence"
                                             >
-                                                {!burstShowTimeStamps && (
-                                                    <motion.span
-                                                        className="portfolio__segment-pill"
-                                                        layoutId="storyBurstTimestampsPill"
-                                                        transition={SPRING_SNAPPY}
-                                                    />
-                                                )}
-                                                <span>Hide</span>
+                                                <TriptychReverse size={13} />
+                                                <span>Reverse</span>
                                             </button>
-                                        </div>
-                                    )}
-                                    {isDuetLayout && (
-                                        <button
-                                            type="button"
-                                            className={`story-export-modal__reverse-btn story-export-modal__swap-pill ${
-                                                isSwapDisabled ? 'story-export-modal__swap-pill--disabled' : ''
-                                            }`}
-                                            onClick={handleSwapSlots}
-                                            disabled={isSwapDisabled}
-                                            title={isSwapDisabled ? undefined : 'Swap Top and Bottom photos'}
-                                            aria-label="Swap Top and Bottom photos"
-                                            aria-disabled={isSwapDisabled}
-                                            tabIndex={isSwapDisabled ? -1 : 0}
-                                        >
-                                            <ArrowLeftRight size={13} />
-                                            <span>Swap</span>
-                                        </button>
-                                    )}
-                                    {canReverseTriptych && (
-                                        <button
-                                            type="button"
-                                            className="story-export-modal__reverse-btn"
-                                            onClick={handleReverseTriptychSlots}
-                                            title="Reverse frame sequence (invert top and bottom)"
-                                            aria-label="Reverse frame sequence"
-                                        >
-                                            <TriptychReverse size={13} />
-                                            <span>Reverse</span>
-                                        </button>
-                                    )}
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
 
                             {!isFrameSelectorSuppressed && (
                                 <div className="story-export-modal__burst-selector" style={{ marginTop: '0.5rem' }}>

@@ -957,6 +957,16 @@ describe('StoryLayoutTab - Single Photo Selector and Crop Zoom Removal', () => {
         expect(badge).not.toBeNull();
         expect(badge?.textContent).toBe('(+0.21s)');
 
+        // Option A: Dedicated timestamp row and slot header row are rendered as separate rows
+        const timestampRow = container.querySelector('.story-export-modal__timestamp-row');
+        const slotHeaderRow = container.querySelector('.story-export-modal__slot-header');
+        expect(timestampRow).not.toBeNull();
+        expect(slotHeaderRow).not.toBeNull();
+        expect(timestampRow?.textContent).toContain('+Δt');
+        expect(timestampRow?.textContent).toContain('Timestamps');
+        expect(slotHeaderRow?.textContent).toContain('Duet Frames');
+        expect(slotHeaderRow?.querySelector('.story-export-modal__swap-pill')).not.toBeNull();
+
         // When timestamp is hidden, badge is not rendered
         rerender(
             <StoryLayoutTab
