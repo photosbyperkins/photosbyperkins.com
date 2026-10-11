@@ -1,42 +1,67 @@
 # Photography Portfolio Boilerplate
 
-An incredibly fast, highly automated photography portfolio built for action photographers. Originally designed for [photosbyperkins.com](https://photosbyperkins.com), this open-source template transforms raw image directories into a blazingly fast, standalone PWA with automated EXIF extraction, face detect cropping, next-gen AVIF processing, and ZIP archive generation.
+An incredibly fast, highly automated photography portfolio built for action and sports photographers. Originally designed for [photosbyperkins.com](https://photosbyperkins.com), this open-source template transforms raw image directories into a blazingly fast, standalone PWA with automated EXIF extraction, AI subject and face detection, next-gen AVIF encoding with SSIMULACRA 2 quality calibration, an animated 9:16 Story Maker Studio, and background Web Worker ZIP generation.
 
-## Features
+---
 
-- **100% Client-Side**: Once built, it's a completely static site (JSON + Media).
-- **Fully Automated Data Pipeline**: Drop images in folders, and the system automatically extracts metadata, resizes, compresses, and maps faces.
-- **Story Maker Studio (9:16 Social Export)**: Full-featured client-side canvas studio creating high-resolution 1080×1920 social cards for Instagram Stories and TikTok. Features 9:16 Crop Mode, Padded Canvas, 3-panel Sequential Burst / Triptych mode (with arbitrary aspect ratio support and dynamic zoom), 8 non-destructive photo filters, 27 handcrafted frames with dynamic badge avoidance, live EXIF telemetry viewfinder, and native Web Share.
-- **Multi-Photo Selection & Batch Actions**: Select multiple photos across an album grid with tap, click, or Shift+click range selection. Batch favorite, batch download customized ZIP archives via Web Worker, generate shareable DEFLATE URLs, or launch directly into Story Maker (in single-photo or 3-panel triptych mode with interactive slot assignment).
-- **AVIF Next-Gen Format & SSIMULACRA 2 Optimization**: Gallery thumbnails and full-display lightbox photos are encoded in AVIF calibrated via SSIMULACRA 2 ($\ge 78$ visual score), saving ~35% storage and bandwidth over legacy WebP while preserving pristine image fidelity. Original full-resolution downloads and album ZIP archives are preserved as standard `.jpg` and `.zip` for universal client compatibility.
-- **Persistent Face Tracking & Focal Centering**: Build pipeline automatically hydrates focal coordinates (`focusX`, `focusY`, `faces`) across indexing runs from `data/.faces_cache.json`, ensuring responsive CSS `object-position` thumbnail framing and multi-person story presets are preserved.
-- **Zero-Downtime Migration & Transparent Fallback**: Apache rewrite rules transparently map any cached or external `.webp` requests to `.avif`, ensuring zero 404s.
-- **Service Worker PWA**: Works offline, fully cache-enabled using Vite PWA.
-- **Glassmorphic UI**: A stunning, modern, hardware-accelerated interface with rigid, touch-friendly ergonomics.
-- **Favorites & Web Worker Zipping**: Star your favorite photos and batch download them entirely client-side using `fflate` in a background Web Worker!
-- **Shareable Favorites URLs**: Share curated photo selections via lightweight, DEFLATE-compressed, database-free URLs.
-- **Lightbox Scrubber**: Drag-to-navigate sprite-sheet scrubber for fast album browsing within the lightbox.
-- **Fuzzy Search Engine**: Instantly find teams with typo-tolerant search powered by `fuse.js`.
+## ⚡ Features
+
+### 🎬 Animated Story Maker Studio (9:16 Social Export)
+- **High-Resolution Social Cards**: Full-featured client-side canvas studio exporting 1080×1920 social cards for Instagram Stories, TikTok, and mobile viewing.
+- **Solo, Duet & Triptych Layouts**: Supports 9:16 Full-Bleed Crop, Padded Canvas, 2-panel Duet, and 3-panel sequential burst mode with dynamic aspect ratio preservation, interactive slot reordering (Swap & Reverse), and delta timestamps (+Δt).
+- **36 Handcrafted SVG Frames**: Spanning 6 distinct categories (Action, Cosmic, Retro, Tech, Derby, and ASCII) with dynamic badge avoidance for attribution watermarks and scoreboard badges.
+- **Live Motion & Client-Side MP4 Export**: Real-time 30 FPS animated frame engine compositing dynamic entrance effects (wipe, slide, pop, slash, typewriter) and looping ambient animations (twinkle, pulse, drift, glitch, shimmer, blink, scanline scroll, spin, flicker). Exports hardware-accelerated 1080×1920 MP4 videos via `mediabunny` or crisp still PNGs.
+- **Dynamic Frame Tint & Background Color**: Live color popover featuring ink, white, gold, red, and cyan swatches alongside a custom hex color picker.
+- **8 Non-Destructive Photo Filters**: Tailored grading styles with a real-time filter strength slider.
+- **Adaptive Studio Ergonomics**: Responsive layouts tailored to the device:
+  - `side`: Landscape desktop & tablet view with side-by-side preview and controls.
+  - `stacked`: Tall tablet view with top preview and persistent lower panel.
+  - `sheet`: Mobile phone view with collapsible swipeable bottom drawer and integrated multi-state export button.
+
+### 🚀 Zero-Waterfall Performance & Modern Architecture
+- **React 19 + Vite 8 + TypeScript**: Built on modern web standards with strict typing.
+- **Zero-Waterfall Startup**: Inlined `__INITIAL_INDEX__` in `index.html` eliminates initial manifest roundtrips; active season JSON and content-hashed recap sprites are preloaded immediately.
+- **Content-Hashed Sprite Versioning**: Content-hashed filenames (`recapHash`, `scrubberHash`) for both season recap banners and album scrubber sprites guarantee immutable long-term caching and zero stale asset bugs.
+- **Modular CSS Architecture**: Extracted base/reset rules into `_base.scss`, reducing lazy modal SCSS bundle duplication across dialogs by 63%–91%.
+- **GPU-Accelerated Touch Motion**: Hardware-composited animations via Framer Motion v14 with spring physics, roving tabindex navigation, and tactile haptic feedback (`navigator.vibrate`) on supported mobile devices.
+- **Optimized Store Sync**: Deduplicated `localStorage` serialization in Zustand for persisted state slices.
+
+### 🖼️ Next-Gen AVIF & Automated Subject Detection
+- **SSIMULACRA 2 Calibrated AVIF**: Gallery thumbnails and full-display lightbox photos are encoded in AVIF calibrated via SSIMULACRA 2 ($\ge 78$ visual score), saving ~35% bandwidth over WebP while preserving pristine image detail. Full-resolution JPEG originals and album ZIPs remain standard `.jpg` and `.zip` for universal client compatibility.
+- **AI Subject & Face Detection**: SCRFD-10G face detection combined with YOLOX-L person detection (DirectML GPU on Windows / CPU fallback), ranking subjects by sharpness, size, and confidence.
+- **Intelligent Fallbacks**: Skaters with helmet-obscured faces automatically fall back to upper-body/head region estimation and sharpness-weighted saliency maps.
+- **Persistent Focal Coordinates**: Caches detected subjects (`focusX`, `focusY`, `faces`, `subjects`) in `data/.faces_cache.json` across indexing runs to power CSS `object-position` thumbnail framing, album scrubber sprites, and Story Maker initial centering.
+
+### 📦 Multi-Photo Selection, Batch Actions & Favorites
+- **Multi-Photo Selection**: Tap, click, or Shift+click range selection across album grids.
+- **Client-Side ZIP Generation**: Batch download customized ZIP archives generated entirely client-side using `fflate` inside a dedicated background Web Worker.
+- **Event & Global Favorites**: Organize favorites globally or by specific event, and download event-scoped favorite archives.
+- **Direct Studio Launch**: Launch multi-photo selections directly into Story Maker Duet or Triptych sequential burst modes with automatic slot assignment.
+- **Shareable Favorites URLs**: Share curated selections through lightweight, DEFLATE-compressed query parameters without requiring a backend database.
+
+### 🔍 Discovery, Lightbox & Stats
+- **Interactive Lightbox & Scrubber**: Drag-to-navigate sprite-sheet scrubber with touch gesture support, isolated EXIF telemetry display, full-screen zoom, and keyboard shortcuts.
+- **Categorized Fuzzy Search**: Powered by `fuse.js`, prioritizing Leagues & Groups above Individual Teams, season gear, and year archives.
+- **Season Recaps & Gear Showcase**: Animated recap banners composited from highlight slices, plus interactive Apple-glass modals (`GearModal.tsx`) detailing each season's primary camera and lens with technical specifications and direct links to manufacturer product pages.
 - **WFTDA Stats Integration**: Automatically fetches global rankings and match histories from official WFTDA data if folder names match known bouts.
-- **Year Recap Sprites**: Animated recap banners composited from focus-cropped album highlights.
-- **Favorite Camera & Lens Modals**: Interactive badges in the season recap banner showcasing each season's primary camera and lens with technical specifications and direct links to official manufacturer product pages.
-- **Automated Social Cards**: Generates beautifully branded OpenGraph images for every single album to ensure rich link previews across social media.
+- **Automated Social Cards**: Generates branded OpenGraph images for every album for rich social media link previews.
+- **Service Worker PWA**: Fully offline-capable Progressive Web App with intelligent precache quota recovery.
 
 ---
 
 ## 🛠 Prerequisites
 
 1. **Node.js** (v18+)
-2. **Python 3.10+** (for subject detection in `scripts/detectFaces.py`)
-   - Run `pip install -r scripts/requirements.txt` (uses ONNX Runtime with DirectML on Windows for GPU inference; models are downloaded and checksum-verified into `data/models/` on first run)
-3. **Environment Config**: Copy `.env.example` to `.env` and fill out your variables!
-4. **Favicon**: Drop an `icon.svg` into the root folder to completely customize the PWA icons, otherwise it defaults to a clean, generic camera.
+2. **Python 3.10+** (for subject and face detection in `scripts/detectFaces.py`):
+   - Run `pip install -r scripts/requirements.txt` (uses ONNX Runtime with DirectML on Windows for GPU inference; models are downloaded and checksum-verified into `data/models/` on first run).
+3. **Environment Config**: Copy `.env.example` to `.env` and configure your variables.
+4. **Favicon**: Drop an `icon.svg` into the root directory to customize the PWA icons (defaults to a generic camera icon).
+
+---
 
 ## 📂 Organizing Your Photos
 
-This project relies aggressively on folder structure! Place your unwatermarked, full-resolution JPEG files inside the `photos/` directory at the project root.
-
-The system expects your directories to be structured exactly like this:
+Place your unwatermarked, full-resolution JPEG files inside the `photos/` directory at the project root:
 
 ```text
 photos/
@@ -52,65 +77,86 @@ photos/
 
 ### 🏆 Team Names & Scores (`score.json`)
 
-The build pipeline intelligently parses your folder names. If it sees `vs` or `versus`, it attempts to match it against **WFTDA stats**.
+The build pipeline intelligently parses folder names:
 
-- **Name Format**: Naming a folder `MM_DD Team One vs Team Two` allows the script to derive the Match Date and both competing teams.
-- **Local Scores**: Drop a `score.json` file inside that folder to explicitly set match scores on the UI:
+- **Name Format**: Naming a folder `MM_DD Team One vs Team Two` allows the script to derive the match date and both competing teams.
+- **Local Scores**: Drop a `score.json` file inside the folder to set match scores:
   ```json
   {
     "team1Score": 320,
     "team2Score": 102
   }
   ```
-- **WFTDA Integration**: Automatically fetches global rankings and match histories from `stats.wftda.com` during the build pipeline. If your folder's derived date and derived team names correspond to an actual WFTDA bout configured in `data/wftda-urls.json`, those official stats automatically populate on the frontend!
-- **Team Abbreviations**: You can automatically abbreviate long team names in the Frontend UI (e.g. "Sacramento Roller Derby" -> "SRD") by providing a JSON string dictionary in your `.env` file under the key `VITE_TEAM_ABBREVIATIONS`. 
-  - *Example*: `VITE_TEAM_ABBREVIATIONS='{"Sacramento Roller Derby":"SRD"}'`
-- **About Me Blurb**: To customize the text in the "Behind the Lens" popup, define `VITE_ABOUT_ME` in your `.env`. You can use `\n\n` to automatically create new paragraphs.
-- **Profile Photo**: To display your own picture in the "Behind the Lens" popup, simply drop a file named `profile_photo.jpg` into your `photos/` directory (making it available at `/photos/profile_photo.jpg` on your server).
-- **Favorite Camera & Lens Modals**: In the Season Recap strip, the photographer's favorite camera body and favorite lens for each season are featured with heart badges. Clicking either badge opens a native Apple-glass modal (`GearModal.tsx`) showcasing detailed technical specifications (sensor, mount, aperture, optical elements, autofocus, weight), and an external button navigating directly to the official product page on Nikon USA or Sigma Photo.
+- **WFTDA Integration**: Automatically matches derived dates and teams against `data/wftda-urls.json` to scrape official rankings and match histories.
+- **Team Abbreviations**: Define `VITE_TEAM_ABBREVIATIONS` in `.env` to abbreviate long team names on mobile (e.g. `VITE_TEAM_ABBREVIATIONS='{"Sacramento Roller Derby":"SRD"}'`).
+- **About Me Blurb**: Define `VITE_ABOUT_ME` in `.env` to customize the "Behind the Lens" modal (`\n\n` creates paragraphs).
+- **Profile Photo**: Place `profile_photo.jpg` in `photos/` (served at `/photos/profile_photo.jpg`).
+- **Season Gear Showcase**: Define favorite camera bodies and lenses in `data/gearData.ts`. Clicking badges in the Season Recap strip opens detailed specs and manufacturer product links.
+
+---
+
+## 📜 Available Scripts
+
+| Command | Description |
+|---|---|
+| `npm run dev` | Starts the local Vite development server. |
+| `npm test` | Runs the full Vitest unit test suite (108 test files, 995+ tests). |
+| `npm run test:e2e` | Runs Playwright end-to-end integration tests. |
+| `npm run typecheck` | Validates TypeScript across application code and build scripts. |
+| `npm run build` | Executes the complete multi-phase asset and data generation pipeline. |
+| `npm run build:client` | Builds production frontend client assets with Vite. |
+| `npm run deploy` | Deploys static build artifacts to remote server via SSH/SCP. |
+| `npm run sync-media` | Synchronizes generated media assets (`thumbnails/`, `avif/`, `scrubber/`, `recap/`, `zips/`) to the remote server over SSH. |
+| `npm run populate-scores` | Scaffolds empty `score.json` stubs for event folders with `"vs"`. |
+| `npm run fix-permissions` | Normalizes remote directory (755) and file (644) permissions over SSH. |
+| `npm run favicon` | Generates PWA and web icons from `icon.svg`. |
+| `npm run faces` | Runs the Python subject/face detection script independently. |
+| `npm run clean` | Cleans `dist/` and build staging folders. |
+| `npm run lint` / `npm run format` | Runs ESLint and Prettier. |
+
+---
 
 ## 🚀 Build Pipeline (`npm run build`)
 
-Running `npm run build` triggers an intense, multi-phase pipeline orchestrated by `scripts/build.ts`. All build step scripts live in `scripts/pipeline/`.
+Running `npm run build` triggers a multi-phase pipeline orchestrated by `scripts/build.ts` with modules in `scripts/pipeline/`:
 
 ### Phase 1 — Setup
-- **Clean** → **Format** → **TypeScript Check**
+- **Clean** → **Format** → **TypeScript Validation**.
 
 ### Phase 2 — In-Memory Pipeline (Indexing & Master Encoding)
-- **Index Photos (`generatePhotoIndex`)**: `exifr` EXIF extraction into a global JSON state. Automatically hydrates existing focal coordinates (`focusX`, `focusY`, `faces`) and quality scores directly from `data/.faces_cache.json`, preventing standalone indexing runs from wiping out face centering data.
-- **Master Encoder (`encodePhotos`)**: Generates AVIF thumbnails (using a shared SSIMULACRA 2 worker pool), full-display AVIF conversions, and processed JPEGs with IPTC/XMP copyright tags.
-- **Parallel Tasks**: Favicon Generation & WFTDA Scraping run simultaneously.
+- **Index Photos (`generatePhotoIndex`)**: Extracts EXIF metadata via `exifr`. Hydrates focal coordinates (`focusX`, `focusY`, `faces`) from `data/.faces_cache.json`.
+- **Master Encoder (`encodePhotos`)**: Generates AVIF thumbnails (using a multi-core SSIMULACRA 2 worker pool), full-display AVIF conversions, and copyright-tagged JPEGs.
+- **Parallel Tasks**: Favicon generation and WFTDA stats scraping run simultaneously.
 
-### Phase 3 — Python Interop
-- Serializes the state to `data/photos.json`.
-- Runs **Subject Detection** (`detectFaces.py`): tiled SCRFD-10G face detection plus YOLOX-L person detection (ONNX Runtime, GPU via DirectML when available; OpenCV YuNet fallback), ranked by sharpness, size and confidence so the primary subject comes first. Photos without a usable face fall back to the lead person's head region, then to a sharpness-weighted saliency map. Writes `focusX`/`focusY`/`focusSource`, `faces` and `subjects` boxes, and caches results (keyed by thumbnail size + mtime) to `data/.faces_cache.json`.
-- Deserializes the updated state.
+### Phase 3 — AI Subject & Face Detection
+- Serializes state to `data/photos.json`.
+- Runs **Subject Detection** (`detectFaces.py`): SCRFD-10G face detection + YOLOX-L person detection with DirectML GPU acceleration, ranked by sharpness, size, and confidence. Falls back to upper body/head estimation and sharpness-weighted saliency maps. Writes detected boxes to `data/.faces_cache.json`.
+- Deserializes updated coordinates back into pipeline state.
 
 ### Phase 4 — Data Modifiers & Chunking
-- **Generate Zips**: Builds offline ZIP archives.
-- **Chunk Data**: Splits `photos.json` into per-year JSON payloads with computed stats.
+- **Generate Zips**: Builds offline event ZIP archives.
+- **Chunk Data**: Splits `photos.json` into per-year JSON payloads with computed season statistics.
 
-### Phase 5 — Sprites
-- **Generate Recaps**: Composites pre-cropped highlight slices into sprite sheets.
-- **Generate Scrubber**: Generates 72x48 lightbox scrubber sprites per album, utilizing the face-detection focus coordinates.
+### Phase 5 — Sprites & Scrubber Generation
+- **Generate Recaps**: Composites focus-cropped highlight slices into sprite sheets with content-hashed versioning (`recapHash`).
+- **Generate Scrubber**: Generates 72×48 lightbox scrubber sprites per album with content-hashed versioning (`scrubberHash`).
 
-### Phase 6 — Process & Copy Photos
-- Moves finalized image assets to the `dist/` directory for production.
+### Phase 6 — Asset Staging
+- Moves finalized media and sprite assets to `dist/`.
 
-### Phase 7 — Vite Build & External Outputs
-- **Vite Build**
-- **Parallel Tasks**: Generate Social Cards, Sitemap, and Share Pages run simultaneously.
+### Phase 7 — Vite Client Build & Outputs
+- Builds client bundle with inlined `__INITIAL_INDEX__`.
+- Generates OpenGraph social cards, XML sitemaps, and standalone share pages in parallel.
+
+---
 
 ## 🚢 Deployment (`npm run deploy`)
 
-Deployment wraps up exactly what is needed into the staging directory and transfers it over SSH via `scp`. 
-
-Edit your `.env` file to match your SFTP/SSH host. The deploy script intelligently prunes orphaned UI build artifacts inside `/assets` but heavily decreases deployment times by skipping media uploads.
+Deployment bundles code artifacts and uploads them over SSH via `scp`. Configure your SFTP/SSH host settings in `.env`.
 
 ### ⚠️ Important Media Upload Note
 
-Because media generation produces massive directories, `npm run deploy` intentionally **skips** deploying the following folders to save bandwidth and guarantee lightning-fast code updates:
-
+To ensure fast code updates and conserve bandwidth, `npm run deploy` intentionally **skips** uploading heavy media directories:
 - `/photos` (original high-res JPEGs)
 - `/avif` (full-display AVIFs)
 - `/thumbnails` (AVIF thumbnails)
@@ -119,54 +165,30 @@ Because media generation produces massive directories, `npm run deploy` intentio
 - `/zips` (offline zip archives)
 - `/webp` (legacy webp fallback, if present)
 
-To upload your media, use `npm run sync-media` to automatically synchronize new media assets over SSH without re-uploading existing files, or use an SFTP client (like **FileZilla** or **Cyberduck**) to drag those directories into your server's `public_html`.
+To upload media, run `npm run sync-media` to incrementally transfer new or modified media assets without re-uploading existing files, or use an SFTP client (like FileZilla or Cyberduck) to sync media directories to your server's `public_html`.
+
+---
 
 ## 🔧 Standalone Utilities
 
-These scripts live in `scripts/` and can be run independently — they are **not** invoked by the main build pipeline. Run them with `npm run <script>` or `npx tsx scripts/<name>.ts`.
-
----
-
-### `populateEventScores.ts`
-
-Scans all event directories under `/photos` and creates a `score.json` stub in any event folder containing `"vs"` that doesn't already have one. This is a convenience scaffold — fill in the generated stubs with the actual scores before building.
-
-**Generated `score.json` structure:**
-```json
-{ "team1Score": null, "team2Score": null }
-```
-
-```bash
-npm run populate-scores
-# or
-npx tsx scripts/populateEventScores.ts
-```
-
----
+These scripts live in `scripts/` and can be run independently:
 
 ### `syncMedia.ts`
-
-Synchronizes generated static media assets (`thumbnails/`, `avif/`, `scrubber/`, `recap/`, `zips/`) from your local `build/` directory directly to the remote server over SSH.
-
-- **Smart Skip**: Catalogs all existing remote files in a single pass before transferring, skipping any files already present on the remote host.
+Synchronizes generated static media (`thumbnails/`, `avif/`, `scrubber/`, `recap/`, `zips/`) from `dist/` or `build/` to the remote server over SSH.
+- **Single-Pass Catalog**: Catalogs existing remote files in one pass before transferring, skipping any files already present.
 - **Atomic Transfer**: Uses SSH/SCP streaming with automated permission verification (755 directories, 644 files).
-
 ```bash
 npm run sync-media
-# or
-npx tsx scripts/syncMedia.ts
 ```
 
----
+### `populateEventScores.ts`
+Scans event directories under `photos/` and creates a `score.json` stub in any event folder containing `"vs"` that lacks one.
+```bash
+npm run populate-scores
+```
 
 ### `fixPermissions.ts`
-
-SSH recovery utility to reset and normalize remote server file permissions on Bluehost (`chmod 755` on directories, `chmod 644` on files).
-
+SSH recovery utility to reset and normalize remote server file permissions (`chmod 755` for directories, `chmod 644` for files).
 ```bash
 npm run fix-permissions
-# or
-npx tsx scripts/fixPermissions.ts
 ```
-
-
