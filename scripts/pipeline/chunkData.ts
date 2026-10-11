@@ -645,21 +645,12 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
 
                     const customSlug = slugify(name);
                     if (!globalTeamsList[customSlug]) {
-                        const customEvMeta: ProcessedEventData = {
-                            ...event,
-                            album: [],
-                            ...(scrubberHash ? { scrubberHash } : {}),
-                            wftdaMatch: null,
-                            wftdaRankings: {},
-                        };
                         globalTeamsList[customSlug] = {
                             name: name,
                             events: {},
                         };
-                        globalTeamsList[customSlug].events[`[${year}] ${eventName}`] = customEvMeta;
-                    } else {
-                        globalTeamsList[customSlug].events[`[${year}] ${eventName}`] = evMeta;
                     }
+                    globalTeamsList[customSlug].events[`[${year}] ${eventName}`] = evMeta;
                 }
             });
         }
