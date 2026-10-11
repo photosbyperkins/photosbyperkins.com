@@ -20,6 +20,8 @@
     transition: opacity var(--transition-fast);
     animation: railIn var(--dur-base) var(--ease-out-expo) backwards;
     margin-left: calc(-54px - 1.5rem);
+    // Align initial position with the first event card (skips favorites header / year dividers)
+    margin-top: var(--first-event-offset, 0px);
 
     // Hide on very short landscape viewports to prevent vertical clipping
     @media (max-height: 520px) {

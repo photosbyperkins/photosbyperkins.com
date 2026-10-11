@@ -8,6 +8,7 @@ import { usePortfolioData } from '../../../hooks/usePortfolioData';
 import { usePortfolioScroll } from '../../../hooks/usePortfolioScroll';
 import { usePortfolioSearch } from '../../../hooks/usePortfolioSearch';
 import { useStickyHeader } from '../../../hooks/useStickyHeader';
+import { useFirstEventOffset } from '../../../hooks/useFirstEventOffset';
 import { useCanShare } from '../../../hooks/useCanShare';
 import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock';
 import { useAppStore } from '../../../store/useAppStore';
@@ -109,6 +110,7 @@ export default function Portfolio({ years }: PortfolioProps) {
     });
 
     const { stickyRef, sentinelRef } = useStickyHeader();
+    useFirstEventOffset(stickyRef);
 
     const portfolioRef = useRef<HTMLDivElement>(null);
     const inView = useInView(portfolioRef, { once: true, margin: '-60px' });

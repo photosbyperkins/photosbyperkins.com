@@ -1,6 +1,9 @@
 import React from 'react';
 import { ExternalLink } from '../../ui/icons';
 import type { GearItem } from '../../../data/gearData';
+// Card + spec-grid styles live alongside the gear modal; import directly so they don't
+// depend on the lazily-loaded GearModal chunk having been opened first.
+import '../../../styles/_gear-modal.scss';
 
 interface GearInfoHeaderProps {
     gear: GearItem;
