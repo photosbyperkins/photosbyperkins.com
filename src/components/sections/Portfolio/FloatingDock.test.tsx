@@ -4,6 +4,7 @@ import { render, screen, fireEvent, cleanup, act } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom';
 import Portfolio from './index';
 import { useAppStore } from '../../../store/useAppStore';
+import { stripMotionProps } from '../../../testUtils/stripMotionProps';
 
 vi.mock('framer-motion', () => ({
     motion: {
@@ -12,7 +13,7 @@ vi.mock('framer-motion', () => ({
             className,
             ...props
         }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode }) => (
-            <div className={className} {...props}>
+            <div className={className} {...stripMotionProps(props)}>
                 {children}
             </div>
         ),
@@ -21,7 +22,7 @@ vi.mock('framer-motion', () => ({
             className,
             ...props
         }: React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }) => (
-            <aside className={className} {...props}>
+            <aside className={className} {...stripMotionProps(props)}>
                 {children}
             </aside>
         ),
@@ -30,7 +31,7 @@ vi.mock('framer-motion', () => ({
             className,
             ...props
         }: React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }) => (
-            <article className={className} {...props}>
+            <article className={className} {...stripMotionProps(props)}>
                 {children}
             </article>
         ),
@@ -39,7 +40,7 @@ vi.mock('framer-motion', () => ({
             className,
             ...props
         }: React.HTMLAttributes<HTMLSpanElement> & { children?: React.ReactNode }) => (
-            <span className={className} {...props}>
+            <span className={className} {...stripMotionProps(props)}>
                 {children}
             </span>
         ),
@@ -48,7 +49,7 @@ vi.mock('framer-motion', () => ({
             className,
             ...props
         }: React.ButtonHTMLAttributes<HTMLButtonElement> & { children?: React.ReactNode }) => (
-            <button className={className} {...props}>
+            <button className={className} {...stripMotionProps(props)}>
                 {children}
             </button>
         ),

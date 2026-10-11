@@ -32,6 +32,12 @@
                 animation: none;
             }
 
+            @media (max-width: 768px) {
+                background: var(--color-bg);
+                -webkit-backdrop-filter: none;
+                backdrop-filter: none;
+            }
+
             @media (max-width: 480px) {
                 min-height: 48px;
                 padding: max(6px, env(safe-area-inset-top, 6px)) 0.75rem 6px;

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, within, waitFor } from '@testing-library/react';
 import { StoryFramesTab } from './StoryFramesTab';
 import { STORY_FRAME_DEFINITIONS } from '../storyFrames/frameDefinitions';
 import { STORY_FRAME_CATEGORIES, type StoryFrameId } from '../storyFrames/types';
@@ -223,13 +223,13 @@ describe('StoryFramesTab', () => {
         expect(screen.queryByRole('button', { name: /Change tint/i })).toBeNull();
     });
 
-    it('updates custom color when the color input value changes', () => {
+    it('updates custom color when the color input value changes', async () => {
         render(<StoryFramesTab {...mockProps} />);
         openTint();
 
         fireEvent.change(screen.getByLabelText(/Custom frame tint color/i), { target: { value: '#10b981' } });
 
-        expect(mockProps.setFrameColorChoice).toHaveBeenCalledWith('custom');
+        await waitFor(() => expect(mockProps.setFrameColorChoice).toHaveBeenCalledWith('custom'));
         expect(mockProps.setFrameCustomColor).toHaveBeenCalledWith('#10b981');
         expect(mockProps.setIsDownloaded).toHaveBeenCalledWith(false);
     });

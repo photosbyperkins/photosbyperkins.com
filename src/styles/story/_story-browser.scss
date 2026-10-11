@@ -640,6 +640,8 @@ $story-section-header-gap: 6px;
     cursor: pointer;
     touch-action: manipulation;
     -webkit-tap-highlight-color: transparent;
+    content-visibility: auto;
+    contain-intrinsic-size: 80px 140px;
 
     &__media {
         position: relative;

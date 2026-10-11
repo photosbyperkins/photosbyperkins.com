@@ -4,14 +4,24 @@ import Nav from './components/sections/Nav';
 import Footer from './components/sections/Footer';
 import PwaStatusToast from './components/ui/PwaStatusToast';
 import { getBuildNumber } from './utils/build';
+import { useAppStore } from './store/useAppStore';
 
 const About = lazy(() => import('./components/sections/About'));
-const Portfolio = lazy(() => import('./components/sections/Portfolio'));
+const portfolioPromise = import('./components/sections/Portfolio');
+const Portfolio = lazy(() => portfolioPromise);
 const IframeOverlay = lazy(() => import('./components/ui/IframeOverlay'));
 const AiPolicyModal = lazy(() => import('./components/ui/AiPolicyModal'));
 const CodeLicenseModal = lazy(() => import('./components/ui/CodeLicenseModal'));
 const PhotoLicenseModal = lazy(() => import('./components/ui/PhotoLicenseModal'));
 const GearModal = lazy(() => import('./components/ui/GearModal'));
+
+function useHasEverBeenTrue(value: boolean): boolean {
+    const [hasBeenTrue, setHasBeenTrue] = useState(value);
+    if (value && !hasBeenTrue) {
+        setHasBeenTrue(true);
+    }
+    return hasBeenTrue;
+}
 
 interface IndexData {
     years: string[];
@@ -39,12 +49,32 @@ function ScrollToMountTarget() {
     return null;
 }
 
+const initialIndexData: IndexData | null =
+    typeof window !== 'undefined' && (window as unknown as { __INITIAL_INDEX__?: IndexData }).__INITIAL_INDEX__
+        ? (window as unknown as { __INITIAL_INDEX__?: IndexData }).__INITIAL_INDEX__!
+        : null;
+
 export default function App() {
-    const [indexData, setIndexData] = useState<IndexData | null>(null);
+    const [indexData, setIndexData] = useState<IndexData | null>(initialIndexData);
     const [fetchError, setFetchError] = useState(false);
     const isMountedRef = useRef(true);
 
+    const isAboutOpen = useAppStore((state) => state.isAboutOpen);
+    const isAiPolicyOpen = useAppStore((state) => state.isAiPolicyOpen);
+    const isCodeLicenseOpen = useAppStore((state) => state.isCodeLicenseOpen);
+    const isPhotoLicenseOpen = useAppStore((state) => state.isPhotoLicenseOpen);
+    const activeGear = useAppStore((state) => state.activeGear);
+    const iframeUrl = useAppStore((state) => state.iframeUrl);
+
+    const hasOpenedAbout = useHasEverBeenTrue(isAboutOpen);
+    const hasOpenedAiPolicy = useHasEverBeenTrue(isAiPolicyOpen);
+    const hasOpenedCodeLicense = useHasEverBeenTrue(isCodeLicenseOpen);
+    const hasOpenedPhotoLicense = useHasEverBeenTrue(isPhotoLicenseOpen);
+    const hasOpenedGear = useHasEverBeenTrue(Boolean(activeGear));
+    const hasOpenedIframe = useHasEverBeenTrue(Boolean(iframeUrl));
+
     const loadIndex = useCallback(() => {
+        if (initialIndexData) return;
         fetch(`/data/index.json?build=${getBuildNumber()}`)
             .then((res) => {
                 if (!res.ok) throw new Error('Network response was not ok');
@@ -64,11 +94,13 @@ export default function App() {
 
     useEffect(() => {
         isMountedRef.current = true;
-        loadIndex();
+        if (!indexData) {
+            loadIndex();
+        }
         return () => {
             isMountedRef.current = false;
         };
-    }, [loadIndex]);
+    }, [indexData, loadIndex]);
 
     return (
         <>
@@ -107,12 +139,12 @@ export default function App() {
             <Footer />
             <PwaStatusToast />
             <Suspense fallback={null}>
-                <About />
-                <IframeOverlay />
-                <AiPolicyModal />
-                <CodeLicenseModal />
-                <PhotoLicenseModal />
-                <GearModal />
+                {hasOpenedAbout && <About />}
+                {hasOpenedIframe && <IframeOverlay />}
+                {hasOpenedAiPolicy && <AiPolicyModal />}
+                {hasOpenedCodeLicense && <CodeLicenseModal />}
+                {hasOpenedPhotoLicense && <PhotoLicenseModal />}
+                {hasOpenedGear && <GearModal />}
             </Suspense>
         </>
     );

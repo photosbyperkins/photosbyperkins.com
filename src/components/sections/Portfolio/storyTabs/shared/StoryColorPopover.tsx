@@ -69,6 +69,29 @@ export const StoryColorPopover: React.FC<StoryColorPopoverProps> = ({
         };
     }, [isOpen]);
 
+    const [localColor, setLocalColor] = useState(currentColor);
+    const [prevCurrentColor, setPrevCurrentColor] = useState(currentColor);
+    if (currentColor !== prevCurrentColor) {
+        setPrevCurrentColor(currentColor);
+        setLocalColor(currentColor);
+    }
+
+    const debounceRef = useRef<number | null>(null);
+
+    const handleCustomColorInput = (color: string) => {
+        setLocalColor(color);
+        if (debounceRef.current) cancelAnimationFrame(debounceRef.current);
+        debounceRef.current = requestAnimationFrame(() => {
+            onCustomColor(color);
+        });
+    };
+
+    useEffect(() => {
+        return () => {
+            if (debounceRef.current) cancelAnimationFrame(debounceRef.current);
+        };
+    }, []);
+
     const activePreset = activePresetId ? presets.find((p) => p.id === activePresetId) : undefined;
     const isCustomActive = !activePreset;
     const isDefaultDot = Boolean(activePreset && !activePreset.color);
@@ -149,7 +172,7 @@ export const StoryColorPopover: React.FC<StoryColorPopoverProps> = ({
                                 className={`story-tint__custom-swatch ${
                                     isCustomActive ? '' : 'story-tint__custom-swatch--wheel'
                                 }`}
-                                style={isCustomActive ? { backgroundColor: currentColor } : undefined}
+                                style={isCustomActive ? { backgroundColor: localColor } : undefined}
                             />
                             {/* Pencil: this swatch opens a colour picker */}
                             <svg className="story-tint__custom-icon" viewBox="0 0 16 16" aria-hidden="true">
@@ -163,8 +186,8 @@ export const StoryColorPopover: React.FC<StoryColorPopoverProps> = ({
                             </svg>
                             <input
                                 type="color"
-                                value={currentColor}
-                                onChange={(e) => onCustomColor(e.target.value)}
+                                value={localColor}
+                                onChange={(e) => handleCustomColorInput(e.target.value)}
                                 className="story-tint__custom-input"
                                 aria-label={customAriaLabel}
                             />

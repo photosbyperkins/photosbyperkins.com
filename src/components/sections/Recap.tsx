@@ -6,7 +6,7 @@ import { useAppStore } from '../../store/useAppStore';
 import { withBuild } from '../../utils/build';
 import { useElementSize } from '../../hooks/useElementSize';
 import { LRUCache } from '../../utils/LRUCache';
-import { fetchAlbum, getCachedAlbum } from '../../utils/albumData';
+import { getCachedAlbum } from '../../utils/albumData';
 import { getPhotoOriginalUrl, toPhotoRecord } from '../../utils/formatters';
 import { Check } from '../ui/icons';
 import type { YearData, PhotoRecord, FavoriteStoreItem } from '../../types';
@@ -231,43 +231,6 @@ export default function Recap({
         return map;
     }, [selectionIndexMapProp, batchSelectedPhotos]);
 
-    const [loadedAlbums, setLoadedAlbums] = useState<Record<string, PhotoRecord[]>>({});
-
-    useEffect(() => {
-        if (!events || !yearData) return;
-        const uniqueEvents = Array.from(new Set(events.map((e) => e.eventName)));
-        let isCancelled = false;
-
-        uniqueEvents.forEach((eventName) => {
-            const evData = yearData[eventName];
-            if (!evData || !evData.albumSlug) return;
-            const year = evData.originalYear || slug;
-            const cacheKey = `${year}/${evData.albumSlug}`;
-
-            if (evData.album && evData.album.length > 0) return;
-
-            const cached = getCachedAlbum(year, evData.albumSlug);
-            if (cached) {
-                setLoadedAlbums((prev) => (prev[cacheKey] === cached ? prev : { ...prev, [cacheKey]: cached }));
-                return;
-            }
-
-            fetchAlbum(year, evData.albumSlug)
-                .then((album) => {
-                    if (!isCancelled) {
-                        setLoadedAlbums((prev) => ({ ...prev, [cacheKey]: album }));
-                    }
-                })
-                .catch(() => {
-                    // Ignore load errors gracefully
-                });
-        });
-
-        return () => {
-            isCancelled = true;
-        };
-    }, [events, yearData, slug]);
-
     const getSlicePhoto = useCallback(
         (meta: RecapEventMeta | undefined): PhotoRecord | null => {
             if (!meta) return null;
@@ -285,8 +248,7 @@ export default function Recap({
             }
 
             if (albumSlug) {
-                const key = `${year}/${albumSlug}`;
-                const cached = loadedAlbums[key] || getCachedAlbum(year, albumSlug);
+                const cached = getCachedAlbum(year, albumSlug);
                 if (cached && cached[photoIndex]) {
                     return toPhotoRecord({
                         ...cached[photoIndex],
@@ -308,7 +270,7 @@ export default function Recap({
 
             return null;
         },
-        [yearData, slug, loadedAlbums]
+        [yearData, slug]
     );
 
     if (slug !== prevSlug || hash !== prevHash) {
@@ -411,19 +373,18 @@ export default function Recap({
         return result;
     }, [slug, visibleCount, count, events]);
 
-    const visibleRecapPhotos = useMemo(() => {
+    const slicePhotos = useMemo(() => {
         if (!events || slices.length === 0) return [];
-        const result: FavoriteStoreItem[] = [];
-        for (const sliceNumber of slices) {
+        return slices.map((sliceNumber) => {
             const eventIdx = sliceNumber - 1;
             const meta = events[eventIdx];
-            const p = getSlicePhoto(meta);
-            if (p && p.original) {
-                result.push(p);
-            }
-        }
-        return result;
+            return getSlicePhoto(meta);
+        });
     }, [slices, events, getSlicePhoto]);
+
+    const visibleRecapPhotos = useMemo(() => {
+        return slicePhotos.filter((p): p is PhotoRecord => p !== null && Boolean(p.original));
+    }, [slicePhotos]);
 
     useEffect(() => {
         if (visibleRecapPhotos.length > 0) {
@@ -449,14 +410,9 @@ export default function Recap({
                 const rangeItems: FavoriteStoreItem[] = [];
 
                 for (let i = start; i <= end; i++) {
-                    const sliceNumber = slices[i];
-                    if (sliceNumber !== undefined && events) {
-                        const eventIdx = sliceNumber - 1;
-                        const meta = events[eventIdx];
-                        const p = getSlicePhoto(meta);
-                        if (p && p.original) {
-                            rangeItems.push(p);
-                        }
+                    const p = slicePhotos[i];
+                    if (p && p.original) {
+                        rangeItems.push(p);
                     }
                 }
 
@@ -468,11 +424,16 @@ export default function Recap({
             }
             lastSelectedIdxRef.current = index;
         },
-        [onToggleSelectProp, slices, events, getSlicePhoto, batchSelectedPhotos, selectBatchPhotos, toggleBatchPhoto]
+        [onToggleSelectProp, slicePhotos, batchSelectedPhotos, selectBatchPhotos, toggleBatchPhoto]
     );
 
+    useEffect(() => {
+        if (slices.length === 0 && onRecapLoadComplete) {
+            onRecapLoadComplete();
+        }
+    }, [slices.length, onRecapLoadComplete]);
+
     if (slices.length === 0) {
-        if (onRecapLoadComplete) onRecapLoadComplete(); // Signal completion immediately if nothing to load
         return null;
     }
 
@@ -486,8 +447,7 @@ export default function Recap({
             <div className="recap__grid">
                 {slices.map((sliceNumber, idx) => {
                     const eventIdx = sliceNumber - 1;
-                    const meta = events ? events[eventIdx] : undefined;
-                    const photo = getSlicePhoto(meta);
+                    const photo = slicePhotos[idx] ?? null;
                     const isSelected = photo?.original ? selectedUrls.has(photo.original) : false;
                     const selectionNum =
                         isSelected && photo?.original && selectionIndexMap

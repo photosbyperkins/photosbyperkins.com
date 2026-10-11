@@ -35,6 +35,9 @@ interface PortfolioEventProps {
     isFavoritesTab?: boolean;
 }
 
+const EMPTY_SELECTED_SET = new Set<string>();
+const EMPTY_SELECTION_MAP = new Map<string, number>();
+
 const PortfolioEvent = memo(function PortfolioEvent({
     eventName,
     ev: initialEv,
@@ -136,6 +139,11 @@ const PortfolioEvent = memo(function PortfolioEvent({
         }
     }, [albumImages, rawAlbumImages, eventName]);
 
+    const highlightImages: PhotoRecord[] = useMemo(() => {
+        if (!ev.highlights) return [];
+        return ev.highlights.map((item: unknown) => toPhotoRecord(item as FavoriteStoreItem));
+    }, [ev.highlights]);
+
     const isBatchSelectMode = useAppStore((state) => state.isBatchSelectMode);
     const batchSelectedPhotos = useAppStore((state) =>
         state.isBatchSelectMode ? state.batchSelectedPhotos : undefined
@@ -145,25 +153,50 @@ const PortfolioEvent = memo(function PortfolioEvent({
     const registerVisiblePhotos = useAppStore((state) => state.registerVisiblePhotos);
     const unregisterVisiblePhotos = useAppStore((state) => state.unregisterVisiblePhotos);
 
+    const eventPhotosSet = useMemo(() => {
+        const set = new Set<string>();
+        for (const p of albumImages) {
+            const u = getPhotoOriginalUrl(p);
+            if (u) set.add(u);
+        }
+        for (const p of highlightImages) {
+            const u = getPhotoOriginalUrl(p);
+            if (u) set.add(u);
+        }
+        return set;
+    }, [albumImages, highlightImages]);
+
     const selectedUrls = useMemo(() => {
         if (!isBatchSelectMode || !batchSelectedPhotos) return undefined;
+        let hasAny = false;
+        for (const p of batchSelectedPhotos) {
+            const u = getPhotoOriginalUrl(p);
+            if (u && eventPhotosSet.has(u)) {
+                hasAny = true;
+                break;
+            }
+        }
+        if (!hasAny) return EMPTY_SELECTED_SET;
+
         const urls = new Set<string>();
         for (const p of batchSelectedPhotos) {
             const u = getPhotoOriginalUrl(p);
-            if (u) urls.add(u);
+            if (u && eventPhotosSet.has(u)) urls.add(u);
         }
         return urls;
-    }, [isBatchSelectMode, batchSelectedPhotos]);
+    }, [isBatchSelectMode, batchSelectedPhotos, eventPhotosSet]);
 
     const selectionIndexMap = useMemo(() => {
         if (!isBatchSelectMode || !batchSelectedPhotos) return undefined;
+        if (selectedUrls === EMPTY_SELECTED_SET) return EMPTY_SELECTION_MAP;
+
         const map = new Map<string, number>();
         batchSelectedPhotos.forEach((p, idx) => {
             const u = getPhotoOriginalUrl(p);
-            if (u) map.set(u, idx + 1);
+            if (u && eventPhotosSet.has(u)) map.set(u, idx + 1);
         });
         return map;
-    }, [isBatchSelectMode, batchSelectedPhotos]);
+    }, [isBatchSelectMode, batchSelectedPhotos, selectedUrls, eventPhotosSet]);
 
     // Warm the scrubber sprite into browser cache as soon as album data arrives.
     // The sprite is used for both the lightbox scrubber and ambient blur background.
@@ -207,12 +240,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
         return () => {
             cancelPreheat(handle as number);
         };
-    }, [albumImages]);
-
-    const highlightImages: PhotoRecord[] = useMemo(() => {
-        if (!ev.highlights) return [];
-        return ev.highlights.map((item: unknown) => toPhotoRecord(item as FavoriteStoreItem));
-    }, [ev.highlights]);
+    }, [albumImages, ev.scrubberHash]);
 
     useEffect(() => {
         if (isSharedEvent && ev.album && ev.album.length > 0 && sharedPhoto) {
@@ -322,7 +350,7 @@ const PortfolioEvent = memo(function PortfolioEvent({
                         });
                     }
                 }
-                const currentBatch = batchSelectedPhotos || [];
+                const currentBatch = useAppStore.getState().batchSelectedPhotos || [];
                 const currentUrls = new Set(currentBatch.map((p) => getPhotoOriginalUrl(p)));
                 const newItems = rangeItems.filter((item) => !currentUrls.has(getPhotoOriginalUrl(item)));
                 selectBatchPhotos([...currentBatch, ...newItems]);
@@ -332,7 +360,6 @@ const PortfolioEvent = memo(function PortfolioEvent({
             lastSelectedIdxRef.current = index;
         },
         [
-            batchSelectedPhotos,
             ev.originalYear,
             selectedYear,
             eventName,

@@ -4,6 +4,7 @@ import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import Portfolio from './index';
 import { useAppStore } from '../../../store/useAppStore';
+import { stripMotionProps } from '../../../testUtils/stripMotionProps';
 
 const mockStartZipping = vi.fn();
 vi.mock('../../../hooks/useZipWorker', () => ({
@@ -22,22 +23,22 @@ vi.mock('../../../hooks/useCanShare', () => ({
 vi.mock('framer-motion', () => ({
     motion: {
         div: ({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode }) => (
-            <div className={className} {...props}>
+            <div className={className} {...stripMotionProps(props)}>
                 {children}
             </div>
         ),
         article: ({ children, className, ...props }: React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }) => (
-            <article className={className} {...props}>
+            <article className={className} {...stripMotionProps(props)}>
                 {children}
             </article>
         ),
         span: ({ children, className, ...props }: React.HTMLAttributes<HTMLSpanElement> & { children?: React.ReactNode }) => (
-            <span className={className} {...props}>
+            <span className={className} {...stripMotionProps(props)}>
                 {children}
             </span>
         ),
         button: ({ children, className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { children?: React.ReactNode }) => (
-            <button className={className} {...props}>
+            <button className={className} {...stripMotionProps(props)}>
                 {children}
             </button>
         ),

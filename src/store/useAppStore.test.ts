@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useAppStore, DEFAULT_STORY_SETTINGS } from './useAppStore';
 import { getPhotoOriginalUrl } from '../utils/formatters';
 
@@ -320,5 +320,24 @@ describe('useAppStore - persistence and migration', () => {
 
         expect(localStorage.getItem('portfolio-favorites')).toBeNull();
         expect(localStorage.getItem('photo-theme-preference')).toBeNull();
+    });
+
+    it('skips writing to localStorage when only ephemeral state changes', () => {
+        const setItemSpy = vi.spyOn(window.localStorage, 'setItem');
+        setItemSpy.mockClear();
+
+        // Updating ephemeral state like lightboxIndex or modal
+        useAppStore.getState().setLightboxIndex(5);
+        useAppStore.getState().openAbout();
+        useAppStore.getState().closeAbout();
+
+        // Storage setItem should not have been called because favorites/theme/storySettings did not change
+        expect(setItemSpy).not.toHaveBeenCalled();
+
+        // But updating persisted state like theme SHOULD write
+        useAppStore.getState().setTheme('dark');
+        expect(setItemSpy).toHaveBeenCalled();
+
+        setItemSpy.mockRestore();
     });
 });

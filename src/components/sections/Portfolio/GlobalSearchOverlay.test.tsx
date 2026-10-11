@@ -3,16 +3,17 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import GlobalSearchOverlay from './GlobalSearchOverlay';
+import { stripMotionProps } from '../../../testUtils/stripMotionProps';
 
 vi.mock('framer-motion', () => ({
     motion: {
         div: ({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode }) => (
-            <div className={className} {...props}>
+            <div className={className} {...stripMotionProps(props)}>
                 {children}
             </div>
         ),
         span: ({ children, className, ...props }: React.HTMLAttributes<HTMLSpanElement> & { children?: React.ReactNode }) => (
-            <span className={className} {...props}>
+            <span className={className} {...stripMotionProps(props)}>
                 {children}
             </span>
         ),

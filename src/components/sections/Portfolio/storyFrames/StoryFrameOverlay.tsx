@@ -8,7 +8,7 @@ import {
     type StoryFrameMotionAssets,
 } from '../../../../utils/story/storyFrameMotionDraw';
 import { DEFAULT_FRAME_INTENSITY, getFrameMotionRecipe, sampleFrameMotion } from '../../../../utils/story/frameMotion';
-import { STORY_VIDEO_DURATION } from '../../../../utils/story/storyAnimation';
+import { STORY_VIDEO_DURATION, STORY_VIDEO_FPS } from '../../../../utils/story/storyAnimation';
 import { contextFromKey, frameContextKey } from './frameContextKey';
 
 interface StoryFrameOverlayProps {
@@ -79,14 +79,24 @@ export const StoryFrameOverlay: React.FC<StoryFrameOverlayProps> = ({
         if (clockStartRef.current === null) clockStartRef.current = performance.now();
         const startTime = clockStartRef.current;
 
-        const render = () => {
+        const FRAME_INTERVAL_MS = 1000 / STORY_VIDEO_FPS;
+        let lastRenderTime = 0;
+
+        const render = (now: number) => {
             if (!isRunning) return;
-            const t = ((performance.now() - startTime) / 1000) % STORY_VIDEO_DURATION;
+            animId = requestAnimationFrame(render);
+
+            const elapsed = now - lastRenderTime;
+            if (elapsed < FRAME_INTERVAL_MS - 2) {
+                return;
+            }
+            lastRenderTime = now - (elapsed % FRAME_INTERVAL_MS);
+
+            const t = ((now - startTime) / 1000) % STORY_VIDEO_DURATION;
             const motionState = sampleFrameMotion(liveRecipe, t, STORY_VIDEO_DURATION, DEFAULT_FRAME_INTENSITY);
             ctx.clearRect(0, 0, 1080, 1920);
             // `undefined` means everything is at rest: draw the static frame (never leave the canvas blank)
             drawFrameMotion(ctx, activeAssets, motionState ?? {}, 1080, 1920);
-            animId = requestAnimationFrame(render);
         };
 
         const handleVisibilityChange = () => {

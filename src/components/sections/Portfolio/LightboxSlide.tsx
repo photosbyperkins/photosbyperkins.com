@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { forwardRef, useImperativeHandle } from 'react';
+import { forwardRef, useImperativeHandle, memo } from 'react';
 import { useSlideZoom } from '../../../hooks/useSlideZoom';
 import { getPhotoDisplayUrl } from '../../../utils/formatters';
 import type { PhotoInput } from '../../../types';
@@ -18,10 +18,11 @@ export interface LightboxSlideProps {
     onSingleClick?: () => void;
 }
 
-const LightboxSlide = forwardRef<LightboxSlideHandle, LightboxSlideProps>(function LightboxSlide(
-    { image, alt, onZoomChange, onCanZoomChange, onLoad, onSingleClick },
-    ref
-) {
+const LightboxSlide = memo(
+    forwardRef<LightboxSlideHandle, LightboxSlideProps>(function LightboxSlide(
+        { image, alt, onZoomChange, onCanZoomChange, onLoad, onSingleClick },
+        ref
+    ) {
     const url = image ? (typeof image === 'string' ? image : image.original) : '';
     const displayUrl = url ? getPhotoDisplayUrl(url) : '';
     const focusX = image && typeof image !== 'string' ? image.focusX : undefined;
@@ -72,6 +73,6 @@ const LightboxSlide = forwardRef<LightboxSlideHandle, LightboxSlideProps>(functi
             />
         </div>
     );
-});
+}));
 
 export default LightboxSlide;

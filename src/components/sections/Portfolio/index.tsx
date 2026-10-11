@@ -38,7 +38,6 @@ const GlobalSearchOverlay = React.lazy(() => import('./GlobalSearchOverlay'));
 const StoryExportModal = React.lazy(() => import('./StoryExportModal'));
 
 import { useSharedFavorites } from '../../../hooks/useSharedFavorites';
-import '../../../styles/_portfolio.scss';
 
 interface PortfolioProps {
     years: string[];
@@ -137,7 +136,7 @@ export default function Portfolio({ years }: PortfolioProps) {
         isGearMode: isGearRoute,
     });
 
-    const events = Object.entries(yearData);
+    const events = useMemo(() => Object.entries(yearData), [yearData]);
 
     const isFavoritesTab = selectedTab === 'favorites';
     const isTeamMode = !years.includes(selectedTab) && !isGearRoute && !isFavoritesTab;
@@ -183,6 +182,27 @@ export default function Portfolio({ years }: PortfolioProps) {
             prefetchTab={prefetchTab}
         />
     );
+
+    const handleRecapLoadComplete = useCallback(() => {
+        setIsRecapLoaded(true);
+    }, [setIsRecapLoaded]);
+
+    const seasonStrip = useMemo(() => {
+        if (!stats) return null;
+        return (
+            <PortfolioSeasonStrip
+                stats={stats}
+                totalEvents={totalEvents}
+                totalPhotos={totalPhotos}
+                firstSeenTeam={firstSeenTeam}
+                mostSeenTeam={mostSeenTeam}
+                cameraGear={cameraGear}
+                lensGear={lensGear}
+                events={events}
+            />
+        );
+    }, [stats, totalEvents, totalPhotos, firstSeenTeam, mostSeenTeam, cameraGear, lensGear, events]);
+
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -517,21 +537,10 @@ export default function Portfolio({ years }: PortfolioProps) {
                             hash={recapHash}
                             overlayText={selectedTab}
                             isYear={true}
-                            onRecapLoadComplete={() => setIsRecapLoaded(true)}
+                            onRecapLoadComplete={handleRecapLoadComplete}
                             yearData={yearData}
                         >
-                            {stats && (
-                                <PortfolioSeasonStrip
-                                    stats={stats}
-                                    totalEvents={totalEvents}
-                                    totalPhotos={totalPhotos}
-                                    firstSeenTeam={firstSeenTeam}
-                                    mostSeenTeam={mostSeenTeam}
-                                    cameraGear={cameraGear}
-                                    lensGear={lensGear}
-                                    events={events}
-                                />
-                            )}
+                            {seasonStrip}
                         </Recap>
                     </div>
                 )}

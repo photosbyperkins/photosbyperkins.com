@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import type { BearPathDef } from './types';
 import { loadSacBearPaths } from './sacBearLoader';
 
@@ -9,7 +9,7 @@ export interface SacBearGraphicProps {
     highlight: string;
 }
 
-export function SacBearGraphic({ transform, primary, accent, highlight }: SacBearGraphicProps) {
+export const SacBearGraphic = memo(function SacBearGraphic({ transform, primary, accent, highlight }: SacBearGraphicProps) {
     const [paths, setPaths] = useState<BearPathDef[] | null>(null);
 
     useEffect(() => {
@@ -35,4 +35,4 @@ export function SacBearGraphic({ transform, primary, accent, highlight }: SacBea
             ))}
         </g>
     );
-}
+});

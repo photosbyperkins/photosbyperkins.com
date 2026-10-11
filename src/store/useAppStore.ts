@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
+import { persist, createJSONStorage, type PersistStorage } from 'zustand/middleware';
 import { createModalSlice, type ModalSlice } from './slices/modalSlice';
 import { createThemeSlice, type ThemeSlice, getSystemTheme, applyThemeToDOM } from './slices/themeSlice';
 import { createPortfolioSlice, type PortfolioSlice } from './slices/portfolioSlice';
@@ -11,6 +11,14 @@ export { DEFAULT_STORY_SETTINGS } from './slices/storySlice';
 
 export type AppStore = ModalSlice & ThemeSlice & PortfolioSlice & StorySlice;
 
+export interface PersistedSlice {
+    favorites: AppStore['favorites'];
+    theme: AppStore['theme'];
+    storySettings: AppStore['storySettings'];
+    recentFrameIds: AppStore['recentFrameIds'];
+    recentFilterIds: AppStore['recentFilterIds'];
+}
+
 const clearLegacyKeys = () => {
     if (typeof window === 'undefined') return;
     try {
@@ -19,6 +27,52 @@ const clearLegacyKeys = () => {
     } catch {
         // ignore
     }
+};
+
+const createDeduplicatedStorage = (): PersistStorage<PersistedSlice> | undefined => {
+    const rawStorage = createJSONStorage<PersistedSlice>(() => {
+        if (typeof window !== 'undefined' && window.localStorage) {
+            return window.localStorage;
+        }
+        const memoryStorage: Record<string, string> = {};
+        return {
+            getItem: (name: string) => memoryStorage[name] ?? null,
+            setItem: (name: string, value: string) => {
+                memoryStorage[name] = value;
+            },
+            removeItem: (name: string) => {
+                delete memoryStorage[name];
+            },
+        };
+    });
+
+    if (!rawStorage) return undefined;
+
+    let lastPersistedState: PersistedSlice | null = null;
+
+    return {
+        getItem: (name) => rawStorage.getItem(name),
+        setItem: (name, newValue) => {
+            const next = newValue.state;
+            if (
+                lastPersistedState !== null &&
+                lastPersistedState.favorites === next.favorites &&
+                lastPersistedState.theme === next.theme &&
+                lastPersistedState.storySettings === next.storySettings &&
+                lastPersistedState.recentFrameIds === next.recentFrameIds &&
+                lastPersistedState.recentFilterIds === next.recentFilterIds
+            ) {
+                // Skip JSON serialization and localStorage.setItem when persisted slices are unchanged
+                return;
+            }
+            lastPersistedState = next;
+            return rawStorage.setItem(name, newValue);
+        },
+        removeItem: (name) => {
+            lastPersistedState = null;
+            return rawStorage.removeItem(name);
+        },
+    };
 };
 
 export const useAppStore = create<AppStore>()(
@@ -31,21 +85,7 @@ export const useAppStore = create<AppStore>()(
         }),
         {
             name: 'photo-app-store',
-            storage: createJSONStorage(() => {
-                if (typeof window !== 'undefined' && window.localStorage) {
-                    return window.localStorage;
-                }
-                const memoryStorage: Record<string, string> = {};
-                return {
-                    getItem: (name: string) => memoryStorage[name] ?? null,
-                    setItem: (name: string, value: string) => {
-                        memoryStorage[name] = value;
-                    },
-                    removeItem: (name: string) => {
-                        delete memoryStorage[name];
-                    },
-                };
-            }),
+            storage: createDeduplicatedStorage(),
             partialize: (state) => ({
                 favorites: state.favorites,
                 theme: state.theme,

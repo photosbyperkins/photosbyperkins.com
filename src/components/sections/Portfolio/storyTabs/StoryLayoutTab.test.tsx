@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { StoryLayoutTab } from './StoryLayoutTab';
 import { isFrameValidForWizardStep } from '../../../../utils/story';
 import type { BurstMetadata } from '../../../../types';
@@ -1206,7 +1206,7 @@ describe('StoryLayoutTab - Single Photo Selector and Crop Zoom Removal', () => {
         expect(screen.queryByLabelText(/BTM Panel Zoom/i)).toBeNull();
     });
 
-    it('renders Solo Background section with inline color picker in header and Frosted | Solid toggle below', () => {
+    it('renders Solo Background section with inline color picker in header and Frosted | Solid toggle below', async () => {
         const setPaddedConfig = vi.fn();
         const onCropChange = vi.fn();
         const setSelectedPresetId = vi.fn();
@@ -1244,8 +1244,10 @@ describe('StoryLayoutTab - Single Photo Selector and Crop Zoom Removal', () => {
         expect(presetUpdater({ style: 'frosted', customColor: '#0a0a14' }).customColor).toBe('#e60000');
 
         fireEvent.change(screen.getByLabelText('Frosted tint color'), { target: { value: '#123456' } });
-        const customUpdater = setPaddedConfig.mock.calls.at(-1)?.[0];
-        expect(customUpdater({ style: 'frosted', customColor: '#0a0a14' }).customColor).toBe('#123456');
+        await waitFor(() => {
+            const customUpdater = setPaddedConfig.mock.calls.at(-1)?.[0];
+            expect(customUpdater({ style: 'frosted', customColor: '#0a0a14' }).customColor).toBe('#123456');
+        });
         setPaddedConfig.mockClear();
 
         // Second row has Frosted and Solid toggle

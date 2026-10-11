@@ -145,7 +145,8 @@ export default defineConfig(({ mode }) => {
                 },
             workbox: {
                 cleanupOutdatedCaches: true,
-                globPatterns: ['**/*.{js,css,ico,png,svg,woff,woff2}'], // Omit html so navigation is never frozen into a stale precache
+                globPatterns: ['**/*.{js,css,ico,png,svg,woff2}'], // Omit html and legacy woff
+                globIgnores: ['**/StoryExportModal-*', '**/src-*.js', '**/zipWorker-*', '**/*.woff'],
                 navigateFallback: null,
                 runtimeCaching: [
                     {
@@ -191,7 +192,8 @@ export default defineConfig(({ mode }) => {
                             cacheName: 'image-cache',
                             expiration: {
                                 maxEntries: 2000,
-                                maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+                                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+                                purgeOnQuotaError: true
                             },
                             cacheableResponse: {
                                 statuses: [0, 200],
@@ -204,7 +206,38 @@ export default defineConfig(({ mode }) => {
         {
             name: 'html-transform',
             transformIndexHtml(html) {
-                return html.replace(/%BUILD_NUMBER%/g, buildNumber);
+                let transformed = html.replace(/%BUILD_NUMBER%/g, buildNumber);
+                try {
+                    const indexPath = path.join(process.cwd(), 'public', 'data', 'index.json');
+                    if (fs.existsSync(indexPath)) {
+                        const indexContent = fs.readFileSync(indexPath, 'utf8').trim();
+                        const parsed = JSON.parse(indexContent);
+                        const latestYear = parsed.years && parsed.years[0];
+                        if (latestYear) {
+                            let recapHash: string | undefined;
+                            try {
+                                const yearPath = path.join(process.cwd(), 'public', 'data', 'years', `${latestYear}.json`);
+                                recapHash = JSON.parse(fs.readFileSync(yearPath, 'utf8')).recapHash;
+                            } catch {
+                                recapHash = undefined;
+                            }
+                            const preloads = [
+                                `<script>window.__INITIAL_INDEX__ = ${indexContent.replace(/</g, '\\u003c')};</script>`,
+                                `<link rel="preload" href="/data/years/${latestYear}.json?build=${buildNumber}" as="fetch" crossorigin />`,
+                            ];
+                            // Only preload when the exact URL Recap will request is known; a mismatch would download it twice.
+                            if (recapHash) {
+                                preloads.push(
+                                    `<link rel="preload" href="/recap/${latestYear}/sprite.webp?h=${recapHash}" as="image" type="image/webp" />`
+                                );
+                            }
+                            transformed = transformed.replace('</head>', `  ${preloads.join('\n  ')}\n</head>`);
+                        }
+                    }
+                } catch (e) {
+                    console.error('Failed to inject preloads in html-transform:', e);
+                }
+                return transformed;
             },
         },
     ],

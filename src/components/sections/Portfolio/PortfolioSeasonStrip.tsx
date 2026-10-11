@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import { Link } from 'react-router-dom';
 import { Heart } from '../../ui/icons';
 import AnimatedNumber from '../../ui/AnimatedNumber';
@@ -17,7 +18,7 @@ export interface PortfolioSeasonStripProps {
     events: [string, EventData][];
 }
 
-export default function PortfolioSeasonStrip({
+const PortfolioSeasonStrip = memo(function PortfolioSeasonStrip({
     stats,
     totalEvents,
     totalPhotos,
@@ -136,4 +137,6 @@ export default function PortfolioSeasonStrip({
             </div>
         </div>
     );
-}
+});
+
+export default PortfolioSeasonStrip;

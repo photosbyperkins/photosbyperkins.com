@@ -146,6 +146,28 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
         return radii.map((r) => `${parseFloat(r.toFixed(3))}cqw`).join(' ');
     }, [isPadded, effectiveCrop, paddedConfig?.cardCornerRadius]);
 
+    const frameContext: StoryFrameContext = useMemo(
+        () => ({
+            hasScoreboard: Boolean(
+                !badges?.isEventAmbiguous &&
+                    badges?.showScoreboard &&
+                    (badges?.scoreboardTitle || badges?.teams?.length)
+            ),
+            hasAttribution: Boolean(badges?.showAttribution),
+            layoutMode: isPadded ? 'padded' : 'solo',
+            exif,
+        }),
+        [
+            badges?.isEventAmbiguous,
+            badges?.showScoreboard,
+            badges?.scoreboardTitle,
+            badges?.teams?.length,
+            badges?.showAttribution,
+            isPadded,
+            exif,
+        ]
+    );
+
     // Handle mouse / touch drag pan
     const handlePointerDown = (e: React.PointerEvent) => {
         e.stopPropagation();
@@ -409,26 +431,12 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
                 <div className="story-cropper__vignette" />
 
                 {/* Decorative Frame Overlay */}
-                {(() => {
-                    const frameContext: StoryFrameContext = {
-                        hasScoreboard: Boolean(
-                            !badges?.isEventAmbiguous &&
-                                badges?.showScoreboard &&
-                                (badges?.scoreboardTitle || badges?.teams?.length)
-                        ),
-                        hasAttribution: Boolean(badges?.showAttribution),
-                        layoutMode: isPadded ? 'padded' : 'solo',
-                        exif,
-                    };
-                    return (
-                        <StoryFrameOverlay
-                            frameId={frameId || 'none'}
-                            colorOverride={frameColorOverride}
-                            context={frameContext}
-                            animated={isFrameAnimated}
-                        />
-                    );
-                })()}
+                <StoryFrameOverlay
+                    frameId={frameId || 'none'}
+                    colorOverride={frameColorOverride}
+                    context={frameContext}
+                    animated={isFrameAnimated}
+                />
 
                 {/* Story Badges Overlay */}
                 <StoryBadges

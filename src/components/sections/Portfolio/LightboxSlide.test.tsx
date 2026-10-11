@@ -3,6 +3,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, fireEvent, cleanup } from '@testing-library/react';
 import LightboxSlide, { type LightboxSlideHandle } from './LightboxSlide';
 import type { PhotoInput } from '../../../types';
+import { stripMotionProps } from '../../../testUtils/stripMotionProps';
 
 vi.mock('framer-motion', async (importOriginal) => {
     const actual = await importOriginal<typeof import('framer-motion')>();
@@ -11,7 +12,7 @@ vi.mock('framer-motion', async (importOriginal) => {
         motion: {
             ...actual.motion,
             img: ({ src, alt, className, onLoad, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) => (
-                <img src={src} alt={alt} className={className} onLoad={onLoad} {...props} />
+                <img src={src} alt={alt} className={className} onLoad={onLoad} {...stripMotionProps(props)} />
             ),
         },
     };

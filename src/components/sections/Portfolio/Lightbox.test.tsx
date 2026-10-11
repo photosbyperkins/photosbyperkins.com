@@ -4,6 +4,7 @@ import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/re
 import Lightbox from './Lightbox';
 import { useAppStore } from '../../../store/useAppStore';
 import type { PhotoInput } from '../../../types';
+import { stripMotionProps } from '../../../testUtils/stripMotionProps';
 
 vi.mock('framer-motion', async (importOriginal) => {
     const actual = await importOriginal<typeof import('framer-motion')>();
@@ -12,12 +13,12 @@ vi.mock('framer-motion', async (importOriginal) => {
         motion: {
             ...actual.motion,
             div: ({ children, className, style, ...props }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode }) => (
-                <div className={className} style={style} {...props}>
+                <div className={className} style={style} {...stripMotionProps(props)}>
                     {children}
                 </div>
             ),
             img: ({ src, alt, className, onLoad, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) => (
-                <img src={src} alt={alt} className={className} onLoad={onLoad} {...props} />
+                <img src={src} alt={alt} className={className} onLoad={onLoad} {...stripMotionProps(props)} />
             ),
         },
         AnimatePresence: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
