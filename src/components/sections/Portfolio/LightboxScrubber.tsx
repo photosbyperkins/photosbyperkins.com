@@ -276,13 +276,11 @@ export default function LightboxScrubber({
                             });
                         }
 
-                        // Offset the instant jump of the track re-render
-                        if (reducedMotion) {
-                            localDragX.set(0);
-                        } else {
-                            localDragX.set(dragX + shiftPhotos * 72);
-                            animate(localDragX, 0, SPRING_SETTLE);
-                        }
+                        // Render at the dropped position immediately — no settle animation.
+                        // The track re-renders centered on the new index, so resetting the
+                        // local drag offset snaps the dropped slice under the playhead.
+                        localDragX.stop();
+                        localDragX.set(0);
                     }}
                 >
                     {(() => {
