@@ -1,6 +1,6 @@
 # Photography Portfolio Boilerplate
 
-An incredibly fast, highly automated photography portfolio built for action and sports photographers. Originally designed for [photosbyperkins.com](https://photosbyperkins.com), this open-source template transforms raw image directories into a blazingly fast, standalone PWA with automated EXIF extraction, AI subject and face detection, next-gen AVIF encoding with SSIMULACRA 2 quality calibration, an animated 9:16 Story Maker Studio, and background Web Worker ZIP generation.
+An incredibly fast, highly automated photography portfolio built for action and sports photographers. Originally designed for [photosbyperkins.com](https://photosbyperkins.com), this open-source template transforms raw image directories into a blazingly fast, standalone PWA with automated EXIF extraction, machine learning subject and face detection, next-gen AVIF encoding with SSIMULACRA 2 quality calibration, an animated 9:16 Story Maker Studio, and background Web Worker ZIP generation.
 
 ---
 
@@ -28,7 +28,7 @@ An incredibly fast, highly automated photography portfolio built for action and 
 
 ### 🖼️ Next-Gen AVIF & Automated Subject Detection
 - **SSIMULACRA 2 Calibrated AVIF**: Gallery thumbnails and full-display lightbox photos are encoded in AVIF calibrated via SSIMULACRA 2 ($\ge 78$ visual score), saving ~35% bandwidth over WebP while preserving pristine image detail. Full-resolution JPEG originals and album ZIPs remain standard `.jpg` and `.zip` for universal client compatibility.
-- **AI Subject & Face Detection**: SCRFD-10G face detection combined with YOLOX-L person detection (DirectML GPU on Windows / CPU fallback), ranking subjects by sharpness, size, and confidence.
+- **Machine Learning Subject & Face Detection**: SCRFD-10G face detection combined with YOLOX-L person detection (DirectML GPU on Windows / CPU fallback), ranking subjects by sharpness, size, and confidence.
 - **Intelligent Fallbacks**: Skaters with helmet-obscured faces automatically fall back to upper-body/head region estimation and sharpness-weighted saliency maps.
 - **Persistent Focal Coordinates**: Caches detected subjects (`focusX`, `focusY`, `faces`, `subjects`) in `data/.faces_cache.json` across indexing runs to power CSS `object-position` thumbnail framing, album scrubber sprites, and Story Maker initial centering.
 
@@ -128,7 +128,7 @@ Running `npm run build` triggers a multi-phase pipeline orchestrated by `scripts
 - **Master Encoder (`encodePhotos`)**: Generates AVIF thumbnails (using a multi-core SSIMULACRA 2 worker pool), full-display AVIF conversions, and copyright-tagged JPEGs.
 - **Parallel Tasks**: Favicon generation and WFTDA stats scraping run simultaneously.
 
-### Phase 3 — AI Subject & Face Detection
+### Phase 3 — Machine Learning Subject & Face Detection
 - Serializes state to `data/photos.json`.
 - Runs **Subject Detection** (`detectFaces.py`): SCRFD-10G face detection + YOLOX-L person detection with DirectML GPU acceleration, ranked by sharpness, size, and confidence. Falls back to upper body/head estimation and sharpness-weighted saliency maps. Writes detected boxes to `data/.faces_cache.json`.
 - Deserializes updated coordinates back into pipeline state.
