@@ -7,23 +7,29 @@ import { _clearAlbumCache, setCachedAlbum } from '../../utils/albumData';
 import { getPhotoOriginalUrl } from '../../utils/formatters';
 import type { YearData } from '../../types';
 
-vi.mock('framer-motion', () => ({
-    motion: {
-        div: ({
-            children,
-            className,
-            onClick,
-            onKeyDown,
-            layout: _layout,
-            ...props
-        }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode; layout?: unknown }) => (
-            <div className={className} onClick={onClick} onKeyDown={onKeyDown} {...props}>
-                {children}
-            </div>
-        ),
-    },
-    useReducedMotion: () => false,
-}));
+vi.mock('framer-motion', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('framer-motion')>();
+    return {
+        ...actual,
+        motion: {
+            ...actual.motion,
+            div: ({
+                children,
+                className,
+                onClick,
+                onKeyDown,
+                layout: _layout,
+                ...props
+            }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode; layout?: unknown }) => (
+                <div className={className} onClick={onClick} onKeyDown={onKeyDown} {...props}>
+                    {children}
+                </div>
+            ),
+        },
+        useReducedMotion: () => false,
+        useIsPresent: () => true,
+    };
+});
 
 vi.mock('../../hooks/useElementSize', () => ({
     useElementSize: () => ({ width: 500 }),

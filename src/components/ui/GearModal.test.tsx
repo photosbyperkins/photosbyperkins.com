@@ -6,16 +6,22 @@ import GearModal from './GearModal';
 import { useAppStore } from '../../store/useAppStore';
 import { GEAR_REGISTRY } from '../../data/gearData';
 
-vi.mock('framer-motion', () => ({
-    motion: {
-        div: ({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode }) => (
-            <div className={className} {...props}>
-                {children}
-            </div>
-        ),
-    },
-    AnimatePresence: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
-}));
+vi.mock('framer-motion', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('framer-motion')>();
+    return {
+        ...actual,
+        motion: {
+            ...actual.motion,
+            div: ({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode }) => (
+                <div className={className} {...props}>
+                    {children}
+                </div>
+            ),
+        },
+        AnimatePresence: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+        useIsPresent: () => true,
+    };
+});
 
 describe('GearModal', () => {
     const gearList = Object.values(GEAR_REGISTRY);

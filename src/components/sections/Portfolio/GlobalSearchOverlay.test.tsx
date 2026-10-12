@@ -5,21 +5,27 @@ import { MemoryRouter } from 'react-router-dom';
 import GlobalSearchOverlay from './GlobalSearchOverlay';
 import { stripMotionProps } from '../../../testUtils/stripMotionProps';
 
-vi.mock('framer-motion', () => ({
-    motion: {
-        div: ({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode }) => (
-            <div className={className} {...stripMotionProps(props)}>
-                {children}
-            </div>
-        ),
-        span: ({ children, className, ...props }: React.HTMLAttributes<HTMLSpanElement> & { children?: React.ReactNode }) => (
-            <span className={className} {...stripMotionProps(props)}>
-                {children}
-            </span>
-        ),
-    },
-    AnimatePresence: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
-}));
+vi.mock('framer-motion', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('framer-motion')>();
+    return {
+        ...actual,
+        motion: {
+            ...actual.motion,
+            div: ({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode }) => (
+                <div className={className} {...stripMotionProps(props)}>
+                    {children}
+                </div>
+            ),
+            span: ({ children, className, ...props }: React.HTMLAttributes<HTMLSpanElement> & { children?: React.ReactNode }) => (
+                <span className={className} {...stripMotionProps(props)}>
+                    {children}
+                </span>
+            ),
+        },
+        AnimatePresence: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+        useIsPresent: () => true,
+    };
+});
 
 describe('GlobalSearchOverlay', () => {
     const mockProps = {

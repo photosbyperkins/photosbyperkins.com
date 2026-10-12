@@ -12,48 +12,49 @@ const componentCache: Record<
     React.ForwardRefExoticComponent<React.HTMLAttributes<HTMLElement> & Record<string, unknown>>
 > = {};
 
-vi.mock('framer-motion', () => ({
-    motion: new Proxy(
-        {},
-        {
-            get: (_target, prop: string) => {
-                if (!componentCache[prop]) {
-                    const Component = React.forwardRef<
-                        HTMLElement,
-                        { children?: React.ReactNode } & Record<string, unknown>
-                    >(({ children, ...props }, ref) => {
-                        const {
-                            layoutId: _l,
-                            transition: _t,
-                            initial: _i,
-                            animate: _a,
-                            exit: _e,
-                            whileHover: _wh,
-                            whileTap: _wt,
-                            ...domProps
-                        } = props;
-                        return React.createElement(prop, { ...domProps, ref }, children as React.ReactNode);
-                    });
-                    Component.displayName = `motion.${prop}`;
-                    componentCache[prop] = Component;
-                }
-                return componentCache[prop];
-            },
-        }
-    ),
-    AnimatePresence: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
-    useInView: () => true,
-}));
+vi.mock('framer-motion', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('framer-motion')>();
+    return {
+        ...actual,
+        motion: new Proxy(
+            {},
+            {
+                get: (_target, prop: string) => {
+                    if (!componentCache[prop]) {
+                        const Component = React.forwardRef<
+                            HTMLElement,
+                            { children?: React.ReactNode } & Record<string, unknown>
+                        >(({ children, ...props }, ref) => {
+                            const {
+                                layoutId: _l,
+                                transition: _t,
+                                initial: _i,
+                                animate: _a,
+                                exit: _e,
+                                whileHover: _wh,
+                                whileTap: _wt,
+                                ...domProps
+                            } = props;
+                            return React.createElement(prop, { ...domProps, ref }, children as React.ReactNode);
+                        });
+                        Component.displayName = `motion.${prop}`;
+                        componentCache[prop] = Component;
+                    }
+                    return componentCache[prop];
+                },
+            }
+        ),
+        AnimatePresence: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+        useInView: () => true,
+        useIsPresent: () => true,
+    };
+});
 
 vi.mock('./StoryExportModal', () => ({
     default: () => null,
 }));
 
 vi.mock('./GlobalSearchOverlay', () => ({
-    default: () => null,
-}));
-
-vi.mock('./LightboxContainer', () => ({
     default: () => null,
 }));
 

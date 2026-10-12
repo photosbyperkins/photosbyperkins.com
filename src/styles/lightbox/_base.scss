@@ -130,8 +130,8 @@
 
         &-nav-overlay {
             position: absolute;
-            top: 0;
-            bottom: 0;
+            top: 56px;
+            bottom: 84px;
             width: 15%;
             min-width: 60px;
             max-width: 120px;
@@ -147,8 +147,9 @@
 
             &.is-hidden {
                 opacity: 0;
+                visibility: hidden;
                 pointer-events: none;
-                transition: opacity var(--dur-fast) var(--ease-out-expo);
+                transition: opacity var(--dur-fast) var(--ease-out-expo), visibility 0s linear var(--dur-fast);
             }
 
             &--left {

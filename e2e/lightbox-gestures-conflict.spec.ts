@@ -8,6 +8,7 @@ test.describe('Lightbox Gesture Isolation (Zoom vs Swipe/Pan)', () => {
         // Open lightbox by clicking the first photo
         const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
         await photo.waitFor({ timeout: 10000 });
+        await photo.scrollIntoViewIfNeeded();
         await photo.click();
 
         const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
@@ -16,6 +17,9 @@ test.describe('Lightbox Gesture Isolation (Zoom vs Swipe/Pan)', () => {
 
     test('disables pagination chevron overlays and keyboard navigation when zoomed in', async ({ page }) => {
         const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
+        const fullImg = lightbox.locator('.portfolio__lightbox-slide--current .portfolio__lightbox-image-full');
+        await expect(fullImg).toBeVisible({ timeout: 10000 });
+
         const counter = lightbox.locator('.portfolio__lightbox-scrubber-counter');
         await expect(counter).toBeVisible();
 
@@ -54,18 +58,25 @@ test.describe('Lightbox Gesture Isolation (Zoom vs Swipe/Pan)', () => {
 
     test('resets zoom when closing lightbox and reopening', async ({ page }) => {
         const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
+        const fullImg = lightbox.locator('.portfolio__lightbox-slide--current .portfolio__lightbox-image-full');
+        await expect(fullImg).toBeVisible({ timeout: 10000 });
+
         const nextOverlay = lightbox.locator('.portfolio__lightbox-nav-overlay--right');
+        await expect(nextOverlay).toBeVisible();
 
         // Toggle zoom in
         await page.keyboard.press('z');
+        await page.waitForTimeout(300);
         await expect(nextOverlay).not.toBeVisible();
 
-        // Close lightbox with Escape
-        await page.keyboard.press('Escape');
-        await expect(lightbox).not.toBeVisible();
+        // Close lightbox
+        const closeBtn = lightbox.locator('button[aria-label="Close"]');
+        await closeBtn.click();
+        await expect(lightbox).not.toBeVisible({ timeout: 10000 });
 
         // Reopen lightbox
         const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
+        await photo.scrollIntoViewIfNeeded();
         await photo.click();
         await expect(lightbox).toBeVisible();
 

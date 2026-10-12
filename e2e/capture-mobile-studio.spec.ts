@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 import * as path from 'path';
-import { openStudioTab, thumbByLabel } from './helpers/storyStudio';
+import { openStudioTab, thumbByLabel, selectThumb } from './helpers/storyStudio';
 
 test.describe('Mobile Studio Screenshot Capture', () => {
     test.use({
@@ -10,6 +10,10 @@ test.describe('Mobile Studio Screenshot Capture', () => {
         hasTouch: true,
         userAgent:
             'Mozilla/5.0 (iPhone; CPU iPhone OS 19_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/19.0 Mobile/15E148 Safari/604.1',
+    });
+
+    test.beforeEach(({ browserName }) => {
+        test.skip(browserName !== 'chromium', 'Mobile screenshot captures run on Chromium');
     });
 
     test('capture all mobile studio tabs in light and dark mode', async ({ page }) => {
@@ -77,7 +81,7 @@ test.describe('Mobile Studio Screenshot Capture', () => {
             // 5. Tab 3: Frames - Active Frame with Gold tint (via the Tint popover)
             const grizzlyFrame = thumbByLabel(studioModal.locator('#story-export-frames-grid'), 'Grizzly');
             if (await grizzlyFrame.isVisible()) {
-                await grizzlyFrame.click();
+                await selectThumb(grizzlyFrame);
                 await page.waitForTimeout(400);
                 const tintTrigger = studioModal.locator('button.story-tint__trigger');
                 if (await tintTrigger.isVisible()) {

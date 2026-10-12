@@ -67,6 +67,9 @@ test.describe('Shared Favorites Panel', () => {
         const overlay = page.locator('[role="dialog"][aria-label="Shared Favorites"]');
         await expect(overlay).toBeVisible({ timeout: 15000 });
 
+        const closeBtn = overlay.locator('button[aria-label="Close"]');
+        await expect(closeBtn).toBeFocused({ timeout: 5000 });
+
         await page.keyboard.press('Escape');
         await expect(overlay).not.toBeVisible({ timeout: 3000 });
     });
@@ -77,8 +80,7 @@ test.describe('Shared Favorites Panel', () => {
         const overlay = page.locator('[role="dialog"][aria-label="Shared Favorites"]');
         await expect(overlay).toBeVisible({ timeout: 15000 });
 
-        const overflow = await page.evaluate(() => document.body.style.overflow);
-        expect(overflow).toBe('hidden');
+        await expect.poll(async () => page.evaluate(() => document.body.style.overflow), { timeout: 5000 }).toBe('hidden');
     });
 
     test('should restore body scroll after panel closes', async ({ page }) => {

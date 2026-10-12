@@ -3,16 +3,22 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act, cleanup } from '@testing-library/react';
 import PwaStatusToast from './PwaStatusToast';
 
-vi.mock('framer-motion', () => ({
-    motion: {
-        div: ({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode }) => (
-            <div className={className} {...props}>
-                {children}
-            </div>
-        ),
-    },
-    AnimatePresence: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
-}));
+vi.mock('framer-motion', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('framer-motion')>();
+    return {
+        ...actual,
+        motion: {
+            ...actual.motion,
+            div: ({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode }) => (
+                <div className={className} {...props}>
+                    {children}
+                </div>
+            ),
+        },
+        AnimatePresence: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+        useIsPresent: () => true,
+    };
+});
 
 describe('PwaStatusToast', () => {
     beforeEach(() => {

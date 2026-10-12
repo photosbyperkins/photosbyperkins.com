@@ -16,19 +16,42 @@ export const LIGHTBOX_SELECTOR = '[role="dialog"][aria-label="Photo lightbox"]';
 
 /** Opens the lightbox on the first photo and returns its locator. */
 export async function openFirstPhotoLightbox(page: Page): Promise<Locator> {
-    const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-    await photo.waitFor({ timeout: 15000 });
-    await photo.click();
     const lightbox = page.locator(LIGHTBOX_SELECTOR);
-    await expect(lightbox).toBeVisible({ timeout: 10000 });
+    if (await lightbox.isVisible()) return lightbox;
+
+    const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
+    await photo.waitFor({ state: 'visible', timeout: 15000 });
+    await photo.scrollIntoViewIfNeeded();
+    await photo.click();
+
+    try {
+        await expect(lightbox).toBeVisible({ timeout: 3000 });
+    } catch {
+        await photo.scrollIntoViewIfNeeded();
+        await photo.click();
+        await expect(lightbox).toBeVisible({ timeout: 15000 });
+    }
     return lightbox;
 }
 
 /** Opens Story Maker from an open lightbox with the "c" shortcut and returns the modal locator. */
 export async function openStoryMakerFromLightbox(page: Page): Promise<Locator> {
-    await page.keyboard.press('c');
     const studioModal = page.locator(STORY_MODAL_SELECTOR);
-    await expect(studioModal).toBeVisible({ timeout: 8000 });
+    await page.waitForTimeout(400);
+    await page.keyboard.press('c');
+
+    try {
+        await expect(studioModal).toBeVisible({ timeout: 5000 });
+    } catch {
+        const storyBtn = page.locator('button[aria-label="Story Maker (9:16)"]');
+        if (await storyBtn.isVisible()) {
+            await storyBtn.click();
+        } else {
+            await page.keyboard.press('c');
+        }
+        await expect(studioModal).toBeVisible({ timeout: 15000 });
+    }
+
     return studioModal;
 }
 
@@ -105,6 +128,15 @@ export function thumbByLabel(grid: Locator, label: string): Locator {
             has: grid.page().locator('.story-thumb__label', { hasText: new RegExp(`^${escapeRegExp(label)}$`) }),
         })
         .first();
+}
+
+/**
+ * Selects a thumbnail, ensuring it is scrolled into view (crucial for WebKit where offscreen
+ * thumbs inside custom scroll containers are not automatically scrolled before click).
+ */
+export async function selectThumb(thumb: Locator): Promise<void> {
+    await thumb.scrollIntoViewIfNeeded();
+    await thumb.click();
 }
 
 /** The selected thumb is the only "current selection" indicator now that the header badges are gone. */

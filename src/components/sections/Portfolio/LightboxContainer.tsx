@@ -11,6 +11,7 @@ export default function LightboxContainer() {
         <AnimatePresence>
             {lightbox.isOpen && (
                 <Lightbox
+                    key="portfolio-lightbox"
                     images={lightbox.images}
                     index={lightbox.index}
                     year={lightbox.year}

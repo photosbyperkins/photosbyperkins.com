@@ -1,4 +1,15 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+
+async function openAiPolicy(page: Page) {
+    const aiPolicyBtn = page.locator('button.footer__ai-policy-btn');
+    await aiPolicyBtn.waitFor({ state: 'visible', timeout: 10000 });
+    await aiPolicyBtn.scrollIntoViewIfNeeded();
+    await aiPolicyBtn.click();
+
+    const overlay = page.locator('[role="dialog"][aria-label="AI Policy"]');
+    await expect(overlay).toBeVisible({ timeout: 10000 });
+    return { aiPolicyBtn, overlay };
+}
 
 test.describe('AI Policy Overlay', () => {
     test.beforeEach(async ({ page }) => {
@@ -17,25 +28,27 @@ test.describe('AI Policy Overlay', () => {
 
     test('should open Code License in native modal', async ({ page }) => {
         const codeLicenseBtn = page.locator('button.footer__code-license-btn');
+        await codeLicenseBtn.scrollIntoViewIfNeeded();
         await codeLicenseBtn.click();
 
         const overlay = page.locator('.code-license-overlay');
-        await expect(overlay).toBeVisible({ timeout: 3000 });
+        await expect(overlay).toBeVisible({ timeout: 5000 });
         await expect(overlay.locator('.section-label')).toHaveText('CODE LICENSE');
         await expect(overlay.locator('.code-license__subtitle')).toContainText('MIT License');
         await expect(overlay.locator('pre')).toContainText('Permission is hereby granted, free of charge');
 
         const closeBtn = overlay.locator('button[aria-label="Close"]');
         await closeBtn.click();
-        await expect(overlay).not.toBeVisible({ timeout: 3000 });
+        await expect(overlay).not.toBeVisible({ timeout: 5000 });
     });
 
     test('should open Photos License in native modal', async ({ page }) => {
         const photosLicenseBtn = page.locator('button.footer__license-btn');
+        await photosLicenseBtn.scrollIntoViewIfNeeded();
         await photosLicenseBtn.click();
 
         const overlay = page.locator('.photo-license-overlay');
-        await expect(overlay).toBeVisible({ timeout: 3000 });
+        await expect(overlay).toBeVisible({ timeout: 5000 });
         await expect(overlay.locator('.section-label')).toHaveText('PHOTO LICENSE');
         await expect(overlay.locator('.photo-license__subtitle')).toContainText(
             'Creative Commons Attribution-ShareAlike 4.0 International license'
@@ -44,91 +57,56 @@ test.describe('AI Policy Overlay', () => {
 
         const closeBtn = overlay.locator('button[aria-label="Close"]');
         await closeBtn.click();
-        await expect(overlay).not.toBeVisible({ timeout: 3000 });
+        await expect(overlay).not.toBeVisible({ timeout: 5000 });
     });
 
     test('should open AI Policy overlay when clicking the footer button', async ({ page }) => {
-        const aiPolicyBtn = page.locator('button.footer__ai-policy-btn');
-        await aiPolicyBtn.click();
-
-        const overlay = page.locator('[role="dialog"][aria-label="AI Policy"]');
-        await expect(overlay).toBeVisible({ timeout: 3000 });
+        const { overlay } = await openAiPolicy(page);
+        await expect(overlay).toBeVisible();
     });
 
     test('should close AI Policy overlay via close button', async ({ page }) => {
-        const aiPolicyBtn = page.locator('button.footer__ai-policy-btn');
-        await aiPolicyBtn.click();
-
-        const overlay = page.locator('[role="dialog"][aria-label="AI Policy"]');
-        await expect(overlay).toBeVisible({ timeout: 3000 });
-        await page.waitForTimeout(500);
+        const { overlay } = await openAiPolicy(page);
+        await page.waitForTimeout(300);
 
         const closeBtn = overlay.locator('button[aria-label="Close"]');
         await closeBtn.click();
-        await expect(overlay).not.toBeVisible({ timeout: 3000 });
+        await expect(overlay).not.toBeVisible({ timeout: 5000 });
     });
 
     test('should close AI Policy overlay via Escape key', async ({ page }) => {
-        const aiPolicyBtn = page.locator('button.footer__ai-policy-btn');
-        await aiPolicyBtn.click();
-
-        const overlay = page.locator('[role="dialog"][aria-label="AI Policy"]');
-        await expect(overlay).toBeVisible({ timeout: 3000 });
-        await page.waitForTimeout(500);
+        const { overlay } = await openAiPolicy(page);
+        await page.waitForTimeout(300);
 
         await page.keyboard.press('Escape');
-        await expect(overlay).not.toBeVisible({ timeout: 3000 });
+        await expect(overlay).not.toBeVisible({ timeout: 5000 });
     });
 
     test('should lock body scroll when AI Policy overlay is open', async ({ page }) => {
-        const aiPolicyBtn = page.locator('button.footer__ai-policy-btn');
-        await aiPolicyBtn.click();
-
-        const overlay = page.locator('[role="dialog"][aria-label="AI Policy"]');
-        await expect(overlay).toBeVisible({ timeout: 3000 });
-
-        const overflow = await page.evaluate(() => document.body.style.overflow);
-        expect(overflow).toBe('hidden');
+        await openAiPolicy(page);
+        await expect.poll(async () => page.evaluate(() => document.body.style.overflow), { timeout: 5000 }).toBe('hidden');
     });
 
     test('should restore body scroll after AI Policy overlay closes', async ({ page }) => {
-        const aiPolicyBtn = page.locator('button.footer__ai-policy-btn');
-        await aiPolicyBtn.click();
-
-        const overlay = page.locator('[role="dialog"][aria-label="AI Policy"]');
-        await expect(overlay).toBeVisible({ timeout: 3000 });
-        await page.waitForTimeout(500);
+        const { overlay } = await openAiPolicy(page);
+        await page.waitForTimeout(300);
 
         const closeBtn = overlay.locator('button[aria-label="Close"]');
         await closeBtn.click();
-        await expect(overlay).not.toBeVisible({ timeout: 3000 });
+        await expect(overlay).not.toBeVisible({ timeout: 5000 });
 
-        const overflow = await page.evaluate(() => document.body.style.overflow);
-        expect(overflow).toBe('');
+        await expect.poll(async () => page.evaluate(() => document.body.style.overflow), { timeout: 5000 }).toBe('');
     });
 
     test('should auto-focus the close button when opened', async ({ page }) => {
-        const aiPolicyBtn = page.locator('button.footer__ai-policy-btn');
-        await aiPolicyBtn.click();
-
-        const overlay = page.locator('[role="dialog"][aria-label="AI Policy"]');
-        await expect(overlay).toBeVisible({ timeout: 3000 });
-
-        // Wait a frame for requestAnimationFrame focus
-        await page.waitForTimeout(100);
-
-        const focusedLabel = await page.evaluate(() => document.activeElement?.getAttribute('aria-label'));
-        expect(focusedLabel).toBe('Close');
+        await openAiPolicy(page);
+        await expect.poll(async () => page.evaluate(() => document.activeElement?.getAttribute('aria-label')), { timeout: 5000 }).toBe('Close');
     });
 
     test('should display policy content covering sharpening, denoising, alterations, and face detection', async ({
         page,
     }) => {
-        const aiPolicyBtn = page.locator('button.footer__ai-policy-btn');
-        await aiPolicyBtn.click();
-
-        const overlay = page.locator('[role="dialog"][aria-label="AI Policy"]');
-        await expect(overlay).toBeVisible({ timeout: 3000 });
+        const { overlay } = await openAiPolicy(page);
 
         // Verify header
         const header = overlay.locator('.section-label');
@@ -142,11 +120,7 @@ test.describe('AI Policy Overlay', () => {
     });
 
     test('should have correct ARIA attributes', async ({ page }) => {
-        const aiPolicyBtn = page.locator('button.footer__ai-policy-btn');
-        await aiPolicyBtn.click();
-
-        const overlay = page.locator('[role="dialog"][aria-label="AI Policy"]');
-        await expect(overlay).toBeVisible({ timeout: 3000 });
+        const { overlay } = await openAiPolicy(page);
         await expect(overlay).toHaveAttribute('aria-modal', 'true');
     });
 });

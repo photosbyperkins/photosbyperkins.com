@@ -29,12 +29,15 @@ test.describe('Automated WCAG 2.1 AA Accessibility (axe-core)', () => {
         await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
 
         const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
+        await photo.waitFor({ state: 'visible', timeout: 15000 });
+        await photo.scrollIntoViewIfNeeded();
         await photo.click();
 
         const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 5000 });
+        await expect(lightbox).toBeVisible({ timeout: 10000 });
         // Allow framer-motion entrance animation to reach full opacity
-        await page.waitForTimeout(500);
+        await expect(lightbox).toHaveCSS('opacity', '1', { timeout: 10000 });
+        await page.waitForTimeout(300);
 
         const results = await new AxeBuilder({ page })
             .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])

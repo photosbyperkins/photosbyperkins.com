@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { decodeFavoritesHash, photoStem } from '../utils/favoritesUrl';
 import { getBuildNumber } from '../utils/build';
+import { decodeAlbum } from '../utils/dataCodec';
 import type { PhotoInput } from '../types';
 
 export function useSharedFavorites() {
@@ -30,7 +31,7 @@ export function useSharedFavorites() {
                         try {
                             const res = await fetch(`/data/albums/${year}/${slug}.json?build=${build}`);
                             if (!res.ok) return { group, album: [] as PhotoInput[] };
-                            const album: PhotoInput[] = await res.json();
+                            const album: PhotoInput[] = decodeAlbum(await res.json());
                             return { group, album };
                         } catch {
                             return { group, album: [] as PhotoInput[] };

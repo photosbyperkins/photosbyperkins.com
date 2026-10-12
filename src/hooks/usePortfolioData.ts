@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { parseEventTitle, toPhotoRecord } from '../utils/formatters';
 import { fetchAlbum, getCachedAlbum } from '../utils/albumData';
+import { decodeEventChunk } from '../utils/dataCodec';
 import { LRUCache } from '../utils/LRUCache';
 import type { YearData, PhotoInput, FavoriteStoreItem, SeasonStats, PhotoRecord } from '../types';
 
@@ -146,7 +147,7 @@ export function usePortfolioData({
                 fetch(`/data/years/${y}.json?build=${getBuildNumber()}`)
                     .then((res) => {
                         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                        return res.json();
+                        return res.json().then(decodeEventChunk);
                     })
                     .then((json) => {
                         const payload = json as FetchPayload;
@@ -372,7 +373,7 @@ export function usePortfolioData({
                 fetch(`${basePath}/${slug}.json?build=${getBuildNumber()}`)
                     .then((res) => {
                         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                        return res.json();
+                        return res.json().then(decodeEventChunk);
                     })
                     .then((json) => {
                         const data = json as FetchPayload;
@@ -458,7 +459,7 @@ export function usePortfolioData({
             fetch(`${basePath}/${targetPart}.json?build=${getBuildNumber()}`)
                 .then((res) => {
                     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                    return res.json();
+                    return res.json().then(decodeEventChunk);
                 })
                 .then((json) => {
                     const data = json as FetchPayload;

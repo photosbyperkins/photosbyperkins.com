@@ -294,7 +294,7 @@ export default defineConfig(({ mode }) => {
                 }
             }
         },
-        isolate: false,
+        isolate: true,
         exclude: ['e2e/**', 'node_modules/**']
     }
     }

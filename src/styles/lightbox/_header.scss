@@ -13,7 +13,7 @@
             align-items: center;
             min-height: 52px;
             padding: max(8px, env(safe-area-inset-top, 8px)) 1rem 8px;
-            z-index: var(--z-lightbox-controls);
+            z-index: calc(var(--z-lightbox-controls) + 1);
             background: rgba(var(--color-bg-rgb), 0.75);
             -webkit-backdrop-filter: blur(16px);
             backdrop-filter: blur(16px);

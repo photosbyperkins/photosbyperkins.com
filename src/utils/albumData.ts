@@ -1,6 +1,7 @@
 import { LRUCache } from './LRUCache';
 import { getBuildNumber } from './build';
 import type { PhotoRecord } from '../types';
+import { decodeAlbum } from './dataCodec';
 
 const albumMemoryCache = new LRUCache<string, PhotoRecord[]>(50);
 const inFlightFetches = new Map<string, Promise<PhotoRecord[]>>();
@@ -52,7 +53,7 @@ export async function fetchAlbum(year: string, albumSlug: string, signal?: Abort
             const res = await fetch(`/data/albums/${year}/${albumSlug}.json?build=${getBuildNumber()}`);
             if (res.status === 429) throw new Error('Too Many Requests');
             if (!res.ok) throw new Error('Failed to load');
-            const data = (await res.json()) as PhotoRecord[];
+            const data = decodeAlbum(await res.json());
             albumMemoryCache.set(key, data);
             return data;
         } finally {

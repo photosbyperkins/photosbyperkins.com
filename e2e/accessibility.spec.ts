@@ -108,26 +108,28 @@ test.describe('Accessibility — Focus Trapping', () => {
 
         test('should open lightbox with Enter key on featured photo', async ({ page }) => {
             const photo = page.locator('.portfolio__featured-item').first();
-            await photo.waitFor({ timeout: 10000 });
+            await photo.waitFor({ state: 'visible', timeout: 10000 });
+            await photo.scrollIntoViewIfNeeded();
 
             // Focus and press Enter
             await photo.focus();
             await page.keyboard.press('Enter');
 
             const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-            await expect(lightbox).toBeVisible({ timeout: 5000 });
+            await expect(lightbox).toBeVisible({ timeout: 10000 });
         });
 
         test('should open lightbox with Space key on featured photo', async ({ page }) => {
             const photo = page.locator('.portfolio__featured-item').first();
-            await photo.waitFor({ timeout: 10000 });
+            await photo.waitFor({ state: 'visible', timeout: 10000 });
+            await photo.scrollIntoViewIfNeeded();
 
             // Focus and press Space
             await photo.focus();
             await page.keyboard.press('Space');
 
             const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-            await expect(lightbox).toBeVisible({ timeout: 5000 });
+            await expect(lightbox).toBeVisible({ timeout: 10000 });
         });
 
         test('should have correct role and tabindex on photo items', async ({ page }) => {

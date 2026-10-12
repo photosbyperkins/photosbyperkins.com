@@ -88,9 +88,6 @@ test.describe('Lightbox Theater Mode', () => {
 
         // Navigate right
         await page.keyboard.press('ArrowRight');
-        await page.waitForTimeout(500);
-        const afterText = await counter.textContent();
-
-        expect(afterText).not.toBe(initialText);
+        await expect(counter).not.toHaveText(initialText!, { timeout: 5000 });
     });
 });

@@ -402,7 +402,7 @@ test.describe('Platform Complete Resolution Suite', () => {
 
                 // 20. Favorites Page Populated (Showing Share Favorites Action Button)
                 await page.goto('/portfolio/favorites');
-                const favGrid = page.locator('.portfolio__grid-item');
+                const favGrid = page.locator('.portfolio__featured-item, .portfolio__grid-item');
                 await expect(favGrid.first()).toBeVisible({ timeout: 10000 });
                 await page.waitForTimeout(600);
                 await page.screenshot({ path: path.join(outDir, '20_favorites_populated_share.png') });
@@ -440,7 +440,7 @@ test.describe('Platform Complete Resolution Suite', () => {
                     await selectAllBtn.click();
                     await page.waitForTimeout(500);
                 } else {
-                    const photos = page.locator('.portfolio__grid-item');
+                    const photos = page.locator('.portfolio__featured-item, .portfolio__grid-item');
                     const pCount = await photos.count();
                     for (let i = 0; i < Math.min(pCount, 3); i++) {
                         await photos.nth(i).click();

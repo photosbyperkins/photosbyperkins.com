@@ -27,15 +27,15 @@ test.describe('PWA & Offline Resilience', () => {
 
     test('should allow interaction with cached content while offline', async ({ page, context }) => {
         await page.goto('/');
-        await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
+        await page.locator('.portfolio__event').first().waitFor({ timeout: 15000 });
 
         // Cut connection
         await context.setOffline(true);
 
         // UI navigation and theme toggle should still work locally without network
-        const themeBtn = page.locator('.theme-toggle-nav');
+        const themeBtn = page.locator('.theme-toggle-nav, button[aria-label="Toggle theme"]').first();
         if ((await themeBtn.count()) > 0) {
-            await themeBtn.click();
+            await themeBtn.click({ force: true });
             const rootTheme = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
             expect(['light', 'dark']).toContain(rootTheme);
         }

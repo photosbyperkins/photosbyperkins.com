@@ -1,4 +1,4 @@
-import { useMotionValue, animate, type MotionValue } from 'framer-motion';
+import { useMotionValue, animate, useIsPresent, type MotionValue } from 'framer-motion';
 import { useRef, useState, useCallback, useEffect } from 'react';
 import { useDebounce } from './useDebounce';
 import { useReducedMotion } from './useReducedMotion';
@@ -23,6 +23,7 @@ export interface UseSlideZoomReturn {
     dragMode: boolean | 'x' | 'y';
     constraints: { left: number; right: number; top: number; bottom: number };
     toggleZoom: (clientX?: number, clientY?: number) => void;
+    resetZoom: () => void;
     handleImageLoad: () => void;
     containerProps: {
         onTouchStart: (e: React.TouchEvent) => void;
@@ -45,6 +46,7 @@ export function useSlideZoom({
 }: UseSlideZoomOptions): UseSlideZoomReturn {
     const isReducedMotion = useReducedMotion();
     const reduced = reducedMotion ?? isReducedMotion;
+    const isPresent = useIsPresent();
     const containerRef = useRef<HTMLDivElement | null>(null);
     const [dragMode, setDragMode] = useState<boolean | 'x' | 'y'>(false);
 
@@ -158,6 +160,27 @@ export function useSlideZoom({
         return () => window.removeEventListener('resize', debouncedResize);
     }, [debouncedResize]);
 
+    const resetZoom = useCallback(() => {
+        scale.stop();
+        panX.stop();
+        panY.stop();
+        scale.set(1);
+        panX.set(0);
+        panY.set(0);
+        setDragMode(false);
+        isZoomedInternalRef.current = false;
+        if (releaseTimeoutRef.current) clearTimeout(releaseTimeoutRef.current);
+        if (clickTimeoutRef.current) clearTimeout(clickTimeoutRef.current);
+        if (onZoomChange) onZoomChange(false);
+    }, [scale, panX, panY, onZoomChange]);
+
+    useEffect(() => {
+        if (!isPresent) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            resetZoom();
+        }
+    }, [isPresent, resetZoom]);
+
     useEffect(() => {
         scale.set(1);
         panX.set(0);
@@ -165,11 +188,15 @@ export function useSlideZoom({
         isZoomedInternalRef.current = false;
         if (releaseTimeoutRef.current) clearTimeout(releaseTimeoutRef.current);
         if (onZoomChange) onZoomChange(false);
-    }, [image, scale, panX, panY, onZoomChange]);
+
+        return () => {
+            resetZoom();
+        };
+    }, [image, scale, panX, panY, onZoomChange, resetZoom]);
 
     const toggleZoom = useCallback(
         (clientX?: number, clientY?: number) => {
-            if (scale.get() > 1.05) {
+            if (scale.get() > 1.05 || isZoomedInternalRef.current) {
                 isAnimatingOutRef.current = true;
                 setDragMode(false);
                 animateTo(scale, 1, () => {
@@ -189,7 +216,7 @@ export function useSlideZoom({
                 isAnimatingInRef.current = true;
                 setDragMode(false);
 
-                const s = maxScaleRef.current;
+                const s = Math.max(maxScaleRef.current, 2);
                 animateTo(scale, s, () => {
                     isAnimatingInRef.current = false;
                     checkConstraints(s);
@@ -344,6 +371,7 @@ export function useSlideZoom({
         dragMode,
         constraints,
         toggleZoom,
+        resetZoom,
         handleImageLoad: calculateMaxScale,
         containerProps: {
             onTouchStart: handleTouchStart,

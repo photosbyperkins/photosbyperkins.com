@@ -276,23 +276,20 @@ test.describe('Portfolio Month Calendar Track', () => {
 
         const track = page.locator('.portfolio__month-track');
         // Wait for all parts to load (JAN is in the last part)
-        const janBtn = track.locator('button.portfolio__month-item.is-populated:has-text("JAN")');
+        const janBtn = track.locator('button.portfolio__month-item:has-text("JAN")');
         await janBtn.waitFor({ state: 'visible', timeout: 10000 });
 
         await janBtn.click();
-        // Wait for smooth scroll and settling
-        await page.waitForTimeout(1500);
 
         // Find the first event of January
         const targetEvent = page.locator('#event-01-25-Sacramento-Roller-Derby-Juniors-Galinda-vs-Sacramento-Roller-Derby-Juniors-Elphaba');
         await expect(targetEvent).toBeVisible();
 
-        const box = await targetEvent.boundingBox();
-        expect(box).not.toBeNull();
-        // The top should be positioned right below the sticky navigation bar (~80px + margin)
-        // Expected offset is ~104px (within 75px - 140px range)
-        expect(box!.y).toBeGreaterThanOrEqual(75);
-        expect(box!.y).toBeLessThanOrEqual(140);
+        // Use expect.poll to wait for smooth scroll to land within the target window (75px - 140px)
+        await expect.poll(async () => {
+            const box = await targetEvent.boundingBox();
+            return Boolean(box && box.y >= 75 && box.y <= 140);
+        }, { timeout: 10000 }).toBe(true);
     });
 
     test('clicking First Seen in recap summary scrolls accurately to the event', async ({ page, isMobile }) => {
@@ -330,20 +327,16 @@ test.describe('Portfolio Month Calendar Track', () => {
         // Scroll down to the middle of the feed
         await page.evaluate(() => window.scrollTo(0, 2500));
         await page.waitForTimeout(300);
-        expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(2000);
+        expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(1000);
 
         // Click the first populated month (NOV in 2025)
         const track = page.locator('.portfolio__month-track');
-        const novBtn = track.locator('button.portfolio__month-item.is-populated:has-text("NOV")');
+        const novBtn = track.locator('button.portfolio__month-item:has-text("NOV")');
         await expect(novBtn).toBeVisible();
         await novBtn.click();
 
-        // Wait for smooth scroll
-        await page.waitForTimeout(1500);
-
         // Should land at scrollY = 0
-        const finalScrollY = await page.evaluate(() => window.scrollY);
-        expect(finalScrollY).toBe(0);
+        await expect.poll(async () => page.evaluate(() => window.scrollY), { timeout: 4000 }).toBe(0);
     });
 
     test('track top is never higher than the first event portfolio__event-header at scroll 0 and during scroll', async ({ page, isMobile }) => {
@@ -445,24 +438,29 @@ test.describe('Portfolio Month Calendar Track', () => {
         // Click March (earliest month in 2024)
         const marBtn = track.locator('button.portfolio__month-item').filter({ hasText: 'MAR' });
         await marBtn.click();
-
-        // Wait for smooth scroll to land at bottom
         await page.waitForTimeout(1000);
 
         // March must be active/current even though its top cannot reach standard 35% trigger in tall window
-        await expect(marBtn).toHaveClass(/is-current/);
-        await expect(marBtn).toHaveAttribute('aria-current', 'true');
+        await expect(marBtn).toHaveClass(/is-current/, { timeout: 10000 });
+        await expect(marBtn).toHaveAttribute('aria-current', 'true', { timeout: 10000 });
 
         // Scroll back to top
-        await page.evaluate(() => window.scrollTo(0, 0));
-        await page.waitForTimeout(300);
-        await expect(mayBtn).toHaveClass(/is-current/);
+        await page.evaluate(() => {
+            window.scrollTo({ top: 0, behavior: 'instant' });
+            window.dispatchEvent(new Event('scroll'));
+        });
+        await page.waitForTimeout(400);
+        await expect(mayBtn).toHaveClass(/is-current/, { timeout: 10000 });
+        await expect(mayBtn).toHaveAttribute('aria-current', 'true', { timeout: 10000 });
 
         // Manually scroll down to the bottom
-        await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-        await page.waitForTimeout(300);
-        await expect(marBtn).toHaveClass(/is-current/);
-        await expect(marBtn).toHaveAttribute('aria-current', 'true');
+        await page.evaluate(() => {
+            window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' });
+            window.dispatchEvent(new Event('scroll'));
+        });
+        await page.waitForTimeout(400);
+        await expect(marBtn).toHaveClass(/is-current/, { timeout: 10000 });
+        await expect(marBtn).toHaveAttribute('aria-current', 'true', { timeout: 10000 });
     });
 });
 

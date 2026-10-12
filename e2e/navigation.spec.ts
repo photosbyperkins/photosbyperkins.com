@@ -69,10 +69,9 @@ test.describe('Year Navigation', () => {
         // Click second year
         const secondYear = yearLinks.nth(1);
         await secondYear.click();
-        await page.waitForTimeout(600);
 
         // Should be at scrollY = 0
-        expect(await page.evaluate(() => window.scrollY)).toBe(0);
+        await expect.poll(async () => page.evaluate(() => window.scrollY), { timeout: 5000 }).toBe(0);
 
         // Scroll down again
         await page.evaluate(() => window.scrollTo(0, 1500));
@@ -80,10 +79,9 @@ test.describe('Year Navigation', () => {
 
         // Click active year again
         await secondYear.click();
-        await page.waitForTimeout(600);
 
         // Should be at scrollY = 0
-        expect(await page.evaluate(() => window.scrollY)).toBe(0);
+        await expect.poll(async () => page.evaluate(() => window.scrollY), { timeout: 5000 }).toBe(0);
     });
 });
 

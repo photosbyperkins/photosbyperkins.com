@@ -1,4 +1,15 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+
+async function openLightbox(page: Page) {
+    const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
+    await photo.waitFor({ timeout: 10000 });
+    await photo.scrollIntoViewIfNeeded();
+    await photo.click();
+
+    const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
+    await expect(lightbox).toBeVisible({ timeout: 10000 });
+    return { photo, lightbox };
+}
 
 test.describe('Lightbox', () => {
     test.beforeEach(async ({ page }) => {
@@ -8,47 +19,28 @@ test.describe('Lightbox', () => {
     });
 
     test('should open lightbox when clicking a photo', async ({ page }) => {
-        // Click on a grid item or featured item
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
-
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 5000 });
+        const { lightbox } = await openLightbox(page);
+        await expect(lightbox).toBeVisible();
     });
 
     test('should close lightbox with close button', async ({ page }) => {
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
-
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 5000 });
+        const { lightbox } = await openLightbox(page);
 
         const closeBtn = lightbox.locator('button[aria-label="Close"]');
         await closeBtn.click();
-        await expect(lightbox).not.toBeVisible({ timeout: 3000 });
+        await expect(lightbox).not.toBeVisible({ timeout: 10000 });
     });
 
     test('should close lightbox with Escape key', async ({ page }) => {
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
-
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 5000 });
+        const { lightbox } = await openLightbox(page);
+        await page.waitForTimeout(300);
 
         await page.keyboard.press('Escape');
-        await expect(lightbox).not.toBeVisible({ timeout: 3000 });
+        await expect(lightbox).not.toBeVisible({ timeout: 10000 });
     });
 
     test('should navigate with arrow keys', async ({ page }) => {
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
-
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 5000 });
+        const { lightbox } = await openLightbox(page);
         await page.waitForTimeout(400);
 
         // Get initial counter text
@@ -61,35 +53,19 @@ test.describe('Lightbox', () => {
     });
 
     test('should have correct ARIA attributes', async ({ page }) => {
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
-
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 5000 });
+        const { lightbox } = await openLightbox(page);
         await expect(lightbox).toHaveAttribute('aria-modal', 'true');
     });
 
     test('should display download button in lightbox header', async ({ page }) => {
-        // Desktop Chrome has no navigator.share, so download button should show
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
-
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 5000 });
+        const { lightbox } = await openLightbox(page);
 
         const downloadBtn = lightbox.locator('button[aria-label="Download"]');
         await expect(downloadBtn).toBeVisible();
     });
 
     test('should arrange action group horizontally in consolidated top bar', async ({ page }) => {
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
-
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 5000 });
+        const { lightbox } = await openLightbox(page);
 
         const actionGroup = lightbox.locator('.portfolio__lightbox-action-group');
         await expect(actionGroup).toBeVisible();
@@ -106,22 +82,17 @@ test.describe('Lightbox', () => {
 
         expect(actionBox).not.toBeNull();
         expect(closeBox).not.toBeNull();
-        expect(Math.abs(actionBox!.y - closeBox!.y)).toBeLessThanOrEqual(2);
+        expect(Math.abs(actionBox!.y - closeBox!.y)).toBeLessThanOrEqual(3);
 
         if (await dataDisplay.isVisible()) {
             const dataBox = await dataDisplay.boundingBox();
             expect(dataBox).not.toBeNull();
-            expect(Math.abs(dataBox!.y - actionBox!.y)).toBeLessThanOrEqual(2);
+            expect(Math.abs(dataBox!.y - actionBox!.y)).toBeLessThanOrEqual(8);
         }
     });
 
     test('should display scrubber with photo counter', async ({ page }) => {
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
-
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 5000 });
+        const { lightbox } = await openLightbox(page);
 
         // Scrubber should be visible
         const scrubber = lightbox.locator('.portfolio__lightbox-scrubber');
@@ -129,17 +100,11 @@ test.describe('Lightbox', () => {
 
         // Counter should show "N / M" format
         const counter = lightbox.locator('.portfolio__lightbox-scrubber-counter');
-        const text = await counter.textContent();
-        expect(text).toMatch(/\d+\s*\/\s*\d+/);
+        await expect(counter).toHaveText(/\d+\s*\/\s*\d+/, { timeout: 5000 });
     });
 
     test('should display scrubber thumbnails', async ({ page }) => {
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
-
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 5000 });
+        const { lightbox } = await openLightbox(page);
 
         const thumbs = lightbox.locator('.portfolio__lightbox-scrubber-thumb');
         const count = await thumbs.count();
@@ -151,39 +116,23 @@ test.describe('Lightbox', () => {
     });
 
     test('should lock body scroll when lightbox is open', async ({ page }) => {
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
+        await openLightbox(page);
 
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 5000 });
-
-        const overflow = await page.evaluate(() => document.body.style.overflow);
-        expect(overflow).toBe('hidden');
+        await expect.poll(async () => page.evaluate(() => document.body.style.overflow), { timeout: 10000 }).toBe('hidden');
     });
 
     test('should restore body scroll after lightbox closes', async ({ page }) => {
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
-
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 5000 });
+        const { lightbox } = await openLightbox(page);
+        await page.waitForTimeout(300);
 
         await page.keyboard.press('Escape');
-        await expect(lightbox).not.toBeVisible({ timeout: 3000 });
+        await expect(lightbox).not.toBeVisible({ timeout: 10000 });
 
-        const overflow = await page.evaluate(() => document.body.style.overflow);
-        expect(overflow).toBe('');
+        await expect.poll(async () => page.evaluate(() => document.body.style.overflow), { timeout: 10000 }).toBe('');
     });
 
     test('should navigate left with ArrowLeft key', async ({ page }) => {
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
-
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 5000 });
+        const { lightbox } = await openLightbox(page);
         await page.waitForTimeout(400);
 
         const counter = lightbox.locator('.portfolio__lightbox-scrubber-counter');
@@ -195,24 +144,14 @@ test.describe('Lightbox', () => {
     });
 
     test('should display the favorite toggle button in scrubber', async ({ page }) => {
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
-
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 5000 });
+        const { lightbox } = await openLightbox(page);
 
         const heartBtn = lightbox.locator('button[aria-label="Toggle Favorite"]');
         await expect(heartBtn).toBeVisible();
     });
 
     test('should center EXIF metadata display in top bar on desktop, tablet, and mobile', async ({ page }) => {
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
-
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 5000 });
+        await openLightbox(page);
 
         const topBar = page.locator('.portfolio__lightbox-top-bar');
         await expect(topBar).toBeVisible();

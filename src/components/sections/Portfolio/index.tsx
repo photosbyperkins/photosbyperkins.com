@@ -90,6 +90,10 @@ export default function Portfolio({ years }: PortfolioProps) {
     const favorites = useAppStore((state) => state.favorites);
     const addFavorites = useAppStore((state) => state.addFavorites);
     const removeFavorites = useAppStore((state) => state.removeFavorites);
+    const [hasOpenedLightbox, setHasOpenedLightbox] = useState(isLightboxOpen);
+    if (isLightboxOpen && !hasOpenedLightbox) {
+        setHasOpenedLightbox(true);
+    }
 
     const {
         teamIndex,
@@ -690,9 +694,11 @@ export default function Portfolio({ years }: PortfolioProps) {
                 )}
             </Suspense>
 
-            <Suspense fallback={null}>
-                <LightboxContainer />
-            </Suspense>
+            {hasOpenedLightbox && (
+                <Suspense fallback={null}>
+                    <LightboxContainer />
+                </Suspense>
+            )}
 
             <AnimatePresence>
                 {!isGlobalSearchOpen && !isBatchSelectMode && !isNearFooter && (

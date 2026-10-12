@@ -13,7 +13,7 @@
             align-items: center;
             overflow: clip;
             pointer-events: none;
-            z-index: var(--z-lightbox-controls);
+            z-index: calc(var(--z-lightbox-controls) + 1);
             transition:
                 opacity 240ms var(--ease-out-expo),
                 transform 240ms var(--ease-out-expo),

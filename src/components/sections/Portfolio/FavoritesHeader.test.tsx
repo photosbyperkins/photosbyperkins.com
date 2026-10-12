@@ -20,32 +20,38 @@ vi.mock('../../../hooks/useCanShare', () => ({
     useCanShare: () => mockCanShare,
 }));
 
-vi.mock('framer-motion', () => ({
-    motion: {
-        div: ({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode }) => (
-            <div className={className} {...stripMotionProps(props)}>
-                {children}
-            </div>
-        ),
-        article: ({ children, className, ...props }: React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }) => (
-            <article className={className} {...stripMotionProps(props)}>
-                {children}
-            </article>
-        ),
-        span: ({ children, className, ...props }: React.HTMLAttributes<HTMLSpanElement> & { children?: React.ReactNode }) => (
-            <span className={className} {...stripMotionProps(props)}>
-                {children}
-            </span>
-        ),
-        button: ({ children, className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { children?: React.ReactNode }) => (
-            <button className={className} {...stripMotionProps(props)}>
-                {children}
-            </button>
-        ),
-    },
-    AnimatePresence: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
-    useInView: () => true,
-}));
+vi.mock('framer-motion', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('framer-motion')>();
+    return {
+        ...actual,
+        motion: {
+            ...actual.motion,
+            div: ({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode }) => (
+                <div className={className} {...stripMotionProps(props)}>
+                    {children}
+                </div>
+            ),
+            article: ({ children, className, ...props }: React.HTMLAttributes<HTMLElement> & { children?: React.ReactNode }) => (
+                <article className={className} {...stripMotionProps(props)}>
+                    {children}
+                </article>
+            ),
+            span: ({ children, className, ...props }: React.HTMLAttributes<HTMLSpanElement> & { children?: React.ReactNode }) => (
+                <span className={className} {...stripMotionProps(props)}>
+                    {children}
+                </span>
+            ),
+            button: ({ children, className, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { children?: React.ReactNode }) => (
+                <button className={className} {...stripMotionProps(props)}>
+                    {children}
+                </button>
+            ),
+        },
+        AnimatePresence: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+        useInView: () => true,
+        useIsPresent: () => true,
+    };
+});
 
 describe('Portfolio Favorites Header Actions', () => {
     beforeEach(() => {

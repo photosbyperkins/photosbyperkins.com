@@ -4,15 +4,20 @@ import { render } from '@testing-library/react';
 import LightboxAmbient from './LightboxAmbient';
 import type { PhotoInput } from '../../../types';
 
-vi.mock('framer-motion', () => ({
-    motion: {
-        div: ({ children, className, style, ...props }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode }) => (
-            <div className={className} style={style} {...props}>
-                {children}
-            </div>
-        ),
-    },
-}));
+vi.mock('framer-motion', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('framer-motion')>();
+    return {
+        ...actual,
+        motion: {
+            ...actual.motion,
+            div: ({ children, className, style, ...props }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode }) => (
+                <div className={className} style={style} {...props}>
+                    {children}
+                </div>
+            ),
+        },
+    };
+});
 
 describe('LightboxAmbient', () => {
     const images: PhotoInput[] = [

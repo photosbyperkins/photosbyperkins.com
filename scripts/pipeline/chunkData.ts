@@ -6,6 +6,8 @@ import { logger } from './logger';
 import { GEAR_REGISTRY, getGearItem } from '../../src/data/gearData.js';
 import { parseEventTitle } from '../../src/utils/formatters.js';
 import { sliceCacheKey, type SubjectFraming } from '../../src/utils/subjectFraming.js';
+import { DATA_FORMAT_VERSION, encodeAlbum, encodeEvent } from '../../src/utils/dataCodec.js';
+import type { PhotoRecord } from '../../src/types';
 
 export interface ProcessedHighlight {
     original?: string;
@@ -90,6 +92,21 @@ export function toClientPhoto(img: PhotoObject): PhotoObject {
         if (body) out.subjects = [stripConfidence(body)];
     }
     return out;
+}
+
+/**
+ * Compacts a highlight reference for year/team/gear chunks: only what the grid and Story framing need,
+ * with the same face cap and confidence stripping as album photos.
+ */
+export function toClientHighlight(h: Photo): ProcessedHighlight {
+    if (typeof h === 'string') return { original: h, thumb: h };
+    return {
+        original: h.original || h.src,
+        thumb: h.thumb || h.original || h.src,
+        focusX: h.focusX,
+        focusY: h.focusY,
+        ...(h.faces && h.faces.length > 0 ? { faces: h.faces.slice(0, CLIENT_MAX_FACES).map(stripConfidence) } : {}),
+    };
 }
 
 export function generateRecapImages(eventsObj: Record<string, Partial<ProcessedEventData>>) {
@@ -243,19 +260,26 @@ export function sortTaggedEvents<T extends { earliestTime?: number }>(
     return sorted;
 }
 
+/**
+ * Writes `events` as linked chunk files (`name.json`, `name_part2.json`, …).
+ * When `encode` is supplied, each event is passed through it and every part is stamped with
+ * the data format version so the client can decode any part independently.
+ */
 export function writeChunkedFile<T = unknown>(
     baseDir: string,
     baseName: string,
     dataEvents: Record<string, T>,
     extraPayload?: Record<string, unknown>,
-    chunkSize = 10
+    chunkSize = 10,
+    encode?: (ev: T) => unknown
 ): string[] {
     const writtenFiles: string[] = [];
     const eventEntries = Object.entries(dataEvents);
+    const versionStamp = encode ? { v: DATA_FORMAT_VERSION } : {};
 
     if (eventEntries.length === 0) {
         const filePath = path.join(baseDir, `${baseName}.json`);
-        fs.writeFileSync(filePath, JSON.stringify({ events: {}, ...extraPayload }, null, 0));
+        fs.writeFileSync(filePath, JSON.stringify({ ...versionStamp, events: {}, ...extraPayload }, null, 0));
         writtenFiles.push(filePath);
         return writtenFiles;
     }
@@ -271,12 +295,13 @@ export function writeChunkedFile<T = unknown>(
         const fileName = isFirst ? `${baseName}.json` : `${baseName}_part${i + 1}.json`;
         const nextPart = isLast ? null : `${baseName}_part${i + 2}`;
 
-        const eventsObj: Record<string, T> = {};
+        const eventsObj: Record<string, unknown> = {};
         for (const [k, v] of parts[i]) {
-            eventsObj[k] = v;
+            eventsObj[k] = encode ? encode(v) : v;
         }
 
-        const payload: ChunkPartPayload<T> = {
+        const payload: ChunkPartPayload = {
+            ...versionStamp,
             events: eventsObj,
         };
 
@@ -295,6 +320,9 @@ export function writeChunkedFile<T = unknown>(
 
     return writtenFiles;
 }
+
+/** Encodes processed event metadata for the client chunk files. */
+const encodeChunkEvent = (ev: ProcessedEventData) => encodeEvent(ev as unknown as Record<string, unknown>);
 
 export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
     logger.header('Chunking photos.json data...');
@@ -462,11 +490,14 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
             const albumFile = path.join(yearAlbumsDir, `${slug}.json`);
             const scrubberHash = computeScrubberHash(event.album || []);
 
-            // Save album separately
-            const cleanAlbum = (event.album || []).map((img) =>
-                typeof img === 'string' ? img : { ...toClientPhoto(img), ...(scrubberHash ? { scrubberHash } : {}) }
-            );
-            fs.writeFileSync(albumFile, JSON.stringify(cleanAlbum, null, 0));
+            // Save album separately (compact v2 wire format, see src/utils/dataCodec.ts)
+            const cleanAlbum: PhotoRecord[] = (event.album || []).map((img) => {
+                if (typeof img === 'string') {
+                    throw new Error(`chunkData: unexpected string photo entry in ${year}/${slug}`);
+                }
+                return { ...toClientPhoto(img), ...(scrubberHash ? { scrubberHash } : {}) };
+            });
+            fs.writeFileSync(albumFile, JSON.stringify(encodeAlbum(year, slug, cleanAlbum), null, 0));
 
             let maxExifChars = 0;
             const eventGearPhotos: Record<string, PhotoObject[]> = {};
@@ -536,13 +567,7 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
                     originalYear: year,
                     ...(maxExifChars > 0 && { maxExifChars }),
                     ...(scrubberHash ? { scrubberHash } : {}),
-                    highlights: chosenHighlights.map((h: Photo) => ({
-                        original: typeof h === 'string' ? h : h.original || h.src,
-                        thumb: typeof h === 'string' ? h : h.thumb || h.original || h.src,
-                        focusX: typeof h === 'object' ? h.focusX : undefined,
-                        focusY: typeof h === 'object' ? h.focusY : undefined,
-                        ...(typeof h === 'object' && h.faces ? { faces: h.faces } : {}),
-                    })),
+                    highlights: chosenHighlights.map(toClientHighlight),
                 };
 
                 globalGearList[gearId].events[`[${year}] ${eventName}`] = gearEvMeta;
@@ -667,13 +692,9 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
             delete processedYearData[evKey].hero;
 
             if (processedYearData[evKey].highlights) {
-                processedYearData[evKey].highlights = processedYearData[evKey].highlights.map((h) => ({
-                    original: h.original,
-                    thumb: h.thumb || h.original,
-                    focusX: h.focusX,
-                    focusY: h.focusY,
-                    ...(h.faces ? { faces: h.faces } : {}),
-                }));
+                processedYearData[evKey].highlights = processedYearData[evKey].highlights.map((h) =>
+                    toClientHighlight(h as Photo)
+                );
             }
         }
 
@@ -715,12 +736,19 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
             firstSeenTeams: Array.from(firstSeenTeams),
         };
 
-        writeChunkedFile(YEARS_DIR, year, processedYearData, {
-            recapCount: recapImages.length,
-            recapEvents,
-            ...(recapHash ? { recapHash } : {}),
-            stats: yearStats,
-        });
+        writeChunkedFile(
+            YEARS_DIR,
+            year,
+            processedYearData,
+            {
+                recapCount: recapImages.length,
+                recapEvents,
+                ...(recapHash ? { recapHash } : {}),
+                stats: yearStats,
+            },
+            undefined,
+            encodeChunkEvent
+        );
         // logger.info(`Chunked year: ${year} into parts with ${Object.keys(processedYearData).length} albums`);
     }
 
@@ -743,7 +771,7 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
 
         // We no longer generate recap slices for teams since the random hero logic
         // often pulls images of the opposing team
-        writeChunkedFile(TEAMS_DIR, teamSlug, sortedTeamEvents, { recapCount: 0, recapEvents: [] });
+        writeChunkedFile(TEAMS_DIR, teamSlug, sortedTeamEvents, { recapCount: 0, recapEvents: [] }, undefined, encodeChunkEvent);
     }
 
     // Sort uniquely mapped teams by mostly alphabetically
@@ -785,7 +813,7 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
         // Sort gear events in reverse chronological order across all years
         const sortedGearEvents = sortTaggedEvents(gearEntry.events);
 
-        writeChunkedFile(GEAR_DIR, gearId, sortedGearEvents, { recapCount: 0, recapEvents: [] });
+        writeChunkedFile(GEAR_DIR, gearId, sortedGearEvents, { recapCount: 0, recapEvents: [] }, undefined, encodeChunkEvent);
     }
 
     // Sort gear items by photo count descending by default

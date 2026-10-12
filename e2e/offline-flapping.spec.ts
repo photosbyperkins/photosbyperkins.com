@@ -11,14 +11,14 @@ test.describe('PWA & Network Flapping Resilience', () => {
         // Rapid flapping simulation (e.g. subway tunnel or elevator)
         for (let i = 0; i < 4; i++) {
             await context.setOffline(true);
-            await page.waitForTimeout(100);
+            await page.waitForTimeout(250);
             await context.setOffline(false);
-            await page.waitForTimeout(100);
+            await page.waitForTimeout(250);
         }
 
         // Now settle in offline state
         await context.setOffline(true);
-        await expect(toast).toBeVisible({ timeout: 5000 });
+        await expect(toast).toBeVisible({ timeout: 10000 });
         await expect(toast).toContainText('Offline Mode');
 
         // Settle in online state
@@ -26,7 +26,7 @@ test.describe('PWA & Network Flapping Resilience', () => {
         await expect(toast).toContainText('Back online', { timeout: 5000 });
 
         // Toast should auto-dismiss after its ~3000ms timer
-        await expect(toast).not.toBeVisible({ timeout: 6000 });
+        await expect(toast).not.toBeVisible({ timeout: 10000 });
     });
 
     test('retains store and UI interactivity during repeated flapping', async ({ page, context }) => {

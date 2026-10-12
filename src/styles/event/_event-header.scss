@@ -123,6 +123,10 @@
                 letter-spacing: 0.05em;
                 color: #f5a2c6;
                 line-height: 1;
+
+                html[data-theme='light'] & {
+                    color: #991b5b;
+                }
             }
 
             @media (max-width: 600px) {

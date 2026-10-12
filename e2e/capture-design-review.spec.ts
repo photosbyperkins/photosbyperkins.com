@@ -6,6 +6,9 @@ const ARTIFACT_DIR = 'C:/Users/micha/.gemini/antigravity/brain/c75a3805-ef02-4df
 
 test.describe('Design Review Screenshot Capture', () => {
     test.setTimeout(150000);
+    test.beforeEach(({ browserName }) => {
+        test.skip(browserName !== 'chromium', 'Design review screenshot captures run on Chromium');
+    });
     test('capture Story Maker across desktop and mobile', async ({ page }) => {
         // Desktop Story Maker capture (side layout)
         await page.setViewportSize({ width: 1440, height: 900 });

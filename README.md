@@ -135,7 +135,8 @@ Running `npm run build` triggers a multi-phase pipeline orchestrated by `scripts
 
 ### Phase 4 — Data Modifiers & Chunking
 - **Generate Zips**: Builds offline event ZIP archives.
-- **Chunk Data**: Splits `photos.json` into per-year JSON payloads with computed season statistics.
+- **Chunk Data**: Splits `photos.json` into per-year, per-team, per-gear and per-album JSON payloads with computed season statistics.
+- **Compact Data Format (v2)**: Payloads are encoded by [`src/utils/dataCodec.ts`](src/utils/dataCodec.ts): asset paths are rebuilt from year + album slug + photo number, EXIF blocks are de-duplicated per album, coordinates ship as integer hundredths, and burst frames reference album indices. The client decodes back to the same `PhotoRecord` / `EventData` shapes, so nothing downstream changes. Albums are ~87% smaller raw and ~62% smaller gzipped than the previous format. The encoder throws on unknown photo fields, so add new fields to the codec when extending the schema.
 
 ### Phase 5 — Sprites & Scrubber Generation
 - **Generate Recaps**: Composites focus-cropped highlight slices into sprite sheets with content-hashed versioning (`recapHash`).

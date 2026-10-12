@@ -71,11 +71,14 @@ test.describe('SEO & Lighthouse Performance Contract', () => {
         expect(hasOutfit).toBe(true);
     });
 
-    test('should preload root photo index data', async ({ page }) => {
+    test('should inline root photo index and preload active season data', async ({ page }) => {
+        const initialIndex = await page.evaluate(() => (window as unknown as { __INITIAL_INDEX__?: unknown }).__INITIAL_INDEX__);
+        expect(initialIndex).toBeDefined();
+
         const dataPreload = page.locator('link[rel="preload"][as="fetch"]');
         await expect(dataPreload).toHaveCount(1);
         const href = await dataPreload.getAttribute('href');
-        expect(href).toContain('/data/index.json');
+        expect(href).toMatch(/\/data\/years\/\d{4}\.json/);
     });
 
     test('should configure LCP priority attributes on first featured image', async ({ page }) => {

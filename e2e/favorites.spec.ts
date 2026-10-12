@@ -96,7 +96,7 @@ test.describe('Favorites', () => {
         await page.waitForTimeout(1000);
 
         // Should show at least one photo in grid
-        const gridItems = page.locator('.portfolio__grid-item');
+        const gridItems = page.locator('.portfolio__featured-item, .portfolio__grid-item');
         await expect(gridItems.first()).toBeVisible({ timeout: 5000 });
         const count = await gridItems.count();
         expect(count).toBeGreaterThanOrEqual(1);
@@ -155,7 +155,7 @@ test.describe('Favorites', () => {
         await page.waitForTimeout(1000);
 
         // Click the first photo in favorites
-        const favPhoto = page.locator('.portfolio__grid-item').first();
+        const favPhoto = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
         await expect(favPhoto).toBeVisible({ timeout: 5000 });
         await favPhoto.click();
 
@@ -223,10 +223,7 @@ test.describe('Favorites', () => {
         const favTab = page.locator('.portfolio__years a[aria-label="Favorites"]');
         if ((await favTab.count()) === 0) return;
         await favTab.click();
-        await page.waitForTimeout(600);
-
-        // Should be at top 0
-        expect(await page.evaluate(() => window.scrollY)).toBe(0);
+        await expect.poll(async () => page.evaluate(() => window.scrollY), { timeout: 5000 }).toBe(0);
 
         // Scroll down again
         await page.evaluate(() => window.scrollTo(0, 1500));
@@ -234,9 +231,6 @@ test.describe('Favorites', () => {
 
         // Click active favorites tab again
         await favTab.click();
-        await page.waitForTimeout(600);
-
-        // Should be at top 0
-        expect(await page.evaluate(() => window.scrollY)).toBe(0);
+        await expect.poll(async () => page.evaluate(() => window.scrollY), { timeout: 5000 }).toBe(0);
     });
 });

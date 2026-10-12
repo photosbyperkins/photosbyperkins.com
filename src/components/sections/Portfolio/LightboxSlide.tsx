@@ -1,4 +1,4 @@
-import { motion } from 'framer-motion';
+import { motion, useIsPresent } from 'framer-motion';
 import { forwardRef, useImperativeHandle, memo } from 'react';
 import { useSlideZoom } from '../../../hooks/useSlideZoom';
 import { getPhotoDisplayUrl } from '../../../utils/formatters';
@@ -7,6 +7,7 @@ import { withBuild } from '../../../utils/build';
 
 export interface LightboxSlideHandle {
     toggleZoom: (clientX?: number, clientY?: number) => void;
+    resetZoom?: () => void;
 }
 
 export interface LightboxSlideProps {
@@ -23,6 +24,7 @@ const LightboxSlide = memo(
         { image, alt, onZoomChange, onCanZoomChange, onLoad, onSingleClick },
         ref
     ) {
+    const isPresent = useIsPresent();
     const url = image ? (typeof image === 'string' ? image : image.original) : '';
     const displayUrl = url ? getPhotoDisplayUrl(url) : '';
     const focusX = image && typeof image !== 'string' ? image.focusX : undefined;
@@ -32,7 +34,7 @@ const LightboxSlide = memo(
     const zoomFocusX = primaryFace?.h != null ? primaryFace.x : focusX;
     const zoomFocusY = primaryFace?.h != null ? primaryFace.y : focusY;
 
-    const { containerRef, scale, panX, panY, dragMode, constraints, toggleZoom, handleImageLoad, containerProps } =
+    const { containerRef, scale, panX, panY, dragMode, constraints, toggleZoom, resetZoom, handleImageLoad, containerProps } =
         useSlideZoom({
             image,
             focusX: zoomFocusX,
@@ -44,6 +46,7 @@ const LightboxSlide = memo(
 
     useImperativeHandle(ref, () => ({
         toggleZoom,
+        resetZoom,
     }));
 
     if (!image) return null;
@@ -64,7 +67,7 @@ const LightboxSlide = memo(
                     y: panY,
                     objectPosition: `${focusX != null ? focusX * 100 : 50}% ${focusY != null ? focusY * 100 : 50}%`,
                 }}
-                drag={dragMode}
+                drag={isPresent ? dragMode : false}
                 dragConstraints={constraints}
                 dragElastic={0.1}
                 dragTransition={{ power: 0.25, timeConstant: 220, bounceStiffness: 400, bounceDamping: 40 }}

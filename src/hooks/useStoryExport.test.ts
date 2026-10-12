@@ -23,6 +23,14 @@ vi.mock('../utils/story/storyVideo', async (importOriginal) => {
 });
 
 describe('useStoryExport', () => {
+    const originalCreateObjectURL = globalThis.URL.createObjectURL;
+    const originalRevokeObjectURL = globalThis.URL.revokeObjectURL;
+
+    afterEach(() => {
+        globalThis.URL.createObjectURL = originalCreateObjectURL;
+        globalThis.URL.revokeObjectURL = originalRevokeObjectURL;
+    });
+
     const mockConfig: StoryRenderConfig = {
         mode: 'crop',
         crop: { x: 0, y: 0, width: 1, height: 1, zoom: 1.0, centerX: 0.5, centerY: 0.5 },

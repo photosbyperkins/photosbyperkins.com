@@ -1,4 +1,15 @@
-import { test, expect } from '@playwright/test';
+import { test, expect, type Page } from '@playwright/test';
+
+async function openWftdaModal(page: Page) {
+    const wftdaLink = page.locator('a:has(.portfolio__wftda-badge)').first();
+    await wftdaLink.waitFor({ state: 'visible', timeout: 10000 });
+    await wftdaLink.scrollIntoViewIfNeeded();
+    await wftdaLink.click();
+
+    const modal = page.locator('.modal-shell.iframe-overlay');
+    await expect(modal).toBeVisible({ timeout: 10000 });
+    return { wftdaLink, modal };
+}
 
 test.describe('WFTDA Stats Overlay Modal', () => {
     test.beforeEach(async ({ page }) => {
@@ -21,10 +32,7 @@ test.describe('WFTDA Stats Overlay Modal', () => {
         const expectedHref = await wftdaLink.getAttribute('href');
         expect(expectedHref).toContain('stats.wftda.com');
 
-        await wftdaLink.click();
-
-        const modal = page.locator('.modal-shell.iframe-overlay');
-        await expect(modal).toBeVisible({ timeout: 5000 });
+        const { modal } = await openWftdaModal(page);
         await expect(modal).toHaveAttribute('role', 'dialog');
         await expect(modal).toHaveAttribute('aria-modal', 'true');
 
@@ -44,36 +52,25 @@ test.describe('WFTDA Stats Overlay Modal', () => {
     });
 
     test('should close modal when clicking the close button', async ({ page }) => {
-        const wftdaLink = page.locator('a:has(.portfolio__wftda-badge)').first();
-        await wftdaLink.click();
-
-        const modal = page.locator('.modal-shell.iframe-overlay');
-        await expect(modal).toBeVisible({ timeout: 5000 });
+        const { modal } = await openWftdaModal(page);
 
         const closeBtn = modal.locator('button.modal-shell__close-btn');
         await expect(closeBtn).toBeVisible();
         await closeBtn.click();
 
-        await expect(modal).not.toBeVisible({ timeout: 3000 });
+        await expect(modal).not.toBeVisible({ timeout: 10000 });
     });
 
     test('should close modal when pressing Escape key', async ({ page }) => {
-        const wftdaLink = page.locator('a:has(.portfolio__wftda-badge)').first();
-        await wftdaLink.click();
-
-        const modal = page.locator('.modal-shell.iframe-overlay');
-        await expect(modal).toBeVisible({ timeout: 5000 });
+        const { modal } = await openWftdaModal(page);
+        await page.waitForTimeout(300);
 
         await page.keyboard.press('Escape');
-        await expect(modal).not.toBeVisible({ timeout: 3000 });
+        await expect(modal).not.toBeVisible({ timeout: 10000 });
     });
 
     test('should trap focus within the modal when tabbing', async ({ page }) => {
-        const wftdaLink = page.locator('a:has(.portfolio__wftda-badge)').first();
-        await wftdaLink.click();
-
-        const modal = page.locator('.modal-shell.iframe-overlay');
-        await expect(modal).toBeVisible({ timeout: 5000 });
+        const { modal } = await openWftdaModal(page);
 
         // Tab multiple times and verify activeElement remains inside modal
         for (let i = 0; i < 6; i++) {

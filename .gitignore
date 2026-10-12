@@ -40,6 +40,7 @@ __pycache__/
 # Agent and Test Artifacts
 ARCHITECTURE_AND_FEATURE_IDEAS.md
 RELEASE_NOTES.md
+roadmap.md
 test-results/
 playwright-report/
 screenshots/

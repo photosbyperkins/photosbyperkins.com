@@ -12,6 +12,7 @@ import {
     studioTab,
     studioTabPanel,
     thumbByLabel,
+    selectThumb,
 } from './helpers/storyStudio';
 
 test.describe('Story Maker (9:16)', () => {
@@ -22,13 +23,7 @@ test.describe('Story Maker (9:16)', () => {
     });
 
     test('should display Story Studio action button in lightbox header', async ({ page }) => {
-        // Click first photo thumbnail to open lightbox
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
-
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 10000 });
+        const lightbox = await openFirstPhotoLightbox(page);
 
         // Verify Story Studio button exists
         const storyBtn = lightbox.locator('button[aria-label="Story Maker (9:16)"]');
@@ -36,12 +31,7 @@ test.describe('Story Maker (9:16)', () => {
     });
 
     test('should open Story Studio modal on button click', async ({ page }) => {
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
-
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 10000 });
+        const lightbox = await openFirstPhotoLightbox(page);
 
         const storyBtn = lightbox.locator('button[aria-label="Story Maker (9:16)"]');
         await storyBtn.click();
@@ -81,12 +71,7 @@ test.describe('Story Maker (9:16)', () => {
     });
 
     test('should open Story Studio with keyboard shortcut "c"', async ({ page }) => {
-        const photo = page.locator('.portfolio__featured-item, .portfolio__grid-item').first();
-        await photo.waitFor({ timeout: 10000 });
-        await photo.click();
-
-        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
-        await expect(lightbox).toBeVisible({ timeout: 10000 });
+        await openFirstPhotoLightbox(page);
 
         // Press 'c' to open Story Studio
         await page.keyboard.press('c');
@@ -540,6 +525,7 @@ test.describe('Story Maker (9:16)', () => {
     });
 
     test('should transition download button to confirmed state on download and reset when card is altered', async ({ page }) => {
+        test.setTimeout(90000);
         await openFirstPhotoLightbox(page);
         const studioModal = await openStoryMakerFromLightbox(page);
 
@@ -601,7 +587,7 @@ test.describe('Story Maker (9:16)', () => {
 
         const ttlCard = thumbByLabel(studioModal.locator('#story-export-frames-grid'), 'Camera');
         if (await ttlCard.isVisible()) {
-            await ttlCard.click();
+            await selectThumb(ttlCard);
 
             const frameOverlay = studioModal.locator('.story-studio__preview .story-frame-overlay');
             await expect(frameOverlay).toBeVisible();
@@ -678,6 +664,7 @@ test.describe('Story Maker (9:16)', () => {
     });
 
     test('should support selective color filters (Red Pop, Green Pop, Blue Pop) and export successfully', async ({ page }) => {
+        test.setTimeout(90000);
         await openFirstPhotoLightbox(page);
         const studioModal = await openStoryMakerFromLightbox(page);
 
@@ -693,7 +680,7 @@ test.describe('Story Maker (9:16)', () => {
 
         // 1. Test Red Pop
         const redPopBtn = filterBtn('Red Pop');
-        await redPopBtn.click();
+        await selectThumb(redPopBtn);
         await expectSelectedThumb(filtersGrid, 'Red Pop');
         await expect(redPopBtn).toHaveAttribute('aria-pressed', 'true');
         await expect(cropperImg).toHaveCSS('filter', /url\("#?story-filter-selective-red"\)/);
@@ -703,37 +690,37 @@ test.describe('Story Maker (9:16)', () => {
         await expect(slider).toBeVisible();
 
         // 2. Test Green Pop & Blue Pop
-        await filterBtn('Green Pop').click();
+        await selectThumb(filterBtn('Green Pop'));
         await expectSelectedThumb(filtersGrid, 'Green Pop');
         await expect(cropperImg).toHaveCSS('filter', /url\("#?story-filter-selective-green"\)/);
 
-        await filterBtn('Blue Pop').click();
+        await selectThumb(filterBtn('Blue Pop'));
         await expectSelectedThumb(filtersGrid, 'Blue Pop');
         await expect(cropperImg).toHaveCSS('filter', /url\("#?story-filter-selective-blue"\)/);
 
         // 3. Test Yellow Pop & Purple Pop
-        await filterBtn('Yellow Pop').click();
+        await selectThumb(filterBtn('Yellow Pop'));
         await expectSelectedThumb(filtersGrid, 'Yellow Pop');
         await expect(cropperImg).toHaveCSS('filter', /url\("#?story-filter-selective-yellow"\)/);
 
-        await filterBtn('Purple Pop').click();
+        await selectThumb(filterBtn('Purple Pop'));
         await expectSelectedThumb(filtersGrid, 'Purple Pop');
         await expect(cropperImg).toHaveCSS('filter', /url\("#?story-filter-selective-purple"\)/);
 
         // 4. Test Teal & Orange (cinematic), Neon, Bleach, and Duotone
-        await filterBtn('Teal & Orange').click();
+        await selectThumb(filterBtn('Teal & Orange'));
         await expectSelectedThumb(filtersGrid, 'Teal & Orange');
         await expect(cropperImg).toHaveCSS('filter', /url\("#?story-filter-cinematic"\)/);
 
-        await filterBtn('Neon').click();
+        await selectThumb(filterBtn('Neon'));
         await expectSelectedThumb(filtersGrid, 'Neon');
         await expect(cropperImg).toHaveCSS('filter', /url\("#?story-filter-neon"\)/);
 
-        await filterBtn('Bleach').click();
+        await selectThumb(filterBtn('Bleach'));
         await expectSelectedThumb(filtersGrid, 'Bleach');
         await expect(cropperImg).toHaveCSS('filter', /contrast\(135%\)|contrast\(1\.35\)/);
 
-        await filterBtn('Duotone').click();
+        await selectThumb(filterBtn('Duotone'));
         await expectSelectedThumb(filtersGrid, 'Duotone');
         await expect(cropperImg).toHaveCSS('filter', /url\("#?story-filter-duotone"\)/);
 
@@ -761,7 +748,7 @@ test.describe('Story Maker (9:16)', () => {
         const filtersGrid = studioModal.locator('#story-export-filters-grid');
         await expect(thumbByLabel(filtersGrid, 'None')).toBeVisible();
         const redPopCard = thumbByLabel(filtersGrid, 'Red Pop');
-        await redPopCard.click();
+        await selectThumb(redPopCard);
 
         // Selecting alone does not record a recent filter
         await expectSelectedThumb(filtersGrid, 'Red Pop');

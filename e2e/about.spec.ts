@@ -20,11 +20,11 @@ test.describe('About Overlay', () => {
         await logoBtn.click();
 
         const overlay = page.locator('[role="dialog"][aria-label="About the photographer"]');
-        await expect(overlay).toBeVisible({ timeout: 3000 });
+        await expect(overlay).toBeVisible({ timeout: 5000 });
 
         const closeBtn = overlay.locator('button[aria-label="Close"]');
         await closeBtn.click();
-        await expect(overlay).not.toBeVisible({ timeout: 3000 });
+        await expect(overlay).not.toBeVisible({ timeout: 5000 });
     });
 
     test('should close About overlay via Escape key', async ({ page }) => {
@@ -32,10 +32,11 @@ test.describe('About Overlay', () => {
         await logoBtn.click();
 
         const overlay = page.locator('[role="dialog"][aria-label="About the photographer"]');
-        await expect(overlay).toBeVisible({ timeout: 3000 });
+        await expect(overlay).toBeVisible({ timeout: 5000 });
 
+        await page.waitForTimeout(200);
         await page.keyboard.press('Escape');
-        await expect(overlay).not.toBeVisible({ timeout: 3000 });
+        await expect(overlay).not.toBeVisible({ timeout: 5000 });
     });
 
     test('should lock body scroll when About overlay is open', async ({ page }) => {
@@ -43,10 +44,9 @@ test.describe('About Overlay', () => {
         await logoBtn.click();
 
         const overlay = page.locator('[role="dialog"][aria-label="About the photographer"]');
-        await expect(overlay).toBeVisible({ timeout: 3000 });
+        await expect(overlay).toBeVisible({ timeout: 5000 });
 
-        const overflow = await page.evaluate(() => document.body.style.overflow);
-        expect(overflow).toBe('hidden');
+        await expect.poll(async () => page.evaluate(() => document.body.style.overflow), { timeout: 5000 }).toBe('hidden');
     });
 
     test('should restore body scroll after About overlay closes', async ({ page }) => {
@@ -54,14 +54,13 @@ test.describe('About Overlay', () => {
         await logoBtn.click();
 
         const overlay = page.locator('[role="dialog"][aria-label="About the photographer"]');
-        await expect(overlay).toBeVisible({ timeout: 3000 });
+        await expect(overlay).toBeVisible({ timeout: 5000 });
 
         const closeBtn = overlay.locator('button[aria-label="Close"]');
         await closeBtn.click();
-        await expect(overlay).not.toBeVisible({ timeout: 3000 });
+        await expect(overlay).not.toBeVisible({ timeout: 5000 });
 
-        const overflow = await page.evaluate(() => document.body.style.overflow);
-        expect(overflow).toBe('');
+        await expect.poll(async () => page.evaluate(() => document.body.style.overflow), { timeout: 5000 }).toBe('');
     });
 
     test('should auto-focus the close button when opened', async ({ page }) => {
@@ -69,13 +68,9 @@ test.describe('About Overlay', () => {
         await logoBtn.click();
 
         const overlay = page.locator('[role="dialog"][aria-label="About the photographer"]');
-        await expect(overlay).toBeVisible({ timeout: 3000 });
+        await expect(overlay).toBeVisible({ timeout: 5000 });
 
-        // Wait a frame for requestAnimationFrame focus
-        await page.waitForTimeout(100);
-
-        const focusedLabel = await page.evaluate(() => document.activeElement?.getAttribute('aria-label'));
-        expect(focusedLabel).toBe('Close');
+        await expect.poll(async () => page.evaluate(() => document.activeElement?.getAttribute('aria-label')), { timeout: 5000 }).toBe('Close');
     });
 
     test('should display profile photo and bio text', async ({ page }) => {

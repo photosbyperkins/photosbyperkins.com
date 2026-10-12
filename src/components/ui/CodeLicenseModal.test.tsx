@@ -4,16 +4,22 @@ import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/re
 import CodeLicenseModal from './CodeLicenseModal';
 import { useAppStore } from '../../store/useAppStore';
 
-vi.mock('framer-motion', () => ({
-    motion: {
-        div: ({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode }) => (
-            <div className={className} {...props}>
-                {children}
-            </div>
-        ),
-    },
-    AnimatePresence: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
-}));
+vi.mock('framer-motion', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('framer-motion')>();
+    return {
+        ...actual,
+        motion: {
+            ...actual.motion,
+            div: ({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode }) => (
+                <div className={className} {...props}>
+                    {children}
+                </div>
+            ),
+        },
+        AnimatePresence: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+        useIsPresent: () => true,
+    };
+});
 
 describe('CodeLicenseModal', () => {
     let originalClipboard: PropertyDescriptor | undefined;

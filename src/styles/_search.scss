@@ -353,13 +353,25 @@
         &.is-wftda {
             .portfolio__team-name {
                 color: #f5a2c6;
+
+                html[data-theme='light'] & {
+                    color: #991b5b;
+                }
             }
 
             border-color: rgba(245, 162, 198, 0.2);
 
+            html[data-theme='light'] & {
+                border-color: rgba(153, 27, 91, 0.25);
+            }
+
             @media (hover: hover) {
                 &:hover {
                     border-color: #f5a2c6;
+
+                    html[data-theme='light'] & {
+                        border-color: #991b5b;
+                    }
                 }
             }
         }

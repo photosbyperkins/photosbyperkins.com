@@ -16,7 +16,6 @@ const FRAME_LABELS = (process.env.STORY_FRAMES || '')
 
 type LayoutMode = 'side' | 'stacked' | 'sheet';
 
-test.use({ channel: 'chrome' });
 test.describe.configure({ mode: 'parallel' });
 
 async function shot(page: Page, name: string) {
@@ -152,6 +151,9 @@ async function captureStudio(page: Page, prefix: string, mode: LayoutMode) {
 
 test.describe('Story Maker design captures', () => {
     test.setTimeout(180000);
+    test.beforeEach(({ browserName }) => {
+        test.skip(browserName !== 'chromium', 'Video export design captures require Chromium video support');
+    });
 
     test('desktop 1440x900 (side)', async ({ page }) => {
         await page.setViewportSize({ width: 1440, height: 900 });

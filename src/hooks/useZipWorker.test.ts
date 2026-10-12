@@ -6,6 +6,7 @@ describe('useZipWorker', () => {
     let activeWorkerInstance: MockWorker | null = null;
     const originalCreateObjectURL = URL.createObjectURL;
     const originalRevokeObjectURL = URL.revokeObjectURL;
+    const originalWorker = window.Worker;
 
     const setActiveInstance = (instance: MockWorker) => {
         activeWorkerInstance = instance;
@@ -31,6 +32,7 @@ describe('useZipWorker', () => {
     });
 
     afterEach(() => {
+        window.Worker = originalWorker;
         URL.createObjectURL = originalCreateObjectURL;
         URL.revokeObjectURL = originalRevokeObjectURL;
         vi.restoreAllMocks();

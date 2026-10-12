@@ -4,16 +4,22 @@ import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import AiPolicyModal from './AiPolicyModal';
 import { useAppStore } from '../../store/useAppStore';
 
-vi.mock('framer-motion', () => ({
-    motion: {
-        div: ({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode }) => (
-            <div className={className} {...props}>
-                {children}
-            </div>
-        ),
-    },
-    AnimatePresence: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
-}));
+vi.mock('framer-motion', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('framer-motion')>();
+    return {
+        ...actual,
+        motion: {
+            ...actual.motion,
+            div: ({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement> & { children?: React.ReactNode }) => (
+                <div className={className} {...props}>
+                    {children}
+                </div>
+            ),
+        },
+        AnimatePresence: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+        useIsPresent: () => true,
+    };
+});
 
 describe('AiPolicyModal', () => {
     beforeEach(() => {

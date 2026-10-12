@@ -13,18 +13,25 @@ import '@fontsource/outfit/latin-400.css';
 
 // Force a hard reload if Vite fails to load a dynamic chunk or asset
 // This usually happens when the app updates but the user has an old index.html cached
-window.addEventListener('vite:preloadError', () => {
+window.addEventListener('vite:preloadError', (event) => {
+    if (import.meta.env.DEV || (typeof navigator !== 'undefined' && !navigator.onLine)) {
+        event.preventDefault();
+        return;
+    }
     window.location.reload();
 });
 
 let refreshing = false;
-if ('serviceWorker' in navigator) {
+if (!import.meta.env.DEV && 'serviceWorker' in navigator) {
     const hasExistingController = Boolean(navigator.serviceWorker.controller);
     navigator.serviceWorker.addEventListener('controllerchange', () => {
         // Do not reload on first install / claim; only reload on update of existing SW
         const wasPreviouslyControlled = hasExistingController || sessionStorage.getItem('sw-initialized') === 'true';
         if (!wasPreviouslyControlled) {
             sessionStorage.setItem('sw-initialized', 'true');
+            return;
+        }
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
             return;
         }
         if (!refreshing) {

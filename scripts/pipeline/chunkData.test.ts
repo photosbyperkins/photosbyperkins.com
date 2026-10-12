@@ -10,7 +10,9 @@ import {
     computeRecapHash,
     computeScrubberHash,
     toClientPhoto,
+    toClientHighlight,
 } from './chunkData';
+import { DATA_FORMAT_VERSION } from '../../src/utils/dataCodec';
 
 describe('chunkData pipeline helpers', () => {
     describe('slugify', () => {
@@ -110,6 +112,51 @@ describe('chunkData pipeline helpers', () => {
             const part3 = JSON.parse(fs.readFileSync(path.join(tempDir, 'split_part3.json'), 'utf8'));
             expect(Object.keys(part3.events)).toEqual(['e5']);
             expect(part3.nextPart).toBeUndefined();
+        });
+
+        it('encodes events and stamps every part with the format version when an encoder is supplied', () => {
+            const events = { e1: { name: 'E1' }, e2: { name: 'E2' }, e3: { name: 'E3' } };
+            writeChunkedFile(tempDir, 'enc', events, { extraInfo: 'firstOnly' }, 2, (ev) => ({ encoded: ev.name }));
+
+            const part1 = JSON.parse(fs.readFileSync(path.join(tempDir, 'enc.json'), 'utf8'));
+            const part2 = JSON.parse(fs.readFileSync(path.join(tempDir, 'enc_part2.json'), 'utf8'));
+            expect(part1.v).toBe(DATA_FORMAT_VERSION);
+            expect(part2.v).toBe(DATA_FORMAT_VERSION);
+            expect(part1.events).toEqual({ e1: { encoded: 'E1' }, e2: { encoded: 'E2' } });
+            expect(part2.events).toEqual({ e3: { encoded: 'E3' } });
+            expect(part1.extraInfo).toBe('firstOnly');
+        });
+
+        it('does not stamp a version when no encoder is supplied', () => {
+            const written = writeChunkedFile(tempDir, 'plain', { e1: { name: 'E1' } });
+            expect(JSON.parse(fs.readFileSync(written[0], 'utf8')).v).toBeUndefined();
+        });
+    });
+
+    describe('toClientHighlight', () => {
+        it('keeps only grid/framing fields, caps faces and strips confidences', () => {
+            const face = (x: number) => ({ x, y: 0.2, w: 0.04, h: 0.05, confidence: 0.9 });
+            const out = toClientHighlight({
+                source: '/raw/a.jpg',
+                original: '/photos/2025/a/photo_001.jpg',
+                thumb: '/thumbnails/2025/a/photo_001.avif',
+                focusX: 0.6,
+                focusY: 0.2,
+                recapScore: 3,
+                exif: { cameraModel: 'X' },
+                faces: [face(0.6), face(0.2), face(0.3), face(0.4), face(0.5), face(0.7)],
+            });
+            expect(out).toEqual({
+                original: '/photos/2025/a/photo_001.jpg',
+                thumb: '/thumbnails/2025/a/photo_001.avif',
+                focusX: 0.6,
+                focusY: 0.2,
+                faces: [0.6, 0.2, 0.3, 0.4].map((x) => ({ x, y: 0.2, w: 0.04, h: 0.05 })),
+            });
+        });
+
+        it('handles string photo entries', () => {
+            expect(toClientHighlight('/photos/x.jpg')).toEqual({ original: '/photos/x.jpg', thumb: '/photos/x.jpg' });
         });
     });
 

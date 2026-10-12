@@ -19,7 +19,8 @@ test.describe('Network & Intent-Based Prefetching', () => {
         await page.waitForTimeout(1000);
 
         // Should have fetched the active year (e.g. 2026), but NOT older historical years like 2020 or 2016
-        expect(fetchedYears.length).toBeLessThanOrEqual(2);
+        const uniqueYears = [...new Set(fetchedYears)];
+        expect(uniqueYears.length).toBeLessThanOrEqual(2);
         expect(fetchedYears).not.toContain('2019');
         expect(fetchedYears).not.toContain('2016');
     });

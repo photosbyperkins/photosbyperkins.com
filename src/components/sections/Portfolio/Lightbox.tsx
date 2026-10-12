@@ -246,12 +246,18 @@ export default function Lightbox({
 
     const isPresent = useIsPresent();
 
+    const handleClose = useCallback(() => {
+        slideRef.current?.resetZoom?.();
+        setIsZoomed(false);
+        onClose();
+    }, [onClose]);
+
     useLightboxNavigation({
         onClose: isStoryExportOpen
             ? () => setIsStoryExportOpen(false)
             : isHelpOpen
               ? () => setIsHelpOpen(false)
-              : onClose,
+              : handleClose,
         onPaginate: paginate,
         isZoomed,
         isActive: isPresent && !isStoryExportOpen,
@@ -327,7 +333,7 @@ export default function Lightbox({
                     const dist = Math.hypot(e.clientX - start.x, e.clientY - start.y);
                     if (dist > 5) return; // Was a drag, not a click
                 }
-                onClose();
+                handleClose();
             }}
         >
             <LightboxAmbient
@@ -370,7 +376,7 @@ export default function Lightbox({
                 eventName={eventName}
                 maxExifChars={maxExifChars}
                 canShare={canShare}
-                onClose={onClose}
+                onClose={handleClose}
                 onToggleHelp={canShare ? undefined : handleToggleHelp}
                 onOpenStoryExport={handleOpenStoryExport}
             />
@@ -389,7 +395,7 @@ export default function Lightbox({
                 <motion.div
                     className="portfolio__lightbox-track"
                     style={{ x }}
-                    drag={isAnimating || isZoomed ? false : 'x'}
+                    drag={isAnimating || isZoomed || !isPresent ? false : 'x'}
                     dragConstraints={{ left: 0, right: 0 }}
                     dragElastic={1}
                     dragMomentum={false}
