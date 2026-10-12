@@ -359,7 +359,11 @@ async function extractExif(absPath: string) {
     }
 }
 
-/** Cache schema written by scripts/detectFaces.py (ALGO_VERSION). */
+/**
+ * Format version of data/.faces_cache.json, the thumb-keyed export written by the ML pipeline
+ * (scripts/ml/photos.py FACES_EXPORT_VERSION). Algorithm changes are tracked separately by the
+ * stage fingerprint in data/ml_cache.sqlite.
+ */
 export const FACE_CACHE_VERSION = 2;
 
 export interface FaceCacheEntry {

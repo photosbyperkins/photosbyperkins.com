@@ -1,0 +1,2366 @@
+{
+ "generatedBy": "detectFaces.py ALGO_VERSION 2 (pre-refactor)",
+ "entries": [
+  {
+   "thumb": "/thumbnails/2026/0919-sacramento-roller-derby-kodiak-attack-vs-motherlode-area-derby/photo_049.avif",
+   "source": "photos/2026/09_19 Sacramento Roller Derby Kodiak Attack vs Motherlode Area Derby/18-10-11Z8A_5972-Standard.jpg",
+   "sourceSha256": "2d936043ab5604e06f5f94b12647f157d43a1e16de5ec02e301ac1c5bf19e81a",
+   "expected": {
+    "faces": [
+     {
+      "x": 0.521,
+      "y": 0.333,
+      "w": 0.042,
+      "h": 0.073,
+      "confidence": 0.87
+     },
+     {
+      "x": 0.369,
+      "y": 0.555,
+      "w": 0.023,
+      "h": 0.046,
+      "confidence": 0.84
+     },
+     {
+      "x": 0.984,
+      "y": 0.594,
+      "w": 0.028,
+      "h": 0.05,
+      "confidence": 0.83
+     },
+     {
+      "x": 0.968,
+      "y": 0.545,
+      "w": 0.019,
+      "h": 0.033,
+      "confidence": 0.68
+     },
+     {
+      "x": 0.887,
+      "y": 0.438,
+      "w": 0.025,
+      "h": 0.044,
+      "confidence": 0.84
+     }
+    ],
+    "subjects": [
+     {
+      "x": 0.482,
+      "y": 0.593,
+      "w": 0.215,
+      "h": 0.655,
+      "confidence": 0.94
+     }
+    ],
+    "score": 90.49583435058594,
+    "recapScore": 0.1447933349609375,
+    "src": "face",
+    "x": 0.521,
+    "y": 0.297
+   }
+  },
+  {
+   "thumb": "/thumbnails/2018/0616-sacramento-roller-derby-kodiak-attack-vs-so-derby/photo_075.avif",
+   "source": "photos/2018/06_16 Sacramento Roller Derby Kodiak Attack vs SO Derby/Sacramento Roller Derby 6.16.18-0077.JPG",
+   "sourceSha256": "51795e920f2e376ae54ad3e93c358a3507ac9a7f04ff452420994cf595e6161d",
+   "expected": {
+    "faces": [
+     {
+      "x": 0.648,
+      "y": 0.377,
+      "w": 0.094,
+      "h": 0.161,
+      "confidence": 0.89
+     },
+     {
+      "x": 0.453,
+      "y": 0.413,
+      "w": 0.085,
+      "h": 0.155,
+      "confidence": 0.92
+     },
+     {
+      "x": 0.516,
+      "y": 0.367,
+      "w": 0.043,
+      "h": 0.081,
+      "confidence": 0.84
+     },
+     {
+      "x": 0.763,
+      "y": 0.451,
+      "w": 0.071,
+      "h": 0.116,
+      "confidence": 0.73
+     },
+     {
+      "x": 0.254,
+      "y": 0.442,
+      "w": 0.038,
+      "h": 0.062,
+      "confidence": 0.91
+     },
+     {
+      "x": 0.316,
+      "y": 0.472,
+      "w": 0.046,
+      "h": 0.075,
+      "confidence": 0.91
+     }
+    ],
+    "subjects": [
+     {
+      "x": 0.402,
+      "y": 0.63,
+      "w": 0.338,
+      "h": 0.722,
+      "confidence": 0.93
+     },
+     {
+      "x": 0.741,
+      "y": 0.589,
+      "w": 0.344,
+      "h": 0.805,
+      "confidence": 0.91
+     },
+     {
+      "x": 0.546,
+      "y": 0.457,
+      "w": 0.114,
+      "h": 0.354,
+      "confidence": 0.87
+     },
+     {
+      "x": 0.943,
+      "y": 0.711,
+      "w": 0.113,
+      "h": 0.548,
+      "confidence": 0.87
+     }
+    ],
+    "score": 164.37921142578125,
+    "recapScore": 0.12116100169994214,
+    "src": "face",
+    "x": 0.648,
+    "y": 0.297
+   }
+  },
+  {
+   "thumb": "/thumbnails/2016/0625-sacred-city-disciples-vs-monterey-bay/photo_074.avif",
+   "source": "photos/2016/06_25 Sacred City Disciples vs Monterey Bay/sacred-city-6.25.16-74.JPG",
+   "sourceSha256": "61b2b77874913d309938f7cf6e14c3f58c8a60c1e9b29d9a4aab7740ed16ac1c",
+   "expected": {
+    "faces": [
+     {
+      "x": 0.226,
+      "y": 0.104,
+      "w": 0.033,
+      "h": 0.059,
+      "confidence": 0.75
+     },
+     {
+      "x": 0.485,
+      "y": 0.196,
+      "w": 0.04,
+      "h": 0.098,
+      "confidence": 0.81
+     },
+     {
+      "x": 0.821,
+      "y": 0.408,
+      "w": 0.039,
+      "h": 0.105,
+      "confidence": 0.77
+     },
+     {
+      "x": 0.163,
+      "y": 0.105,
+      "w": 0.023,
+      "h": 0.053,
+      "confidence": 0.78
+     }
+    ],
+    "subjects": [
+     {
+      "x": 0.399,
+      "y": 0.53,
+      "w": 0.258,
+      "h": 0.922,
+      "confidence": 0.75
+     },
+     {
+      "x": 0.546,
+      "y": 0.538,
+      "w": 0.375,
+      "h": 0.913,
+      "confidence": 0.91
+     },
+     {
+      "x": 0.245,
+      "y": 0.574,
+      "w": 0.295,
+      "h": 0.839,
+      "confidence": 0.91
+     },
+     {
+      "x": 0.136,
+      "y": 0.547,
+      "w": 0.253,
+      "h": 0.89,
+      "confidence": 0.79
+     }
+    ],
+    "score": 43.213417053222656,
+    "recapScore": 0.168802410364151,
+    "src": "face",
+    "x": 0.226,
+    "y": 0.075
+   }
+  },
+  {
+   "thumb": "/thumbnails/2025/0125-sacramento-roller-derby-bad-habits-vs-sacramento-roller-derby-new-resolutions/photo_141.avif",
+   "source": "photos/2025/01_25 Sacramento Roller Derby Bad Habits vs Sacramento Roller Derby New Resolutions/20250125_175848_Z8B_6428-DeNoiseAI-standard-Focus.jpg",
+   "sourceSha256": "f0637cdb2932f7052f357791a8613aa0efc6d325f1180ebf9fa08dfc8031c662",
+   "expected": {
+    "faces": [
+     {
+      "x": 0.358,
+      "y": 0.268,
+      "w": 0.093,
+      "h": 0.07,
+      "confidence": 0.9
+     },
+     {
+      "x": 0.25,
+      "y": 0.304,
+      "w": 0.088,
+      "h": 0.07,
+      "confidence": 0.87
+     },
+     {
+      "x": 0.812,
+      "y": 0.438,
+      "w": 0.08,
+      "h": 0.067,
+      "confidence": 0.88
+     }
+    ],
+    "subjects": [
+     {
+      "x": 0.432,
+      "y": 0.534,
+      "w": 0.342,
+      "h": 0.673,
+      "confidence": 0.93
+     },
+     {
+      "x": 0.205,
+      "y": 0.556,
+      "w": 0.376,
+      "h": 0.626,
+      "confidence": 0.88
+     },
+     {
+      "x": 0.79,
+      "y": 0.621,
+      "w": 0.418,
+      "h": 0.482,
+      "confidence": 0.96
+     }
+    ],
+    "score": 104.87318420410156,
+    "recapScore": 1.294730669186439,
+    "src": "face",
+    "x": 0.358,
+    "y": 0.233
+   }
+  },
+  {
+   "thumb": "/thumbnails/2024/0518-sacramento-roller-derby-capital-maulstars-vs-arizona-rising/photo_047.avif",
+   "source": "photos/2024/05_18 Sacramento Roller Derby Capital Maulstars vs Arizona Rising/14-18-14NZ8_0567-Focus.jpg",
+   "sourceSha256": "c06ef5274f9fb27fcc7b054085af8fb6c742e0dc339b34619821e1cdf76e3fa1",
+   "expected": {
+    "faces": [
+     {
+      "x": 0.591,
+      "y": 0.416,
+      "w": 0.051,
+      "h": 0.086,
+      "confidence": 0.86
+     }
+    ],
+    "subjects": [
+     {
+      "x": 0.607,
+      "y": 0.625,
+      "w": 0.232,
+      "h": 0.646,
+      "confidence": 0.93
+     }
+    ],
+    "score": 71.0765380859375,
+    "recapScore": 71.0765380859375,
+    "src": "face",
+    "x": 0.591,
+    "y": 0.373
+   }
+  },
+  {
+   "thumb": "/thumbnails/2024/0323-sacramento-roller-derby-capital-maulstars-vs-shevil-dead/photo_079.avif",
+   "source": "photos/2024/03_23 Sacramento Roller Derby Capital Maulstars vs SheVil Dead/16-18-34850_1898-Focus.jpg",
+   "sourceSha256": "0281a3b29db88c99a858c133dc3f5d37bf65a2e5e6afd742273a2b763303006b",
+   "expected": {
+    "faces": [
+     {
+      "x": 0.52,
+      "y": 0.386,
+      "w": 0.066,
+      "h": 0.12,
+      "confidence": 0.89
+     },
+     {
+      "x": 0.673,
+      "y": 0.469,
+      "w": 0.067,
+      "h": 0.127,
+      "confidence": 0.86
+     },
+     {
+      "x": 0.954,
+      "y": 0.392,
+      "w": 0.063,
+      "h": 0.125,
+      "confidence": 0.88
+     }
+    ],
+    "subjects": [
+     {
+      "x": 0.54,
+      "y": 0.516,
+      "w": 0.436,
+      "h": 0.946,
+      "confidence": 0.95
+     },
+     {
+      "x": 0.695,
+      "y": 0.68,
+      "w": 0.241,
+      "h": 0.624,
+      "confidence": 0.94
+     },
+     {
+      "x": 0.911,
+      "y": 0.626,
+      "w": 0.178,
+      "h": 0.732,
+      "confidence": 0.96
+     }
+    ],
+    "score": 73.43551635742188,
+    "recapScore": 0.9066113130545911,
+    "src": "face",
+    "x": 0.52,
+    "y": 0.327
+   }
+  },
+  {
+   "thumb": "/thumbnails/2019/0323-sacramento-roller-derby-kodiak-attack-vs-quad-city-derby-bombshells/photo_029.avif",
+   "source": "photos/2019/03_23 Sacramento Roller Derby Kodiak Attack vs Quad City Derby Bombshells/Sacramento Roller Derby 03.23.19-0076.JPG",
+   "sourceSha256": "932ce446af57e0c330e0f6c6079dfd974357a446d99aaf4a48f7cbbbbcdc1f8a",
+   "expected": {
+    "faces": [
+     {
+      "x": 0.639,
+      "y": 0.297,
+      "w": 0.041,
+      "h": 0.069,
+      "confidence": 0.7
+     }
+    ],
+    "subjects": [
+     {
+      "x": 0.521,
+      "y": 0.572,
+      "w": 0.334,
+      "h": 0.774,
+      "confidence": 0.94
+     }
+    ],
+    "score": 160.0077362060547,
+    "recapScore": 160.0077362060547,
+    "src": "face",
+    "x": 0.639,
+    "y": 0.263
+   }
+  },
+  {
+   "thumb": "/thumbnails/2018/0414-sacramento-roller-derby-capital-maulstars-vs-bay-area-derby-team-gold/photo_064.avif",
+   "source": "photos/2018/04_14 Sacramento Roller Derby Capital Maulstars vs Bay Area Derby Team Gold/0138.JPG",
+   "sourceSha256": "814e6090c710766ddc66eec145b1c6497e424f19c87cf1c4655a4fb30a19d071",
+   "expected": {
+    "faces": [
+     {
+      "x": 0.862,
+      "y": 0.121,
+      "w": 0.048,
+      "h": 0.112,
+      "confidence": 0.69
+     },
+     {
+      "x": 0.327,
+      "y": 0.191,
+      "w": 0.061,
+      "h": 0.106,
+      "confidence": 0.86
+     },
+     {
+      "x": 0.536,
+      "y": 0.143,
+      "w": 0.056,
+      "h": 0.108,
+      "confidence": 0.67
+     }
+    ],
+    "subjects": [
+     {
+      "x": 0.344,
+      "y": 0.662,
+      "w": 0.582,
+      "h": 0.655,
+      "confidence": 0.93
+     },
+     {
+      "x": 0.572,
+      "y": 0.79,
+      "w": 0.428,
+      "h": 0.411,
+      "confidence": 0.93
+     },
+     {
+      "x": 0.891,
+      "y": 0.501,
+      "w": 0.217,
+      "h": 0.998,
+      "confidence": 0.93
+     },
+     {
+      "x": 0.469,
+      "y": 0.385,
+      "w": 0.292,
+      "h": 0.548,
+      "confidence": 0.49
+     }
+    ],
+    "score": 74.2989501953125,
+    "recapScore": 0.9172709900655864,
+    "src": "face",
+    "x": 0.862,
+    "y": 0.065
+   }
+  },
+  {
+   "thumb": "/thumbnails/2026/0307-sacramento-roller-derby-kodiak-attack-vs-carquinez-quad-squad/photo_048.avif",
+   "source": "photos/2026/03_07 Sacramento Roller Derby Kodiak Attack vs Carquinez Quad Squad/15-27-33Z8A_6041-Focus.jpg",
+   "sourceSha256": "cbe9d895366f9dc9ce2fa0298d45e8c7d6f645f36c4ec0be4411b83301726f23",
+   "expected": {
+    "faces": [
+     {
+      "x": 0.429,
+      "y": 0.394,
+      "w": 0.083,
+      "h": 0.146,
+      "confidence": 0.88
+     }
+    ],
+    "subjects": [
+     {
+      "x": 0.408,
+      "y": 0.603,
+      "w": 0.368,
+      "h": 0.773,
+      "confidence": 0.94
+     },
+     {
+      "x": 0.565,
+      "y": 0.569,
+      "w": 0.185,
+      "h": 0.819,
+      "confidence": 0.88
+     }
+    ],
+    "score": 33.98990249633789,
+    "recapScore": 33.98990249633789,
+    "src": "face",
+    "x": 0.429,
+    "y": 0.321
+   }
+  },
+  {
+   "thumb": "/thumbnails/2017/0812-sacred-city-disciples-vs-v-town-derby-darlings/photo_069.avif",
+   "source": "photos/2017/08_12 Sacred City Disciples vs V Town Derby Darlings/Sacred-City-08.12.17-069.JPG",
+   "sourceSha256": "ba168f68204d150f725df74790c89762abfd298cd60c96fee2fc97c9b25e4727",
+   "expected": {
+    "faces": [
+     {
+      "x": 0.672,
+      "y": 0.39,
+      "w": 0.019,
+      "h": 0.029,
+      "confidence": 0.79
+     },
+     {
+      "x": 0.64,
+      "y": 0.346,
+      "w": 0.026,
+      "h": 0.04,
+      "confidence": 0.88
+     },
+     {
+      "x": 0.367,
+      "y": 0.396,
+      "w": 0.03,
+      "h": 0.046,
+      "confidence": 0.84
+     }
+    ],
+    "subjects": [
+     {
+      "x": 0.617,
+      "y": 0.479,
+      "w": 0.212,
+      "h": 0.387,
+      "confidence": 0.88
+     },
+     {
+      "x": 0.813,
+      "y": 0.472,
+      "w": 0.111,
+      "h": 0.477,
+      "confidence": 0.88
+     },
+     {
+      "x": 0.355,
+      "y": 0.528,
+      "w": 0.095,
+      "h": 0.376,
+      "confidence": 0.8
+     },
+     {
+      "x": 0.714,
+      "y": 0.454,
+      "w": 0.112,
+      "h": 0.242,
+      "confidence": 0.74
+     }
+    ],
+    "score": 79.25393676757812,
+    "recapScore": 0.9784436637972608,
+    "src": "face",
+    "x": 0.672,
+    "y": 0.376
+   }
+  },
+  {
+   "thumb": "/thumbnails/2026/0822-sacramento-roller-derby-bruin-trouble-vs-monterey-bay/photo_113.avif",
+   "source": "photos/2026/08_22 Sacramento Roller Derby Bruin Trouble vs Monterey Bay/12-46-49Z8B_6875-Standard.jpg",
+   "sourceSha256": "9f98f519033756382a555d30327c9e14675a481cda97de77c474b5cf43b99559",
+   "expected": {
+    "faces": [
+     {
+      "x": 0.482,
+      "y": 0.263,
+      "w": 0.041,
+      "h": 0.079,
+      "confidence": 0.86
+     },
+     {
+      "x": 0.31,
+      "y": 0.376,
+      "w": 0.041,
+      "h": 0.078,
+      "confidence": 0.86
+     },
+     {
+      "x": 0.925,
+      "y": 0.304,
+      "w": 0.037,
+      "h": 0.069,
+      "confidence": 0.8
+     },
+     {
+      "x": 0.715,
+      "y": 0.314,
+      "w": 0.038,
+      "h": 0.072,
+      "confidence": 0.83
+     },
+     {
+      "x": 0.668,
+      "y": 0.279,
+      "w": 0.031,
+      "h": 0.069,
+      "confidence": 0.78
+     },
+     {
+      "x": 0.07,
+      "y": 0.317,
+      "w": 0.035,
+      "h": 0.062,
+      "confidence": 0.86
+     }
+    ],
+    "subjects": [
+     {
+      "x": 0.469,
+      "y": 0.639,
+      "w": 0.322,
+      "h": 0.667,
+      "confidence": 0.91
+     },
+     {
+      "x": 0.549,
+      "y": 0.54,
+      "w": 0.205,
+      "h": 0.72,
+      "confidence": 0.76
+     },
+     {
+      "x": 0.69,
+      "y": 0.543,
+      "w": 0.185,
+      "h": 0.687,
+      "confidence": 0.81
+     },
+     {
+      "x": 0.3,
+      "y": 0.609,
+      "w": 0.226,
+      "h": 0.626,
+      "confidence": 0.92
+     }
+    ],
+    "score": 94.4511947631836,
+    "recapScore": 0.07287900830492561,
+    "src": "face",
+    "x": 0.482,
+    "y": 0.223
+   }
+  },
+  {
+   "thumb": "/thumbnails/2025/0614-sacramento-roller-derby-kodiak-attack-vs-outlaw-roller-derby-desperados/photo_102.avif",
+   "source": "photos/2025/06_14 Sacramento Roller Derby Kodiak Attack vs Outlaw Roller Derby Desperados/20250614_182733__sharpened_18-27-33Z8B_6928-Motion.jpg",
+   "sourceSha256": "846bb0f87e3f764d67cb403650747f298976cdf66fd6014befb5452ef4016912",
+   "expected": {
+    "faces": [
+     {
+      "x": 0.68,
+      "y": 0.414,
+      "w": 0.038,
+      "h": 0.061,
+      "confidence": 0.86
+     },
+     {
+      "x": 0.6,
+      "y": 0.4,
+      "w": 0.027,
+      "h": 0.049,
+      "confidence": 0.82
+     },
+     {
+      "x": 0.951,
+      "y": 0.678,
+      "w": 0.028,
+      "h": 0.049,
+      "confidence": 0.78
+     },
+     {
+      "x": 0.257,
+      "y": 0.358,
+      "w": 0.028,
+      "h": 0.045,
+      "confidence": 0.88
+     },
+     {
+      "x": 0.857,
+      "y": 0.428,
+      "w": 0.025,
+      "h": 0.04,
+      "confidence": 0.83
+     },
+     {
+      "x": 0.927,
+      "y": 0.444,
+      "w": 0.022,
+      "h": 0.048,
+      "confidence": 0.58
+     }
+    ],
+    "subjects": [
+     {
+      "x": 0.542,
+      "y": 0.633,
+      "w": 0.259,
+      "h": 0.551,
+      "confidence": 0.88
+     },
+     {
+      "x": 0.714,
+      "y": 0.641,
+      "w": 0.189,
+      "h": 0.617,
+      "confidence": 0.91
+     },
+     {
+      "x": 0.251,
+      "y": 0.529,
+      "w": 0.131,
+      "h": 0.448,
+      "confidence": 0.93
+     },
+     {
+      "x": 0.866,
+      "y": 0.583,
+      "w": 0.185,
+      "h": 0.403,
+      "confidence": 0.8
+     }
+    ],
+    "score": 53.24669647216797,
+    "recapScore": 0.04108541394457405,
+    "src": "face",
+    "x": 0.68,
+    "y": 0.384
+   }
+  },
+  {
+   "thumb": "/thumbnails/2016/0625-sacred-city-disciples-vs-sac-city-rollers/photo_076.avif",
+   "source": "photos/2016/06_25 Sacred City Disciples vs Sac City Rollers/sacred-city-6.25.16-245.JPG",
+   "sourceSha256": "b049950efc9cff61f9224c89b5f4c2a90c66ee6786934802b27628407fee332a",
+   "expected": {
+    "faces": [
+     {
+      "x": 0.851,
+      "y": 0.308,
+      "w": 0.059,
+      "h": 0.134,
+      "confidence": 0.86
+     },
+     {
+      "x": 0.461,
+      "y": 0.422,
+      "w": 0.046,
+      "h": 0.112,
+      "confidence": 0.82
+     },
+     {
+      "x": 0.69,
+      "y": 0.43,
+      "w": 0.043,
+      "h": 0.122,
+      "confidence": 0.74
+     },
+     {
+      "x": 0.485,
+      "y": 0.446,
+      "w": 0.045,
+      "h": 0.099,
+      "confidence": 0.53
+     },
+     {
+      "x": 0.572,
+      "y": 0.448,
+      "w": 0.05,
+      "h": 0.089,
+      "confidence": 0.81
+     }
+    ],
+    "subjects": [
+     {
+      "x": 0.417,
+      "y": 0.629,
+      "w": 0.565,
+      "h": 0.727,
+      "confidence": 0.92
+     },
+     {
+      "x": 0.115,
+      "y": 0.65,
+      "w": 0.229,
+      "h": 0.679,
+      "confidence": 0.91
+     },
+     {
+      "x": 0.776,
+      "y": 0.64,
+      "w": 0.257,
+      "h": 0.708,
+      "confidence": 0.81
+     },
+     {
+      "x": 0.901,
+      "y": 0.584,
+      "w": 0.194,
+      "h": 0.831,
+      "confidence": 0.91
+     }
+    ],
+    "score": 54.819488525390625,
+    "recapScore": 0.087711181640625,
+    "src": "face",
+    "x": 0.851,
+    "y": 0.24
+   }
+  },
+  {
+   "thumb": "/thumbnails/2016/0625-sacred-city-disciples-vs-sac-city-rollers/photo_043.avif",
+   "source": "photos/2016/06_25 Sacred City Disciples vs Sac City Rollers/sacred-city-6.25.16-212.JPG",
+   "sourceSha256": "a8a189713b4801b760da503b28891d783211c448f05c1c30a1eaeb315cefd541",
+   "expected": {
+    "faces": [
+     {
+      "x": 0.536,
+      "y": 0.432,
+      "w": 0.061,
+      "h": 0.164,
+      "confidence": 0.78
+     },
+     {
+      "x": 0.18,
+      "y": 0.313,
+      "w": 0.053,
+      "h": 0.123,
+      "confidence": 0.84
+     }
+    ],
+    "subjects": [
+     {
+      "x": 0.423,
+      "y": 0.629,
+      "w": 0.316,
+      "h": 0.729,
+      "confidence": 0.94
+     },
+     {
+      "x": 0.259,
+      "y": 0.615,
+      "w": 0.227,
+      "h": 0.751,
+      "confidence": 0.79
+     }
+    ],
+    "score": 26.509096145629883,
+    "recapScore": 1.6568185091018677,
+    "src": "face",
+    "x": 0.536,
+    "y": 0.35
+   }
+  },
+  {
+   "thumb": "/thumbnails/2017/1022-sacred-city-sacrificers-vs-rat-city-roller-derby-rain-of-terror/photo_038.avif",
+   "source": "photos/2017/10_22 Sacred City Sacrificers vs Rat City Roller Derby Rain of Terror/Sacred-City-10.22.17-038.JPG",
+   "sourceSha256": "d65f7b73b72b7836127b4822ce6a2c8d8360750ac85a019067c7b8b340d071d7",
+   "expected": {
+    "faces": [
+     {
+      "x": 0.674,
+      "y": 0.165,
+      "w": 0.05,
+      "h": 0.072,
+      "confidence": 0.86
+     },
+     {
+      "x": 0.45,
+      "y": 0.347,
+      "w": 0.05,
+      "h": 0.075,
+      "confidence": 0.84
+     },
+     {
+      "x": 0.297,
+      "y": 0.206,
+      "w": 0.04,
+      "h": 0.085,
+      "confidence": 0.69
+     }
+    ],
+    "subjects": [
+     {
+      "x": 0.642,
+      "y": 0.46,
+      "w": 0.26,
+      "h": 0.819,
+      "confidence": 0.95
+     },
+     {
+      "x": 0.285,
+      "y": 0.578,
+      "w": 0.522,
+      "h": 0.825,
+      "confidence": 0.89
+     }
+    ],
+    "score": 49.58326721191406,
+    "recapScore": 0.6121391013816551,
+    "src": "face",
+    "x": 0.674,
+    "y": 0.129
+   }
+  },
+  {
+   "thumb": "/thumbnails/2024/0323-sacramento-roller-derby-capital-maulstars-vs-shevil-dead/photo_004.avif",
+   "source": "photos/2024/03_23 Sacramento Roller Derby Capital Maulstars vs SheVil Dead/15-31-30NZ8_3775-Focus.jpg",
+   "sourceSha256": "528d8a3eea5389fdad1937c8843ce95126f1173b9517a1ff34360016711b3de1",
+   "expected": {
+    "faces": [
+     {
+      "x": 0.704,
+      "y": 0.381,
+      "w": 0.028,
+      "h": 0.064,
+      "confidence": 0.76
+     },
+     {
+      "x": 0.561,
+      "y": 0.428,
+      "w": 0.037,
+      "h": 0.064,
+      "confidence": 0.91
+     },
+     {
+      "x": 0.409,
+      "y": 0.39,
+      "w": 0.036,
+      "h": 0.062,
+      "confidence": 0.86
+     },
+     {
+      "x": 0.066,
+      "y": 0.321,
+      "w": 0.027,
+      "h": 0.062,
+      "confidence": 0.78
+     },
+     {
+      "x": 0.855,
+      "y": 0.442,
+      "w": 0.031,
+      "h": 0.06,
+      "confidence": 0.83
+     }
+    ],
+    "subjects": [
+     {
+      "x": 0.515,
+      "y": 0.629,
+      "w": 0.247,
+      "h": 0.552,
+      "confidence": 0.87
+     },
+     {
+      "x": 0.751,
+      "y": 0.605,
+      "w": 0.182,
+      "h": 0.594,
+      "confidence": 0.89
+     },
+     {
+      "x": 0.042,
+      "y": 0.565,
+      "w": 0.084,
+      "h": 0.627,
+      "confidence": 0.86
+     },
+     {
+      "x": 0.637,
+      "y": 0.631,
+      "w": 0.136,
+      "h": 0.495,
+      "confidence": 0.79
+     }
+    ],
+    "score": 62.168128967285156,
+    "recapScore": 0.09946900634765625,
+    "src": "face",
+    "x": 0.704,
+    "y": 0.349
+   }
+  },
+  {
+   "thumb": "/thumbnails/2024/0323-sacramento-roller-derby-juniors-beastie-bears-vs-outlaw-roller-derby-bandits/photo_055.avif",
+   "source": "photos/2024/03_23 Sacramento Roller Derby Juniors Beastie Bears vs Outlaw Roller Derby Bandits/13-19-56NZ8_2757-Motion.jpg",
+   "sourceSha256": "ad6bfc6acf620c5d9bfcf3118133194043143601d8d2b08cb73745f61304046b",
+   "expected": {
+    "faces": [
+     {
+      "x": 0.526,
+      "y": 0.355,
+      "w": 0.018,
+      "h": 0.038,
+      "confidence": 0.67
+     },
+     {
+      "x": 0.614,
+      "y": 0.319,
+      "w": 0.028,
+      "h": 0.039,
+      "confidence": 0.81
+     },
+     {
+      "x": 0.043,
+      "y": 0.282,
+      "w": 0.026,
+      "h": 0.049,
+      "confidence": 0.86
+     },
+     {
+      "x": 0.892,
+      "y": 0.284,
+      "w": 0.027,
+      "h": 0.051,
+      "confidence": 0.83
+     },
+     {
+      "x": 0.613,
+      "y": 0.393,
+      "w": 0.023,
+      "h": 0.046,
+      "confidence": 0.52
+     },
+     {
+      "x": 0.726,
+      "y": 0.245,
+      "w": 0.023,
+      "h": 0.053,
+      "confidence": 0.79
+     }
+    ],
+    "subjects": [
+     {
+      "x": 0.695,
+      "y": 0.53,
+      "w": 0.203,
+      "h": 0.41,
+      "confidence": 0.83
+     },
+     {
+      "x": 0.065,
+      "y": 0.466,
+      "w": 0.128,
+      "h": 0.485,
+      "confidence": 0.92
+     },
+     {
+      "x": 0.898,
+      "y": 0.462,
+      "w": 0.147,
+      "h": 0.472,
+      "confidence": 0.9
+     },
+     {
+      "x": 0.777,
+      "y": 0.449,
+      "w": 0.14,
+      "h": 0.529,
+      "confidence": 0.87
+     }
+    ],
+    "score": 69.48892974853516,
+    "recapScore": 0.05361800134917836,
+    "src": "face",
+    "x": 0.526,
+    "y": 0.336
+   }
+  },
+  {
+   "thumb": "/thumbnails/2026/0221-juarez-all-stars-vs-happy-valley-derby-darlins/photo_124.avif",
+   "source": "photos/2026/02_21 Juarez All Stars vs Happy Valley Derby Darlins/14-15-58Z8B_2000-Focus.jpg",
+   "sourceSha256": "c0d14ac870c8b84eb2cc531d0fc4e77bc231159b746fa811b9e99164a4ea5e2c",
+   "expected": {
+    "faces": [
+     {
+      "x": 0.402,
+      "y": 0.434,
+      "w": 0.039,
+      "h": 0.07,
+      "confidence": 0.85
+     }
+    ],
+    "subjects": [
+     {
+      "x": 0.343,
+      "y": 0.608,
+      "w": 0.278,
+      "h": 0.529,
+      "confidence": 0.94
+     },
+     {
+      "x": 0.503,
+      "y": 0.565,
+      "w": 0.124,
+      "h": 0.327,
+      "confidence": 0.71
+     }
+    ],
+    "score": 28.646169662475586,
+    "recapScore": 28.646169662475586,
+    "src": "face",
+    "x": 0.402,
+    "y": 0.399
+   }
+  },
+  {
+   "thumb": "/thumbnails/2026/0822-sacramento-roller-derby-kodiak-attack-vs-sierra-regional-roller-derby/photo_040.avif",
+   "source": "photos/2026/08_22 Sacramento Roller Derby Kodiak Attack vs Sierra Regional Roller Derby/13-36-05Z8B_7155-Motion.jpg",
+   "sourceSha256": "9f85db3d49178adb1ede252c24cff3d455ac6a28a5d1a62850d5b0bf827232e9",
+   "expected": {
+    "faces": [
+     {
+      "x": 0.666,
+      "y": 0.296,
+      "w": 0.045,
+      "h": 0.078,
+      "confidence": 0.83
+     },
+     {
+      "x": 0.24,
+      "y": 0.244,
+      "w": 0.042,
+      "h": 0.08,
+      "confidence": 0.85
+     }
+    ],
+    "subjects": [
+     {
+      "x": 0.663,
+      "y": 0.548,
+      "w": 0.333,
+      "h": 0.675,
+      "confidence": 0.93
+     },
+     {
+      "x": 0.403,
+      "y": 0.605,
+      "w": 0.266,
+      "h": 0.616,
+      "confidence": 0.91
+     },
+     {
+      "x": 0.601,
+      "y": 0.522,
+      "w": 0.104,
+      "h": 0.498,
+      "confidence": 0.87
+     },
+     {
+      "x": 0.23,
+      "y": 0.534,
+      "w": 0.189,
+      "h": 0.785,
+      "confidence": 0.91
+     }
+    ],
+    "score": 98.42926788330078,
+    "recapScore": 6.151829242706299,
+    "src": "face",
+    "x": 0.666,
+    "y": 0.257
+   }
+  },
+  {
+   "thumb": "/thumbnails/2016/0625-sacred-city-disciples-vs-monterey-bay/photo_099.avif",
+   "source": "photos/2016/06_25 Sacred City Disciples vs Monterey Bay/sacred-city-6.25.16-99.JPG",
+   "sourceSha256": "066becd127bae5a6d5f7635644aa1bb0ad065502a499f336b3fab4c50275c819",
+   "expected": {
+    "faces": [
+     {
+      "x": 0.686,
+      "y": 0.197,
+      "w": 0.018,
+      "h": 0.045,
+      "confidence": 0.69
+     },
+     {
+      "x": 0.618,
+      "y": 0.236,
+      "w": 0.022,
+      "h": 0.052,
+      "confidence": 0.83
+     },
+     {
+      "x": 0.915,
+      "y": 0.184,
+      "w": 0.019,
+      "h": 0.04,
+      "confidence": 0.82
+     },
+     {
+      "x": 0.105,
+      "y": 0.22,
+      "w": 0.021,
+      "h": 0.045,
+      "confidence": 0.89
+     }
+    ],
+    "subjects": [
+     {
+      "x": 0.363,
+      "y": 0.315,
+      "w": 0.074,
+      "h": 0.31,
+      "confidence": 0.89
+     },
+     {
+      "x": 0.913,
+      "y": 0.355,
+      "w": 0.099,
+      "h": 0.438,
+      "confidence": 0.93
+     },
+     {
+      "x": 0.633,
+      "y": 0.45,
+      "w": 0.188,
+      "h": 0.531,
+      "confidence": 0.84
+     },
+     {
+      "x": 0.715,
+      "y": 0.326,
+      "w": 0.093,
+      "h": 0.388,
+      "confidence": 0.88
+     }
+    ],
+    "score": 78.46342468261719,
+    "recapScore": 0.3064977526664734,
+    "src": "face",
+    "x": 0.686,
+    "y": 0.174
+   }
+  },
+  {
+   "thumb": "/thumbnails/2026/0411-sacramento-roller-derby-bruin-trouble-vs-santa-cruz-harbor-hellcats/photo_041.avif",
+   "source": "photos/2026/04_11 Sacramento Roller Derby Bruin Trouble vs Santa Cruz Harbor Hellcats/14-23-22Z8A_8780-Standard.jpg",
+   "sourceSha256": "ce454db5851c8bbe288157cbf60be49dc7666f97411320ed4649e8836fbc7299",
+   "expected": {
+    "faces": [
+     {
+      "x": 0.321,
+      "y": 0.285,
+      "w": 0.075,
+      "h": 0.154,
+      "confidence": 0.86
+     }
+    ],
+    "subjects": [
+     {
+      "x": 0.358,
+      "y": 0.564,
+      "w": 0.491,
+      "h": 0.856,
+      "confidence": 0.97
+     },
+     {
+      "x": 0.788,
+      "y": 0.495,
+      "w": 0.423,
+      "h": 0.986,
+      "confidence": 0.96
+     }
+    ],
+    "score": 49.58522033691406,
+    "recapScore": 49.58522033691406,
+    "src": "face",
+    "x": 0.321,
+    "y": 0.208
+   }
+  },
+  {
+   "thumb": "/thumbnails/2020/0215-sacramento-roller-derby-juniors-beastie-bears-vs-west-coast-jr-knockouts/photo_019.avif",
+   "source": "photos/2020/02_15 Sacramento Roller Derby Juniors Beastie Bears vs West Coast Jr Knockouts/Sacramento Roller Derby 02.15.20 Part 1-0019.JPG",
+   "sourceSha256": "d53311c3c5045daa2c00e97cab9ff4cf7df9fc80d38926481c33d21fdc7bc2e1",
+   "expected": {
+    "faces": [
+     {
+      "x": 0.419,
+      "y": 0.524,
+      "w": 0.048,
+      "h": 0.102,
+      "confidence": 0.79
+     },
+     {
+      "x": 0.663,
+      "y": 0.485,
+      "w": 0.059,
+      "h": 0.105,
+      "confidence": 0.88
+     }
+    ],
+    "subjects": [
+     {
+      "x": 0.239,
+      "y": 0.714,
+      "w": 0.462,
+      "h": 0.553,
+      "confidence": 0.91
+     },
+     {
+      "x": 0.666,
+      "y": 0.68,
+      "w": 0.279,
+      "h": 0.636,
+      "confidence": 0.94
+     },
+     {
+      "x": 0.469,
+      "y": 0.699,
+      "w": 0.236,
+      "h": 0.596,
+      "confidence": 0.89
+     },
+     {
+      "x": 0.811,
+      "y": 0.741,
+      "w": 0.161,
+      "h": 0.505,
+      "confidence": 0.92
+     }
+    ],
+    "score": 196.57273864746094,
+    "recapScore": 12.285796165466309,
+    "src": "face",
+    "x": 0.419,
+    "y": 0.473
+   }
+  },
+  {
+   "thumb": "/thumbnails/2026/0919-sacramento-roller-derby-ursa-major-destruction-vs-peninsula-roller-derby/photo_124.avif",
+   "source": "photos/2026/09_19 Sacramento Roller Derby Ursa Major Destruction vs Peninsula Roller Derby/16-50-39Z52_2442-Standard.jpg",
+   "sourceSha256": "53b22541ef76b6fee0bb42299a1885e4e664e8483d88ba795ec565e3970508d2",
+   "expected": {
+    "faces": [
+     {
+      "x": 0.551,
+      "y": 0.255,
+      "w": 0.046,
+      "h": 0.083,
+      "confidence": 0.93
+     },
+     {
+      "x": 0.461,
+      "y": 0.275,
+      "w": 0.031,
+      "h": 0.056,
+      "confidence": 0.79
+     },
+     {
+      "x": 0.674,
+      "y": 0.248,
+      "w": 0.063,
+      "h": 0.112,
+      "confidence": 0.9
+     },
+     {
+      "x": 0.432,
+      "y": 0.287,
+      "w": 0.03,
+      "h": 0.057,
+      "confidence": 0.83
+     }
+    ],
+    "subjects": [
+     {
+      "x": 0.299,
+      "y": 0.6,
+      "w": 0.422,
+      "h": 0.778,
+      "confidence": 0.93
+     },
+     {
+      "x": 0.553,
+      "y": 0.565,
+      "w": 0.166,
+      "h": 0.766,
+      "confidence": 0.87
+     },
+     {
+      "x": 0.114,
+      "y": 0.598,
+      "w": 0.189,
+      "h": 0.644,
+      "confidence": 0.71
+     },
+     {
+      "x": 0.776,
+      "y": 0.568,
+      "w": 0.322,
+      "h": 0.844,
+      "confidence": 0.93
+     }
+    ],
+    "score": 205.18154907226562,
+    "recapScore": 0.8014904260635376,
+    "src": "face",
+    "x": 0.551,
+    "y": 0.214
+   }
+  },
+  {
+   "thumb": "/thumbnails/2026/0307-sacramento-roller-derby-kodiak-attack-vs-carquinez-quad-squad/photo_041.avif",
+   "source": "photos/2026/03_07 Sacramento Roller Derby Kodiak Attack vs Carquinez Quad Squad/15-24-05Z8A_5941-Focus.jpg",
+   "sourceSha256": "1d4ce685ae001b43c0efe9d45400bb2c4d31f94e37bcd39aa8f1146e005cac13",
+   "expected": {
+    "faces": [
+     {
+      "x": 0.438,
+      "y": 0.47,
+      "w": 0.109,
+      "h": 0.2,
+      "confidence": 0.77
+     },
+     {
+      "x": 0.496,
+      "y": 0.19,
+      "w": 0.075,
+      "h": 0.174,
+      "confidence": 0.78
+     }
+    ],
+    "subjects": [
+     {
+      "x": 0.423,
+      "y": 0.582,
+      "w": 0.837,
+      "h": 0.807,
+      "confidence": 0.84
+     }
+    ],
+    "score": 76.84860229492188,
+    "recapScore": 1.3467222452163696,
+    "src": "face",
+    "x": 0.438,
+    "y": 0.37
+   }
+  },
+  {
+   "thumb": "/thumbnails/2025/0614-sacramento-roller-derby-kodiak-attack-vs-outlaw-roller-derby-desperados/photo_062.avif",
+   "source": "photos/2025/06_14 Sacramento Roller Derby Kodiak Attack vs Outlaw Roller Derby Desperados/20250614_173523__sharpened_17-35-23Z8A_1938-Standard.jpg",
+   "sourceSha256": "61c26c66ef7b603476a674ceba60004b71f217141a320d2752f43e48a66d7120",
+   "expected": {
+    "faces": [
+     {
+      "x": 0.229,
+      "y": 0.446,
+      "w": 0.029,
+      "h": 0.048,
+      "confidence": 0.89
+     },
+     {
+      "x": 0.42,
+      "y": 0.446,
+      "w": 0.028,
+      "h": 0.053,
+      "confidence": 0.86
+     },
+     {
+      "x": 0.916,
+      "y": 0.476,
+      "w": 0.018,
+      "h": 0.044,
+      "confidence": 0.73
+     },
+     {
+      "x": 0.816,
+      "y": 0.523,
+      "w": 0.018,
+      "h": 0.036,
+      "confidence": 0.78
+     },
+     {
+      "x": 0.608,
+      "y": 0.52,
+      "w": 0.026,
+      "h": 0.046,
+      "confidence": 0.85
+     },
+     {
+      "x": 0.905,
+      "y": 0.512,
+      "w": 0.022,
+      "h": 0.042,
+      "confidence": 0.83
+     }
+    ],
+    "subjects": [
+     {
+      "x": 0.458,
+      "y": 0.628,
+      "w": 0.141,
+      "h": 0.487,
+      "confidence": 0.9
+     },
+     {
+      "x": 0.33,
+      "y": 0.657,
+      "w": 0.227,
+      "h": 0.477,
+      "confidence": 0.9
+     },
+     {
+      "x": 0.218,
+      "y": 0.632,
+      "w": 0.113,
+      "h": 0.487,
+      "confidence": 0.86
+     },
+     {
+      "x": 0.948,
+      "y": 0.64,
+      "w": 0.101,
+      "h": 0.423,
+      "confidence": 0.82
+     }
+    ],
+    "score": 64.73467254638672,
+    "recapScore": 0.049949593014187284,
+    "src": "face",
+    "x": 0.229,
+    "y": 0.422
+   }
+  },
+  {
+   "thumb": "/thumbnails/2024/0323-sacramento-roller-derby-capital-maulstars-vs-shevil-dead/photo_033.avif",
+   "source": "photos/2024/03_23 Sacramento Roller Derby Capital Maulstars vs SheVil Dead/15-48-20NZ8_4035-Focus.jpg",
+   "sourceSha256": "ccb798f360902d8164fe58486d0a2c7670e96d3a780e7bd66d0a9f8466aec966",
+   "expected": {
+    "faces": [
+     {
+      "x": 0.621,
+      "y": 0.326,
+      "w": 0.042,
+      "h": 0.084,
+      "confidence": 0.8
+     }
+    ],
+    "subjects": [
+     {
+      "x": 0.512,
+      "y": 0.563,
+      "w": 0.278,
+      "h": 0.681,
+      "confidence": 0.93
+     }
+    ],
+    "score": 52.918033599853516,
+    "recapScore": 52.918033599853516,
+    "src": "face",
+    "x": 0.621,
+    "y": 0.284
+   }
+  },
+  {
+   "thumb": "/thumbnails/2025/1018-sacramento-roller-derby-capital-maulstars-vs-jet-city/photo_078.avif",
+   "source": "photos/2025/10_18 Sacramento Roller Derby Capital Maulstars vs Jet City/20251018_131910__sharpened_13-19-10Z8A_9055-Focus.jpg",
+   "sourceSha256": "d08db455f1dfaeafc71ef83a070ef5abd4045ca3fb977ce944a50ba1f81cb697",
+   "expected": {
+    "faces": [
+     {
+      "x": 0.443,
+      "y": 0.35,
+      "w": 0.039,
+      "h": 0.071,
+      "confidence": 0.88
+     },
+     {
+      "x": 0.8,
+      "y": 0.348,
+      "w": 0.028,
+      "h": 0.07,
+      "confidence": 0.56
+     },
+     {
+      "x": 0.354,
+      "y": 0.47,
+      "w": 0.029,
+      "h": 0.054,
+      "confidence": 0.66
+     },
+     {
+      "x": 0.706,
+      "y": 0.316,
+      "w": 0.035,
+      "h": 0.078,
+      "confidence": 0.77
+     }
+    ],
+    "subjects": [
+     {
+      "x": 0.61,
+      "y": 0.67,
+      "w": 0.335,
+      "h": 0.584,
+      "confidence": 0.9
+     },
+     {
+      "x": 0.847,
+      "y": 0.604,
+      "w": 0.28,
+      "h": 0.689,
+      "confidence": 0.92
+     },
+     {
+      "x": 0.719,
+      "y": 0.574,
+      "w": 0.174,
+      "h": 0.658,
+      "confidence": 0.84
+     },
+     {
+      "x": 0.374,
+      "y": 0.599,
+      "w": 0.213,
+      "h": 0.686,
+      "confidence": 0.89
+     }
+    ],
+    "score": 99.94375610351562,
+    "recapScore": 0.3904052972793579,
+    "src": "face",
+    "x": 0.443,
+    "y": 0.315
+   }
+  },
+  {
+   "thumb": "/thumbnails/2026/0822-sacramento-roller-derby-bruin-trouble-vs-monterey-bay/photo_093.avif",
+   "source": "photos/2026/08_22 Sacramento Roller Derby Bruin Trouble vs Monterey Bay/12-22-55Z8B_6651-Motion.jpg",
+   "sourceSha256": "1503956fbfb2862b0739e924a279ef221a6edbda56ff5f49b677be39a7455303",
+   "expected": {
+    "faces": [
+     {
+      "x": 0.698,
+      "y": 0.404,
+      "w": 0.046,
+      "h": 0.076,
+      "confidence": 0.85
+     }
+    ],
+    "subjects": [
+     {
+      "x": 0.636,
+      "y": 0.62,
+      "w": 0.265,
+      "h": 0.671,
+      "confidence": 0.9
+     },
+     {
+      "x": 0.265,
+      "y": 0.535,
+      "w": 0.195,
+      "h": 0.71,
+      "confidence": 0.91
+     }
+    ],
+    "score": 70.82181549072266,
+    "recapScore": 70.82181549072266,
+    "src": "face",
+    "x": 0.698,
+    "y": 0.366
+   }
+  },
+  {
+   "thumb": "/thumbnails/2025/0125-sacramento-roller-derby-bad-habits-vs-sacramento-roller-derby-new-resolutions/photo_193.avif",
+   "source": "photos/2025/01_25 Sacramento Roller Derby Bad Habits vs Sacramento Roller Derby New Resolutions/20250125_190450_Z8B_7163-DeNoiseAI-standard-Standard.jpg",
+   "sourceSha256": "afe77fdace5609fd6a5e2c8abf98b494f6ee06ceec981ca85c10f159c6ff56b2",
+   "expected": {
+    "faces": [
+     {
+      "x": 0.658,
+      "y": 0.469,
+      "w": 0.121,
+      "h": 0.233,
+      "confidence": 0.83
+     },
+     {
+      "x": 0.325,
+      "y": 0.394,
+      "w": 0.121,
+      "h": 0.253,
+      "confidence": 0.82
+     },
+     {
+      "x": 0.803,
+      "y": 0.386,
+      "w": 0.138,
+      "h": 0.235,
+      "confidence": 0.74
+     }
+    ],
+    "subjects": [
+     {
+      "x": 0.697,
+      "y": 0.622,
+      "w": 0.379,
+      "h": 0.732,
+      "confidence": 0.95
+     },
+     {
+      "x": 0.214,
+      "y": 0.575,
+      "w": 0.426,
+      "h": 0.827,
+      "confidence": 0.94
+     },
+     {
+      "x": 0.26,
+      "y": 0.3,
+      "w": 0.158,
+      "h": 0.335,
+      "confidence": 0.61
+     },
+     {
+      "x": 0.856,
+      "y": 0.573,
+      "w": 0.287,
+      "h": 0.836,
+      "confidence": 0.95
+     }
+    ],
+    "score": 155.53475952148438,
+    "recapScore": 0.0,
+    "src": "face",
+    "x": 0.658,
+    "y": 0.352
+   }
+  },
+  {
+   "thumb": "/thumbnails/2016/0416-sacred-city-disciples-vs-sac-city-rollers/photo_059.avif",
+   "source": "photos/2016/04_16 Sacred City Disciples vs Sac City Rollers/sacred-city-4.16.16-59.jpg",
+   "sourceSha256": "921067c63ee6a9926c0b99db01394fe03fe8c9bfd447126ed595fb3e92a3821c",
+   "expected": {
+    "faces": [
+     {
+      "x": 0.444,
+      "y": 0.276,
+      "w": 0.063,
+      "h": 0.133,
+      "confidence": 0.73
+     }
+    ],
+    "subjects": [
+     {
+      "x": 0.529,
+      "y": 0.566,
+      "w": 0.909,
+      "h": 0.844,
+      "confidence": 0.77
+     }
+    ],
+    "score": 50.954322814941406,
+    "recapScore": 50.954322814941406,
+    "src": "face",
+    "x": 0.444,
+    "y": 0.209
+   }
+  },
+  {
+   "thumb": "/thumbnails/2019/0622-sacramento-roller-derby-capital-maulstars-vs-bay-area-derby-all-stars/photo_001.avif",
+   "source": "photos/2019/06_22 Sacramento Roller Derby Capital Maulstars vs Bay Area Derby All Stars/Sacramento Roller Derby 06.22.19-0069.JPG",
+   "sourceSha256": "87d206270784aba79ed9894082f5ce2aed1e2f2874681ef613819d3c08a342af",
+   "expected": {
+    "faces": [
+     {
+      "x": 0.518,
+      "y": 0.344,
+      "w": 0.039,
+      "h": 0.081,
+      "confidence": 0.83
+     }
+    ],
+    "subjects": [
+     {
+      "x": 0.459,
+      "y": 0.603,
+      "w": 0.235,
+      "h": 0.684,
+      "confidence": 0.93
+     }
+    ],
+    "score": 172.1298370361328,
+    "recapScore": 172.1298370361328,
+    "src": "face",
+    "x": 0.518,
+    "y": 0.303
+   }
+  },
+  {
+   "thumb": "/thumbnails/2025/0614-sacramento-roller-derby-kodiak-attack-vs-outlaw-roller-derby-desperados/photo_114.avif",
+   "source": "photos/2025/06_14 Sacramento Roller Derby Kodiak Attack vs Outlaw Roller Derby Desperados/20250614_184116__sharpened_18-41-16Z8B_6983-Motion.jpg",
+   "sourceSha256": "cfc10cf17bc56922ef0247028805676657c6b304aedb343fa564b3a08465598e",
+   "expected": {
+    "faces": [
+     {
+      "x": 0.576,
+      "y": 0.299,
+      "w": 0.047,
+      "h": 0.078,
+      "confidence": 0.91
+     },
+     {
+      "x": 0.407,
+      "y": 0.128,
+      "w": 0.045,
+      "h": 0.076,
+      "confidence": 0.6
+     }
+    ],
+    "subjects": [
+     {
+      "x": 0.398,
+      "y": 0.398,
+      "w": 0.268,
+      "h": 0.755,
+      "confidence": 0.86
+     },
+     {
+      "x": 0.475,
+      "y": 0.438,
+      "w": 0.221,
+      "h": 0.595,
+      "confidence": 0.79
+     },
+     {
+      "x": 0.597,
+      "y": 0.5,
+      "w": 0.163,
+      "h": 0.586,
+      "confidence": 0.91
+     },
+     {
+      "x": 0.823,
+      "y": 0.489,
+      "w": 0.347,
+      "h": 0.975,
+      "confidence": 0.86
+     }
+    ],
+    "score": 147.87071228027344,
+    "recapScore": 9.24191951751709,
+    "src": "face",
+    "x": 0.576,
+    "y": 0.26
+   }
+  },
+  {
+   "thumb": "/thumbnails/2017/0513-sacred-city-trainwreckers-vs-sacred-city-donna-party/photo_052.avif",
+   "source": "photos/2017/05_13 Sacred City Trainwreckers vs Sacred City Donna Party/_DSC8227.JPG",
+   "sourceSha256": "172fc68dd1a5feea7c4496d06258a99687b61e21b851b4451d86419b1199cc22",
+   "expected": {
+    "faces": [],
+    "subjects": [
+     {
+      "x": 0.921,
+      "y": 0.462,
+      "w": 0.062,
+      "h": 0.331,
+      "confidence": 0.86
+     },
+     {
+      "x": 0.052,
+      "y": 0.489,
+      "w": 0.056,
+      "h": 0.332,
+      "confidence": 0.85
+     },
+     {
+      "x": 0.966,
+      "y": 0.456,
+      "w": 0.066,
+      "h": 0.319,
+      "confidence": 0.87
+     },
+     {
+      "x": 0.507,
+      "y": 0.455,
+      "w": 0.084,
+      "h": 0.27,
+      "confidence": 0.88
+     }
+    ],
+    "score": 134.4880828857422,
+    "recapScore": 0.0,
+    "src": "person",
+    "x": 0.921,
+    "y": 0.317
+   }
+  },
+  {
+   "thumb": "/thumbnails/2017/0218-sacred-city-sacrificers-vs-derby-republic/photo_006.avif",
+   "source": "photos/2017/02_18 Sacred City Sacrificers vs Derby Republic/Sacred-City-02.18.17-6.JPG",
+   "sourceSha256": "9f25750a9b6b7522d4bb0f976713d4d001444a49e5c4441445228d2dd18f45b9",
+   "expected": {
+    "faces": [],
+    "subjects": [
+     {
+      "x": 0.738,
+      "y": 0.433,
+      "w": 0.1,
+      "h": 0.397,
+      "confidence": 0.86
+     },
+     {
+      "x": 0.959,
+      "y": 0.41,
+      "w": 0.064,
+      "h": 0.39,
+      "confidence": 0.86
+     },
+     {
+      "x": 0.872,
+      "y": 0.414,
+      "w": 0.063,
+      "h": 0.39,
+      "confidence": 0.89
+     },
+     {
+      "x": 0.641,
+      "y": 0.422,
+      "w": 0.131,
+      "h": 0.278,
+      "confidence": 0.84
+     }
+    ],
+    "score": 163.64620971679688,
+    "recapScore": 0.0,
+    "src": "person",
+    "x": 0.738,
+    "y": 0.258
+   }
+  },
+  {
+   "thumb": "/thumbnails/2016/0813-sacred-city-disciples-vs-sonoma-county-roller-derby/photo_035.avif",
+   "source": "photos/2016/08_13 Sacred City Disciples vs Sonoma County Roller Derby/sacred-city-8.13.16-35.JPG",
+   "sourceSha256": "5d7172486f3dc63288304ec3d4a13651fc9d978b5f1a29fd29ab90fe229c38e1",
+   "expected": {
+    "faces": [],
+    "subjects": [
+     {
+      "x": 0.702,
+      "y": 0.408,
+      "w": 0.062,
+      "h": 0.295,
+      "confidence": 0.82
+     },
+     {
+      "x": 0.334,
+      "y": 0.476,
+      "w": 0.119,
+      "h": 0.333,
+      "confidence": 0.91
+     },
+     {
+      "x": 0.613,
+      "y": 0.394,
+      "w": 0.05,
+      "h": 0.225,
+      "confidence": 0.87
+     },
+     {
+      "x": 0.554,
+      "y": 0.387,
+      "w": 0.033,
+      "h": 0.197,
+      "confidence": 0.72
+     }
+    ],
+    "score": 70.60827484130859,
+    "recapScore": 0.0,
+    "src": "person",
+    "x": 0.702,
+    "y": 0.278
+   }
+  },
+  {
+   "thumb": "/thumbnails/2016/0813-sacred-city-sacrificers-vs-bay-area-derby-team-gold/photo_079.avif",
+   "source": "photos/2016/08_13 Sacred City Sacrificers vs Bay Area Derby Team Gold/sacred-city-8.13.16-157.JPG",
+   "sourceSha256": "5193b0c162db9b89771d0dbb7e249c2b667d6c835fd16bf600d2e3486ece51f0",
+   "expected": {
+    "faces": [],
+    "subjects": [
+     {
+      "x": 0.67,
+      "y": 0.416,
+      "w": 0.067,
+      "h": 0.23,
+      "confidence": 0.84
+     },
+     {
+      "x": 0.358,
+      "y": 0.417,
+      "w": 0.082,
+      "h": 0.222,
+      "confidence": 0.89
+     }
+    ],
+    "score": 119.38485717773438,
+    "recapScore": 0.0,
+    "src": "person",
+    "x": 0.67,
+    "y": 0.315
+   }
+  },
+  {
+   "thumb": "/thumbnails/2016/0716-sacred-city-disciples-vs-auburn-gold-diggers/photo_025.avif",
+   "source": "photos/2016/07_16 Sacred City Disciples vs Auburn Gold Diggers/sacred-city-7.16.16-25.JPG",
+   "sourceSha256": "b4dd34b75e1e6e2e13d8504442ccb6f36977ee19fe3e49f56b58c9b9101b67c5",
+   "expected": {
+    "faces": [],
+    "subjects": [
+     {
+      "x": 0.539,
+      "y": 0.558,
+      "w": 0.093,
+      "h": 0.301,
+      "confidence": 0.9
+     },
+     {
+      "x": 0.952,
+      "y": 0.512,
+      "w": 0.077,
+      "h": 0.336,
+      "confidence": 0.84
+     },
+     {
+      "x": 0.668,
+      "y": 0.55,
+      "w": 0.065,
+      "h": 0.192,
+      "confidence": 0.64
+     },
+     {
+      "x": 0.263,
+      "y": 0.326,
+      "w": 0.048,
+      "h": 0.155,
+      "confidence": 0.55
+     }
+    ],
+    "score": 98.01758422851562,
+    "recapScore": 0.0,
+    "src": "person",
+    "x": 0.539,
+    "y": 0.426
+   }
+  },
+  {
+   "thumb": "/thumbnails/2016/0626-sacred-city-sacrificers-vs-emerald-city/photo_143.avif",
+   "source": "photos/2016/06_26 Sacred City Sacrificers vs Emerald City/sacred-city-6.26.16-143.JPG",
+   "sourceSha256": "adec46c450ed0fd913b24a1405ef1259a40a07e396b3fc54e590a31f08188334",
+   "expected": {
+    "faces": [],
+    "subjects": [
+     {
+      "x": 0.613,
+      "y": 0.551,
+      "w": 0.17,
+      "h": 0.817,
+      "confidence": 0.9
+     }
+    ],
+    "score": 111.6582550048828,
+    "recapScore": 0.0,
+    "src": "person",
+    "x": 0.613,
+    "y": 0.192
+   }
+  },
+  {
+   "thumb": "/thumbnails/2017/1015-sacred-city-disciples-vs-auburn-gold-diggers/photo_020.avif",
+   "source": "photos/2017/10_15 Sacred City Disciples vs Auburn Gold Diggers/Sacred-City-10.15.17-020.JPG",
+   "sourceSha256": "d3a7bd5dd898ca7fa92b8c66a6b86531b60dd26c53d39e139c2ac3e46edf3e85",
+   "expected": {
+    "faces": [],
+    "subjects": [
+     {
+      "x": 0.665,
+      "y": 0.415,
+      "w": 0.108,
+      "h": 0.319,
+      "confidence": 0.93
+     },
+     {
+      "x": 0.056,
+      "y": 0.431,
+      "w": 0.065,
+      "h": 0.244,
+      "confidence": 0.89
+     },
+     {
+      "x": 0.367,
+      "y": 0.445,
+      "w": 0.073,
+      "h": 0.283,
+      "confidence": 0.86
+     },
+     {
+      "x": 0.764,
+      "y": 0.424,
+      "w": 0.078,
+      "h": 0.239,
+      "confidence": 0.8
+     }
+    ],
+    "score": 112.44595642089844,
+    "recapScore": 0.0,
+    "src": "person",
+    "x": 0.665,
+    "y": 0.275
+   }
+  },
+  {
+   "thumb": "/thumbnails/2016/0716-sacred-city-disciples-vs-auburn-gold-diggers/photo_019.avif",
+   "source": "photos/2016/07_16 Sacred City Disciples vs Auburn Gold Diggers/sacred-city-7.16.16-19.JPG",
+   "sourceSha256": "1fd4ec65b144ea2c7d479decc330a24335e7cb3cc0a97f7c41769bc848992692",
+   "expected": {
+    "faces": [],
+    "subjects": [
+     {
+      "x": 0.446,
+      "y": 0.43,
+      "w": 0.078,
+      "h": 0.327,
+      "confidence": 0.9
+     },
+     {
+      "x": 0.543,
+      "y": 0.399,
+      "w": 0.037,
+      "h": 0.216,
+      "confidence": 0.82
+     },
+     {
+      "x": 0.307,
+      "y": 0.503,
+      "w": 0.098,
+      "h": 0.376,
+      "confidence": 0.92
+     },
+     {
+      "x": 0.506,
+      "y": 0.421,
+      "w": 0.043,
+      "h": 0.222,
+      "confidence": 0.88
+     }
+    ],
+    "score": 50.51443176269531,
+    "recapScore": 0.0,
+    "src": "person",
+    "x": 0.446,
+    "y": 0.287
+   }
+  },
+  {
+   "thumb": "/thumbnails/2017/0617-sacred-city-trainwreckers-vs-sacred-city-donna-party/photo_067.avif",
+   "source": "photos/2017/06_17 Sacred City Trainwreckers vs Sacred City Donna Party/Sacred-City-06.11.17-67.JPG",
+   "sourceSha256": "8221dceb6ae396251e8aabae68095783fef8736d1311224f4e3fd8a874955ff3",
+   "expected": {
+    "faces": [],
+    "subjects": [
+     {
+      "x": 0.823,
+      "y": 0.448,
+      "w": 0.081,
+      "h": 0.358,
+      "confidence": 0.84
+     },
+     {
+      "x": 0.868,
+      "y": 0.443,
+      "w": 0.089,
+      "h": 0.393,
+      "confidence": 0.9
+     },
+     {
+      "x": 0.161,
+      "y": 0.461,
+      "w": 0.069,
+      "h": 0.308,
+      "confidence": 0.87
+     },
+     {
+      "x": 0.498,
+      "y": 0.473,
+      "w": 0.092,
+      "h": 0.284,
+      "confidence": 0.72
+     }
+    ],
+    "score": 172.75900268554688,
+    "recapScore": 0.0,
+    "src": "person",
+    "x": 0.823,
+    "y": 0.29
+   }
+  },
+  {
+   "thumb": "/thumbnails/2017/0617-sacred-city-trainwreckers-vs-sacred-city-donna-party/photo_037.avif",
+   "source": "photos/2017/06_17 Sacred City Trainwreckers vs Sacred City Donna Party/Sacred-City-06.11.17-37.JPG",
+   "sourceSha256": "8ea6284b08bb133ca4ef6117b389eeaa86cd865aeabd71299a5a83585fd4fab7",
+   "expected": {
+    "faces": [],
+    "subjects": [
+     {
+      "x": 0.875,
+      "y": 0.416,
+      "w": 0.068,
+      "h": 0.356,
+      "confidence": 0.83
+     },
+     {
+      "x": 0.924,
+      "y": 0.417,
+      "w": 0.067,
+      "h": 0.418,
+      "confidence": 0.87
+     },
+     {
+      "x": 0.572,
+      "y": 0.439,
+      "w": 0.085,
+      "h": 0.29,
+      "confidence": 0.79
+     },
+     {
+      "x": 0.469,
+      "y": 0.423,
+      "w": 0.092,
+      "h": 0.322,
+      "confidence": 0.87
+     }
+    ],
+    "score": 90.4141845703125,
+    "recapScore": 0.0,
+    "src": "person",
+    "x": 0.875,
+    "y": 0.26
+   }
+  },
+  {
+   "thumb": "/thumbnails/2025/0125-sacramento-roller-derby-juniors-galinda-vs-sacramento-roller-derby-juniors-elphaba/photo_066.avif",
+   "source": "photos/2025/01_25 Sacramento Roller Derby Juniors Galinda vs Sacramento Roller Derby Juniors Elphaba/20250125_164048_Z8B_5998-DeNoiseAI-standard-Motion.jpg",
+   "sourceSha256": "d2baebf33f83f8cdb4f1d7aedbe55dd9f7655e9e1fbdf757b97d6dfc6624b877",
+   "expected": {
+    "faces": [],
+    "subjects": [],
+    "score": 0.0,
+    "recapScore": 0.0,
+    "src": "saliency",
+    "x": 0.499,
+    "y": 0.559
+   }
+  },
+  {
+   "thumb": "/thumbnails/2026/0919-sacramento-roller-derby-bruin-trouble-vs-california-derby-galaxy-big-bang/photo_168.avif",
+   "source": "photos/2026/09_19 Sacramento Roller Derby Bruin Trouble vs California Derby Galaxy Big Bang/12-57-34Z8A_4217-Motion.jpg",
+   "sourceSha256": "1c23d69f3a4705e6801b3c48d204e56ee0a2d64ca0240e1962282b72d451eb5d",
+   "expected": {
+    "faces": [],
+    "subjects": [],
+    "score": 0.0,
+    "recapScore": 0.0,
+    "src": "saliency",
+    "x": 0.424,
+    "y": 0.318
+   }
+  },
+  {
+   "thumb": "/thumbnails/2017/0311-sacred-city-trainwreckers-vs-sacred-city-donna-party/photo_003.avif",
+   "source": "photos/2017/03_11 Sacred City Trainwreckers vs Sacred City Donna Party/_DSC4566.JPG",
+   "sourceSha256": "127fe85786870891b5e0942df0c9a5d9485997162197c2be7d8aa3d9ca7cbada",
+   "expected": {
+    "faces": [],
+    "subjects": [],
+    "score": 0.0,
+    "recapScore": 0.0,
+    "src": "saliency",
+    "x": 0.79,
+    "y": 0.278
+   }
+  },
+  {
+   "thumb": "/thumbnails/2020/0229-sacramento-roller-derby-bruin-trouble-vs-faultline-derby-devils/photo_091.avif",
+   "source": "photos/2020/02_29 Sacramento Roller Derby Bruin Trouble vs Faultline Derby Devils/Sacramento Roller Derby 02.29.2020-0145.JPG",
+   "sourceSha256": "c1644699397272aeae9278e8544815a5dd4f723392123dde6e51734d4d6aaa08",
+   "expected": {
+    "faces": [],
+    "subjects": [],
+    "score": 0.0,
+    "recapScore": 0.0,
+    "src": "saliency",
+    "x": 0.478,
+    "y": 0.426
+   }
+  },
+  {
+   "thumb": "/thumbnails/2026/0822-sacramento-roller-derby-kodiak-attack-vs-sierra-regional-roller-derby/photo_042.avif",
+   "source": "photos/2026/08_22 Sacramento Roller Derby Kodiak Attack vs Sierra Regional Roller Derby/13-38-16Z8B_7175-Focus.jpg",
+   "sourceSha256": "2e4a854e92c9b1f591de3d384cd96c62f80e0538f224f974e7d7bee77a69813d",
+   "expected": {
+    "faces": [],
+    "subjects": [],
+    "score": 0.0,
+    "recapScore": 0.0,
+    "src": "saliency",
+    "x": 0.628,
+    "y": 0.204
+   }
+  },
+  {
+   "thumb": "/thumbnails/2017/0311-sacred-city-trainwreckers-vs-sacred-city-donna-party/photo_005.avif",
+   "source": "photos/2017/03_11 Sacred City Trainwreckers vs Sacred City Donna Party/_DSC4568.JPG",
+   "sourceSha256": "9b0b23768884dac67454b1d9197e6bcb76e16b3d2e862e849c0d19effc7366dd",
+   "expected": {
+    "faces": [],
+    "subjects": [],
+    "score": 0.0,
+    "recapScore": 0.0,
+    "src": "saliency",
+    "x": 0.532,
+    "y": 0.312
+   }
+  },
+  {
+   "thumb": "/thumbnails/2017/0513-sacred-city-trainwreckers-vs-sacred-city-donna-party/photo_001.avif",
+   "source": "photos/2017/05_13 Sacred City Trainwreckers vs Sacred City Donna Party/_DSC7107.JPG",
+   "sourceSha256": "e3ee0137bb3cbbfb95201deef802b06e3b71f914636fa8e5fda37cb645cf2cef",
+   "expected": {
+    "faces": [],
+    "subjects": [],
+    "score": 0.0,
+    "recapScore": 0.0
+   }
+  },
+  {
+   "thumb": "/thumbnails/2017/0513-sacred-city-trainwreckers-vs-sacred-city-donna-party/photo_002.avif",
+   "source": "photos/2017/05_13 Sacred City Trainwreckers vs Sacred City Donna Party/_DSC7109.JPG",
+   "sourceSha256": "c30e2390359bfa52d877c32a905940b71b06211eb99fc09f230fe08028c84720",
+   "expected": {
+    "faces": [],
+    "subjects": [],
+    "score": 0.0,
+    "recapScore": 0.0
+   }
+  },
+  {
+   "thumb": "/thumbnails/2019/0914-sacramento-roller-derby-blue-vs-sacramento-roller-derby-yellow/photo_064.avif",
+   "source": "photos/2019/09_14 Sacramento Roller Derby Blue vs Sacramento Roller Derby Yellow/_DSC3940.JPG",
+   "sourceSha256": "7397b06a79b1d479ec58d52ab55f9b81e22dbbb920e9868ee5f535585a3de25c",
+   "expected": {
+    "faces": [],
+    "subjects": [],
+    "score": 0.0,
+    "recapScore": 0.0
+   }
+  }
+ ]
+}

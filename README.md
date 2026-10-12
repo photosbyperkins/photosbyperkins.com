@@ -112,7 +112,9 @@ The build pipeline intelligently parses folder names:
 | `npm run populate-scores` | Scaffolds empty `score.json` stubs for event folders with `"vs"`. |
 | `npm run fix-permissions` | Normalizes remote directory (755) and file (644) permissions over SSH. |
 | `npm run favicon` | Generates PWA and web icons from `icon.svg`. |
-| `npm run faces` | Runs the Python subject/face detection script independently. |
+| `npm run faces` | Runs subject/face detection (incremental; cached by photo content hash). |
+| `npm run ml` / `npm run ml:budget` | Runs every ML stage / projects a full 12k reprocess against the 2-hour budget. |
+| `npm run test:ml` | Runs the Python ML pipeline tests (pytest). |
 | `npm run clean` | Cleans `dist/` and build staging folders. |
 | `npm run lint` / `npm run format` | Runs ESLint and Prettier. |
 
@@ -132,8 +134,17 @@ Running `npm run build` triggers a multi-phase pipeline orchestrated by `scripts
 
 ### Phase 3 — Machine Learning Subject & Face Detection
 - Serializes state to `data/photos.json`.
-- Runs **Subject Detection** (`detectFaces.py`): SCRFD-10G face detection + YOLOX-L person detection with DirectML GPU acceleration, ranked by sharpness, size, and confidence. Falls back to upper body/head estimation and sharpness-weighted saliency maps. Writes detected boxes to `data/.faces_cache.json`.
+- Runs **Subject Detection** (`npm run faces` → `scripts/ml/run.py --stages subjects`): SCRFD-10G face detection + YOLOX-L person detection with DirectML GPU acceleration, ranked by sharpness, size, and confidence. Falls back to upper body/head estimation and sharpness-weighted saliency maps. Exports detected boxes to `data/.faces_cache.json` for `generatePhotoIndex`.
 - Deserializes updated coordinates back into pipeline state.
+
+#### ML pipeline (`scripts/ml/`)
+- **Content-addressed cache** (`data/ml_cache.sqlite`): results are keyed by the **sha256 of the source JPEG** + stage name + **stage fingerprint**. Renaming or moving photos/albums never recomputes; re-exporting a photo recomputes just that photo. Source hashes are memoised by path + size + mtime (a cold hash of the whole library takes seconds).
+- **Automatic invalidation**: a stage fingerprint hashes its `STAGE_VERSION`, every tuning constant in `PARAMS`, the sha256 of each model file and its input recipe. Changing a threshold or swapping a model recomputes that stage only — no manual version bumps. Bump `STAGE_VERSION` for logic changes `PARAMS` can't see.
+- **One decode, many stages**: each photo is decoded once and fed to every stage that still needs it. Stages implement `requests()` → `postprocess()` → `apply()` (`scripts/ml/stage.py`) and never call models directly.
+- **GPU scheduler**: a single GPU thread owns every DirectML session (no lock contention; never run two DirectML sessions concurrently — it can hang the driver). Requests are queued per model and batched up to the model's `batch_size` (dynamic-batch exports are pinned to static shapes via free-dimension overrides). SCRFD and YOLOX are fixed batch-1 exports; the subjects stage is GPU-bound at ~35 img/s (≈5½ min for the full library).
+- **Budget gate**: `npm run ml:budget` projects a full 12,000-photo reprocess from a 1,000-photo sample against the 2-hour budget in `scripts/ml/budget.py` (measured stages + reserved time for planned taggers) and writes `reports/ml/budget.md`; it exits 1 if over. VLM alt text runs as its own job outside the 2-hour target.
+- **Commands**: `npm run ml` (all stages), `python scripts/ml/run.py --stats | --gc | --sample N | --force | --dry-run | --cpu`, `npm run test:ml` (pytest: cache, batching, runner and golden parity against `scripts/ml/tests/golden/subjects.json`; golden photos are read from your local `build/`/`photos/` and the test skips without them).
+- **Setup**: `python -m pip install -r requirements-ml.txt`.
 
 ### Phase 4 — Data Modifiers & Chunking
 - **Generate Zips**: Builds offline event ZIP archives.

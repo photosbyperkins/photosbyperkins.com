@@ -20,6 +20,9 @@
     "test:e2e": "npx playwright test",
     "favicon": "tsx scripts/pipeline/generateFavicon.ts",
     "faces": "python scripts/detectFaces.py",
+    "ml": "python scripts/ml/run.py",
+    "ml:budget": "python scripts/ml/run.py --sample 1000 --budget",
+    "test:ml": "python -m pytest scripts/ml/tests -q",
     "populate-scores": "tsx scripts/populateEventScores.ts",
     "fix-permissions": "tsx scripts/fixPermissions.ts",
     "sync-media": "tsx scripts/syncMedia.ts"

@@ -1,0 +1,11 @@
+# Python dependencies for the ML pipeline (scripts/ml, scripts/detectFaces.py).
+# Install: python -m pip install -r requirements-ml.txt
+# On NVIDIA swap onnxruntime-directml for onnxruntime-gpu; without a GPU use onnxruntime.
+onnxruntime-directml==1.24.4
+opencv-python==4.13.0.92
+numpy==2.4.3
+pillow==12.1.1
+
+# Tests (python -m pytest scripts/ml/tests)
+pytest==9.1.1
+onnx==1.23.2
