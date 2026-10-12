@@ -1,0 +1,207 @@
+{
+  "tolerance": 0.05,
+  "updatedAt": "2026-10-12T18:24:33.942Z",
+  "initial": {
+    "js": {
+      "raw": 441813,
+      "gzip": 141470,
+      "brotli": 124456,
+      "files": [
+        "assets/index.js",
+        "assets/motion.js",
+        "assets/rolldown-runtime.js",
+        "assets/vendor.js"
+      ]
+    },
+    "css": {
+      "raw": 98902,
+      "gzip": 14740,
+      "brotli": 12541,
+      "files": [
+        "assets/index.css"
+      ]
+    }
+  },
+  "chunks": {
+    "assets/About.css": {
+      "raw": 1535,
+      "gzip": 712,
+      "brotli": 560,
+      "initial": false
+    },
+    "assets/About.js": {
+      "raw": 2567,
+      "gzip": 1353,
+      "brotli": 1107,
+      "initial": false
+    },
+    "assets/AiPolicyModal.css": {
+      "raw": 2584,
+      "gzip": 887,
+      "brotli": 732,
+      "initial": false
+    },
+    "assets/AiPolicyModal.js": {
+      "raw": 2681,
+      "gzip": 1051,
+      "brotli": 876,
+      "initial": false
+    },
+    "assets/CodeLicenseModal.css": {
+      "raw": 3777,
+      "gzip": 1137,
+      "brotli": 962,
+      "initial": false
+    },
+    "assets/CodeLicenseModal.js": {
+      "raw": 4823,
+      "gzip": 1836,
+      "brotli": 1459,
+      "initial": false
+    },
+    "assets/fuse.js": {
+      "raw": 26297,
+      "gzip": 9329,
+      "brotli": 8064,
+      "initial": false
+    },
+    "assets/GearModal.css": {
+      "raw": 3801,
+      "gzip": 1039,
+      "brotli": 857,
+      "initial": false
+    },
+    "assets/GearModal.js": {
+      "raw": 1379,
+      "gzip": 636,
+      "brotli": 535,
+      "initial": false
+    },
+    "assets/GlobalSearchOverlay.js": {
+      "raw": 6356,
+      "gzip": 1955,
+      "brotli": 1757,
+      "initial": false
+    },
+    "assets/IframeOverlay.css": {
+      "raw": 759,
+      "gzip": 323,
+      "brotli": 223,
+      "initial": false
+    },
+    "assets/IframeOverlay.js": {
+      "raw": 1087,
+      "gzip": 584,
+      "brotli": 511,
+      "initial": false
+    },
+    "assets/index.css": {
+      "raw": 98902,
+      "gzip": 14740,
+      "brotli": 12541,
+      "initial": true
+    },
+    "assets/index.js": {
+      "raw": 81447,
+      "gzip": 27450,
+      "brotli": 24477,
+      "initial": true
+    },
+    "assets/LightboxContainer.js": {
+      "raw": 23577,
+      "gzip": 7509,
+      "brotli": 6751,
+      "initial": false
+    },
+    "assets/modalAnimation.js": {
+      "raw": 163,
+      "gzip": 158,
+      "brotli": 121,
+      "initial": false
+    },
+    "assets/ModalShell.css": {
+      "raw": 2489,
+      "gzip": 812,
+      "brotli": 655,
+      "initial": false
+    },
+    "assets/ModalShell.js": {
+      "raw": 4517,
+      "gzip": 1731,
+      "brotli": 1523,
+      "initial": false
+    },
+    "assets/motion.js": {
+      "raw": 149026,
+      "gzip": 48728,
+      "brotli": 43517,
+      "initial": true
+    },
+    "assets/PhotoLicenseModal.css": {
+      "raw": 4418,
+      "gzip": 1208,
+      "brotli": 1026,
+      "initial": false
+    },
+    "assets/PhotoLicenseModal.js": {
+      "raw": 4099,
+      "gzip": 1350,
+      "brotli": 1091,
+      "initial": false
+    },
+    "assets/Portfolio.css": {
+      "raw": 2958,
+      "gzip": 893,
+      "brotli": 729,
+      "initial": false
+    },
+    "assets/Portfolio.js": {
+      "raw": 106979,
+      "gzip": 30671,
+      "brotli": 26198,
+      "initial": false
+    },
+    "assets/rolldown-runtime.js": {
+      "raw": 716,
+      "gzip": 428,
+      "brotli": 381,
+      "initial": true
+    },
+    "assets/src.js": {
+      "raw": 185678,
+      "gzip": 48157,
+      "brotli": 41188,
+      "initial": false
+    },
+    "assets/StoryExportModal.css": {
+      "raw": 84363,
+      "gzip": 12275,
+      "brotli": 10717,
+      "initial": false
+    },
+    "assets/StoryExportModal.js": {
+      "raw": 290011,
+      "gzip": 77163,
+      "brotli": 65264,
+      "initial": false
+    },
+    "assets/vendor.js": {
+      "raw": 210624,
+      "gzip": 64864,
+      "brotli": 56081,
+      "initial": true
+    },
+    "assets/workbox-window.prod.es5.js": {
+      "raw": 5653,
+      "gzip": 2199,
+      "brotli": 1950,
+      "initial": false
+    },
+    "assets/zipWorker.js": {
+      "raw": 6892,
+      "gzip": 3150,
+      "brotli": 2842,
+      "initial": false
+    }
+  }
+}

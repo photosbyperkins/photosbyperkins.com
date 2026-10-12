@@ -1,0 +1,46 @@
+name: Bundle budget
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: bundle-budget-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  bundle-budget:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Puppeteer is only used by local pipeline scripts; skip the Chromium download in CI.
+      PUPPETEER_SKIP_DOWNLOAD: 'true'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 26
+          cache: npm
+
+      # Real .env is gitignored; the example provides the build-time VITE_* placeholders.
+      - name: Prepare env
+        run: cp .env.example .env
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build client
+        run: npm run build:client
+
+      - name: Check bundle budget
+        run: npm run bundle:check
+
+      - name: Upload bundle report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-report
+          path: reports/bundle/
+          if-no-files-found: ignore

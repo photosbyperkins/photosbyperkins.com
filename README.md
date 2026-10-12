@@ -105,6 +105,8 @@ The build pipeline intelligently parses folder names:
 | `npm run typecheck` | Validates TypeScript across application code and build scripts. |
 | `npm run build` | Executes the complete multi-phase asset and data generation pipeline. |
 | `npm run build:client` | Builds production frontend client assets with Vite. |
+| `npm run bundle:check` | Fails if initial JS/CSS grew >5% vs `bundle-budget.json`; writes `reports/bundle/`. |
+| `npm run bundle:baseline` | Records the current build as the new bundle budget baseline. |
 | `npm run deploy` | Deploys static build artifacts to remote server via SSH/SCP. |
 | `npm run sync-media` | Synchronizes generated media assets (`thumbnails/`, `avif/`, `scrubber/`, `recap/`, `zips/`) to the remote server over SSH. |
 | `npm run populate-scores` | Scaffolds empty `score.json` stubs for event folders with `"vs"`. |
@@ -148,6 +150,12 @@ Running `npm run build` triggers a multi-phase pipeline orchestrated by `scripts
 ### Phase 7 — Vite Client Build & Outputs
 - Builds client bundle with inlined `__INITIAL_INDEX__`.
 - Generates OpenGraph social cards, XML sitemaps, and standalone share pages in parallel.
+- **Bundle Budget**: Checks the initial JS/CSS (the entry script, `modulepreload`s and stylesheets referenced by `dist/index.html`) against `bundle-budget.json`. Fails if raw or gzip size grows more than 5%.
+
+### Bundle Budget
+- `npm run bundle:check` runs after any `vite build` (also in `predeploy` and the `Bundle budget` GitHub Actions workflow).
+- `npm run bundle:baseline` records the current build as the new baseline. Commit `bundle-budget.json` when growth is intentional.
+- Reports (gitignored) are written to `reports/bundle/`: `stats.html` is a `rollup-plugin-visualizer` treemap (raw/gzip/brotli), and `budget.md` has a per-chunk table with the change from the baseline. CI uploads both as the `bundle-report` artifact and posts the table to the job summary.
 
 ---
 

@@ -3,7 +3,8 @@ import react from '@vitejs/plugin-react'
 import path from 'path'
 import fs from 'fs'
 import { VitePWA } from 'vite-plugin-pwa'
-import type { Connect, ViteDevServer } from 'vite'
+import { visualizer } from 'rollup-plugin-visualizer'
+import type { Connect, Plugin, ViteDevServer } from 'vite'
 import type { IncomingMessage, ServerResponse } from 'http'
 
 // Custom middleware to serve the /photos directory without bundling it
@@ -92,6 +93,25 @@ function photosMiddleware(): { name: string; configureServer: (server: ViteDevSe
     }
 }
 
+const bundleReportDir = path.resolve(import.meta.dirname, 'reports', 'bundle');
+
+// Records the JS/CSS emitted by *this* build for scripts/checkBundleBudget.ts. dist keeps stale
+// hashed files around (emptyOutDir: false), so the budget check can't just glob dist/assets.
+function bundleChunkManifest(): Plugin {
+    return {
+        name: 'bundle-chunk-manifest',
+        apply: 'build',
+        generateBundle(_options, bundle) {
+            const files = Object.values(bundle)
+                .map((output) => output.fileName)
+                .filter((fileName) => /\.(?:js|css)$/.test(fileName))
+                .sort();
+            fs.mkdirSync(bundleReportDir, { recursive: true });
+            fs.writeFileSync(path.join(bundleReportDir, 'chunks.json'), JSON.stringify({ files }, null, 2));
+        },
+    };
+}
+
 const buildJsonPath = path.resolve(import.meta.dirname, 'build.json');
 let buildNumber = '0';
 
@@ -118,6 +138,17 @@ export default defineConfig(({ mode }) => {
         plugins: [
             react(),
             photosMiddleware(),
+            bundleChunkManifest(),
+            {
+                ...visualizer({
+                    filename: path.join(bundleReportDir, 'stats.html'),
+                    title: 'Photos by Perkins: bundle report',
+                    template: 'treemap',
+                    gzipSize: true,
+                    brotliSize: true,
+                }),
+                apply: 'build',
+            } as Plugin,
             VitePWA({
                 registerType: 'autoUpdate',
                 includeAssets: ['favicon.svg', 'favicon.png', 'apple-touch-icon.png'],

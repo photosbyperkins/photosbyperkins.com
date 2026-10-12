@@ -185,6 +185,8 @@ async function main() {
     ]);
     endStep('Social Cards + Vite Build + Sitemap + Share Pages (parallel)');
 
+    runSync('Bundle Budget', 'npm run bundle:check');
+
     const totalMs = Date.now() - startTime;
     const duration = (totalMs / 1000).toFixed(1);
     saveBuildStats(totalMs);

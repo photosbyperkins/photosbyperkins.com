@@ -43,6 +43,7 @@ RELEASE_NOTES.md
 roadmap.md
 test-results/
 playwright-report/
+reports/
 screenshots/
 
 # Local Overrides and Generation
