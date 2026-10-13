@@ -104,7 +104,7 @@ const Thumb = memo(
                     onKeyDown={onKeyDown}
                     style={{ ...bgStyle, opacity: motionOpacity }}
                     role="button"
-                    tabIndex={0}
+                    tabIndex={isThumbActive ? 0 : -1}
                     aria-label={ariaLabel}
                 >
                     {content}
@@ -119,7 +119,7 @@ const Thumb = memo(
                 onKeyDown={onKeyDown}
                 style={{ ...bgStyle, opacity: staticOpacity ?? 0.5 }}
                 role="button"
-                tabIndex={0}
+                tabIndex={isThumbActive ? 0 : -1}
                 aria-label={ariaLabel}
             >
                 {content}

@@ -35,11 +35,16 @@ export default function ThemeToggle({ variant = 'floating' }: ThemeToggleProps) 
 
     const maskId = `moon-mask-${uniqueId.replace(/:/g, '')}`;
 
+    const isHiddenFloating = !isNav && !scrolled;
+
     return (
         <button
+            type="button"
             className={`${baseClass} ${!isDark ? 'is-light' : ''} ${visibilityClass}`.trim()}
             onClick={toggleTheme}
             aria-label="Toggle theme"
+            tabIndex={isHiddenFloating ? -1 : 0}
+            aria-hidden={isHiddenFloating || undefined}
         >
             <motion.svg
                 initial={false}

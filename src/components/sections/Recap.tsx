@@ -294,7 +294,7 @@ export default function Recap({
     }, [spriteLoaded, onRecapLoadComplete]);
 
     const slices = useMemo(() => {
-        const cacheKey = `${slug}-${visibleCount}-${count}`;
+        const cacheKey = `${slug}-${hash ?? 'none'}-${visibleCount}-${count}-${events?.length ?? 0}`;
         const cached = slicesComputeCache.get(cacheKey);
         if (cached) return cached;
 
@@ -302,7 +302,7 @@ export default function Recap({
 
         if (visibleCount >= count) {
             result = Array.from({ length: count }, (_, i) => i + 1);
-        } else if (!events || events.length === 0) {
+        } else if (!events || events.length < count) {
             const indices = [];
             for (let i = 0; i < visibleCount; i++) {
                 indices.push(Math.round((i * (count - 1)) / (visibleCount - 1)));
@@ -371,7 +371,7 @@ export default function Recap({
 
         slicesComputeCache.set(cacheKey, result);
         return result;
-    }, [slug, visibleCount, count, events]);
+    }, [slug, hash, visibleCount, count, events]);
 
     const slicePhotos = useMemo(() => {
         if (!events || slices.length === 0) return [];

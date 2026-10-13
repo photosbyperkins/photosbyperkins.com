@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Download, Share2, HelpCircle, StoryCropIcon } from '../../ui/icons';
 import { DURATION, EASE_OUT_EXPO, EASE_IN } from '../../../utils/motion';
@@ -75,20 +76,24 @@ export default function LightboxHeader({
     }
 
     // Determine if any photo in the album has EXIF (so we know whether to show a placeholder)
-    const albumHasExif = images.some((img) => {
-        const p = resolvePhotoInput(img);
-        if (typeof p === 'object' && p !== null && p.exif) return true;
-        const originalUrl = getPhotoOriginalUrl(img);
-        if (originalUrl) {
-            const match = originalUrl.match(/\/photos\/(\d{4})\/([^/]+)\//);
-            if (match) {
-                const cached = getCachedAlbum(match[1], match[2]);
-                const found = cached?.find((photo) => photo.original === originalUrl);
-                if (found?.exif) return true;
-            }
-        }
-        return false;
-    });
+    const albumHasExif = useMemo(
+        () =>
+            images.some((img) => {
+                const p = resolvePhotoInput(img);
+                if (typeof p === 'object' && p !== null && p.exif) return true;
+                const originalUrl = getPhotoOriginalUrl(img);
+                if (originalUrl) {
+                    const match = originalUrl.match(/\/photos\/(\d{4})\/([^/]+)\//);
+                    if (match) {
+                        const cached = getCachedAlbum(match[1], match[2]);
+                        const found = cached?.find((photo) => photo.original === originalUrl);
+                        if (found?.exif) return true;
+                    }
+                }
+                return false;
+            }),
+        [images]
+    );
 
     const handleDownload = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -124,7 +129,9 @@ export default function LightboxHeader({
 
                 await navigator.share(shareData);
             } catch (err) {
-                console.error('Error sharing:', err);
+                if ((err as Error).name !== 'AbortError') {
+                    console.error('Error sharing:', err);
+                }
             }
         }
     };

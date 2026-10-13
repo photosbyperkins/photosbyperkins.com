@@ -31,8 +31,12 @@ const clearLegacyKeys = () => {
 
 const createDeduplicatedStorage = (): PersistStorage<PersistedSlice> | undefined => {
     const rawStorage = createJSONStorage<PersistedSlice>(() => {
-        if (typeof window !== 'undefined' && window.localStorage) {
-            return window.localStorage;
+        try {
+            if (typeof window !== 'undefined' && window.localStorage) {
+                return window.localStorage;
+            }
+        } catch {
+            // Fall back to in-memory storage when localStorage is blocked (e.g., third-party iframe / strict privacy mode)
         }
         const memoryStorage: Record<string, string> = {};
         return {

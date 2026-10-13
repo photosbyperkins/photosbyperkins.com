@@ -5,7 +5,10 @@ import type { IndexState } from './types';
 import { logger } from './logger.js';
 
 const DIST_DIR = path.join(process.cwd(), 'dist');
-const BASE_URL = `https://${process.env.VITE_SITE_DOMAIN || 'localhost'}`;
+const cleanDomain = (process.env.VITE_SITE_DOMAIN || 'localhost')
+    .replace(/^https?:\/\//i, '')
+    .replace(/\/+$/, '');
+const BASE_URL = `https://${cleanDomain}`;
 
 function xmlEscape(str: string): string {
     return str

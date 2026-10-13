@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { matchPath, useLocation } from 'react-router-dom';
 import { useAppStore } from '../store/useAppStore';
 
@@ -70,6 +70,7 @@ export function usePortfolioRoute({ years }: UsePortfolioRouteOptions): Portfoli
     }, [isGearRoute, isTeamRoute, activeRouteSlug, years, initialYear]);
 
     const setSharedPhoto = useAppStore((state) => state.setSharedPhoto);
+    const hydratedDeepLinkRef = useRef(false);
 
     // Deep link photo hydration
     useEffect(() => {
@@ -82,7 +83,11 @@ export function usePortfolioRoute({ years }: UsePortfolioRouteOptions): Portfoli
             } catch {
                 // Keep raw string if URI decoding fails
             }
+            hydratedDeepLinkRef.current = true;
             setSharedPhoto({ eventName: decodedEvent, photoIndex: index });
+        } else if (hydratedDeepLinkRef.current) {
+            hydratedDeepLinkRef.current = false;
+            setSharedPhoto(null);
         }
     }, [initialYear, initialEvent, initialPhoto, years, isTeamRoute, isGearRoute, setSharedPhoto]);
 

@@ -1,4 +1,4 @@
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
@@ -18,6 +18,8 @@ if (!SSH_USER || !SSH_HOST || !REMOTE_DIR) {
     process.exit(1);
 }
 // ---------------------
+
+const shellQuote = (s: string) => `'${s.replace(/'/g, `'\\''`)}'`;
 
 const distDir = path.resolve(__dirname, '../dist');
 const stagingDir = path.resolve(__dirname, '../deploy_staging');
@@ -68,12 +70,17 @@ function copyFilesToStaging(src: string, dest: string, remoteMap: Map<string, nu
 
 async function runDeploy() {
     try {
+        const quotedRemoteDir = shellQuote(REMOTE_DIR);
         // Retrieve existing files map to skip them
         console.log('🔍 Checking for existing files on the server to skip...');
         const remoteFilesMap = new Map();
         try {
-            const sshCmd = `ssh -o StrictHostKeyChecking=accept-new "${SSH_USER}@${SSH_HOST}" "cd '${REMOTE_DIR}' && find . -type f -not -path './photos/*' -not -path './thumbnails/*' -not -path './webp/*' -not -path './avif/*' -not -path './zips/*' -printf '%P|%s\\n' 2>/dev/null"`;
-            const output = execSync(sshCmd, { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 });
+            const listCmd = `cd ${quotedRemoteDir} && find . -type f -not -path './photos/*' -not -path './thumbnails/*' -not -path './webp/*' -not -path './avif/*' -not -path './zips/*' -printf '%P|%s\\n' 2>/dev/null`;
+            const output = execFileSync(
+                'ssh',
+                ['-o', 'StrictHostKeyChecking=accept-new', `${SSH_USER}@${SSH_HOST}`, listCmd],
+                { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 }
+            );
             const files = output.split('\n').filter(Boolean);
             files.forEach((line) => {
                 const [rel, size] = line.split('|');
@@ -131,23 +138,35 @@ async function runDeploy() {
         itemsToCopy.sort((a, b) => getPriority(a) - getPriority(b));
 
         const remoteTmpDir = `${REMOTE_DIR}_deploy_tmp_${Date.now()}`;
+        const quotedTmpDir = shellQuote(remoteTmpDir);
 
         console.log('🧹 Cleaning up any orphaned temporary deploy directories on the server...');
         try {
             // Force write permissions before deleting to handle read-only copied files
-            execSync(`ssh -o StrictHostKeyChecking=accept-new "${SSH_USER}@${SSH_HOST}" "chmod -R u+w '${REMOTE_DIR}'_deploy_tmp_* 2>/dev/null; rm -rf '${REMOTE_DIR}'_deploy_tmp_*"`, { stdio: 'ignore' });
+            execFileSync(
+                'ssh',
+                [
+                    '-o',
+                    'StrictHostKeyChecking=accept-new',
+                    `${SSH_USER}@${SSH_HOST}`,
+                    `chmod -R u+w ${quotedRemoteDir}_deploy_tmp_* 2>/dev/null; rm -rf ${quotedRemoteDir}_deploy_tmp_*`,
+                ],
+                { stdio: 'ignore' }
+            );
         } catch {
             // Ignore errors if no directories exist or pattern does not match
         }
 
         // Create remote temporary directory
         console.log(`📂 Creating remote temporary directory: ${remoteTmpDir}`);
-        execSync(`ssh -o StrictHostKeyChecking=accept-new "${SSH_USER}@${SSH_HOST}" "mkdir -p '${remoteTmpDir}'"`, { stdio: 'inherit' });
+        execFileSync(
+            'ssh',
+            ['-o', 'StrictHostKeyChecking=accept-new', `${SSH_USER}@${SSH_HOST}`, `mkdir -p ${quotedTmpDir}`],
+            { stdio: 'inherit' }
+        );
 
         // Map top level files into paths for SCP
-        // We use double quotes to handle spaces in paths
-        const scpArgs = itemsToCopy.map((item) => `"${path.join(stagingDir, item)}"`).join(' ');
-        const scpCommand = `scp -r -p ${scpArgs} "${SSH_USER}@${SSH_HOST}:${remoteTmpDir}"`;
+        const scpLocalPaths = itemsToCopy.map((item) => path.join(stagingDir, item));
 
         // Use scp to securely copy the staging directory contents to the remote server
         console.log(`🌐 Transferring new and updated files to temporary directory on ${SSH_USER}@${SSH_HOST}...`);
@@ -157,7 +176,11 @@ async function runDeploy() {
         let scpSuccess = false;
         while (!scpSuccess) {
             try {
-                execSync(scpCommand, { stdio: 'inherit' });
+                execFileSync(
+                    'scp',
+                    ['-r', '-p', ...scpLocalPaths, `${SSH_USER}@${SSH_HOST}:${remoteTmpDir}`],
+                    { stdio: 'inherit' }
+                );
                 scpSuccess = true;
             } catch (err: unknown) {
                 if (scpAttempt >= MAX_RETRIES) {
@@ -174,7 +197,16 @@ async function runDeploy() {
         let mvSuccess = false;
         while (!mvSuccess) {
             try {
-                execSync(`ssh -o StrictHostKeyChecking=accept-new "${SSH_USER}@${SSH_HOST}" "cp -a '${remoteTmpDir}'/. '${REMOTE_DIR}'/ && chmod -R u+w '${remoteTmpDir}' && rm -rf '${remoteTmpDir}'"`, { stdio: 'inherit' });
+                execFileSync(
+                    'ssh',
+                    [
+                        '-o',
+                        'StrictHostKeyChecking=accept-new',
+                        `${SSH_USER}@${SSH_HOST}`,
+                        `cp -a ${quotedTmpDir}/. ${quotedRemoteDir}/ && chmod -R u+w ${quotedTmpDir} && rm -rf ${quotedTmpDir}`,
+                    ],
+                    { stdio: 'inherit' }
+                );
                 mvSuccess = true;
             } catch (err: unknown) {
                 if (mvAttempt >= MAX_RETRIES) {
@@ -188,13 +220,20 @@ async function runDeploy() {
 
         // Fix file permissions on the remote server (755 for directories, 644 for files)
         console.log(`🔐 Setting correct file permissions on Bluehost...`);
-        const chmodCommand = `ssh -o StrictHostKeyChecking=accept-new "${SSH_USER}@${SSH_HOST}" "find '${REMOTE_DIR}' -path '${REMOTE_DIR}/photos' -prune -o -path '${REMOTE_DIR}/webp' -prune -o -path '${REMOTE_DIR}/avif' -prune -o -path '${REMOTE_DIR}/thumbnails' -prune -o -type d -exec chmod 755 {} + && find '${REMOTE_DIR}' -path '${REMOTE_DIR}/photos' -prune -o -path '${REMOTE_DIR}/webp' -prune -o -path '${REMOTE_DIR}/avif' -prune -o -path '${REMOTE_DIR}/thumbnails' -prune -o -type f -exec chmod 644 {} +"`;
+        const pruneArgs = ['photos', 'webp', 'avif', 'thumbnails']
+            .map((sub) => `-path ${shellQuote(`${REMOTE_DIR}/${sub}`)} -prune -o`)
+            .join(' ');
+        const chmodCmd = `find ${quotedRemoteDir} ${pruneArgs} -type d -exec chmod 755 {} + && find ${quotedRemoteDir} ${pruneArgs} -type f -exec chmod 644 {} +`;
 
         let chmodAttempt = 1;
         let chmodSuccess = false;
         while (!chmodSuccess) {
             try {
-                execSync(chmodCommand, { stdio: 'inherit' });
+                execFileSync(
+                    'ssh',
+                    ['-o', 'StrictHostKeyChecking=accept-new', `${SSH_USER}@${SSH_HOST}`, chmodCmd],
+                    { stdio: 'inherit' }
+                );
                 chmodSuccess = true;
             } catch (err: unknown) {
                 if (chmodAttempt >= MAX_RETRIES) {
@@ -230,12 +269,14 @@ async function runDeploy() {
             for (let i = 0; i < staleFiles.length; i += 50) {
                 const batch = staleFiles
                     .slice(i, i + 50)
-                    .map((f) => `'${path.posix.join(REMOTE_DIR, f).replace(/'/g, `'\\''`)}'`)
+                    .map((f) => shellQuote(path.posix.join(REMOTE_DIR, f)))
                     .join(' ');
                 try {
-                    execSync(`ssh -o StrictHostKeyChecking=accept-new ${SSH_USER}@${SSH_HOST} "rm -f ${batch}"`, {
-                        stdio: 'inherit',
-                    });
+                    execFileSync(
+                        'ssh',
+                        ['-o', 'StrictHostKeyChecking=accept-new', `${SSH_USER}@${SSH_HOST}`, `rm -f ${batch}`],
+                        { stdio: 'inherit' }
+                    );
                 } catch (error: unknown) {
                     console.log('⚠️ Could not delete a batch of stale files.', error instanceof Error ? error.message : String(error));
                 }

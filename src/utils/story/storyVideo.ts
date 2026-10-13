@@ -227,8 +227,27 @@ async function encodeWithMediaRecorder(
         const start = performance.now();
         let next = 1;
         await new Promise<void>((resolve, reject) => {
+            let holdTimer: ReturnType<typeof setTimeout> | null = null;
+            let rafId: number | null = null;
+            const onAbort = () => {
+                if (holdTimer !== null) clearTimeout(holdTimer);
+                if (rafId !== null) cancelAnimationFrame(rafId);
+                reject(abortError());
+            };
+            if (signal?.aborted) {
+                onAbort();
+                return;
+            }
+            signal?.addEventListener('abort', onAbort, { once: true });
+
+            const finish = () => {
+                signal?.removeEventListener('abort', onAbort);
+                resolve();
+            };
+
             const tick = () => {
                 if (signal?.aborted) {
+                    signal?.removeEventListener('abort', onAbort);
                     reject(abortError());
                     return;
                 }
@@ -241,12 +260,12 @@ async function encodeWithMediaRecorder(
                 onProgress?.(Math.min(1, next / plan.frameCount));
                 if (next >= plan.frameCount) {
                     // Hold the final frame for one frame duration so it is captured
-                    setTimeout(resolve, frameMs);
+                    holdTimer = setTimeout(finish, frameMs);
                     return;
                 }
-                requestAnimationFrame(tick);
+                rafId = requestAnimationFrame(tick);
             };
-            requestAnimationFrame(tick);
+            rafId = requestAnimationFrame(tick);
         });
         recorder.stop();
         await stopped;

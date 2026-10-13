@@ -407,7 +407,7 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
                             frameColorOverride={effectiveFrameColor}
                             isFrameAnimated={shownFrameAnimated}
                             exif={
-                                photoObj.burst?.frameSources?.[activePhotoIndex] === photoObj.original
+                                !photoObj.burst || photoObj.burst.frameSources?.[activePhotoIndex] === photoObj.original
                                     ? photoObj.exif
                                     : undefined
                             }

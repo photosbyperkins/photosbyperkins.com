@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 interface UseLightboxNavigationProps {
     onClose: () => void;
@@ -111,23 +111,36 @@ export function useLightboxNavigation({
         onOpenStoryExport,
     ]);
 
+    const wheelCooldownRef = useRef(false);
+    const wheelTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (wheelTimeoutRef.current !== null) {
+                clearTimeout(wheelTimeoutRef.current);
+            }
+        };
+    }, []);
+
     useEffect(() => {
         if (!isActive) return;
 
-        let wheelCooldown = false;
-
         const handleWheel = (e: WheelEvent) => {
-            if (isZoomed || wheelCooldown || isAnimating) return;
+            if (isZoomed || wheelCooldownRef.current || isAnimating) return;
 
             const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
             if (Math.abs(delta) < 10) return;
 
             e.preventDefault();
-            wheelCooldown = true;
+            wheelCooldownRef.current = true;
             onPaginate(delta > 0 ? 1 : -1);
 
-            setTimeout(() => {
-                wheelCooldown = false;
+            if (wheelTimeoutRef.current !== null) {
+                clearTimeout(wheelTimeoutRef.current);
+            }
+            wheelTimeoutRef.current = setTimeout(() => {
+                wheelCooldownRef.current = false;
+                wheelTimeoutRef.current = null;
             }, 400);
         };
 

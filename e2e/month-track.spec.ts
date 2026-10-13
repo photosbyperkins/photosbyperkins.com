@@ -255,16 +255,13 @@ test.describe('Portfolio Month Calendar Track', () => {
         const emptyDashes = track.locator('.portfolio__month-empty-dash');
         expect(await emptyDashes.count()).toBeGreaterThan(0);
 
-        // Capture dark mode screenshot
-        await page.screenshot({ path: 'C:/Users/micha/.gemini/antigravity/brain/ebeadfca-db4f-45d1-99e3-3c8529ac9df6/month_track_final_dark.png' });
-
-        // Switch to light mode and screenshot
+        // Switch to light mode and verify track remains visible
         await page.evaluate(() => {
             document.documentElement.setAttribute('data-theme', 'light');
             localStorage.setItem('theme', 'light');
         });
         await page.waitForTimeout(300);
-        await page.screenshot({ path: 'C:/Users/micha/.gemini/antigravity/brain/ebeadfca-db4f-45d1-99e3-3c8529ac9df6/month_track_final_light.png' });
+        await expect(track).toBeVisible();
     });
 
     test('clicking a month lands accurately at the target event without drift', async ({ page, isMobile }) => {

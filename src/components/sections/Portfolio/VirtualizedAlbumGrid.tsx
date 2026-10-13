@@ -61,7 +61,7 @@ export default function VirtualizedAlbumGrid({
         if (typeof window === 'undefined') return 100;
         const w = window.innerWidth;
         const cols = getCycleSize(w);
-        return ((w + 4) / cols) * (2 / 3);
+        return ((w - (cols - 1) * 4) / cols) * (2 / 3) + 4;
     });
 
     // Observe container width to dynamically update column count and row height
@@ -75,7 +75,7 @@ export default function VirtualizedAlbumGrid({
             const windowW = typeof window !== 'undefined' ? window.innerWidth : w;
             const cols = getCycleSize(windowW);
             setCycleSize(cols);
-            setActualRowSize(((w + 4) / cols) * (2 / 3));
+            setActualRowSize(((w - (cols - 1) * 4) / cols) * (2 / 3) + 4);
         };
 
         const ro = new ResizeObserver(updateDimensions);
@@ -185,7 +185,8 @@ export default function VirtualizedAlbumGrid({
                             const focusY = photo.focusY;
                             const isSelected = selectedUrls?.has(origUrl) ?? false;
                             const selectionNum = origUrl ? selectionIndexMap?.get(origUrl) : undefined;
-                            const showNumber = (selectedUrls?.size ?? 0) <= 3 && selectionNum != null;
+                            const totalSelected = selectionIndexMap ? selectionIndexMap.size : (selectedUrls?.size ?? 0);
+                            const showNumber = totalSelected <= 3 && selectionNum != null;
 
                             return (
                                 <button

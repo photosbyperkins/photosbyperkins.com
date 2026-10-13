@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Copy, Check, Scale, ShieldCheck, Share2, RefreshCw, UserCheck, ShieldAlert } from './icons';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import ModalShell from './ModalShell';
 import { modalFadeUp } from './modalAnimation';
@@ -10,6 +10,13 @@ export default function CodeLicenseModal() {
     const isCodeLicenseOpen = useAppStore((state) => state.isCodeLicenseOpen);
     const closeCodeLicense = useAppStore((state) => state.closeCodeLicense);
     const [copied, setCopied] = useState(false);
+    const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (copyTimerRef.current !== null) clearTimeout(copyTimerRef.current);
+        };
+    }, []);
 
     const copyrightName = import.meta.env.VITE_COPYRIGHT_NAME || 'Michael Perkins';
     const currentYear = new Date().getFullYear();
@@ -43,7 +50,8 @@ SOFTWARE.`;
         try {
             await navigator.clipboard.writeText(licenseText);
             setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
+            if (copyTimerRef.current !== null) clearTimeout(copyTimerRef.current);
+            copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
         } catch {
             // Clipboard fallback
         }

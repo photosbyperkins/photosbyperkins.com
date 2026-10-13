@@ -19,7 +19,10 @@ interface UsePortfolioSearchOptions {
 let fuseModulePromise: Promise<typeof import('fuse.js')> | null = null;
 function loadFuseModule() {
     if (!fuseModulePromise) {
-        fuseModulePromise = import('fuse.js');
+        fuseModulePromise = import('fuse.js').catch((err) => {
+            fuseModulePromise = null;
+            throw err;
+        });
     }
     return fuseModulePromise;
 }
@@ -57,6 +60,7 @@ export function usePortfolioSearch({
             })
             .catch((err) => {
                 console.error('Failed to load teams index:', err);
+                hasFetchedTeams.current = false;
                 setIsTeamIndexLoading(false);
             });
     }, []);
@@ -76,6 +80,7 @@ export function usePortfolioSearch({
             })
             .catch((err) => {
                 console.error('Failed to load gear index:', err);
+                hasFetchedGear.current = false;
                 setIsGearIndexLoading(false);
             });
     }, []);
@@ -93,17 +98,21 @@ export function usePortfolioSearch({
         if (teamIndex.length === 0) return;
         let isCancelled = false;
 
-        loadFuseModule().then(({ default: Fuse }) => {
-            if (!isCancelled) {
-                setTeamFuse(
-                    new Fuse(teamIndex, {
-                        keys: ['name', 'slug'],
-                        threshold: 0.3,
-                        ignoreLocation: true,
-                    })
-                );
-            }
-        });
+        loadFuseModule()
+            .then(({ default: Fuse }) => {
+                if (!isCancelled) {
+                    setTeamFuse(
+                        new Fuse(teamIndex, {
+                            keys: ['name', 'slug'],
+                            threshold: 0.3,
+                            ignoreLocation: true,
+                        })
+                    );
+                }
+            })
+            .catch((err) => {
+                console.error('Failed to load Fuse.js for teams:', err);
+            });
 
         return () => {
             isCancelled = true;
@@ -115,17 +124,21 @@ export function usePortfolioSearch({
         if (gearIndex.length === 0) return;
         let isCancelled = false;
 
-        loadFuseModule().then(({ default: Fuse }) => {
-            if (!isCancelled) {
-                setGearFuse(
-                    new Fuse(gearIndex, {
-                        keys: ['name', 'compactName', 'shortName', 'brand', 'type', 'searchAliases'],
-                        threshold: 0.35,
-                        ignoreLocation: true,
-                    })
-                );
-            }
-        });
+        loadFuseModule()
+            .then(({ default: Fuse }) => {
+                if (!isCancelled) {
+                    setGearFuse(
+                        new Fuse(gearIndex, {
+                            keys: ['name', 'compactName', 'shortName', 'brand', 'type', 'searchAliases'],
+                            threshold: 0.35,
+                            ignoreLocation: true,
+                        })
+                    );
+                }
+            })
+            .catch((err) => {
+                console.error('Failed to load Fuse.js for gear:', err);
+            });
 
         return () => {
             isCancelled = true;

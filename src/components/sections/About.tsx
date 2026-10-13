@@ -8,7 +8,7 @@ import '../../styles/_about.scss';
 
 // Lightweight inline markdown renderer: **bold**, *italic*, [text](url)
 function parseInline(text: string): React.ReactNode[] {
-    const pattern = /(\*\*(.+?)\*\*|\*(.+?)\*|\[(.+?)\]\((.+?)\))/g;
+    const pattern = /(\*\*(.+?)\*\*|\*(.+?)\*|\[([^\]]+)\]\(([^)\s]+)\))/g;
     const nodes: React.ReactNode[] = [];
     let lastIdx = 0;
     let match: RegExpExecArray | null;
@@ -23,7 +23,7 @@ function parseInline(text: string): React.ReactNode[] {
             nodes.push(<em key={key++}>{match[3]}</em>);
         } else if (match[4] && match[5]) {
             const rawUrl = match[5].trim();
-            const isSafeUrl = /^(https?:\/\/|mailto:)/i.test(rawUrl);
+            const isSafeUrl = /^(https?:\/\/|mailto:|\/(?!\/))/i.test(rawUrl);
             if (isSafeUrl) {
                 nodes.push(
                     <a key={key++} href={rawUrl} target="_blank" rel="noopener noreferrer">

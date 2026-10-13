@@ -111,6 +111,11 @@ export default function SharedFavoritesPanel({ photos, onClose }: SharedFavorite
                         const focusX = typeof photo === 'string' ? undefined : photo.focusX;
                         const focusY = typeof photo === 'string' ? undefined : photo.focusY;
 
+                        const photoYear =
+                            (typeof photo === 'object' && photo?.year) ||
+                            origUrl.match(/\/photos\/(\d{4})\//)?.[1] ||
+                            'favorites';
+
                         return (
                             <div
                                 key={origUrl}
@@ -118,11 +123,11 @@ export default function SharedFavoritesPanel({ photos, onClose }: SharedFavorite
                                 role="button"
                                 tabIndex={0}
                                 aria-label={`View shared favorites photo ${i + 1}`}
-                                onClick={() => openLightbox(photos, i, 'Shared Favorites', '')}
+                                onClick={() => openLightbox(photos, i, 'Shared Favorites', photoYear)}
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter' || e.key === ' ') {
                                         e.preventDefault();
-                                        openLightbox(photos, i, 'Shared Favorites', '');
+                                        openLightbox(photos, i, 'Shared Favorites', photoYear);
                                     }
                                 }}
                             >

@@ -95,10 +95,10 @@ export default function Lightbox({
         if (images.length === 0 || images.length > MAX_SPRITE_FRAMES) return null;
         const first = images[0];
         if (typeof first === 'string' || !first.thumb || first.spriteIndex == null) return null;
-        // Ensure ALL images have spriteIndex and share the same event directory
+        // Ensure ALL images have contiguous 0-indexed spriteIndex values and share the same event directory
         const dir = first.thumb.substring(0, first.thumb.lastIndexOf('/'));
-        const allMatch = images.every((img) => {
-            if (typeof img === 'string' || img.spriteIndex == null) return false;
+        const allMatch = images.every((img, i) => {
+            if (typeof img === 'string' || img.spriteIndex !== i) return false;
             const imgDir = img.thumb.substring(0, img.thumb.lastIndexOf('/'));
             return imgDir === dir;
         });
@@ -348,6 +348,7 @@ export default function Lightbox({
             {/* Left/Right Navigation Overlays */}
             <div
                 className={`portfolio__lightbox-nav-overlay portfolio__lightbox-nav-overlay--left${isZoomed ? ' is-hidden' : ''}`}
+                aria-hidden="true"
                 onClick={(e) => {
                     e.stopPropagation();
                     if (!isZoomed) paginate(-1);
@@ -359,6 +360,7 @@ export default function Lightbox({
             </div>
             <div
                 className={`portfolio__lightbox-nav-overlay portfolio__lightbox-nav-overlay--right${isZoomed ? ' is-hidden' : ''}`}
+                aria-hidden="true"
                 onClick={(e) => {
                     e.stopPropagation();
                     if (!isZoomed) paginate(1);

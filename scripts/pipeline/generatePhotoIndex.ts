@@ -153,6 +153,26 @@ export function shuffle<T>(arr: T[]): T[] {
     return a;
 }
 
+export function seededShuffle<T>(arr: T[], seedStr: string): T[] {
+    let h = 2166136261 >>> 0;
+    for (let i = 0; i < seedStr.length; i++) {
+        h ^= seedStr.charCodeAt(i);
+        h = Math.imul(h, 16777619) >>> 0;
+    }
+    const nextRand = () => {
+        h = (h + 0x6d2b79f5) >>> 0;
+        let t = Math.imul(h ^ (h >>> 15), 1 | h);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(nextRand() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
+
 function getJpgs(dir: string): string[] {
     try {
         return fs
@@ -545,17 +565,17 @@ async function processEventDir(
         })
         .filter((h): h is { source: string; original: string; thumb: string } => h !== null);
 
-    // Take random 10 from highlights; fill from album randomly if needed
+    // Take deterministic 10 from highlights; fill from album deterministically if needed
     const uniqueHighlights = Array.from(new Map(highlightsPaths.map((h) => [h.original, h])).values());
-    let finalHighlights = shuffle(uniqueHighlights).slice(0, 10);
+    let finalHighlights = seededShuffle(uniqueHighlights, `${year}/${eventSlug}`).slice(0, 10);
 
     if (finalHighlights.length < 10 && albumArr.length > 0) {
         const albumClean = albumArr.map(({ source, original, thumb }) => ({ source, original, thumb }));
         const remaining = 10 - finalHighlights.length;
-        const extras = shuffle(albumClean.filter((a) => !finalHighlights.some((f) => f.original === a.original))).slice(
-            0,
-            remaining
-        );
+        const extras = seededShuffle(
+            albumClean.filter((a) => !finalHighlights.some((f) => f.original === a.original)),
+            `${year}/${eventSlug}:extras`
+        ).slice(0, remaining);
         finalHighlights = finalHighlights.concat(extras);
     }
 
@@ -602,8 +622,18 @@ async function processEventDir(
 
         // Overrides (both manual and face-detected) apply universally now
         // because the 31-column Fibonacci grid utilizes 1:1 squares which unconditionally crops 3:2 photos.
+        const faceData = extractFaceData(item.thumb, facesCache);
 
-        albumWithDims.push({ ...item, aspectRatio, width, height, timestampMs, cameraSerial, ...(exif ? { exif } : {}) });
+        albumWithDims.push({
+            ...item,
+            aspectRatio,
+            width,
+            height,
+            timestampMs,
+            cameraSerial,
+            ...(exif ? { exif } : {}),
+            ...(faceData ? faceData : {}),
+        });
     }
 
     // Detect sequential burst action sets before masonry aspect-ratio reordering

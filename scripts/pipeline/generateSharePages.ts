@@ -5,7 +5,10 @@ import type { IndexState } from './types';
 import { logger } from './logger.js';
 
 const DIST_DIR = path.join(process.cwd(), 'dist');
-const BASE_URL = `https://${process.env.VITE_SITE_DOMAIN || 'localhost'}`;
+const cleanDomain = (process.env.VITE_SITE_DOMAIN || 'localhost')
+    .replace(/^https?:\/\//i, '')
+    .replace(/\/+$/, '');
+const BASE_URL = `https://${cleanDomain}`;
 const APP_TITLE = process.env.VITE_SITE_APP_TITLE || 'Photography Portfolio';
 
 function escapeHtml(str: string): string {
@@ -65,6 +68,8 @@ export async function generateSharePages(data: IndexState) {
             const safeAppTitle = escapeHtml(APP_TITLE);
             const safeTargetUrl = escapeHtml(targetUrl);
             const shareUrl = `${BASE_URL}/share/${encodeURIComponent(year)}/${encodeURIComponent(event)}`;
+            const safeShareUrl = escapeHtml(shareUrl);
+            const safeOgImgUrl = ogImgUrl ? escapeHtml(ogImgUrl) : '';
 
             const html = `<!DOCTYPE html>
 <html lang="en">
@@ -76,15 +81,15 @@ export async function generateSharePages(data: IndexState) {
     <!-- OpenGraph Meta Tags -->
     <meta property="og:title" content="${safeTitle}" />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="${shareUrl}" />
-    ${ogImgUrl ? `<meta property="og:image" content="${ogImgUrl}" />` : ''}
+    <meta property="og:url" content="${safeShareUrl}" />
+    ${safeOgImgUrl ? `<meta property="og:image" content="${safeOgImgUrl}" />` : ''}
     <meta property="og:description" content="View the photo gallery for ${safeEvent} on ${safeAppTitle}." />
     
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="${safeTitle}">
     <meta name="twitter:description" content="View the photo gallery for ${safeEvent}.">
-    ${ogImgUrl ? `<meta name="twitter:image" content="${ogImgUrl}">` : ''}
+    ${safeOgImgUrl ? `<meta name="twitter:image" content="${safeOgImgUrl}">` : ''}
 
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>

@@ -19,6 +19,9 @@ interface CachedYearPayload {
 }
 const yearDataCache = new LRUCache<string, CachedYearPayload>(6);
 
+const getCacheKey = (tabSlug: string, isGear: boolean, isTeam: boolean): string =>
+    isGear ? `gear:${tabSlug}` : isTeam ? `team:${tabSlug}` : `year:${tabSlug}`;
+
 /** Internal helper for testing to reset the module-level year cache */
 export function _clearYearDataCache(): void {
     yearDataCache.clear();
@@ -134,36 +137,56 @@ export function usePortfolioData({
                 const match = record.original.match(/\/photos\/(\d{4})\//);
                 if (match) year = match[1];
             }
-            if (year && years.includes(year) && !yearDataCache.has(year)) {
-                yearsToFetch.add(year);
+            if (year && years.includes(year)) {
+                const cached = yearDataCache.get(`year:${year}`);
+                if (!cached || cached.nextPart) {
+                    yearsToFetch.add(year);
+                }
             }
         }
 
         if (yearsToFetch.size === 0) return;
         let isCancelled = false;
 
-        Promise.allSettled(
-            Array.from(yearsToFetch).map((y) =>
-                fetch(`/data/years/${y}.json?build=${getBuildNumber()}`)
-                    .then((res) => {
-                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                        return res.json().then(decodeEventChunk);
-                    })
-                    .then((json) => {
-                        const payload = json as FetchPayload;
-                        if (!yearDataCache.has(y)) {
-                            yearDataCache.set(y, {
-                                events: payload.events,
-                                recapCount: payload.recapCount || 0,
-                                recapEvents: payload.recapEvents || [],
-                                recapHash: payload.recapHash,
-                                nextPart: payload.nextPart ?? null,
-                                stats: payload.stats,
-                            });
-                        }
-                    })
-            )
-        ).then(() => {
+        const fetchCompleteYear = async (y: string) => {
+            const cacheKey = `year:${y}`;
+            const existing = yearDataCache.get(cacheKey);
+            const accumulatedEvents: YearData = existing ? { ...existing.events } : {};
+            let firstPayload: FetchPayload | null = existing
+                ? {
+                      events: existing.events,
+                      recapCount: existing.recapCount,
+                      recapEvents: existing.recapEvents,
+                      recapHash: existing.recapHash,
+                      nextPart: existing.nextPart,
+                      stats: existing.stats,
+                  }
+                : null;
+            let currentPart: string | null = existing ? existing.nextPart : y;
+
+            while (currentPart && !isCancelled) {
+                const res = await fetch(`/data/years/${currentPart}.json?build=${getBuildNumber()}`);
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const json = await res.json();
+                const payload = decodeEventChunk(json) as FetchPayload;
+                if (!firstPayload) firstPayload = payload;
+                Object.assign(accumulatedEvents, payload.events);
+                currentPart = payload.nextPart ?? null;
+            }
+
+            if (firstPayload && !isCancelled) {
+                yearDataCache.set(cacheKey, {
+                    events: accumulatedEvents,
+                    recapCount: firstPayload.recapCount || 0,
+                    recapEvents: firstPayload.recapEvents || [],
+                    recapHash: firstPayload.recapHash,
+                    nextPart: null,
+                    stats: firstPayload.stats,
+                });
+            }
+        };
+
+        Promise.allSettled(Array.from(yearsToFetch).map((y) => fetchCompleteYear(y))).then(() => {
             if (!isCancelled) {
                 setYearDataEnrichVersion((v) => v + 1);
             }
@@ -222,7 +245,7 @@ export function usePortfolioData({
             }
 
             if (year && slugFromOriginal) {
-                const eventsInYear = yearDataCache.get(year)?.events;
+                const eventsInYear = yearDataCache.get(`year:${year}`)?.events;
                 if (eventsInYear) {
                     const matched = Object.entries(eventsInYear).find(
                         ([, ev]) => ev.albumSlug === slugFromOriginal
@@ -301,7 +324,7 @@ export function usePortfolioData({
             if (byEventData[key]) {
                 key = `${group.eventName} (${group.year})`;
             }
-            const eventsInYear = yearDataCache.get(group.year)?.events;
+            const eventsInYear = yearDataCache.get(`year:${group.year}`)?.events;
             let cachedEvent = eventsInYear ? eventsInYear[group.eventName] : undefined;
             if (!cachedEvent && eventsInYear) {
                 const cleanName = group.eventName.replace(/^\[\d{4}\]\s*/, '');
@@ -346,6 +369,7 @@ export function usePortfolioData({
             if (tabSlug === 'favorites') return;
 
             const basePath = isGearMode ? `/data/gear` : isTeamMode ? `/data/teams` : `/data/years`;
+            const cacheKey = getCacheKey(tabSlug, isGearMode, isTeamMode);
             const requestToken = ++requestIdCounter;
 
             if (setData) {
@@ -353,7 +377,7 @@ export function usePortfolioData({
                 setPendingNextPart(null);
 
                 // Serve from cache instantly if available — no network needed.
-                const cached = yearDataCache.get(tabSlug);
+                const cached = yearDataCache.get(cacheKey);
                 if (cached) {
                     setYearData(cached.events);
                     setRecapCount(cached.recapCount);
@@ -389,7 +413,7 @@ export function usePortfolioData({
                                 setStats(data.stats);
 
                                 // Store first-part result so future switches are instant.
-                                yearDataCache.set(tabSlug, {
+                                yearDataCache.set(cacheKey, {
                                     events: data.events,
                                     recapCount: data.recapCount || 0,
                                     recapEvents: data.recapEvents || [],
@@ -415,8 +439,8 @@ export function usePortfolioData({
                             }
                         } else if (!accumulate) {
                             // Pre-fetch path: populate cache so the next foreground switch is instant.
-                            if (!yearDataCache.has(tabSlug)) {
-                                yearDataCache.set(tabSlug, {
+                            if (!yearDataCache.has(cacheKey)) {
+                                yearDataCache.set(cacheKey, {
                                     events: data.events,
                                     recapCount: data.recapCount || 0,
                                     recapEvents: data.recapEvents || [],
@@ -452,6 +476,7 @@ export function usePortfolioData({
 
         const isTeamMode = !years.includes(selectedTab) && !isGearMode;
         const basePath = isGearMode ? `/data/gear` : isTeamMode ? `/data/teams` : `/data/years`;
+        const cacheKey = getCacheKey(selectedTab, isGearMode, isTeamMode);
         const requestToken = activeRequestRef.current;
         const targetPart = pendingNextPart;
 
@@ -465,11 +490,11 @@ export function usePortfolioData({
                     const data = json as FetchPayload;
                     if (activeRequestRef.current !== requestToken) return;
 
-                    const existing = yearDataCache.get(selectedTab);
+                    const existing = yearDataCache.get(cacheKey);
                     if (existing) {
                         existing.events = { ...existing.events, ...data.events };
                         existing.nextPart = data.nextPart ?? null;
-                        yearDataCache.set(selectedTab, existing);
+                        yearDataCache.set(cacheKey, existing);
                     }
 
                     setYearData((prev) => ({ ...prev, ...data.events }));
@@ -496,8 +521,10 @@ export function usePortfolioData({
 
     const prefetchTab = useCallback(
         (tabSlug: string) => {
-            if (!tabSlug || tabSlug === 'favorites' || yearDataCache.has(tabSlug)) return;
+            if (!tabSlug || tabSlug === 'favorites') return;
             const isTeamMode = !years.includes(tabSlug) && !isGearMode;
+            const cacheKey = getCacheKey(tabSlug, isGearMode, isTeamMode);
+            if (yearDataCache.has(cacheKey)) return;
             getForTab(tabSlug, false, isTeamMode);
         },
         [getForTab, years, isGearMode]
