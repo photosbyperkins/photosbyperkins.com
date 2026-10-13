@@ -3,6 +3,13 @@ import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import TeamFilter from './TeamFilter';
 
+vi.mock('../../../utils/constants', () => ({
+    TEAM_ABBREVIATIONS: {
+        'Sacramento Roller Derby': 'SRD',
+        'Bay Area Derby': 'BAD',
+    },
+}));
+
 describe('TeamFilter', () => {
     const mockTeams = [
         { name: 'Sacramento Roller Derby Bruin Trouble', slug: 'sacramento-roller-derby-bruin-trouble', count: 16 },
