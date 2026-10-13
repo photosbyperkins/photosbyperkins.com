@@ -217,12 +217,29 @@ export default function Portfolio({ years }: PortfolioProps) {
                 return;
             }
 
+            const storeState = useAppStore.getState();
+            const isAnyModalOpen =
+                isGlobalSearchOpen ||
+                isLightboxOpen ||
+                Boolean(sharedFavorites?.length) ||
+                storeState.isAboutOpen ||
+                storeState.isAiPolicyOpen ||
+                storeState.isCodeLicenseOpen ||
+                storeState.isPhotoLicenseOpen ||
+                Boolean(storeState.activeGear) ||
+                Boolean(storeState.iframeUrl) ||
+                document.querySelector('.story-export-modal') !== null;
+
+            if (isAnyModalOpen) {
+                return;
+            }
+
             if (isBatchSelectMode) {
                 if (e.key === 'Escape') {
                     e.preventDefault();
                     setIsBatchSelectMode(false);
                 }
-            } else if (!isGlobalSearchOpen && !isLightboxOpen) {
+            } else {
                 if (e.key === '/' && !e.ctrlKey && !e.metaKey && !e.altKey) {
                     e.preventDefault();
                     ensureIndexesLoaded();
@@ -236,7 +253,7 @@ export default function Portfolio({ years }: PortfolioProps) {
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [isBatchSelectMode, setIsBatchSelectMode, isGlobalSearchOpen, isLightboxOpen, selectedTab, ensureIndexesLoaded]);
+    }, [isBatchSelectMode, setIsBatchSelectMode, isGlobalSearchOpen, isLightboxOpen, sharedFavorites, selectedTab, ensureIndexesLoaded]);
 
     const [isNearFooter, setIsNearFooter] = useState(false);
 

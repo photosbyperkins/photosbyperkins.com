@@ -33,6 +33,7 @@ self.onmessage = async (e: MessageEvent<{ urls: string[]; filename: string }>) =
             const batchResults = await Promise.all(
                 chunk.map(async (url, idx) => {
                     let response: Response | null = null;
+                    let resolvedUrl = url;
                     try {
                         const res = await fetch(url);
                         if (res.ok) response = res;
@@ -45,7 +46,10 @@ self.onmessage = async (e: MessageEvent<{ urls: string[]; filename: string }>) =
                         const avifUrl = url.replace(/^(?:\/)?photos\//i, '/avif/').replace(/\.jpe?g$/i, '.avif');
                         try {
                             const res = await fetch(avifUrl);
-                            if (res.ok) response = res;
+                            if (res.ok) {
+                                response = res;
+                                resolvedUrl = avifUrl;
+                            }
                         } catch {
                             // network error on avif
                         }
@@ -56,7 +60,10 @@ self.onmessage = async (e: MessageEvent<{ urls: string[]; filename: string }>) =
                         const webpUrl = url.replace(/^(?:\/)?photos\//i, '/webp/').replace(/\.jpe?g$/i, '.webp');
                         try {
                             const res = await fetch(webpUrl);
-                            if (res.ok) response = res;
+                            if (res.ok) {
+                                response = res;
+                                resolvedUrl = webpUrl;
+                            }
                         } catch {
                             // network error on webp
                         }
@@ -70,6 +77,7 @@ self.onmessage = async (e: MessageEvent<{ urls: string[]; filename: string }>) =
                     const arrayBuffer = await response.arrayBuffer();
                     return {
                         url,
+                        resolvedUrl,
                         index: i + idx,
                         uint8Array: new Uint8Array(arrayBuffer),
                     };
@@ -78,7 +86,7 @@ self.onmessage = async (e: MessageEvent<{ urls: string[]; filename: string }>) =
 
             for (const item of batchResults) {
                 if (!item) continue;
-                const { url, index, uint8Array } = item;
+                const { url, resolvedUrl, index, uint8Array } = item;
                 if (errorOccurred) throw errorOccurred;
 
                 totalBufferedBytes += uint8Array.byteLength;
@@ -89,8 +97,13 @@ self.onmessage = async (e: MessageEvent<{ urls: string[]; filename: string }>) =
                 }
 
                 const cleanUrl = url.split('?')[0].split('#')[0];
+                const cleanResolvedUrl = resolvedUrl.split('?')[0].split('#')[0];
+                const resolvedFilename = cleanResolvedUrl.split('/').pop();
                 const pathParts = cleanUrl.split('/');
-                const originalFilename = pathParts.pop() || `photo_${index}.jpg`;
+                const originalFilename = resolvedFilename || pathParts.pop() || `photo_${index}.jpg`;
+                if (resolvedFilename) {
+                    pathParts.pop();
+                }
                 const parentDir = pathParts.pop();
                 const eventDir =
                     parentDir === 'original' || parentDir === 'web' || parentDir === 'thumb'
@@ -115,6 +128,7 @@ self.onmessage = async (e: MessageEvent<{ urls: string[]; filename: string }>) =
                 const fileStream = new fflate.ZipPassThrough(name);
                 zip.add(fileStream);
                 fileStream.push(uint8Array, true);
+                if (errorOccurred) throw errorOccurred;
 
                 completed++;
                 self.postMessage({ type: 'progress', progress: Math.round((completed / urls.length) * 95) });
@@ -126,6 +140,7 @@ self.onmessage = async (e: MessageEvent<{ urls: string[]; filename: string }>) =
         }
 
         zip.end();
+        if (errorOccurred) throw errorOccurred;
     } catch (error) {
         self.postMessage({ type: 'error', error: error instanceof Error ? error.message : 'Unknown error' });
     }

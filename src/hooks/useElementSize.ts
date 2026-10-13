@@ -8,7 +8,7 @@ export function useElementSize<T extends HTMLElement>(ref: RefObject<T | null>) 
         const el = ref.current;
         if (!el) return;
 
-        setSize({ width: el.offsetWidth, height: el.offsetHeight });
+        setSize({ width: el.clientWidth || el.offsetWidth, height: el.clientHeight || el.offsetHeight });
 
         let rafId = 0;
         const observer = new ResizeObserver((entries) => {

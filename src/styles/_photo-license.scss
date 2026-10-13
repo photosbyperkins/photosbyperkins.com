@@ -146,7 +146,7 @@
             padding: 1rem 1.25rem;
             margin: 0;
 
-            @media (prefers-color-scheme: light) {
+            html[data-theme='light'] & {
                 background: rgba(0, 0, 0, 0.04);
             }
         }

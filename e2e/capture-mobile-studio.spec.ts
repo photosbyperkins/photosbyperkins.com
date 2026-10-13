@@ -17,7 +17,7 @@ test.describe('Mobile Studio Screenshot Capture', () => {
     });
 
     test('capture all mobile studio tabs in light and dark mode', async ({ page }) => {
-        const artifactDir = 'C:/Users/micha/.gemini/antigravity/brain/3af11443-3f63-4b23-a069-31408a4b0d54';
+        const artifactDir = process.env.ARTIFACT_DIR || path.join(process.cwd(), 'test-results', 'captures');
 
         const runCapturePass = async (mode: 'light' | 'dark') => {
             const prefix = mode === 'dark' ? 'mobile_studio_dark_' : 'mobile_studio_';

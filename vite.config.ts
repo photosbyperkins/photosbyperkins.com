@@ -49,27 +49,22 @@ function photosMiddleware(): { name: string; configureServer: (server: ViteDevSe
 
                     // Strip leading slash for safe join
                     const safeRelative = relativePath.replace(/^\//, '');
+                    const buildSubdirs = ['thumbnails', 'scrubber', 'recap', 'webp', 'avif', 'zips'] as const;
+                    const matchedBuildSubdir = buildSubdirs.find((dir) => safeRelative.startsWith(`${dir}/`));
+
                     let filePath: string;
-                    if (safeRelative.startsWith('thumbnails/')) {
+                    let allowedRoot: string;
+                    if (matchedBuildSubdir) {
                         filePath = path.join(process.cwd(), 'build', safeRelative);
-                    } else if (safeRelative.startsWith('scrubber/')) {
-                        filePath = path.join(process.cwd(), 'build', safeRelative);
-                    } else if (safeRelative.startsWith('recap/')) {
-                        filePath = path.join(process.cwd(), 'build', safeRelative);
-                    } else if (safeRelative.startsWith('webp/')) {
-                        filePath = path.join(process.cwd(), 'build', safeRelative);
-                    } else if (safeRelative.startsWith('avif/')) {
-                        filePath = path.join(process.cwd(), 'build', safeRelative);
-                    } else if (safeRelative.startsWith('zips/')) {
-                        filePath = path.join(process.cwd(), 'build', safeRelative);
+                        allowedRoot = path.resolve(process.cwd(), 'build', matchedBuildSubdir);
                     } else {
                         filePath = path.join(process.cwd(), safeRelative);
+                        allowedRoot = path.resolve(process.cwd(), 'photos');
                     }
 
-                    // Security: prevent directory traversal outside workspace
+                    // Security: prevent directory traversal outside the target media root
                     const resolvedPath = path.resolve(filePath);
-                    const rootDir = path.resolve(process.cwd());
-                    if (!resolvedPath.startsWith(rootDir + path.sep) && resolvedPath !== rootDir) {
+                    if (!resolvedPath.startsWith(allowedRoot + path.sep)) {
                         res.statusCode = 403;
                         res.end('Forbidden');
                         return;
@@ -96,11 +91,18 @@ function photosMiddleware(): { name: string; configureServer: (server: ViteDevSe
 const bundleReportDir = path.resolve(import.meta.dirname, 'reports', 'bundle');
 
 // Records the JS/CSS emitted by *this* build for scripts/checkBundleBudget.ts. dist keeps stale
-// hashed files around (emptyOutDir: false), so the budget check can't just glob dist/assets.
+// media/share files around (emptyOutDir: false), so we clean dist/assets before each build and
+// record the emitted chunk manifest.
 function bundleChunkManifest(): Plugin {
     return {
         name: 'bundle-chunk-manifest',
         apply: 'build',
+        buildStart() {
+            const assetsDir = path.resolve(import.meta.dirname, 'dist', 'assets');
+            if (fs.existsSync(assetsDir)) {
+                fs.rmSync(assetsDir, { recursive: true, force: true });
+            }
+        },
         generateBundle(_options, bundle) {
             const files = Object.values(bundle)
                 .map((output) => output.fileName)
@@ -310,7 +312,6 @@ export default defineConfig(({ mode }) => {
         }
     },
     server: {
-        host: true,
         port: 5173,
         open: true,
     },

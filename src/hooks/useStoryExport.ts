@@ -246,7 +246,7 @@ export function useStoryExport({
             setTimeout(() => {
                 URL.revokeObjectURL(url);
                 activeUrlsRef.current.delete(url);
-            }, 1000);
+            }, 30000);
             setIsDownloaded(true);
             triggerHaptic('success');
             onExportSuccess?.(currentConfig);

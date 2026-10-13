@@ -129,6 +129,11 @@ export function sortTeamsByScore(
 
     const finalTeams = shouldShowScores
         ? [...activeSortedTeams].sort((a, b) => {
+              const parseScore = (score: string | number | null | undefined): number => {
+                  if (score === null || score === undefined || score === '') return -1;
+                  const n = Number(score);
+                  return Number.isFinite(n) ? n : -1;
+              };
               const getExpectedScore = (tm: string): number => {
                   if (wftdaMatch) {
                       const t1 = wftdaMatch.team1.toLowerCase();
@@ -137,16 +142,16 @@ export function sortTeamsByScore(
                       const tRaw = tm.toLowerCase();
 
                       if (t1.includes(tCurr) || tCurr.includes(t1) || t1.includes(tRaw) || tRaw.includes(t1)) {
-                          return Number(wftdaMatch.score1) || -1;
+                          return parseScore(wftdaMatch.score1);
                       }
                       if (t2.includes(tCurr) || tCurr.includes(t2) || t2.includes(tRaw) || tRaw.includes(t2)) {
-                          return Number(wftdaMatch.score2) || -1;
+                          return parseScore(wftdaMatch.score2);
                       }
                       return -1;
                   } else if (hasLocalScore) {
                       const originalTeams = baseTeams;
-                      if (tm === originalTeams[0]) return Number(localScore!.team1Score) || -1;
-                      if (tm === originalTeams[1]) return Number(localScore!.team2Score) || -1;
+                      if (tm === originalTeams[0]) return parseScore(localScore!.team1Score);
+                      if (tm === originalTeams[1]) return parseScore(localScore!.team2Score);
                       return -1;
                   }
                   return -1;

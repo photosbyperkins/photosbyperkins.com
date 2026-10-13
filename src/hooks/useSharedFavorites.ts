@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { decodeFavoritesHash, photoStem } from '../utils/favoritesUrl';
-import { getBuildNumber } from '../utils/build';
-import { decodeAlbum } from '../utils/dataCodec';
+import { fetchAlbum } from '../utils/albumData';
 import type { PhotoInput } from '../types';
 
 export function useSharedFavorites() {
@@ -24,14 +23,11 @@ export function useSharedFavorites() {
                     return year && slug && /^\d{4}$/.test(year) && /^[a-zA-Z0-9_-]+$/.test(slug);
                 });
 
-                const build = getBuildNumber();
                 const albumResults = await Promise.all(
                     validGroups.map(async (group) => {
                         const [year, slug] = group.albumKey.split('/');
                         try {
-                            const res = await fetch(`/data/albums/${year}/${slug}.json?build=${build}`);
-                            if (!res.ok) return { group, album: [] as PhotoInput[] };
-                            const album: PhotoInput[] = decodeAlbum(await res.json());
+                            const album = await fetchAlbum(year, slug);
                             return { group, album };
                         } catch {
                             return { group, album: [] as PhotoInput[] };
@@ -71,7 +67,11 @@ export function useSharedFavorites() {
 
     const clearSharedFavorites = () => {
         setSharedFavorites(undefined);
-        window.history.replaceState(null, '', window.location.pathname);
+        window.history.replaceState(
+            window.history.state,
+            '',
+            window.location.pathname + window.location.search
+        );
     };
 
     return { sharedFavorites, clearSharedFavorites };

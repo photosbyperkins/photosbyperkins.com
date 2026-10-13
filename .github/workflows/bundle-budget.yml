@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 concurrency:
   group: bundle-budget-${{ github.ref }}
   cancel-in-progress: true
@@ -21,7 +24,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 26
+          node-version: 22
           cache: npm
 
       # Real .env is gitignored; the example provides the build-time VITE_* placeholders.
@@ -30,6 +33,15 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Run unit tests
+        run: npm test
 
       - name: Build client
         run: npm run build:client

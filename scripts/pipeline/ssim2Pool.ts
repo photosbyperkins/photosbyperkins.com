@@ -35,6 +35,63 @@ let idle: WorkerProcess[] = [];
 let queue: PoolTask[] = [];
 let poolActive = false;
 
+function spawnWorker(workerPath: string, execArgv: string[]): WorkerProcess {
+    const w = fork(workerPath, [], { execArgv }) as WorkerProcess;
+    const assignNextOrIdle = () => {
+        if (!poolActive) return;
+        if (queue.length > 0) {
+            const next = queue.shift();
+            if (next) {
+                w.currentTask = next;
+                w.send({ img1: next.img1, img2: next.img2 });
+                return;
+            }
+        }
+        if (!idle.includes(w)) {
+            idle.push(w);
+        }
+    };
+
+    w.on('message', (msg: { error?: string; score?: number }) => {
+        if (!w.currentTask) return;
+        const { resolve, reject } = w.currentTask;
+        w.currentTask = null;
+        if (msg.error) reject(new Error(msg.error));
+        else resolve(msg.score ?? 0);
+        assignNextOrIdle();
+    });
+    w.on('error', (err: unknown) => {
+        if (w.currentTask) {
+            const { reject } = w.currentTask;
+            w.currentTask = null;
+            reject(err);
+        }
+    });
+    w.on('exit', (code, signal) => {
+        if (w.currentTask) {
+            const { reject } = w.currentTask;
+            w.currentTask = null;
+            reject(new Error(`SSIM2 worker exited unexpectedly (code=${code}, signal=${signal})`));
+        }
+        workers = workers.filter((item) => item !== w);
+        idle = idle.filter((item) => item !== w);
+        if (poolActive) {
+            const replacement = spawnWorker(workerPath, execArgv);
+            workers.push(replacement);
+            if (queue.length > 0) {
+                const next = queue.shift();
+                if (next) {
+                    idle = idle.filter((item) => item !== replacement);
+                    replacement.currentTask = next;
+                    replacement.send({ img1: next.img1, img2: next.img2 });
+                }
+            }
+        }
+    });
+    idle.push(w);
+    return w;
+}
+
 export function initPool(workerCount?: number) {
     if (poolActive) return;
     poolActive = true;
@@ -48,25 +105,7 @@ export function initPool(workerCount?: number) {
         return true;
     });
     for (let i = 0; i < count; i++) {
-        const w = fork(workerPath, [], { execArgv }) as WorkerProcess;
-        w.on('message', (msg: { error?: string; score?: number }) => {
-            if (!w.currentTask) return;
-            const { resolve, reject } = w.currentTask;
-            w.currentTask = null;
-            if (msg.error) reject(new Error(msg.error));
-            else resolve(msg.score ?? 0);
-            if (queue.length > 0) {
-                const next = queue.shift();
-                if (next) {
-                    w.currentTask = next;
-                    w.send({ img1: next.img1, img2: next.img2 });
-                }
-            } else {
-                idle.push(w);
-            }
-        });
-        w.on('error', (err: unknown) => { if (w.currentTask) w.currentTask.reject(err); });
-        idle.push(w);
+        const w = spawnWorker(workerPath, execArgv);
         workers.push(w);
     }
 }

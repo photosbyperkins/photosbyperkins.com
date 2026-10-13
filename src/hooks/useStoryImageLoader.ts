@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import type { PhotoInput, PhotoRecord } from '../types';
 import { getPhotoDisplayUrl } from '../utils/formatters';
 import { withBuild as withBuildUtil } from '../utils/build';
@@ -96,6 +96,10 @@ export function useStoryImageLoader({
     const burstSourcesKey = isOpen && burstSources && burstSources.length >= 2 ? burstSources.join('|') : '';
     const [prevBurstKey, setPrevBurstKey] = useState(burstSourcesKey);
     const [loadedImage, setLoadedImage] = useState<HTMLImageElement | null>(null);
+    const loadedImageRef = useRef<HTMLImageElement | null>(null);
+    useEffect(() => {
+        loadedImageRef.current = loadedImage;
+    }, [loadedImage]);
     const [loadedBurstImages, setLoadedBurstImages] = useState<HTMLImageElement[]>([]);
     const [burstLoading, setBurstLoading] = useState(() => Boolean(burstSourcesKey));
     const [imageError, setImageError] = useState(false);
@@ -198,8 +202,8 @@ export function useStoryImageLoader({
 
         Promise.allSettled(
             burstSources.map((src) => {
-                if (src === originalSrc && loadedImage) {
-                    return Promise.resolve(loadedImage);
+                if (src === originalSrc && loadedImageRef.current) {
+                    return Promise.resolve(loadedImageRef.current);
                 }
                 return loadHtmlImage(src, withBuild, () => {
                     if (!isCancelled) {
@@ -211,7 +215,7 @@ export function useStoryImageLoader({
             .then((results) => {
                 if (isCancelled) return;
                 const imgs = results.map((r) =>
-                    r.status === 'fulfilled' ? r.value : loadedImage || null
+                    r.status === 'fulfilled' ? r.value : loadedImageRef.current || null
                 ).filter((img): img is HTMLImageElement => img !== null);
                 setLoadedBurstImages(imgs);
                 setBurstLoading(false);
@@ -225,7 +229,7 @@ export function useStoryImageLoader({
         return () => {
             isCancelled = true;
         };
-    }, [isOpen, burstSources, burstSourcesKey, originalSrc, loadedImage, withBuild]);
+    }, [isOpen, burstSources, burstSourcesKey, originalSrc, withBuild]);
 
     return {
         photoObj,

@@ -1,10 +1,12 @@
 // Generate Social Cards Pipeline
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import sharp, { type OverlayOptions } from 'sharp';
 import 'dotenv/config';
 import type { IndexState } from './types';
 import { logger } from './logger';
+import { runWithConcurrency } from './utils.js';
 import { parseEventTitle } from '../../src/utils/formatters.js';
 import { subjectCropRect } from '../../src/utils/subjectFraming.js';
 const DIST_DIR = path.join(process.cwd(), 'dist');
@@ -14,6 +16,9 @@ const CACHE_MANIFEST_PATH = path.join(OUTPUT_DIR, '.cache.json');
 // Load environment variables for branding
 const LOGO_TEXT = process.env.VITE_NAV_LOGO_TEXT || 'PHOTOS';
 const LOGO_ACCENT = process.env.VITE_NAV_LOGO_ACCENT || 'PERKINS';
+const SITE_DOMAIN = (process.env.VITE_SITE_DOMAIN || 'photosbyperkins.com')
+    .replace(/^https?:\/\//i, '')
+    .replace(/\/+$/, '');
 
 function safeFilename(year: string, event: string) {
     return `${encodeURIComponent(year)}_${encodeURIComponent(event)}.webp`;
@@ -64,7 +69,7 @@ export async function generateSocialCards(data: IndexState) {
 
     let count = 0;
     let skipped = 0;
-    const promises = [];
+    const tasks: (() => Promise<void>)[] = [];
     
     const ICON_FILE = path.join(process.cwd(), 'icon.svg');
     let hasCustomIcon = fs.existsSync(ICON_FILE);
@@ -91,7 +96,8 @@ export async function generateSocialCards(data: IndexState) {
     function formatTeamName(teamName: string) {
         let short = teamName;
         for (const [f, abbr] of Object.entries(teamAbbrs)) {
-            short = short.replace(new RegExp(`\\b${f}\\b`, 'g'), abbr);
+            const escaped = f.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            short = short.replace(new RegExp(`\\b${escaped}\\b`, 'g'), abbr);
         }
         short = short.replace(/\s+Roller Derby\b/gi, '').trim();
         short = short
@@ -205,7 +211,7 @@ export async function generateSocialCards(data: IndexState) {
                     ${eventContent}
                     
                     <!-- Domain Bottom Right -->
-                    <text x="1120" y="565" ${fontModern} font-size="18" fill="rgba(255,255,255,0.4)" font-weight="600" letter-spacing="3" text-anchor="end">PHOTOSBYPERKINS.COM</text>
+                    <text x="1120" y="565" ${fontModern} font-size="18" fill="rgba(255,255,255,0.4)" font-weight="600" letter-spacing="3" text-anchor="end">${escapeXml(SITE_DOMAIN.toUpperCase())}</text>
                     
                     <!-- Year Top Right -->
                     <text x="1120" y="95" ${fontBase} font-size="34" fill="rgba(255,255,255,0.3)" font-weight="bold" letter-spacing="4" text-anchor="end">${escapeXml(year)}</text>
@@ -228,46 +234,46 @@ export async function generateSocialCards(data: IndexState) {
                 });
             }
 
-            let pipeline = sharp(sourceFile);
-            
-            if (img && img.width && img.height && typeof img.focusX !== 'undefined' && typeof img.focusY !== 'undefined') {
-                const targetRatio = 1200 / 630;
-                const imgRatio = img.width / img.height;
-                
-                let cropWidth, cropHeight;
-                if (imgRatio > targetRatio) {
-                    cropHeight = img.height;
-                    cropWidth = Math.round(cropHeight * targetRatio);
+            const capturedImg = img;
+            tasks.push(async () => {
+                let pipeline = sharp(sourceFile);
+
+                if (capturedImg && capturedImg.width && capturedImg.height && typeof capturedImg.focusX !== 'undefined' && typeof capturedImg.focusY !== 'undefined') {
+                    const targetRatio = 1200 / 630;
+                    const imgRatio = capturedImg.width / capturedImg.height;
+
+                    let cropWidth, cropHeight;
+                    if (imgRatio > targetRatio) {
+                        cropHeight = capturedImg.height;
+                        cropWidth = Math.round(cropHeight * targetRatio);
+                    } else {
+                        cropWidth = capturedImg.width;
+                        cropHeight = Math.round(cropWidth / targetRatio);
+                    }
+
+                    const crop = subjectCropRect(capturedImg.width, capturedImg.height, cropWidth, cropHeight, capturedImg);
+
+                    pipeline = pipeline
+                        .extract(crop)
+                        .resize(1200, 630);
                 } else {
-                    cropWidth = img.width;
-                    cropHeight = Math.round(cropWidth / targetRatio);
+                    pipeline = pipeline.resize(1200, 630, { fit: 'cover', position: 'entropy' });
                 }
-                
-                const crop = subjectCropRect(img.width, img.height, cropWidth, cropHeight, img);
 
-                pipeline = pipeline
-                    .extract(crop)
-                    .resize(1200, 630);
-            } else {
-                pipeline = pipeline.resize(1200, 630, { fit: 'cover', position: 'entropy' });
-            }
-
-            const generatePromise = pipeline
-                .composite(compositeLayers)
-                .webp({ quality: 85 })
-                .toFile(outputFile)
-                .then(() => {
+                try {
+                    await pipeline
+                        .composite(compositeLayers)
+                        .webp({ quality: 85 })
+                        .toFile(outputFile);
                     count++;
-                })
-                .catch((err: unknown) => {
+                } catch (err: unknown) {
                     logger.error(`Failed to generate social card for ${event}:`, err instanceof Error ? err.message : String(err));
-                });
-
-            promises.push(generatePromise);
+                }
+            });
         }
     }
 
-    await Promise.all(promises);
+    await runWithConcurrency(tasks, Math.max(4, os.cpus().length));
     // Persist updated cache manifest
     fs.writeFileSync(CACHE_MANIFEST_PATH, JSON.stringify(newManifest, null, 2));
     logger.success(`Generated ${count} branded social cards (${skipped} cached, skipped).`);

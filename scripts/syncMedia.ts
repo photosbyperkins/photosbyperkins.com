@@ -1,4 +1,4 @@
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -16,6 +16,8 @@ if (!SSH_USER || !SSH_HOST || !REMOTE_DIR) {
     process.exit(1);
 }
 
+const shellQuote = (s: string) => `'${s.replace(/'/g, `'\\''`)}'`;
+
 const MEDIA_DIRS = ['thumbnails', 'avif', 'webp', 'scrubber', 'recap', 'zips'];
 const projectRoot = path.resolve(__dirname, '..');
 const buildDir = path.join(projectRoot, 'build');
@@ -28,8 +30,12 @@ async function runMediaSync() {
         const remoteFilesMap = new Map<string, number>();
 
         try {
-            const sshCmd = `ssh -o StrictHostKeyChecking=accept-new ${SSH_USER}@${SSH_HOST} "cd ${REMOTE_DIR} && find thumbnails avif webp scrubber recap zips -type f -printf '%P|%s\\n' 2>/dev/null"`;
-            const output = execSync(sshCmd, { encoding: 'utf8', maxBuffer: 30 * 1024 * 1024 });
+            const remoteCmd = `cd ${shellQuote(REMOTE_DIR as string)} && find thumbnails avif webp scrubber recap zips -type f -printf '%P|%s\\n' 2>/dev/null`;
+            const output = execFileSync(
+                'ssh',
+                ['-o', 'StrictHostKeyChecking=accept-new', `${SSH_USER}@${SSH_HOST}`, remoteCmd],
+                { encoding: 'utf8', maxBuffer: 30 * 1024 * 1024 }
+            );
             const lines = output.split('\n').filter(Boolean);
             lines.forEach((line) => {
                 const [rel, size] = line.split('|');
@@ -96,17 +102,18 @@ async function runMediaSync() {
 
             // 2. Ensure all target directories exist in one SSH call
             const uniqueDirs = Array.from(filesByDir.keys());
-            const mkdirArg = uniqueDirs.map((d) => `'${d.replace(/'/g, `'\\''`)}'`).join(' ');
-            execSync(
-                `ssh -o StrictHostKeyChecking=accept-new ${SSH_USER}@${SSH_HOST} "mkdir -p ${mkdirArg}"`,
+            const mkdirArg = uniqueDirs.map(shellQuote).join(' ');
+            execFileSync(
+                'ssh',
+                ['-o', 'StrictHostKeyChecking=accept-new', `${SSH_USER}@${SSH_HOST}`, `mkdir -p ${mkdirArg}`],
                 { stdio: 'ignore' }
             );
 
             // 3. Transfer files grouped by directory in single SCP invocations
             for (const [remoteFileDir, localFiles] of filesByDir.entries()) {
-                const localArgs = localFiles.map((f) => `"${f}"`).join(' ');
-                execSync(
-                    `scp -p ${localArgs} ${SSH_USER}@${SSH_HOST}:"${remoteFileDir}/"`,
+                execFileSync(
+                    'scp',
+                    ['-p', ...localFiles, `${SSH_USER}@${SSH_HOST}:${remoteFileDir}/`],
                     { stdio: 'inherit' }
                 );
             }

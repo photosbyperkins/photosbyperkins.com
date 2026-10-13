@@ -250,6 +250,12 @@
             box-shadow:
                 0 0 0 2px rgba(20, 20, 26, 0.95),
                 0 0 0 4px var(--color-accent);
+
+            html[data-theme='light'] & {
+                box-shadow:
+                    0 0 0 2px #ffffff,
+                    0 0 0 4px var(--color-accent);
+            }
         }
     }
 
@@ -273,6 +279,12 @@
             box-shadow:
                 0 0 0 2px rgba(20, 20, 26, 0.95),
                 0 0 0 4px var(--color-accent);
+
+            html[data-theme='light'] & {
+                box-shadow:
+                    0 0 0 2px #ffffff,
+                    0 0 0 4px var(--color-accent);
+            }
         }
     }
 

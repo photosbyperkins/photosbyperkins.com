@@ -21,8 +21,9 @@ describe('ThemeToggle', () => {
 
     it('renders floating variant with visibility classes', () => {
         render(<ThemeToggle variant="floating" />);
-        const button = screen.getByRole('button', { name: 'Toggle theme' });
+        const button = screen.getByLabelText('Toggle theme');
         expect(button.className).toContain('theme-toggle-floating');
+        expect(button.getAttribute('aria-hidden')).toBe('true');
     });
 
     it('toggles theme in app store when clicked', () => {

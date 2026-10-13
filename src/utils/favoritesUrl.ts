@@ -68,6 +68,7 @@ async function inflate(data: Uint8Array): Promise<Uint8Array> {
         if (done) break;
         accumulatedBytes += value.length;
         if (accumulatedBytes > MAX_DECOMPRESSED_BYTES) {
+            await reader.cancel().catch(() => {});
             throw new Error(`Decompressed payload exceeds maximum size of ${MAX_DECOMPRESSED_BYTES} bytes`);
         }
         chunks.push(value);

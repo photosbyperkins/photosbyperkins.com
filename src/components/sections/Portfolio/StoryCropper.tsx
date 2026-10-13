@@ -118,8 +118,9 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
         null
     );
 
-    // Track touch distance for pinch-to-zoom
+    // Track touch distance and two-finger pinch state for pinch-to-zoom
     const touchDistanceRef = useRef<number | null>(null);
+    const isPinchingRef = useRef(false);
 
     // Compute transformation matrix for preview image inside 9:16 container
     // Percentage translation in CSS is relative to the image-wrapper's own dimensions.
@@ -171,6 +172,7 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
     // Handle mouse / touch drag pan
     const handlePointerDown = (e: React.PointerEvent) => {
         e.stopPropagation();
+        if (isPinchingRef.current) return;
         setIsDragging(true);
         try {
             (e.target as HTMLElement).setPointerCapture(e.pointerId);
@@ -186,7 +188,7 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
     };
 
     const handlePointerMove = (e: React.PointerEvent) => {
-        if (!isDragging || !dragStartRef.current || !containerRef.current) return;
+        if (isPinchingRef.current || !isDragging || !dragStartRef.current || !containerRef.current) return;
         e.stopPropagation();
 
         const rect = containerRef.current.getBoundingClientRect();
@@ -246,9 +248,23 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
     );
 
     // Touch pinch-to-zoom support
+    const handleTouchStart = (e: React.TouchEvent) => {
+        if (e.touches.length === 2) {
+            isPinchingRef.current = true;
+            setIsDragging(false);
+            dragStartRef.current = null;
+            const touch1 = e.touches[0];
+            const touch2 = e.touches[1];
+            touchDistanceRef.current = Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY);
+        }
+    };
+
     const handleTouchMove = (e: React.TouchEvent) => {
         e.stopPropagation();
         if (e.touches.length === 2) {
+            isPinchingRef.current = true;
+            setIsDragging(false);
+            dragStartRef.current = null;
             const touch1 = e.touches[0];
             const touch2 = e.touches[1];
             const dist = Math.hypot(touch1.clientX - touch2.clientX, touch1.clientY - touch2.clientY);
@@ -274,7 +290,10 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
 
     const handleTouchEnd = (e: React.TouchEvent) => {
         e.stopPropagation();
-        touchDistanceRef.current = null;
+        if (e.touches.length < 2) {
+            isPinchingRef.current = false;
+            touchDistanceRef.current = null;
+        }
     };
 
     // Double click to toggle between Fit (minZoom) and Fill (1.0)
@@ -341,6 +360,7 @@ export const StoryCropper: React.FC<StoryCropperProps> = ({
                 onPointerUp={handlePointerUp}
                 onPointerCancel={handlePointerUp}
                 onWheel={handleWheel}
+                onTouchStart={handleTouchStart}
                 onTouchMove={handleTouchMove}
                 onTouchEnd={handleTouchEnd}
                 onDoubleClick={handleDoubleClick}

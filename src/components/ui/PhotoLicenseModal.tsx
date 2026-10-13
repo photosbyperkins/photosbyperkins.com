@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Copy, Check, Share2, RefreshCw, UserCheck, ShieldCheck, Scale } from './icons';
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useAppStore } from '../../store/useAppStore';
 import ModalShell from './ModalShell';
 import { modalFadeUp } from './modalAnimation';
@@ -10,6 +10,13 @@ export default function PhotoLicenseModal() {
     const isPhotoLicenseOpen = useAppStore((state) => state.isPhotoLicenseOpen);
     const closePhotoLicense = useAppStore((state) => state.closePhotoLicense);
     const [copied, setCopied] = useState(false);
+    const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (copyTimerRef.current !== null) clearTimeout(copyTimerRef.current);
+        };
+    }, []);
 
     const copyrightName = import.meta.env.VITE_COPYRIGHT_NAME || 'Michael Perkins';
     const photosLicenseUrl = import.meta.env.VITE_LICENSE_URL || 'https://creativecommons.org/licenses/by-sa/4.0/';
@@ -19,7 +26,8 @@ export default function PhotoLicenseModal() {
         try {
             await navigator.clipboard.writeText(attributionSnippet);
             setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
+            if (copyTimerRef.current !== null) clearTimeout(copyTimerRef.current);
+            copyTimerRef.current = setTimeout(() => setCopied(false), 2000);
         } catch {
             // Clipboard fallback
         }

@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import * as path from 'path';
 
-const ARTIFACT_DIR = 'C:/Users/micha/.gemini/antigravity/brain/c75a3805-ef02-4dfb-a348-ae4696ad5adc';
+const ARTIFACT_DIR = process.env.ARTIFACT_DIR || path.join(process.cwd(), 'test-results', 'captures');
 
 test.describe('Additional Feature Screen Captures', () => {
     test.setTimeout(90000);

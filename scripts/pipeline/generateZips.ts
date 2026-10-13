@@ -5,6 +5,7 @@ import type { IndexState, EventData, PhotoObject } from './types.js';
 import { logger } from './logger.js';
 
 const ZIPS_DIR = path.join(process.cwd(), 'build', 'zips');
+const CACHE_MANIFEST_PATH = path.join(ZIPS_DIR, '.cache.json');
 
 // Ensure zips directory exists without nuking it
 function ensureZipsDir() {
@@ -64,6 +65,15 @@ export async function generateZips(indexData: IndexState): Promise<void> {
     logger.header('Generating album zips for all years...');
 
     ensureZipsDir();
+    let cacheManifest: Record<string, string> = {};
+    if (fs.existsSync(CACHE_MANIFEST_PATH)) {
+        try {
+            cacheManifest = JSON.parse(fs.readFileSync(CACHE_MANIFEST_PATH, 'utf8'));
+        } catch {
+            // ignore corrupt cache manifest
+        }
+    }
+    const newManifest: Record<string, string> = {};
     const validZips = new Set();
 
     // Find all numeric years
@@ -98,9 +108,14 @@ export async function generateZips(indexData: IndexState): Promise<void> {
 
             validZips.add(zipFilename);
 
-            if (fs.existsSync(absZipPath)) {
+            const zipCacheKey = `${eventData.album.length}:${eventData.album
+                .map((f) => (typeof f === 'string' ? f : f.source || f.original || ''))
+                .join('|')}`;
+
+            if (fs.existsSync(absZipPath) && cacheManifest[zipFilename] === zipCacheKey) {
                 // logger.info(`Skipped (already exists): ${zipFilename}`);
                 eventData.zip = webZipPath;
+                newManifest[zipFilename] = zipCacheKey;
                 continue;
             }
 
@@ -108,6 +123,7 @@ export async function generateZips(indexData: IndexState): Promise<void> {
                 await createZipArchive(eventData.album, absZipPath);
                 // Attach the zip path to the event data in photos.json
                 eventData.zip = webZipPath;
+                newManifest[zipFilename] = zipCacheKey;
             } catch (e: unknown) {
                 logger.error(`Failed to generate zip for ${eventName}:`, e instanceof Error ? e.message : String(e));
             }
@@ -125,5 +141,6 @@ export async function generateZips(indexData: IndexState): Promise<void> {
         }
     }
 
+    fs.writeFileSync(CACHE_MANIFEST_PATH, JSON.stringify(newManifest, null, 2));
     logger.success('Finished generating zips for all years');
 }

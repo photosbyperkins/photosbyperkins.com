@@ -59,14 +59,11 @@ export function useSlideZoom({
     const maxScaleRef = useRef<number>(1);
     const isZoomedInternalRef = useRef(false);
     const isAnimatingOutRef = useRef(false);
-    const releaseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const lastTapRef = useRef<{ time: number; x: number; y: number }>({ time: 0, x: 0, y: 0 });
     const lastTouchTimeRef = useRef<number>(0);
     const clickTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const pointerDownRef = useRef<{ x: number; y: number; time: number } | null>(null);
     const lastDoubleTapTimeRef = useRef<number>(0);
-
-    const isAnimatingInRef = useRef(false);
 
     const animateTo = useCallback(
         (mv: MotionValue<number>, target: number, onComplete?: () => void) => {
@@ -109,7 +106,6 @@ export function useSlideZoom({
 
             if (isNowZoomed && !isZoomedInternalRef.current && !isAnimatingOutRef.current) {
                 isZoomedInternalRef.current = true;
-                if (releaseTimeoutRef.current) clearTimeout(releaseTimeoutRef.current);
                 if (onZoomChange) onZoomChange(true);
             }
         });
@@ -149,7 +145,6 @@ export function useSlideZoom({
 
             isZoomedInternalRef.current = false;
             if (onZoomChange) onZoomChange(false);
-            if (releaseTimeoutRef.current) clearTimeout(releaseTimeoutRef.current);
         }
     }, [animateTo, calculateMaxScale, checkConstraints, onZoomChange, scale, panX, panY]);
 
@@ -169,7 +164,6 @@ export function useSlideZoom({
         panY.set(0);
         setDragMode(false);
         isZoomedInternalRef.current = false;
-        if (releaseTimeoutRef.current) clearTimeout(releaseTimeoutRef.current);
         if (clickTimeoutRef.current) clearTimeout(clickTimeoutRef.current);
         if (onZoomChange) onZoomChange(false);
     }, [scale, panX, panY, onZoomChange]);
@@ -186,7 +180,6 @@ export function useSlideZoom({
         panX.set(0);
         panY.set(0);
         isZoomedInternalRef.current = false;
-        if (releaseTimeoutRef.current) clearTimeout(releaseTimeoutRef.current);
         if (onZoomChange) onZoomChange(false);
 
         return () => {
@@ -209,16 +202,12 @@ export function useSlideZoom({
                 // Toggle UI icon immediately
                 isZoomedInternalRef.current = false;
                 if (onZoomChange) onZoomChange(false);
-
-                if (releaseTimeoutRef.current) clearTimeout(releaseTimeoutRef.current);
             } else {
                 isAnimatingOutRef.current = false;
-                isAnimatingInRef.current = true;
                 setDragMode(false);
 
                 const s = Math.max(maxScaleRef.current, 2);
                 animateTo(scale, s, () => {
-                    isAnimatingInRef.current = false;
                     checkConstraints(s);
                     setDragMode(true);
                 });
@@ -311,8 +300,6 @@ export function useSlideZoom({
 
             if (onZoomChange) onZoomChange(false);
             isZoomedInternalRef.current = false;
-
-            if (releaseTimeoutRef.current) clearTimeout(releaseTimeoutRef.current);
         }
     };
 

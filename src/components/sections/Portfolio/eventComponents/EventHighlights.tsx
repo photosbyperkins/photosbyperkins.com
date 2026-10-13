@@ -69,7 +69,8 @@ export const EventHighlights = React.memo(function EventHighlights({
                 const focusY = photo.focusY;
                 const isSelected = selectedUrls?.has(origUrl) ?? false;
                 const selectionNum = origUrl ? selectionIndexMap?.get(origUrl) : undefined;
-                const showNumber = (selectedUrls?.size ?? 0) <= 3 && selectionNum != null;
+                const totalSelected = selectionIndexMap ? selectionIndexMap.size : (selectedUrls?.size ?? 0);
+                const showNumber = totalSelected <= 3 && selectionNum != null;
 
                 return (
                     <div

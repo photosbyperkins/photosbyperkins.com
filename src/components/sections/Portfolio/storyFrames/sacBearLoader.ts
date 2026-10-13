@@ -17,7 +17,8 @@ export function loadSacBearPaths(): Promise<BearPathDef[]> {
                 return data;
             })
             .catch(() => {
-                // Graceful fallback when offline or in simulated test runner
+                // Reset promise so subsequent attempts can retry if the network recovers
+                sacBearLoadingPromise = null;
                 return [];
             });
     }

@@ -26,8 +26,12 @@ export function useScrollSpy(
             callbackRef.current(bestEntry.target.id);
         }, JSON.parse(optionsKey));
 
+        const sectionArray = sectionsKey ? sectionsKey.split(',').filter(Boolean) : [];
+        if (sectionArray.length === 0) {
+            return () => observer.disconnect();
+        }
+
         const observeSections = () => {
-            const sectionArray = sectionsKey.split(',');
             sectionArray.forEach((id) => {
                 if (!observed.has(id)) {
                     const el = document.getElementById(id);
