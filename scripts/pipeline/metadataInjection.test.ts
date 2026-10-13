@@ -10,12 +10,17 @@ import {
 
 describe('metadataInjection', () => {
     const expectedDefaultCreator = process.env.VITE_COPYRIGHT_NAME || 'Michael Perkins';
+    const expectedDefaultSiteUrl =
+        process.env.VITE_SITE_URL ||
+        (process.env.VITE_SITE_DOMAIN
+            ? `https://${process.env.VITE_SITE_DOMAIN.replace(/^https?:\/\//, '')}`
+            : 'https://photosbyperkins.com');
 
     describe('getResolvedMetadata', () => {
         it('uses default values when no options are provided', () => {
             const meta = getResolvedMetadata({ year: 2026 });
             expect(meta.creator).toBe(expectedDefaultCreator);
-            expect(meta.siteUrl).toBe('https://photosbyperkins.com');
+            expect(meta.siteUrl).toBe(expectedDefaultSiteUrl);
             expect(meta.licenseUrl).toBe('https://creativecommons.org/licenses/by-sa/4.0/');
             expect(meta.copyrightNotice).toBe(
                 `Copyright (c) 2026 ${expectedDefaultCreator}. All rights reserved. Licensed under CC BY-SA 4.0.`
@@ -49,7 +54,7 @@ describe('metadataInjection', () => {
             expect(xmp).toContain('<rdf:li>Michael Perkins</rdf:li>');
             expect(xmp).toContain('<xmpRights:WebStatement>https://creativecommons.org/licenses/by-sa/4.0/</xmpRights:WebStatement>');
             expect(xmp).toContain('<cc:license>https://creativecommons.org/licenses/by-sa/4.0/</cc:license>');
-            expect(xmp).toContain('<photoshop:Source>https://photosbyperkins.com</photoshop:Source>');
+            expect(xmp).toContain(`<photoshop:Source>${expectedDefaultSiteUrl}</photoshop:Source>`);
             expect(xmp).toContain('<?xpacket end="w"?>');
         });
     });
@@ -99,7 +104,7 @@ describe('metadataInjection', () => {
             expect(parsed?.Copyright).toContain('2026');
             // Injected XMP / IPTC
             expect(parsed?.Credit).toBe('Michael Perkins');
-            expect(parsed?.Source).toBe('https://photosbyperkins.com');
+            expect(parsed?.Source).toBe(expectedDefaultSiteUrl);
             expect(parsed?.WebStatement).toBe('https://creativecommons.org/licenses/by-sa/4.0/');
         });
 

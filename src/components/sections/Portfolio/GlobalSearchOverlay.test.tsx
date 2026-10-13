@@ -5,6 +5,13 @@ import { MemoryRouter } from 'react-router-dom';
 import GlobalSearchOverlay from './GlobalSearchOverlay';
 import { stripMotionProps } from '../../../testUtils/stripMotionProps';
 
+vi.mock('../../../utils/constants', () => ({
+    TEAM_ABBREVIATIONS: {
+        'Sacramento Roller Derby': 'SRD',
+        'Bay Area Derby': 'BAD',
+    },
+}));
+
 vi.mock('framer-motion', async (importOriginal) => {
     const actual = await importOriginal<typeof import('framer-motion')>();
     return {
