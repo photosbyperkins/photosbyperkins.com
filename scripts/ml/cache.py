@@ -151,8 +151,8 @@ class MLCache:
         for stage, fp in current_fingerprints.items():
             removed += self.db.execute(
                 'DELETE FROM results WHERE stage = ? AND fingerprint != ?', (stage, fp)).rowcount
-            removed += self.db.execute(
-                'DELETE FROM stage_meta WHERE stage = ? AND fingerprint != ?', (stage, fp)).rowcount * 0
+            self.db.execute(
+                'DELETE FROM stage_meta WHERE stage = ? AND fingerprint != ?', (stage, fp))
         stale = [h for (h,) in self.db.execute('SELECT DISTINCT content_hash FROM results') if h not in live]
         for i in range(0, len(stale), _CHUNK):
             chunk = stale[i:i + _CHUNK]

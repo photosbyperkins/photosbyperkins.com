@@ -247,6 +247,7 @@ def run(args, cache):
     if args.budget:
         exit_code = report_budget(stages, len(work), wall, args.workers, sources)
 
+    ph.refresh_burst_focus(photos_data)
     ph.select_heroes(photos_data)
     if args.dry_run:
         print('Dry run: nothing written.')

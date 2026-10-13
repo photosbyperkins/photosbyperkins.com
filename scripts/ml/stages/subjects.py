@@ -345,7 +345,8 @@ class YoloxPeople:
 
 def load_sharpness_source(thumb_path, fallback_gray):
     """Prefer the processed full-size JPEG (decoded at 1/2 scale via libjpeg DCT scaling)."""
-    base_rel = os.path.splitext(thumb_path.replace(os.path.join('build', 'thumbnails'), '', 1).lstrip('/\\'))[0]
+    norm_thumb = os.path.normpath(thumb_path)
+    base_rel = os.path.splitext(norm_thumb.replace(os.path.join('build', 'thumbnails'), '', 1).lstrip('/\\'))[0]
     native_jpg = os.path.join('build', 'processed', base_rel + '.jpg')
     if os.path.exists(native_jpg):
         data = np.fromfile(native_jpg, dtype=np.uint8)

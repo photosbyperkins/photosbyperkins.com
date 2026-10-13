@@ -36,13 +36,39 @@ def collect(photos_data):
                     if item is None:
                         item = items[thumb] = {
                             'photos': [],
-                            'thumb_path': os.path.join('build', thumb.lstrip('/')),
+                            'thumb_path': os.path.normpath(os.path.join('build', thumb.lstrip('/'))),
                             'source': None,
                         }
                     item['photos'].append(photo)
                     if item['source'] is None and photo.get('source'):
                         item['source'] = photo['source'].lstrip('/').replace('\\', '/')
     return items
+
+
+def refresh_burst_focus(photos_data):
+    """Synchronize burst.frameFocusX and burst.frameFocusY with each frame's updated focusX/focusY."""
+    for events in photos_data.values():
+        for event_data in events.values():
+            by_original = {}
+            for list_key in ('album', 'highlights'):
+                for photo in event_data.get(list_key) or []:
+                    if isinstance(photo, dict) and photo.get('original'):
+                        by_original[photo['original']] = photo
+            for list_key in ('album', 'highlights'):
+                for photo in event_data.get(list_key) or []:
+                    if not isinstance(photo, dict):
+                        continue
+                    burst = photo.get('burst')
+                    if not isinstance(burst, dict):
+                        continue
+                    sources = burst.get('frameSources')
+                    if isinstance(sources, list) and sources:
+                        burst['frameFocusX'] = [
+                            by_original.get(src, {}).get('focusX') for src in sources
+                        ]
+                        burst['frameFocusY'] = [
+                            by_original.get(src, {}).get('focusY') for src in sources
+                        ]
 
 
 def select_heroes(photos_data):

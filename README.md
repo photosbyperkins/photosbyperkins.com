@@ -52,8 +52,8 @@ An incredibly fast, highly automated photography portfolio built for action and 
 ## 🛠 Prerequisites
 
 1. **Node.js** (v18+)
-2. **Python 3.10+** (for subject and face detection in `scripts/detectFaces.py`):
-   - Run `pip install -r scripts/requirements.txt` (uses ONNX Runtime with DirectML on Windows for GPU inference; models are downloaded and checksum-verified into `data/models/` on first run).
+2. **Python 3.10+** (for subject and face detection in `scripts/ml/run.py` / `scripts/detectFaces.py`):
+   - Run `pip install -r requirements-ml.txt` (uses ONNX Runtime with DirectML on Windows for GPU inference; models are downloaded and checksum-verified into `data/models/` on first run).
 3. **Environment Config**: Copy `.env.example` to `.env` and configure your variables.
 4. **Favicon**: Drop an `icon.svg` into the root directory to customize the PWA icons (defaults to a generic camera icon).
 
