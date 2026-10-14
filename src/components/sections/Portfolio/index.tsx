@@ -33,6 +33,7 @@ import PortfolioYearNav from './PortfolioYearNav';
 import PortfolioSeasonStrip from './PortfolioSeasonStrip';
 import { BatchActionBar } from './eventComponents/BatchActionBar';
 import { prefetchStoryVideoSupport } from '../../../utils/story/storyVideoSupport';
+import ErrorBoundary from '../../ui/ErrorBoundary';
 
 const LightboxContainer = React.lazy(() => import('./LightboxContainer'));
 const GlobalSearchOverlay = React.lazy(() => import('./GlobalSearchOverlay'));
@@ -690,31 +691,49 @@ export default function Portfolio({ years }: PortfolioProps) {
                 </div>
             </div>
 
-            <Suspense fallback={null}>
-                {hasEverOpenedSearch && (
-                    <GlobalSearchOverlay
-                        isOpen={isGlobalSearchOpen}
-                        onClose={() => {
-                            setIsGlobalSearchOpen(false);
-                            setTeamSearchQuery('');
-                            setGearSearchQuery('');
-                        }}
-                        teamSearchQuery={teamSearchQuery}
-                        setTeamSearchQuery={setTeamSearchQuery}
-                        filteredTeams={filteredTeams}
-                        isTeamIndexLoading={isTeamIndexLoading}
-                        gearSearchQuery={gearSearchQuery}
-                        setGearSearchQuery={setGearSearchQuery}
-                        filteredGear={filteredGear}
-                        isGearIndexLoading={isGearIndexLoading}
-                    />
-                )}
-            </Suspense>
+            <ErrorBoundary
+                name="GlobalSearchOverlay"
+                variant="overlay"
+                resetKeys={[isGlobalSearchOpen]}
+                onDismiss={() => {
+                    setIsGlobalSearchOpen(false);
+                    setTeamSearchQuery('');
+                    setGearSearchQuery('');
+                }}
+            >
+                <Suspense fallback={null}>
+                    {hasEverOpenedSearch && (
+                        <GlobalSearchOverlay
+                            isOpen={isGlobalSearchOpen}
+                            onClose={() => {
+                                setIsGlobalSearchOpen(false);
+                                setTeamSearchQuery('');
+                                setGearSearchQuery('');
+                            }}
+                            teamSearchQuery={teamSearchQuery}
+                            setTeamSearchQuery={setTeamSearchQuery}
+                            filteredTeams={filteredTeams}
+                            isTeamIndexLoading={isTeamIndexLoading}
+                            gearSearchQuery={gearSearchQuery}
+                            setGearSearchQuery={setGearSearchQuery}
+                            filteredGear={filteredGear}
+                            isGearIndexLoading={isGearIndexLoading}
+                        />
+                    )}
+                </Suspense>
+            </ErrorBoundary>
 
             {hasOpenedLightbox && (
-                <Suspense fallback={null}>
-                    <LightboxContainer />
-                </Suspense>
+                <ErrorBoundary
+                    name="Lightbox"
+                    variant="overlay"
+                    resetKeys={[isLightboxOpen]}
+                    onDismiss={() => useAppStore.getState().closeLightbox()}
+                >
+                    <Suspense fallback={null}>
+                        <LightboxContainer />
+                    </Suspense>
+                </ErrorBoundary>
             )}
 
             <AnimatePresence>
@@ -809,20 +828,30 @@ export default function Portfolio({ years }: PortfolioProps) {
             </AnimatePresence>
 
             {isDirectStoryOpen && directStoryPhoto && (
-                <Suspense fallback={null}>
-                    <StoryExportModal
-                        key={`direct-story-${directStoryPhoto.burst?.id || directStoryPhoto.original}`}
-                        isOpen={isDirectStoryOpen}
-                        onClose={() => {
-                            setIsDirectStoryOpen(false);
-                            setDirectStoryPhoto(null);
-                        }}
-                        photo={directStoryPhoto}
-                        eventName={directStoryEventName}
-                        year={directStoryYear}
-                        localScore={directStoryScore}
-                    />
-                </Suspense>
+                <ErrorBoundary
+                    name="StoryExportModal"
+                    variant="overlay"
+                    resetKeys={[directStoryPhoto.burst?.id || directStoryPhoto.original]}
+                    onDismiss={() => {
+                        setIsDirectStoryOpen(false);
+                        setDirectStoryPhoto(null);
+                    }}
+                >
+                    <Suspense fallback={null}>
+                        <StoryExportModal
+                            key={`direct-story-${directStoryPhoto.burst?.id || directStoryPhoto.original}`}
+                            isOpen={isDirectStoryOpen}
+                            onClose={() => {
+                                setIsDirectStoryOpen(false);
+                                setDirectStoryPhoto(null);
+                            }}
+                            photo={directStoryPhoto}
+                            eventName={directStoryEventName}
+                            year={directStoryYear}
+                            localScore={directStoryScore}
+                        />
+                    </Suspense>
+                </ErrorBoundary>
             )}
         </section>
     );

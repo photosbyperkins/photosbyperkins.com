@@ -93,4 +93,21 @@ test.describe('SEO & Lighthouse Performance Contract', () => {
         await expect(firstFeaturedImg).toHaveAttribute('width');
         await expect(firstFeaturedImg).toHaveAttribute('height');
     });
+
+    test('should initialize Tier 1 RUM store (window.__PERF_VITALS__) with TTFB and zero errors', async ({ page }) => {
+        const vitals = await page.evaluate(() => {
+            const store = window.__PERF_VITALS__;
+            if (!store) return null;
+            return {
+                hasTtfb: store.metrics.TTFB !== null && typeof store.metrics.TTFB.value === 'number',
+                historyCount: store.history.length,
+                errorCount: store.errors.length,
+            };
+        });
+
+        expect(vitals).not.toBeNull();
+        expect(vitals?.hasTtfb).toBe(true);
+        expect(vitals?.historyCount).toBeGreaterThanOrEqual(1);
+        expect(vitals?.errorCount).toBe(0);
+    });
 });

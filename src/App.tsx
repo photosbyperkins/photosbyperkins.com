@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import Nav from './components/sections/Nav';
 import Footer from './components/sections/Footer';
 import PwaStatusToast from './components/ui/PwaStatusToast';
+import ErrorBoundary from './components/ui/ErrorBoundary';
 import { getBuildNumber } from './utils/build';
 import { useAppStore } from './store/useAppStore';
 
@@ -55,6 +56,7 @@ const initialIndexData: IndexData | null =
         : null;
 
 export default function App() {
+    const location = useLocation();
     const [indexData, setIndexData] = useState<IndexData | null>(initialIndexData);
     const [fetchError, setFetchError] = useState(false);
     const isMountedRef = useRef(true);
@@ -72,6 +74,16 @@ export default function App() {
     const hasOpenedPhotoLicense = useHasEverBeenTrue(isPhotoLicenseOpen);
     const hasOpenedGear = useHasEverBeenTrue(Boolean(activeGear));
     const hasOpenedIframe = useHasEverBeenTrue(Boolean(iframeUrl));
+
+    const closeAllModals = useCallback(() => {
+        const state = useAppStore.getState();
+        state.closeAbout();
+        state.closeAiPolicy();
+        state.closeCodeLicense();
+        state.closePhotoLicense();
+        state.closeGearModal();
+        state.closeIframe();
+    }, []);
 
     const loadIndex = useCallback(() => {
         if (initialIndexData) return;
@@ -108,9 +120,11 @@ export default function App() {
             <main>
                 <Nav />
                 {indexData && (
-                    <Suspense fallback={null}>
-                        <Portfolio years={indexData.years} />
-                    </Suspense>
+                    <ErrorBoundary name="Portfolio" variant="section" resetKeys={[location.pathname]}>
+                        <Suspense fallback={null}>
+                            <Portfolio years={indexData.years} />
+                        </Suspense>
+                    </ErrorBoundary>
                 )}
                 {fetchError && !indexData && (
                     <div className="portfolio__error" style={{ textAlign: 'center', padding: '4rem 1rem' }}>
@@ -138,14 +152,16 @@ export default function App() {
             </main>
             <Footer />
             <PwaStatusToast />
-            <Suspense fallback={null}>
-                {hasOpenedAbout && <About />}
-                {hasOpenedIframe && <IframeOverlay />}
-                {hasOpenedAiPolicy && <AiPolicyModal />}
-                {hasOpenedCodeLicense && <CodeLicenseModal />}
-                {hasOpenedPhotoLicense && <PhotoLicenseModal />}
-                {hasOpenedGear && <GearModal />}
-            </Suspense>
+            <ErrorBoundary name="AppModals" variant="overlay" onDismiss={closeAllModals}>
+                <Suspense fallback={null}>
+                    {hasOpenedAbout && <About />}
+                    {hasOpenedIframe && <IframeOverlay />}
+                    {hasOpenedAiPolicy && <AiPolicyModal />}
+                    {hasOpenedCodeLicense && <CodeLicenseModal />}
+                    {hasOpenedPhotoLicense && <PhotoLicenseModal />}
+                    {hasOpenedGear && <GearModal />}
+                </Suspense>
+            </ErrorBoundary>
         </>
     );
 }

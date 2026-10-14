@@ -12,6 +12,7 @@ import type { PhotoInput, EventScore } from '../../../types';
 import { withBuild, triggerPhotoDownload } from '../../../utils/build';
 import { triggerHaptic } from '../../../utils/haptics';
 import { DURATION, EASE_OUT_EXPO, EASE_IN_OUT, EASE_IN } from '../../../utils/motion';
+import ErrorBoundary from '../../ui/ErrorBoundary';
 
 const StoryExportModal = lazy(() => import('./StoryExportModal'));
 
@@ -470,18 +471,25 @@ export default function Lightbox({
 
             {isStoryExportOpen && (
                 <div onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
-                    <Suspense fallback={null}>
-                        <StoryExportModal
-                            key={`story-export-${index}-${storyExportSessionId}`}
-                            isOpen={isStoryExportOpen}
-                            onClose={() => setIsStoryExportOpen(false)}
-                            photo={images[index]}
-                            eventName={eventName}
-                            year={year}
-                            index={index}
-                            localScore={localScore}
-                        />
-                    </Suspense>
+                    <ErrorBoundary
+                        name="StoryExportModal"
+                        variant="overlay"
+                        resetKeys={[index, storyExportSessionId]}
+                        onDismiss={() => setIsStoryExportOpen(false)}
+                    >
+                        <Suspense fallback={null}>
+                            <StoryExportModal
+                                key={`story-export-${index}-${storyExportSessionId}`}
+                                isOpen={isStoryExportOpen}
+                                onClose={() => setIsStoryExportOpen(false)}
+                                photo={images[index]}
+                                eventName={eventName}
+                                year={year}
+                                index={index}
+                                localScore={localScore}
+                            />
+                        </Suspense>
+                    </ErrorBoundary>
                 </div>
             )}
         </motion.div>
