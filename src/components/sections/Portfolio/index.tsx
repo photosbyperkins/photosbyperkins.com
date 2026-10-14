@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useMemo, useCallback, Suspense } fr
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { usePortfolioRoute } from '../../../hooks/usePortfolioRoute';
-import { usePortfolioData } from '../../../hooks/usePortfolioData';
+import { usePortfolioData, warmRouteData } from '../../../hooks/usePortfolioData';
 import { usePortfolioScroll } from '../../../hooks/usePortfolioScroll';
 import { usePortfolioSearch } from '../../../hooks/usePortfolioSearch';
 import { useStickyHeader } from '../../../hooks/useStickyHeader';
@@ -35,9 +35,33 @@ import { BatchActionBar } from './eventComponents/BatchActionBar';
 import { prefetchStoryVideoSupport } from '../../../utils/story/storyVideoSupport';
 import ErrorBoundary from '../../ui/ErrorBoundary';
 
-const LightboxContainer = React.lazy(() => import('./LightboxContainer'));
+const initialSegments = typeof window !== 'undefined' ? window.location.pathname.split('/').filter(Boolean) : [];
+const hasInitialDeepLink =
+    initialSegments[0] === 'portfolio' &&
+    initialSegments.length >= 3 &&
+    initialSegments[1] !== 'team' &&
+    initialSegments[1] !== 'gear';
+const hasInitialPhotoDeepLink = hasInitialDeepLink && initialSegments.length >= 4;
+let ResolvedLightboxContainer: React.ComponentType | null = null;
+const lightboxContainerImport = hasInitialPhotoDeepLink
+    ? import('./LightboxContainer').then((m) => {
+          ResolvedLightboxContainer = m.default;
+          return m;
+      })
+    : null;
+const LazyLightboxContainer = React.lazy(() =>
+    (lightboxContainerImport ?? import('./LightboxContainer')).then((m) => {
+        ResolvedLightboxContainer = m.default;
+        return m;
+    })
+);
 const GlobalSearchOverlay = React.lazy(() => import('./GlobalSearchOverlay'));
 const StoryExportModal = React.lazy(() => import('./StoryExportModal'));
+
+// eslint-disable-next-line react-refresh/only-export-components
+export function warmPortfolioRoute(years: string[]): Promise<unknown> {
+    return Promise.all([warmRouteData(years), lightboxContainerImport]);
+}
 
 import { useSharedFavorites } from '../../../hooks/useSharedFavorites';
 
@@ -76,6 +100,7 @@ export default function Portfolio({ years }: PortfolioProps) {
     useBodyScrollLock(isGlobalSearchOpen);
 
     const isLightboxOpen = useAppStore((state) => state.lightbox.isOpen);
+    const sharedPhoto = useAppStore((state) => state.sharedPhoto);
     const isBatchSelectMode = useAppStore((state) => state.isBatchSelectMode);
     const setIsBatchSelectMode = useAppStore((state) => state.setIsBatchSelectMode);
     const batchSelectedCount = useAppStore((state) => state.batchSelectedPhotos.length);
@@ -91,8 +116,11 @@ export default function Portfolio({ years }: PortfolioProps) {
     const favorites = useAppStore((state) => state.favorites);
     const addFavorites = useAppStore((state) => state.addFavorites);
     const removeFavorites = useAppStore((state) => state.removeFavorites);
-    const [hasOpenedLightbox, setHasOpenedLightbox] = useState(isLightboxOpen);
-    if (isLightboxOpen && !hasOpenedLightbox) {
+    const hasPhotoTarget = Boolean(
+        sharedPhoto && sharedPhoto.photoIndex !== undefined && !isNaN(sharedPhoto.photoIndex)
+    );
+    const [hasOpenedLightbox, setHasOpenedLightbox] = useState(() => isLightboxOpen || hasPhotoTarget);
+    if ((isLightboxOpen || hasPhotoTarget) && !hasOpenedLightbox) {
         setHasOpenedLightbox(true);
     }
 
@@ -189,6 +217,26 @@ export default function Portfolio({ years }: PortfolioProps) {
             prefetchTab={prefetchTab}
         />
     );
+
+    const [isRecapReady, setIsRecapReady] = useState(false);
+    useEffect(() => {
+        if (isLightboxOpen || Boolean(sharedPhoto) || isRecapReady) return;
+        if (hasInitialDeepLink && typeof window !== 'undefined') {
+            const enable = () => setIsRecapReady(true);
+            window.addEventListener('wheel', enable, { passive: true, once: true });
+            window.addEventListener('touchmove', enable, { passive: true, once: true });
+            window.addEventListener('pointerdown', enable, { passive: true, once: true });
+            window.addEventListener('keydown', enable, { passive: true, once: true });
+            return () => {
+                window.removeEventListener('wheel', enable);
+                window.removeEventListener('touchmove', enable);
+                window.removeEventListener('pointerdown', enable);
+                window.removeEventListener('keydown', enable);
+            };
+        }
+        const timer = setTimeout(() => setIsRecapReady(true), 450);
+        return () => clearTimeout(timer);
+    }, [isLightboxOpen, sharedPhoto, isRecapReady]);
 
     const handleRecapLoadComplete = useCallback(() => {
         setIsRecapLoaded(true);
@@ -563,6 +611,7 @@ export default function Portfolio({ years }: PortfolioProps) {
                             isYear={true}
                             onRecapLoadComplete={handleRecapLoadComplete}
                             yearData={yearData}
+                            deferLoad={!isRecapReady || isLightboxOpen || Boolean(sharedPhoto)}
                         >
                             {seasonStrip}
                         </Recap>
@@ -731,7 +780,7 @@ export default function Portfolio({ years }: PortfolioProps) {
                     onDismiss={() => useAppStore.getState().closeLightbox()}
                 >
                     <Suspense fallback={null}>
-                        <LightboxContainer />
+                        {ResolvedLightboxContainer ? <ResolvedLightboxContainer /> : <LazyLightboxContainer />}
                     </Suspense>
                 </ErrorBoundary>
             )}

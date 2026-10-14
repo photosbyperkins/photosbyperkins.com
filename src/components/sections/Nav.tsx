@@ -51,7 +51,7 @@ export default function Nav() {
 
             // Only replace state if route has changed and we are ignoring deep portfolio links
             if (currentPath !== path) {
-                if (activeId === 'portfolio' && currentPath.startsWith('/portfolio/')) {
+                if (currentPath.startsWith('/portfolio/')) {
                     return;
                 }
                 locationRef.current = path; // Optimistic lock

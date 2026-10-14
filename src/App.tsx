@@ -8,8 +8,12 @@ import { getBuildNumber } from './utils/build';
 import { useAppStore } from './store/useAppStore';
 
 const About = lazy(() => import('./components/sections/About'));
-const portfolioPromise = import('./components/sections/Portfolio');
-const Portfolio = lazy(() => portfolioPromise);
+let ResolvedPortfolio: React.ComponentType<{ years: string[] }> | null = null;
+const portfolioPromise = import('./components/sections/Portfolio').then((m) => {
+    ResolvedPortfolio = m.default;
+    return m;
+});
+const LazyPortfolio = lazy(() => portfolioPromise);
 const IframeOverlay = lazy(() => import('./components/ui/IframeOverlay'));
 const AiPolicyModal = lazy(() => import('./components/ui/AiPolicyModal'));
 const CodeLicenseModal = lazy(() => import('./components/ui/CodeLicenseModal'));
@@ -55,6 +59,15 @@ const initialIndexData: IndexData | null =
         ? (window as unknown as { __INITIAL_INDEX__?: IndexData }).__INITIAL_INDEX__!
         : null;
 
+// eslint-disable-next-line react-refresh/only-export-components
+export const appReadyPromise: Promise<unknown> =
+    typeof window !== 'undefined' && initialIndexData?.years
+        ? Promise.race([
+              portfolioPromise.then((m) => m.warmPortfolioRoute?.(initialIndexData.years)),
+              new Promise((resolve) => setTimeout(resolve, 180)),
+          ]).catch(() => {})
+        : Promise.resolve();
+
 export default function App() {
     const location = useLocation();
     const [indexData, setIndexData] = useState<IndexData | null>(initialIndexData);
@@ -92,7 +105,10 @@ export default function App() {
                 if (!res.ok) throw new Error('Network response was not ok');
                 return res.json();
             })
-            .then((data) => {
+            .then((data: IndexData) => {
+                if (data?.years) {
+                    portfolioPromise.then((m) => m.warmPortfolioRoute?.(data.years)).catch(() => {});
+                }
                 if (isMountedRef.current) {
                     setIndexData(data);
                     setFetchError(false);
@@ -114,15 +130,17 @@ export default function App() {
         };
     }, [indexData, loadIndex]);
 
+    const PortfolioComponent = ResolvedPortfolio ?? LazyPortfolio;
+
     return (
         <>
             <ScrollToMountTarget />
-            <main>
+            <main style={{ minHeight: '100vh' }}>
                 <Nav />
                 {indexData && (
                     <ErrorBoundary name="Portfolio" variant="section" resetKeys={[location.pathname]}>
                         <Suspense fallback={null}>
-                            <Portfolio years={indexData.years} />
+                            <PortfolioComponent years={indexData.years} />
                         </Suspense>
                     </ErrorBoundary>
                 )}

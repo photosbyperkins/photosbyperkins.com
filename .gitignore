@@ -44,6 +44,7 @@ roadmap.md
 test-results/
 playwright-report/
 reports/
+.lighthouseci/
 screenshots/
 
 # Local Overrides and Generation

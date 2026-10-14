@@ -97,6 +97,25 @@ const enrichWithCachedExif = (item: FavoriteStoreItem): FavoriteStoreItem => {
     return item;
 };
 
+export const extractInitialSharedPhoto = (): SharedPhotoState | null => {
+    if (typeof window === 'undefined') return null;
+    const segments = window.location.pathname.split('/').filter(Boolean);
+    if (segments[0] !== 'portfolio' || segments.length < 3) return null;
+    if (segments[1] === 'team' || segments[1] === 'gear' || segments[1] === 'favorites') return null;
+    let decodedEvent = segments[2];
+    try {
+        decodedEvent = decodeURIComponent(segments[2]);
+    } catch {
+        // Keep raw string if URI decoding fails
+    }
+    if (segments.length >= 4) {
+        const parsed = parseInt(segments[3], 10);
+        const photoIndex = !isNaN(parsed) ? parsed : undefined;
+        return { eventName: decodedEvent, photoIndex, openAlbumGrid: false };
+    }
+    return { eventName: decodedEvent, photoIndex: undefined, openAlbumGrid: true };
+};
+
 export const createPortfolioSlice: StateCreator<PortfolioSlice, [], [], PortfolioSlice> = (set) => ({
     lightbox: {
         images: [],
@@ -105,7 +124,7 @@ export const createPortfolioSlice: StateCreator<PortfolioSlice, [], [], Portfoli
         year: '',
         isOpen: false,
     },
-    sharedPhoto: null,
+    sharedPhoto: extractInitialSharedPhoto(),
     favorites: extractLegacyFavorites(),
     isBatchSelectMode: false,
     batchSelectedPhotos: [],

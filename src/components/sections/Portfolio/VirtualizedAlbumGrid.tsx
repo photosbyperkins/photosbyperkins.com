@@ -231,6 +231,7 @@ export default function VirtualizedAlbumGrid({
                                         src={thumbUrl}
                                         placeholder={null}
                                         alt={`${eventName} photo ${globalIdx + 1}`}
+                                        priority={rowIndex === 0 && colIdx === 0}
                                         objectPosition={
                                             focusX != null && focusY != null
                                                 ? `${focusX * 100}% ${focusY * 100}%`

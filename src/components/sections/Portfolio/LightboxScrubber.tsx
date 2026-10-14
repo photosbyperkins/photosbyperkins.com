@@ -57,6 +57,7 @@ const Thumb = memo(
                 ? Math.floor(img.spriteIndex / SCRUBBER_COLUMNS)
                 : 0;
 
+        const thumbSrc = getThumbSrc(img);
         const bgStyle =
             spriteUrl && typeof img !== 'string' && img.spriteIndex != null
                 ? {
@@ -64,13 +65,15 @@ const Thumb = memo(
                       backgroundPosition: `${-(col * 72)}px ${-(row * 48)}px`,
                       backgroundSize: `${totalCols * 72}px ${totalRows * 48}px`,
                   }
-                : {
-                      backgroundImage: `url("${getThumbSrc(img)}")`,
-                      backgroundPosition:
-                          typeof img === 'object' && img.focusX != null && img.focusY != null
-                              ? `${(img.focusX * 100).toFixed(1)}% ${(img.focusY * 100).toFixed(1)}%`
-                              : 'center',
-                  };
+                : thumbSrc
+                  ? {
+                        backgroundImage: `url("${thumbSrc}")`,
+                        backgroundPosition:
+                            typeof img === 'object' && img.focusX != null && img.focusY != null
+                                ? `${(img.focusX * 100).toFixed(1)}% ${(img.focusY * 100).toFixed(1)}%`
+                                : 'center',
+                    }
+                  : {};
 
         const className = `portfolio__lightbox-scrubber-thumb${isThumbActive ? ' is-active' : ''}${burst ? ' portfolio__lightbox-scrubber-thumb--burst' : ''}`;
         const ariaLabel = `Go to photo ${wrappedIndex + 1}${burst ? ` (Burst frame ${burst.index + 1} of ${burst.total})` : ''}`;

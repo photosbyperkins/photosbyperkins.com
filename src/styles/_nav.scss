@@ -38,10 +38,6 @@
         align-items: center;
         width: 100%;
         height: var(--nav-extension-height);
-
-        &:empty {
-            display: none;
-        }
     }
 
     &__right {

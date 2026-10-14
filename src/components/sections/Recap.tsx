@@ -1,7 +1,5 @@
-import { motion } from 'framer-motion';
 import { useState, useEffect, useMemo, useRef, useCallback, memo } from 'react';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
-import { EASE_OUT_EXPO } from '../../utils/motion';
 import { useAppStore } from '../../store/useAppStore';
 import { withBuild } from '../../utils/build';
 import { useElementSize } from '../../hooks/useElementSize';
@@ -33,6 +31,7 @@ export interface RecapProps {
     onToggleSelect?: (photo: PhotoRecord, index: number, isShift?: boolean) => void;
     selectedUrls?: Set<string>;
     selectionIndexMap?: Map<string, number>;
+    deferLoad?: boolean;
 }
 
 interface RecapSliceItemProps {
@@ -61,7 +60,7 @@ const RecapSliceItem = memo(function RecapSliceItem({
     hash,
     events,
     eventIdx,
-    reducedMotion,
+    reducedMotion: _reducedMotion,
     spriteLoaded,
     photo,
     isSelectMode,
@@ -101,7 +100,7 @@ const RecapSliceItem = memo(function RecapSliceItem({
     };
 
     return (
-        <motion.div
+        <div
             id={`recap-slice-${idx}`}
             className={`recap__slice${!spriteLoaded ? ' recap__slice--skeleton' : ''}${
                 isSelectMode ? ' recap__slice--select-mode' : ''
@@ -119,33 +118,6 @@ const RecapSliceItem = memo(function RecapSliceItem({
             onClick={(e) => {
                 handleAction(e.shiftKey);
             }}
-            initial={reducedMotion ? { opacity: 0 } : { rotateY: -180, opacity: 0 }}
-            animate={
-                spriteLoaded
-                    ? reducedMotion
-                        ? { opacity: 1 }
-                        : { rotateY: 0, opacity: 1 }
-                    : reducedMotion
-                      ? { opacity: 0.4 }
-                      : { rotateY: -180, opacity: 0.4 }
-            }
-            transition={
-                reducedMotion
-                    ? { duration: 0 }
-                    : {
-                          rotateY: {
-                              type: 'spring',
-                              visualDuration: 0.6,
-                              bounce: 0.15,
-                              delay: Math.min(idx, 24) * 0.018,
-                          },
-                          opacity: {
-                              duration: 0.3,
-                              ease: EASE_OUT_EXPO,
-                              delay: Math.min(idx, 24) * 0.018,
-                          },
-                      }
-            }
         >
             <div
                 className="recap__sprite-slice"
@@ -174,7 +146,7 @@ const RecapSliceItem = memo(function RecapSliceItem({
                         ))}
                 </div>
             )}
-        </motion.div>
+        </div>
     );
 });
 
@@ -192,6 +164,7 @@ export default function Recap({
     onToggleSelect: onToggleSelectProp,
     selectedUrls: selectedUrlsProp,
     selectionIndexMap: selectionIndexMapProp,
+    deferLoad = false,
 }: RecapProps) {
     const sectionRef = useRef<HTMLDivElement>(null);
     const { width } = useElementSize(sectionRef);
@@ -212,6 +185,7 @@ export default function Recap({
     const effectiveSelectMode = isSelectModeProp !== undefined ? isSelectModeProp : isBatchSelectMode;
 
     const selectedUrls = useMemo(() => {
+        if (!effectiveSelectMode && !selectedUrlsProp) return new Set<string>();
         if (selectedUrlsProp) return selectedUrlsProp;
         const urls = new Set<string>();
         for (const p of batchSelectedPhotos) {
@@ -219,9 +193,10 @@ export default function Recap({
             if (u) urls.add(u);
         }
         return urls;
-    }, [selectedUrlsProp, batchSelectedPhotos]);
+    }, [effectiveSelectMode, selectedUrlsProp, batchSelectedPhotos]);
 
     const selectionIndexMap = useMemo(() => {
+        if (!effectiveSelectMode && !selectionIndexMapProp) return undefined;
         if (selectionIndexMapProp) return selectionIndexMapProp;
         const map = new Map<string, number>();
         batchSelectedPhotos.forEach((p, idx) => {
@@ -229,7 +204,7 @@ export default function Recap({
             if (u) map.set(u, idx + 1);
         });
         return map;
-    }, [selectionIndexMapProp, batchSelectedPhotos]);
+    }, [effectiveSelectMode, selectionIndexMapProp, batchSelectedPhotos]);
 
     const getSlicePhoto = useCallback(
         (meta: RecapEventMeta | undefined): PhotoRecord | null => {
@@ -279,13 +254,57 @@ export default function Recap({
         setSpriteLoaded(false);
     }
 
-    // Preload the sprite image
+    // Preload the sprite image with low network priority so LCP hero images are not starved
     useEffect(() => {
-        const img = new Image();
-        img.onload = () => setSpriteLoaded(true);
-        img.onerror = () => setSpriteLoaded(true); // Fallback: still render
-        img.src = withBuild(`/recap/${slug}/sprite.webp${hash ? `?h=${hash}` : ''}`);
-    }, [slug, hash]);
+        if (deferLoad || spriteLoaded) return;
+
+        let isCancelled = false;
+        const loadSprite = () => {
+            if (isCancelled) return;
+            const img = new Image();
+            if ('fetchPriority' in img) {
+                img.fetchPriority = 'low';
+            }
+            img.decoding = 'async';
+            img.onload = () => {
+                if (isCancelled) return;
+                if (typeof img.decode === 'function') {
+                    img.decode()
+                        .then(() => {
+                            if (!isCancelled) setSpriteLoaded(true);
+                        })
+                        .catch(() => {
+                            if (!isCancelled) setSpriteLoaded(true);
+                        });
+                } else {
+                    setSpriteLoaded(true);
+                }
+            };
+            img.onerror = () => {
+                if (!isCancelled) setSpriteLoaded(true); // Fallback: still render
+            };
+            img.src = withBuild(`/recap/${slug}/sprite.webp${hash ? `?h=${hash}` : ''}`);
+        };
+
+        if (typeof window !== 'undefined' && window.scrollY > 300) {
+            const onScroll = () => {
+                if (window.scrollY <= 300) {
+                    window.removeEventListener('scroll', onScroll);
+                    loadSprite();
+                }
+            };
+            window.addEventListener('scroll', onScroll, { passive: true });
+            return () => {
+                isCancelled = true;
+                window.removeEventListener('scroll', onScroll);
+            };
+        }
+
+        loadSprite();
+        return () => {
+            isCancelled = true;
+        };
+    }, [slug, hash, deferLoad, spriteLoaded]);
 
     useEffect(() => {
         if (spriteLoaded && onRecapLoadComplete) {
@@ -383,17 +402,19 @@ export default function Recap({
     }, [slices, events, getSlicePhoto]);
 
     const visibleRecapPhotos = useMemo(() => {
+        if (!effectiveSelectMode) return [];
         return slicePhotos.filter((p): p is PhotoRecord => p !== null && Boolean(p.original));
-    }, [slicePhotos]);
+    }, [effectiveSelectMode, slicePhotos]);
 
     useEffect(() => {
+        if (!effectiveSelectMode) return;
         if (visibleRecapPhotos.length > 0) {
             registerVisiblePhotos('__recap__', visibleRecapPhotos);
         }
         return () => {
             unregisterVisiblePhotos('__recap__');
         };
-    }, [visibleRecapPhotos, registerVisiblePhotos, unregisterVisiblePhotos]);
+    }, [effectiveSelectMode, visibleRecapPhotos, registerVisiblePhotos, unregisterVisiblePhotos]);
 
     const lastSelectedIdxRef = useRef<number | null>(null);
 

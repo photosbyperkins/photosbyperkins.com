@@ -49,10 +49,24 @@ jobs:
       - name: Check bundle budget
         run: npm run bundle:check
 
+      - name: Prepare Lighthouse CI fixtures
+        run: npm run lhci:fixtures && npm run build:client
+
+      - name: Run Lighthouse CI gate
+        run: npm run lhci
+
       - name: Upload bundle report
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: bundle-report
           path: reports/bundle/
+          if-no-files-found: ignore
+
+      - name: Upload Lighthouse report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-report
+          path: reports/lighthouse/
           if-no-files-found: ignore

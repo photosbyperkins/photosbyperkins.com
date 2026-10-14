@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { withBuild } from '../../utils/build';
-import { loadedSrcs } from './progressiveImageCache';
+import { loadedSrcs, beginPriorityImageLoad, enqueueNonPriorityLoad } from './progressiveImageCache';
 
 type ProgressiveImageProps = React.ImgHTMLAttributes<HTMLImageElement> & {
     placeholder?: string | null;
@@ -49,15 +49,22 @@ function getSharedObserver(): IntersectionObserver | null {
 
 function observeElement(el: Element, cb: ObserverCallback): () => void {
     const observer = getSharedObserver();
+    let cancelQueue: (() => void) | null = null;
+    const trigger = () => {
+        cancelQueue = enqueueNonPriorityLoad(cb);
+    };
     if (!observer) {
-        cb();
-        return () => {};
+        trigger();
+        return () => {
+            cancelQueue?.();
+        };
     }
-    observerCallbacks.set(el, cb);
+    observerCallbacks.set(el, trigger);
     observer.observe(el);
     return () => {
         observerCallbacks.delete(el);
         observer.unobserve(el);
+        cancelQueue?.();
     };
 }
 
@@ -71,6 +78,7 @@ export default function ProgressiveImage({
     priority = false,
     aspectRatio = '3 / 2',
     onLoad,
+    onError,
     ...props
 }: ProgressiveImageProps) {
     const [isLoaded, setIsLoaded] = useState(() => Boolean(src && loadedSrcs.has(src)));
@@ -78,6 +86,7 @@ export default function ProgressiveImage({
     const [shouldLoad, setShouldLoad] = useState(() => priority || Boolean(src && loadedSrcs.has(src)));
     const containerRef = useRef<HTMLDivElement>(null);
     const imgRef = useRef<HTMLImageElement>(null);
+    const endPriorityRef = useRef<(() => void) | null>(null);
 
     // Reset or restore loaded state when src changes (e.g. recycled row in virtualized grid)
     if (src !== prevSrc) {
@@ -88,6 +97,23 @@ export default function ProgressiveImage({
             setShouldLoad(true);
         }
     }
+
+    useEffect(() => {
+        if (!priority || !src || loadedSrcs.has(src)) return;
+        const end = beginPriorityImageLoad();
+        endPriorityRef.current = end;
+        if (imgRef.current?.complete && imgRef.current.naturalWidth > 0) {
+            const t = setTimeout(end, 40);
+            return () => {
+                clearTimeout(t);
+                end();
+            };
+        }
+        return () => {
+            endPriorityRef.current = null;
+            end();
+        };
+    }, [priority, src]);
 
     useEffect(() => {
         if (priority || shouldLoad || !containerRef.current) return;
@@ -109,9 +135,18 @@ export default function ProgressiveImage({
         (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
             if (src) loadedSrcs.add(src);
             setIsLoaded(true);
+            endPriorityRef.current?.();
             onLoad?.(e);
         },
         [onLoad, src]
+    );
+
+    const handleError = useCallback(
+        (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+            endPriorityRef.current?.();
+            onError?.(e);
+        },
+        [onError]
     );
 
     const imageSrc = shouldLoad && src ? withBuild(src) : undefined;
@@ -155,6 +190,7 @@ export default function ProgressiveImage({
                 width="600"
                 height="400"
                 onLoad={handleLoad}
+                onError={handleError}
                 className={`progressive-image__img ${isLoaded ? 'is-loaded' : ''}`}
                 style={{
                     position: 'relative',

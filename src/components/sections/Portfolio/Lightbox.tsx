@@ -37,6 +37,13 @@ import { useImagePreloader } from '../../../hooks/useImagePreloader';
 import { useLightboxGestures } from '../../../hooks/useLightboxGestures';
 import { getPhotoDisplayUrl } from '../../../utils/formatters';
 
+const initialPathSegments = typeof window !== 'undefined' ? window.location.pathname.split('/').filter(Boolean) : [];
+let isInitialDeepLinkMount =
+    initialPathSegments[0] === 'portfolio' &&
+    initialPathSegments.length >= 4 &&
+    initialPathSegments[1] !== 'team' &&
+    initialPathSegments[1] !== 'gear';
+
 export default function Lightbox({
     images,
     index,
@@ -47,6 +54,13 @@ export default function Lightbox({
     onClose,
     onSetIndex,
 }: LightboxProps) {
+    const [skipEntryAnim] = useState(() => {
+        if (isInitialDeepLinkMount) {
+            isInitialDeepLinkMount = false;
+            return true;
+        }
+        return false;
+    });
     const canShare = useCanShare();
     const favorites = useAppStore((state) => state.favorites);
     const toggleFavorite = useAppStore((state) => state.toggleFavorite);
@@ -89,6 +103,23 @@ export default function Lightbox({
     }, []);
 
     const [failedSpriteUrl, setFailedSpriteUrl] = useState<string | null>(null);
+    const [scrubberReady, setScrubberReady] = useState(() => images.length <= 10);
+
+    useEffect(() => {
+        if (scrubberReady) return;
+        const enableScrubber = () => setScrubberReady(true);
+        window.addEventListener('pointerdown', enableScrubber, { passive: true, once: true });
+        window.addEventListener('keydown', enableScrubber, { passive: true, once: true });
+        let timer: ReturnType<typeof setTimeout> | null = null;
+        if (mainImageLoaded) {
+            timer = setTimeout(enableScrubber, 150);
+        }
+        return () => {
+            window.removeEventListener('pointerdown', enableScrubber);
+            window.removeEventListener('keydown', enableScrubber);
+            if (timer) clearTimeout(timer);
+        };
+    }, [scrubberReady, mainImageLoaded]);
 
     // Derive scrubber sprite URL — all photos in a normal event share one sprite.
     // Falls back to individual thumbs for Favorites (mixed-event) views or oversized albums.
@@ -110,20 +141,28 @@ export default function Lightbox({
     }, [images, scrubberHash]);
 
     useEffect(() => {
-        if (!rawSpriteUrl) return;
+        if (!rawSpriteUrl || !scrubberReady) return;
         const testImg = new Image();
+        if ('fetchPriority' in testImg) {
+            testImg.fetchPriority = 'low';
+        }
+        testImg.decoding = 'async';
         testImg.onerror = () => setFailedSpriteUrl(rawSpriteUrl);
         testImg.src = rawSpriteUrl;
-    }, [rawSpriteUrl]);
+    }, [rawSpriteUrl, scrubberReady]);
 
-    const spriteUrl = failedSpriteUrl === rawSpriteUrl ? null : rawSpriteUrl;
+    const spriteUrl = !scrubberReady || failedSpriteUrl === rawSpriteUrl ? null : rawSpriteUrl;
+    const effectiveGetThumbSrc = useCallback(
+        (photo: PhotoInput) => (scrubberReady ? getThumbSrc(photo) : undefined),
+        [scrubberReady, getThumbSrc]
+    );
 
     /** Return CSS background style for the ambient blur layer.
      *  Uses the scrubber sprite frame when available (already loaded),
      *  falls back to individual thumbnails for Favorites/mixed views. */
     const getAmbientBg = useCallback(
         (photo: PhotoInput): React.CSSProperties => {
-            if (!photo) return {};
+            if (!photo || !scrubberReady) return {};
             if (spriteUrl && typeof photo !== 'string' && photo.spriteIndex != null) {
                 const totalCols = Math.min(images.length, SCRUBBER_COLUMNS);
                 const totalRows = Math.ceil(images.length / SCRUBBER_COLUMNS);
@@ -141,7 +180,7 @@ export default function Lightbox({
             const url = getThumbSrc(photo);
             return url ? { backgroundImage: `url("${url}")` } : {};
         },
-        [spriteUrl, getThumbSrc, images.length]
+        [scrubberReady, spriteUrl, getThumbSrc, images.length]
     );
 
     const handleResize = useDebounce(() => {
@@ -240,7 +279,7 @@ export default function Lightbox({
         spriteUrl,
         isFavorite,
         checkIfFavorite,
-        getThumbSrc,
+        getThumbSrc: effectiveGetThumbSrc,
         onSetIndex,
         onZoomReset: () => setIsZoomed(false),
     });
@@ -319,7 +358,7 @@ export default function Lightbox({
             aria-modal="true"
             aria-label="Photo lightbox"
             tabIndex={-1}
-            initial={{ opacity: 0 }}
+            initial={skipEntryAnim ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0, transition: { duration: reducedMotion ? 0.15 : 0.22, ease: EASE_IN_OUT } }}
             transition={{ duration: reducedMotion ? 0.15 : DURATION.base, ease: EASE_OUT_EXPO }}
@@ -387,7 +426,7 @@ export default function Lightbox({
             <motion.div
                 className="portfolio__lightbox-track-container"
                 ref={containerRef}
-                initial={{ scale: 0.985 }}
+                initial={skipEntryAnim ? false : { scale: 0.985 }}
                 animate={{ scale: 1 }}
                 exit={{ scale: 0.985, transition: { duration: DURATION.fast, ease: EASE_IN } }}
                 transition={{ duration: DURATION.slow, ease: EASE_OUT_EXPO }}
@@ -413,6 +452,7 @@ export default function Lightbox({
                         <LightboxSlide
                             image={images[(index - 1 + images.length) % images.length]}
                             alt={eventName ? `Previous photo from ${eventName}` : 'Previous photo'}
+                            deferLoad={!mainImageLoaded && !isAnimating && !isDragging}
                             onSingleClick={() => setIsTheaterMode((prev) => !prev)}
                         />
                     </div>
@@ -427,6 +467,7 @@ export default function Lightbox({
                                     ? `Photo ${index + 1} from ${eventName}${year ? `, ${year}` : ''}`
                                     : `Photo ${index + 1}`
                             }
+                            priority={true}
                             onZoomChange={setIsZoomed}
                             onLoad={() => setMainImageLoaded(true)}
                             onSingleClick={() => setIsTheaterMode((prev) => !prev)}
@@ -438,6 +479,7 @@ export default function Lightbox({
                         <LightboxSlide
                             image={images[(index + 1) % images.length]}
                             alt={eventName ? `Next photo from ${eventName}` : 'Next photo'}
+                            deferLoad={!mainImageLoaded && !isAnimating && !isDragging}
                             onSingleClick={() => setIsTheaterMode((prev) => !prev)}
                         />
                     </div>
@@ -450,7 +492,7 @@ export default function Lightbox({
                 maxDist={maxDist}
                 maxDrag={scrubMaxDrag}
                 spriteUrl={spriteUrl}
-                getThumbSrc={getThumbSrc}
+                getThumbSrc={effectiveGetThumbSrc}
                 checkIfFavorite={checkIfFavorite}
                 trackX={trackX}
                 thumbOpacity0={thumbOpacity0}

@@ -77,8 +77,6 @@
                 transform: translateY(-0.04em); // Optically center the uppercase-only font
             }
         }
-
-        perspective: 1000px;
     }
 
     &__slice {
@@ -89,7 +87,6 @@
         container-type: inline-size;
         background-color: var(--color-bg-2); // Placeholder color while loading
         transition: filter 0.2s ease-out;
-        transform-style: preserve-3d;
 
         // Prevent subpixel flex rendering micro-gaps by slightly overlapping
         margin-right: -1px;
@@ -166,6 +163,7 @@
         // Shimmer skeleton while the sprite is loading
         &--skeleton {
             background-color: var(--color-bg-2);
+            opacity: 0.4;
             cursor: default;
         }
 

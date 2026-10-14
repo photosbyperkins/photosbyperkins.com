@@ -13,6 +13,8 @@
     "deploy": "tsx scripts/deploy.ts",
     "bundle:check": "tsx scripts/checkBundleBudget.ts",
     "bundle:baseline": "tsx scripts/checkBundleBudget.ts --update",
+    "lhci:fixtures": "tsx scripts/ensureLighthouseFixtures.ts",
+    "lhci": "lhci autorun",
     "clean": "tsx scripts/pipeline/cleanDist.ts",
     "lint": "eslint .",
     "format": "prettier --write \"src/**/*.{js,jsx,ts,tsx,css,scss}\"",
@@ -30,6 +32,7 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "@eslint/js": "^10.0.1",
+    "@lhci/cli": "^0.15.1",
     "@nrs-binding/ssimulacra2": "^1.0.23",
     "@playwright/test": "^1.63.0",
     "@testing-library/dom": "^10.4.2",

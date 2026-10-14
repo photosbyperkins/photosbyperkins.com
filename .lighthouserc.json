@@ -1,0 +1,30 @@
+{
+  "ci": {
+    "collect": {
+      "startServerCommand": "node ./node_modules/vite/bin/vite.js preview --port 4173 --strictPort",
+      "startServerReadyPattern": "4173",
+      "url": [
+        "http://localhost:4173/",
+        "http://localhost:4173/portfolio/2025",
+        "http://localhost:4173/portfolio/2025/1108-sacramento-roller-derby-river-city-rapids-vs-sacramento-roller-derby-tower-bridge-terrors",
+        "http://localhost:4173/portfolio/2025/1108-sacramento-roller-derby-river-city-rapids-vs-sacramento-roller-derby-tower-bridge-terrors/0"
+      ],
+      "numberOfRuns": 1,
+      "settings": {
+        "chromeFlags": "--no-sandbox --disable-gpu --headless=new"
+      }
+    },
+    "assert": {
+      "assertions": {
+        "categories:performance": ["error", { "minScore": 0.9 }],
+        "categories:accessibility": ["error", { "minScore": 1 }],
+        "categories:best-practices": ["error", { "minScore": 1 }],
+        "categories:seo": ["error", { "minScore": 1 }]
+      }
+    },
+    "upload": {
+      "target": "filesystem",
+      "outputDir": "reports/lighthouse"
+    }
+  }
+}

@@ -46,12 +46,20 @@ export function useImagePreloader({ images, currentIndex, mainImageLoaded, getDi
                 const src = getDisplaySrc(images[idx]);
                 if (src) {
                     const img = new Image();
+                    if ('fetchPriority' in img) {
+                        img.fetchPriority = 'low';
+                    }
+                    img.decoding = 'async';
                     img.src = src;
                 }
             });
 
+            // Wait briefly for immediate neighbours and UI animations to settle before trickling outer radius
+            await new Promise((r) => setTimeout(r, 2500));
+            if (isCancelled) return;
+
             // Asynchronously trickle-load the nearest photos (capped to prevent bandwidth/memory exhaustion)
-            const MAX_PRELOAD_RADIUS = 8;
+            const MAX_PRELOAD_RADIUS = 6;
             const queued = allIdxs.slice(2, 2 + MAX_PRELOAD_RADIUS);
             for (const idx of queued) {
                 if (isCancelled) break;
@@ -61,6 +69,10 @@ export function useImagePreloader({ images, currentIndex, mainImageLoaded, getDi
 
                 await new Promise<void>((resolve) => {
                     const img = new Image();
+                    if ('fetchPriority' in img) {
+                        img.fetchPriority = 'low';
+                    }
+                    img.decoding = 'async';
                     const timer = setTimeout(() => {
                         img.onload = null;
                         img.onerror = null;
@@ -77,8 +89,8 @@ export function useImagePreloader({ images, currentIndex, mainImageLoaded, getDi
                     img.src = src;
                 });
 
-                // Micro-pause to yield to main UI thread / react rendering
-                await new Promise((r) => setTimeout(r, 10));
+                // Pause to yield to main UI thread / network
+                await new Promise((r) => setTimeout(r, 150));
             }
         };
 

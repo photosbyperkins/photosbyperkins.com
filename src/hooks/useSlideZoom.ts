@@ -115,11 +115,15 @@ export function useSlideZoom({
     const calculateMaxScale = useCallback(() => {
         const img = containerRef.current?.querySelector('img');
         if (img && img.clientWidth > 0) {
-            maxScaleRef.current = Math.max(img.naturalWidth / img.clientWidth, 1);
+            const fullWidth =
+                typeof image === 'object' && image?.width && image.width > img.naturalWidth
+                    ? image.width
+                    : img.naturalWidth;
+            maxScaleRef.current = Math.max(fullWidth / img.clientWidth, 1);
             checkConstraints();
             if (onCanZoomChange) onCanZoomChange(maxScaleRef.current > 1.05);
         }
-    }, [checkConstraints, onCanZoomChange]);
+    }, [image, checkConstraints, onCanZoomChange]);
 
     useEffect(() => {
         // Fire manually if browser loaded image from cache silently

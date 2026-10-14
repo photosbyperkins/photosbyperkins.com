@@ -70,11 +70,17 @@ export function usePortfolioRoute({ years }: UsePortfolioRouteOptions): Portfoli
     }, [isGearRoute, isTeamRoute, activeRouteSlug, years, initialYear]);
 
     const setSharedPhoto = useAppStore((state) => state.setSharedPhoto);
-    const hydratedDeepLinkRef = useRef(false);
+    const isEventOnlyDeepLink = Boolean(eventDeepMatch && !initialPhoto);
+    const hasValidDeepLink = Boolean(
+        initialYear && initialEvent && (years.includes(initialYear) || isTeamRoute || isGearRoute)
+    );
+    const hydratedDeepLinkKeyRef = useRef<string | null>(null);
 
     // Deep link photo hydration
     useEffect(() => {
-        if (initialYear && initialEvent && (years.includes(initialYear) || isTeamRoute || isGearRoute)) {
+        if (hasValidDeepLink && initialEvent) {
+            const deepLinkKey = `${initialYear ?? ''}/${initialEvent}/${initialPhoto ?? ''}/${isEventOnlyDeepLink}`;
+            if (hydratedDeepLinkKeyRef.current === deepLinkKey) return;
             const rawIndex = initialPhoto ? parseInt(initialPhoto, 10) : undefined;
             const index = rawIndex !== undefined && !isNaN(rawIndex) ? rawIndex : undefined;
             let decodedEvent = initialEvent;
@@ -83,13 +89,29 @@ export function usePortfolioRoute({ years }: UsePortfolioRouteOptions): Portfoli
             } catch {
                 // Keep raw string if URI decoding fails
             }
-            hydratedDeepLinkRef.current = true;
-            setSharedPhoto({ eventName: decodedEvent, photoIndex: index });
-        } else if (hydratedDeepLinkRef.current) {
-            hydratedDeepLinkRef.current = false;
+            hydratedDeepLinkKeyRef.current = deepLinkKey;
+            const state = useAppStore.getState();
+            if (index !== undefined && state.lightbox.isOpen) {
+                return;
+            }
+            const current = state.sharedPhoto;
+            if (
+                current?.eventName === decodedEvent &&
+                current?.photoIndex === index &&
+                Boolean(current?.openAlbumGrid) === isEventOnlyDeepLink
+            ) {
+                return;
+            }
+            setSharedPhoto(
+                isEventOnlyDeepLink
+                    ? { eventName: decodedEvent, photoIndex: index, openAlbumGrid: true }
+                    : { eventName: decodedEvent, photoIndex: index }
+            );
+        } else if (hydratedDeepLinkKeyRef.current !== null) {
+            hydratedDeepLinkKeyRef.current = null;
             setSharedPhoto(null);
         }
-    }, [initialYear, initialEvent, initialPhoto, years, isTeamRoute, isGearRoute, setSharedPhoto]);
+    }, [hasValidDeepLink, initialYear, initialEvent, initialPhoto, isEventOnlyDeepLink, setSharedPhoto]);
 
     return {
         selectedTab,

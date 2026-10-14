@@ -50,10 +50,23 @@ export async function fetchAlbum(year: string, albumSlug: string, signal?: Abort
 
     const fetchPromise = (async () => {
         try {
-            const res = await fetch(`/data/albums/${year}/${albumSlug}.json?build=${getBuildNumber()}`);
-            if (res.status === 429) throw new Error('Too Many Requests');
-            if (!res.ok) throw new Error('Failed to load');
-            const data = decodeAlbum(await res.json());
+            const url = `/data/albums/${year}/${albumSlug}.json?build=${getBuildNumber()}`;
+            const warmMap =
+                typeof window !== 'undefined'
+                    ? (window as Window & { __WARM_JSON__?: Record<string, Promise<unknown> | undefined> }).__WARM_JSON__
+                    : undefined;
+            const warmEntry = warmMap?.[url];
+            let rawJson: unknown;
+            if (warmMap && warmEntry !== undefined) {
+                delete warmMap[url];
+                rawJson = await warmEntry;
+            } else {
+                const res = await fetch(url);
+                if (res.status === 429) throw new Error('Too Many Requests');
+                if (!res.ok) throw new Error('Failed to load');
+                rawJson = await res.json();
+            }
+            const data = decodeAlbum(rawJson);
             albumMemoryCache.set(key, data);
             return data;
         } finally {

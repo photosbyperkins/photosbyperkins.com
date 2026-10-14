@@ -1,10 +1,11 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useAppStore } from '../store/useAppStore';
-import { parseEventTitle, toPhotoRecord } from '../utils/formatters';
+import { getPhotoDisplayUrl, parseEventTitle, toPhotoRecord } from '../utils/formatters';
 import { fetchAlbum, getCachedAlbum } from '../utils/albumData';
 import { decodeEventChunk } from '../utils/dataCodec';
 import { LRUCache } from '../utils/LRUCache';
 import type { YearData, PhotoInput, FavoriteStoreItem, SeasonStats, PhotoRecord } from '../types';
+import { getBuildNumber, withBuild } from '../utils/build';
 
 // Module-level cache — persists for the lifetime of the page session with LRU eviction (max 6 seasons).
 // Pre-fetched and actively-fetched year data is stored here so that
@@ -22,11 +23,6 @@ const yearDataCache = new LRUCache<string, CachedYearPayload>(6);
 const getCacheKey = (tabSlug: string, isGear: boolean, isTeam: boolean): string =>
     isGear ? `gear:${tabSlug}` : isTeam ? `team:${tabSlug}` : `year:${tabSlug}`;
 
-/** Internal helper for testing to reset the module-level year cache */
-export function _clearYearDataCache(): void {
-    yearDataCache.clear();
-}
-
 interface FetchPayload {
     events: YearData;
     recapCount?: number;
@@ -36,7 +32,192 @@ interface FetchPayload {
     stats?: SeasonStats;
 }
 
-import { getBuildNumber } from '../utils/build';
+const inFlightYearFetches = new Map<string, Promise<FetchPayload>>();
+
+function fetchChunkWithDedup(basePath: string, slug: string): Promise<FetchPayload> {
+    const key = `${basePath}/${slug}`;
+    const existing = inFlightYearFetches.get(key);
+    if (existing) return existing;
+
+    const url = `${basePath}/${slug}.json?build=${getBuildNumber()}`;
+    const warmMap =
+        typeof window !== 'undefined'
+            ? (window as Window & { __WARM_JSON__?: Record<string, Promise<unknown> | undefined> }).__WARM_JSON__
+            : undefined;
+    const warmEntry = warmMap?.[url];
+    let rawPromise: Promise<unknown>;
+    if (warmMap && warmEntry !== undefined) {
+        rawPromise = warmEntry;
+        delete warmMap[url];
+    } else {
+        rawPromise = fetch(url).then((res) => {
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.json();
+        });
+    }
+
+    const promise = rawPromise
+        .then((raw) => decodeEventChunk(raw as Parameters<typeof decodeEventChunk>[0]) as FetchPayload)
+        .finally(() => {
+            inFlightYearFetches.delete(key);
+        });
+
+    inFlightYearFetches.set(key, promise);
+    return promise;
+}
+
+/** Internal helper for testing to reset the module-level year cache */
+export function _clearYearDataCache(): void {
+    yearDataCache.clear();
+    inFlightYearFetches.clear();
+}
+
+/**
+ * Starts fetching the initial route's year JSON, album JSON, and target display image
+ * in parallel with lazy route component chunks to eliminate multi-hop waterfalls.
+ */
+export function warmRouteData(years: string[]): Promise<void> {
+    if (typeof window === 'undefined' || years.length === 0) return Promise.resolve();
+    const segments = window.location.pathname.split('/').filter(Boolean);
+    let targetYear = years[0];
+    let eventSlug: string | undefined;
+    let photoIdx: number | undefined;
+
+    if (segments[0] === 'portfolio') {
+        if (segments[1] === 'team' && segments[2]) {
+            const slug = decodeURIComponent(segments[2]);
+            const cacheKey = getCacheKey(slug, false, true);
+            if (!yearDataCache.has(cacheKey)) {
+                return fetchChunkWithDedup('/data/teams', slug)
+                    .then((data) => {
+                        if (!yearDataCache.has(cacheKey)) {
+                            yearDataCache.set(cacheKey, {
+                                events: data.events,
+                                recapCount: data.recapCount || 0,
+                                recapEvents: data.recapEvents || [],
+                                recapHash: data.recapHash,
+                                nextPart: data.nextPart ?? null,
+                                stats: data.stats,
+                            });
+                        }
+                    })
+                    .catch(() => {});
+            }
+            return Promise.resolve();
+        }
+        if (segments[1] === 'gear' && segments[2]) {
+            const slug = decodeURIComponent(segments[2]);
+            const cacheKey = getCacheKey(slug, true, false);
+            if (!yearDataCache.has(cacheKey)) {
+                return fetchChunkWithDedup('/data/gear', slug)
+                    .then((data) => {
+                        if (!yearDataCache.has(cacheKey)) {
+                            yearDataCache.set(cacheKey, {
+                                events: data.events,
+                                recapCount: data.recapCount || 0,
+                                recapEvents: data.recapEvents || [],
+                                recapHash: data.recapHash,
+                                nextPart: data.nextPart ?? null,
+                                stats: data.stats,
+                            });
+                        }
+                    })
+                    .catch(() => {});
+            }
+            return Promise.resolve();
+        }
+        if (segments[1] === 'favorites') return Promise.resolve();
+        if (segments[1] && years.includes(segments[1])) {
+            targetYear = segments[1];
+        }
+        if (segments[2]) {
+            eventSlug = decodeURIComponent(segments[2]);
+        }
+        if (segments[3] !== undefined) {
+            const parsed = parseInt(segments[3], 10);
+            if (!isNaN(parsed)) photoIdx = parsed;
+        }
+    }
+
+    const cacheKey = getCacheKey(targetYear, false, false);
+    const yearPromise = yearDataCache.has(cacheKey)
+        ? Promise.resolve(yearDataCache.get(cacheKey)!)
+        : fetchChunkWithDedup('/data/years', targetYear).then((data) => {
+              const payload: CachedYearPayload = {
+                  events: data.events,
+                  recapCount: data.recapCount || 0,
+                  recapEvents: data.recapEvents || [],
+                  recapHash: data.recapHash,
+                  nextPart: data.nextPart ?? null,
+                  stats: data.stats,
+              };
+              if (!yearDataCache.has(cacheKey)) {
+                  yearDataCache.set(cacheKey, payload);
+              }
+              return payload;
+          });
+
+    const albumPromise =
+        eventSlug && /^[a-z0-9-]+$/.test(eventSlug)
+            ? fetchAlbum(targetYear, eventSlug).then((album) => {
+                  if (
+                      photoIdx !== undefined &&
+                      album.length > 0 &&
+                      !document.querySelector('link[rel="preload"][as="image"]')
+                  ) {
+                      const safeIdx = Math.max(0, Math.min(album.length - 1, photoIdx));
+                      const photo = album[safeIdx];
+                      const initialSrc =
+                          photo?.thumb && photo.thumb.endsWith('.avif')
+                              ? photo.thumb
+                              : photo?.original
+                                ? getPhotoDisplayUrl(photo.original)
+                                : '';
+                      if (initialSrc) {
+                          const img = new Image();
+                          if ('fetchPriority' in img) {
+                              img.fetchPriority = 'high';
+                          }
+                          img.decoding = 'async';
+                          img.src = withBuild(initialSrc);
+                      }
+                  }
+                  return album;
+              })
+            : Promise.resolve(null);
+
+    return Promise.all([yearPromise, albumPromise])
+        .then(([yearPayload, album]) => {
+            if (photoIdx !== undefined && eventSlug && yearPayload?.events && album && album.length > 0) {
+                const matched = Object.entries(yearPayload.events).find(
+                    ([name, ev]) => name === eventSlug || ev.albumSlug === eventSlug
+                );
+                if (matched) {
+                    const [matchedName, ev] = matched;
+                    const safeIdx = Math.max(0, Math.min(album.length - 1, photoIdx));
+                    const scorePayload =
+                        ev.localScore ||
+                        (ev.wftdaMatch
+                            ? { team1Score: ev.wftdaMatch.score1, team2Score: ev.wftdaMatch.score2 }
+                            : undefined);
+                    const state = useAppStore.getState();
+                    if (!state.lightbox.isOpen) {
+                        state.openLightbox(
+                            album,
+                            safeIdx,
+                            matchedName,
+                            targetYear,
+                            ev.maxExifChars,
+                            scorePayload,
+                            ev.scrubberHash
+                        );
+                        state.setSharedPhoto(null);
+                    }
+                }
+            }
+        })
+        .catch(() => {});
+}
 
 let requestIdCounter = 0;
 
@@ -53,20 +234,29 @@ export function usePortfolioData({
     onDataLoadAction,
     isGearMode = false,
 }: UsePortfolioDataOptions) {
-    const [yearData, setYearData] = useState<YearData>({});
-    const [recapCount, setRecapCount] = useState<number>(0);
-    const [recapEvents, setRecapEvents] = useState<{ eventName: string; photoIndex: number }[]>([]);
-    const [recapHash, setRecapHash] = useState<string | undefined>();
-    const [stats, setStats] = useState<SeasonStats | undefined>();
+    const initialIsTeam = Boolean(selectedTab && selectedTab !== 'favorites' && !years.includes(selectedTab) && !isGearMode);
+    const initialCached =
+        selectedTab && selectedTab !== 'favorites'
+            ? yearDataCache.get(getCacheKey(selectedTab, isGearMode, initialIsTeam))
+            : undefined;
+
+    const [yearData, setYearData] = useState<YearData>(() => initialCached?.events ?? {});
+    const [recapCount, setRecapCount] = useState<number>(() => initialCached?.recapCount ?? 0);
+    const [recapEvents, setRecapEvents] = useState<{ eventName: string; photoIndex: number }[]>(
+        () => initialCached?.recapEvents ?? []
+    );
+    const [recapHash, setRecapHash] = useState<string | undefined>(() => initialCached?.recapHash);
+    const [stats, setStats] = useState<SeasonStats | undefined>(() => initialCached?.stats);
 
     // Performance locking mechanism to pause background loading while Recap loads
     const [isRecapLoaded, setIsRecapLoaded] = useState(true);
-    const [pendingNextPart, setPendingNextPart] = useState<string | null>(null);
+    const [pendingNextPart, setPendingNextPart] = useState<string | null>(() => initialCached?.nextPart ?? null);
 
     const activeRequestRef = useRef<number>(0);
 
     const favorites = useAppStore((state) => state.favorites);
     const isLightboxOpen = useAppStore((state) => state.lightbox.isOpen);
+    const sharedPhoto = useAppStore((state) => state.sharedPhoto);
 
     // Freeze favorites snapshot when lightbox is open so background list doesn't shift
     const [prevIsLightboxOpen, setPrevIsLightboxOpen] = useState(isLightboxOpen);
@@ -394,13 +584,8 @@ export function usePortfolioData({
             }
 
             const fetchPart = (slug: string, accumulate: boolean, retryCount = 0) => {
-                fetch(`${basePath}/${slug}.json?build=${getBuildNumber()}`)
-                    .then((res) => {
-                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                        return res.json().then(decodeEventChunk);
-                    })
-                    .then((json) => {
-                        const data = json as FetchPayload;
+                fetchChunkWithDedup(basePath, slug)
+                    .then((data) => {
                         if (setData) {
                             if (activeRequestRef.current !== requestToken) return; // Tab switched, abort
 
@@ -470,9 +655,56 @@ export function usePortfolioData({
         [onDataLoadAction, isGearMode]
     );
 
-    // Handle trickling next parts only when Recap allows it
+    const [hasUserScrolled, setHasUserScrolled] = useState(
+        () => typeof window !== 'undefined' && window.scrollY > 1800
+    );
+    const [prevScrolledTab, setPrevScrolledTab] = useState(selectedTab);
+    if (selectedTab !== prevScrolledTab) {
+        setPrevScrolledTab(selectedTab);
+        setHasUserScrolled(typeof window !== 'undefined' && window.scrollY > 1800);
+    }
+
     useEffect(() => {
-        if (!pendingNextPart || !isRecapLoaded || !selectedTab) return;
+        if (!pendingNextPart || hasUserScrolled || typeof window === 'undefined') return;
+
+        const markScrolled = () => setHasUserScrolled(true);
+        const onScroll = () => {
+            if (window.scrollY > 1800) {
+                setHasUserScrolled(true);
+            }
+        };
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (['ArrowDown', 'PageDown', 'End', ' '].includes(e.key)) {
+                setHasUserScrolled(true);
+            }
+        };
+
+        window.addEventListener('wheel', markScrolled, { passive: true, once: true });
+        window.addEventListener('touchmove', markScrolled, { passive: true, once: true });
+        window.addEventListener('scroll', onScroll, { passive: true });
+        window.addEventListener('keydown', onKeyDown, { passive: true });
+
+        return () => {
+            window.removeEventListener('wheel', markScrolled);
+            window.removeEventListener('touchmove', markScrolled);
+            window.removeEventListener('scroll', onScroll);
+            window.removeEventListener('keydown', onKeyDown);
+        };
+    }, [pendingNextPart, hasUserScrolled]);
+
+    const needsPartForSharedEvent = useMemo(() => {
+        if (!sharedPhoto?.eventName) return false;
+        const entries = Object.entries(yearData);
+        if (entries.length === 0) return false;
+        return !entries.some(
+            ([name, ev]) => name === sharedPhoto.eventName || ev.albumSlug === sharedPhoto.eventName
+        );
+    }, [sharedPhoto, yearData]);
+
+    // Handle trickling next parts when user scrolls or when searching for a deep-linked event
+    useEffect(() => {
+        if (!pendingNextPart || !selectedTab || (!hasUserScrolled && !needsPartForSharedEvent)) return;
+        if (!needsPartForSharedEvent && (!isRecapLoaded || isLightboxOpen)) return;
 
         const isTeamMode = !years.includes(selectedTab) && !isGearMode;
         const basePath = isGearMode ? `/data/gear` : isTeamMode ? `/data/teams` : `/data/years`;
@@ -481,13 +713,8 @@ export function usePortfolioData({
         const targetPart = pendingNextPart;
 
         const timer = setTimeout(() => {
-            fetch(`${basePath}/${targetPart}.json?build=${getBuildNumber()}`)
-                .then((res) => {
-                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                    return res.json().then(decodeEventChunk);
-                })
-                .then((json) => {
-                    const data = json as FetchPayload;
+            fetchChunkWithDedup(basePath, targetPart)
+                .then((data) => {
                     if (activeRequestRef.current !== requestToken) return;
 
                     const existing = yearDataCache.get(cacheKey);
@@ -506,10 +733,19 @@ export function usePortfolioData({
                     }
                 })
                 .catch((err) => console.error(`Failed to load trickle data for ${targetPart}:`, err));
-        }, 300);
+        }, needsPartForSharedEvent ? 50 : 200);
 
         return () => clearTimeout(timer);
-    }, [pendingNextPart, isRecapLoaded, selectedTab, years, isGearMode]);
+    }, [
+        pendingNextPart,
+        isRecapLoaded,
+        selectedTab,
+        years,
+        isGearMode,
+        hasUserScrolled,
+        needsPartForSharedEvent,
+        isLightboxOpen,
+    ]);
 
     // Initial load for active tab
     useEffect(() => {
@@ -530,19 +766,19 @@ export function usePortfolioData({
         [getForTab, years, isGearMode]
     );
 
-    // Gently pre-fetch the chronologically older season (years[currentIdx + 1]) after 3s of idle time
+    // Gently pre-fetch the chronologically older season (years[currentIdx + 1]) after 10s of idle time
     useEffect(() => {
-        if (!isRecapLoaded || isGearMode || years.length < 2) return;
+        if (!isRecapLoaded || isLightboxOpen || isGearMode || years.length < 2) return;
         const currentIdx = years.indexOf(selectedTab);
         const nextYearToWarm = currentIdx >= 0 && currentIdx + 1 < years.length ? years[currentIdx + 1] : null;
         if (!nextYearToWarm) return;
 
         const timer = setTimeout(() => {
             prefetchTab(nextYearToWarm);
-        }, 3000);
+        }, 10000);
 
         return () => clearTimeout(timer);
-    }, [selectedTab, years, isRecapLoaded, isGearMode, prefetchTab]);
+    }, [selectedTab, years, isRecapLoaded, isLightboxOpen, isGearMode, prefetchTab]);
 
     return {
         yearData: isFavoritesTab ? favoritesYearData : yearData,

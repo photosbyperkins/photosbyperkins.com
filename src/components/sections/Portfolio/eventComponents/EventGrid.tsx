@@ -92,6 +92,7 @@ export const EventGrid = React.memo(function EventGrid({
                             src={thumbUrl}
                             placeholder={null}
                             alt={`${eventName} photo ${i + 1}`}
+                            priority={i === 0}
                             objectPosition={
                                 focusX != null && focusY != null ? `${focusX * 100}% ${focusY * 100}%` : 'center'
                             }

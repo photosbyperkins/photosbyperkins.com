@@ -4,7 +4,7 @@ import { createRoot } from 'react-dom/client';
 import { MotionConfig } from 'framer-motion';
 import { BrowserRouter } from 'react-router-dom';
 import { registerSW } from 'virtual:pwa-register';
-import App from './App.tsx';
+import App, { appReadyPromise } from './App.tsx';
 import { initRum } from './utils/rum';
 import './index.scss';
 import '@fontsource/barlow-condensed/latin-400.css';
@@ -44,32 +44,51 @@ if (!import.meta.env.DEV && 'serviceWorker' in navigator) {
     });
 }
 
-registerSW({
-    immediate: true,
-    onRegisteredSW(_swScriptUrl, registration) {
-        if (!registration) return;
-        // Check for service worker updates whenever the user returns to the tab or app on mobile
-        document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'visible') {
-                registration.update().catch(() => {});
-            }
-        });
-        // Check periodically every 15 minutes while app is open
-        setInterval(
-            () => {
-                registration.update().catch(() => {});
-            },
-            15 * 60 * 1000
-        );
-    },
-});
+const startServiceWorker = () => {
+    registerSW({
+        immediate: false,
+        onRegisteredSW(_swScriptUrl, registration) {
+            if (!registration) return;
+            // Check for service worker updates whenever the user returns to the tab or app on mobile
+            document.addEventListener('visibilitychange', () => {
+                if (document.visibilityState === 'visible') {
+                    registration.update().catch(() => {});
+                }
+            });
+            // Check periodically every 15 minutes while app is open
+            setInterval(
+                () => {
+                    registration.update().catch(() => {});
+                },
+                15 * 60 * 1000
+            );
+        },
+    });
+};
 
-createRoot(document.getElementById('root')!).render(
-    <StrictMode>
-        <MotionConfig reducedMotion="user">
-            <BrowserRouter>
-                <App />
-            </BrowserRouter>
-        </MotionConfig>
-    </StrictMode>
-);
+if (typeof window !== 'undefined') {
+    if (document.readyState === 'complete') {
+        setTimeout(startServiceWorker, 3500);
+    } else {
+        window.addEventListener(
+            'load',
+            () => {
+                setTimeout(startServiceWorker, 3500);
+            },
+            { once: true }
+        );
+    }
+}
+
+const rootElement = document.getElementById('root')!;
+appReadyPromise.finally(() => {
+    createRoot(rootElement).render(
+        <StrictMode>
+            <MotionConfig reducedMotion="user">
+                <BrowserRouter>
+                    <App />
+                </BrowserRouter>
+            </MotionConfig>
+        </StrictMode>
+    );
+});

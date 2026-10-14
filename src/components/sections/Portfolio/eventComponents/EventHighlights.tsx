@@ -125,13 +125,16 @@ export const EventHighlights = React.memo(function EventHighlights({
                             src={thumbUrl}
                             placeholder={null}
                             alt={`${eventName} featured photo ${i + 1}`}
-                            priority={evIdx === 0 && i < 2}
+                            priority={evIdx === 0 && i === 0}
                             objectPosition={
                                 focusX != null && focusY != null ? `${focusX * 100}% ${focusY * 100}%` : 'center'
                             }
                         />
                         {isLast && totalPhotos > 5 && !isSelectMode && (
-                            <div className="portfolio__featured-overlay portfolio__featured-overlay--mobile">
+                            <div
+                                className="portfolio__featured-overlay portfolio__featured-overlay--mobile"
+                                aria-hidden="true"
+                            >
                                 <span>+{totalPhotos - 5}</span>
                             </div>
                         )}
