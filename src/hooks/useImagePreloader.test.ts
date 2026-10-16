@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { useImagePreloader } from './useImagePreloader';
+import { useImagePreloader, clearHiResReadyCache } from './useImagePreloader';
 import type { PhotoInput } from '../types';
 
 describe('useImagePreloader', () => {
@@ -9,6 +9,7 @@ describe('useImagePreloader', () => {
 
     beforeEach(() => {
         vi.useFakeTimers();
+        clearHiResReadyCache();
         createdImages = [];
         globalThis.Image = class MockImage {
             private _src = '';
@@ -31,6 +32,7 @@ describe('useImagePreloader', () => {
     });
 
     afterEach(() => {
+        clearHiResReadyCache();
         globalThis.Image = originalImage;
         vi.restoreAllMocks();
         vi.useRealTimers();

@@ -2,6 +2,9 @@ import React from 'react';
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, fireEvent, cleanup } from '@testing-library/react';
 import LightboxSlide, { type LightboxSlideHandle } from './LightboxSlide';
+import { clearHiResReadyCache, markHiResReady } from '../../../hooks/useImagePreloader';
+import { getPhotoDisplayUrl } from '../../../utils/formatters';
+import { withBuild } from '../../../utils/build';
 import type { PhotoInput } from '../../../types';
 import { stripMotionProps } from '../../../testUtils/stripMotionProps';
 
@@ -21,6 +24,7 @@ vi.mock('framer-motion', async (importOriginal) => {
 describe('LightboxSlide', () => {
     afterEach(() => {
         cleanup();
+        clearHiResReadyCache();
         vi.restoreAllMocks();
     });
 
@@ -82,5 +86,21 @@ describe('LightboxSlide', () => {
         expect(img.src).toContain('/thumbnails/2025/bout/photo_001.avif');
         expect(img.style.getPropertyValue('--lightbox-img-w')).toBe('min(100%, 150vh)');
         expect(img.style.getPropertyValue('--lightbox-img-h')).toBe('min(100%, 66.6667vw)');
+    });
+
+    it('renders the high-res display URL immediately without showing the thumbnail when already cached', () => {
+        const avifPhoto: PhotoInput = {
+            original: '/photos/2025/bout/photo_002.jpg',
+            thumb: '/thumbnails/2025/bout/photo_002.avif',
+            width: 3072,
+            height: 2048,
+        };
+        const fullDisplayUrl = withBuild(getPhotoDisplayUrl(avifPhoto.original));
+        markHiResReady(fullDisplayUrl);
+
+        const { container } = render(<LightboxSlide image={avifPhoto} alt="Cached AVIF Photo" />);
+        const img = container.querySelector('img') as HTMLImageElement;
+        expect(img.src).toContain('/avif/2025/bout/photo_002.avif');
+        expect(img.src).not.toContain('/thumbnails/');
     });
 });

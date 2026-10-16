@@ -1,9 +1,19 @@
 import { motion, useIsPresent, type MotionStyle } from 'framer-motion';
 import { forwardRef, useImperativeHandle, memo, useState, useEffect, useCallback } from 'react';
 import { useSlideZoom } from '../../../hooks/useSlideZoom';
+import { isHiResReady, markHiResReady } from '../../../hooks/useImagePreloader';
 import { getPhotoDisplayUrl } from '../../../utils/formatters';
 import type { PhotoInput } from '../../../types';
 import { withBuild } from '../../../utils/build';
+
+let hasUserInteracted = false;
+if (typeof window !== 'undefined') {
+    const markInteracted = () => {
+        hasUserInteracted = true;
+    };
+    window.addEventListener('pointerdown', markInteracted, { passive: true, once: true });
+    window.addEventListener('keydown', markInteracted, { passive: true, once: true });
+}
 
 export interface LightboxSlideHandle {
     toggleZoom: (clientX?: number, clientY?: number) => void;
@@ -29,6 +39,7 @@ const LightboxSlide = memo(
     const isPresent = useIsPresent();
     const url = image ? (typeof image === 'string' ? image : image.original) : '';
     const displayUrl = url ? getPhotoDisplayUrl(url) : '';
+    const fullDisplaySrc = displayUrl ? withBuild(displayUrl) : '';
     const avifThumbUrl =
         image && typeof image !== 'string' && image.thumb && image.thumb.endsWith('.avif') ? image.thumb : '';
     const imgWidth = image && typeof image !== 'string' ? image.width : undefined;
@@ -44,6 +55,10 @@ const LightboxSlide = memo(
     const [zoomRequested, setZoomRequested] = useState(false);
     const [naturalDims, setNaturalDims] = useState<{ url: string; w: number; h: number } | null>(null);
 
+    const isDisplayCached = Boolean(
+        fullDisplaySrc && (upgradedUrl === displayUrl || isHiResReady(fullDisplaySrc))
+    );
+
     const handleZoomChange = useCallback(
         (isZoomed: boolean) => {
             if (isZoomed) setZoomRequested(true);
@@ -53,17 +68,28 @@ const LightboxSlide = memo(
     );
 
     useEffect(() => {
-        if (deferLoad || !avifThumbUrl || !displayUrl || avifThumbUrl === displayUrl || upgradedUrl === displayUrl) {
+        if (deferLoad || !avifThumbUrl || !displayUrl || avifThumbUrl === displayUrl || isDisplayCached) {
             return;
         }
         let cancelled = false;
-        const delayMs = zoomRequested ? 0 : 2500;
-        const timer = setTimeout(() => {
+        const isColdBootDeepLink =
+            !hasUserInteracted &&
+            !zoomRequested &&
+            typeof performance !== 'undefined' &&
+            typeof performance.now === 'function' &&
+            performance.now() < 2500;
+        const delayMs = isColdBootDeepLink ? 2500 : 0;
+
+        const startUpgrade = () => {
             if (cancelled) return;
             const hiRes = new Image();
+            if ('fetchPriority' in hiRes) {
+                hiRes.fetchPriority = priority ? 'high' : 'low';
+            }
             hiRes.decoding = 'async';
-            hiRes.src = withBuild(displayUrl);
+            hiRes.src = fullDisplaySrc;
             const commit = () => {
+                markHiResReady(fullDisplaySrc);
                 if (!cancelled) setUpgradedUrl(displayUrl);
             };
             if (typeof hiRes.decode === 'function') {
@@ -71,14 +97,23 @@ const LightboxSlide = memo(
             } else {
                 hiRes.onload = commit;
             }
-        }, delayMs);
+        };
+
+        if (delayMs === 0) {
+            startUpgrade();
+            return () => {
+                cancelled = true;
+            };
+        }
+
+        const timer = setTimeout(startUpgrade, delayMs);
         return () => {
             cancelled = true;
             clearTimeout(timer);
         };
-    }, [deferLoad, avifThumbUrl, displayUrl, upgradedUrl, zoomRequested]);
+    }, [deferLoad, avifThumbUrl, displayUrl, fullDisplaySrc, isDisplayCached, priority, zoomRequested]);
 
-    const activeSrc = avifThumbUrl && upgradedUrl !== displayUrl ? avifThumbUrl : displayUrl;
+    const activeSrc = avifThumbUrl && !isDisplayCached ? avifThumbUrl : displayUrl;
     const hasExplicitDims = Boolean(imgWidth && imgHeight && imgWidth > 0 && imgHeight > 0);
     const fallbackDims = !hasExplicitDims && naturalDims?.url === url ? naturalDims : null;
     const aspectW = hasExplicitDims ? imgWidth! : fallbackDims ? fallbackDims.w : 3;

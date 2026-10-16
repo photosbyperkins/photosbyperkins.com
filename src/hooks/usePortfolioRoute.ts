@@ -10,8 +10,6 @@ export interface PortfolioRouteState {
     selectedTab: string;
     isGearRoute: boolean;
     isTeamRoute: boolean;
-    isFindRoute: boolean;
-    findTeamSlug: string | undefined;
     activeRouteSlug: string | undefined;
     initialSearchOpen: boolean;
     initialSearchQuery: string;
@@ -42,23 +40,17 @@ export function usePortfolioRoute({ years }: UsePortfolioRouteOptions): Portfoli
 
     const matchPathStr = location.pathname.startsWith('/portfolio') ? location.pathname : lastPortfolioPath;
 
-    const findRootMatch = matchPath('/portfolio/find', matchPathStr);
-    const findTeamMatch = matchPath('/portfolio/find/:slug', matchPathStr);
-    const isFindRoute = Boolean(findRootMatch || findTeamMatch);
-    const findTeamSlug = findTeamMatch?.params.slug;
-
-    const yearMatch = !isFindRoute ? matchPath('/portfolio/:year', matchPathStr) : null;
-    const teamMatch = !isFindRoute ? matchPath('/portfolio/team/:slug', matchPathStr) : null;
-    const gearMatch = !isFindRoute ? matchPath('/portfolio/gear/:slug', matchPathStr) : null;
+    const yearMatch = matchPath('/portfolio/:year', matchPathStr);
+    const teamMatch = matchPath('/portfolio/team/:slug', matchPathStr);
+    const gearMatch = matchPath('/portfolio/gear/:slug', matchPathStr);
     // Deep link: /portfolio/:year/:event/:photo
-    const deepLinkMatch = !isFindRoute ? matchPath('/portfolio/:year/:event/:photo', matchPathStr) : null;
+    const deepLinkMatch = matchPath('/portfolio/:year/:event/:photo', matchPathStr);
     // Event-only deep link: /portfolio/:year/:event (no photo index)
-    const eventDeepMatch = !isFindRoute && !deepLinkMatch ? matchPath('/portfolio/:year/:event', matchPathStr) : null;
+    const eventDeepMatch = !deepLinkMatch ? matchPath('/portfolio/:year/:event', matchPathStr) : null;
 
     const isGearRoute = Boolean(gearMatch);
     const isTeamRoute = !isGearRoute && Boolean(teamMatch);
     const activeRouteSlug =
-        (isFindRoute ? 'find' : undefined) ||
         gearMatch?.params.slug ||
         teamMatch?.params.slug ||
         deepLinkMatch?.params.year ||
@@ -70,18 +62,17 @@ export function usePortfolioRoute({ years }: UsePortfolioRouteOptions): Portfoli
     const initialPhoto = deepLinkMatch?.params.photo || params.get('photo');
 
     const selectedTab = useMemo(() => {
-        if (isFindRoute) return years[0] || '';
         if (isGearRoute && activeRouteSlug) return activeRouteSlug;
         if (isTeamRoute && activeRouteSlug) return activeRouteSlug;
         if (activeRouteSlug === 'favorites') return 'favorites';
         if (activeRouteSlug && years.includes(activeRouteSlug)) return activeRouteSlug;
         return initialYear && years.includes(initialYear) ? initialYear : years[0] || '';
-    }, [isFindRoute, isGearRoute, isTeamRoute, activeRouteSlug, years, initialYear]);
+    }, [isGearRoute, isTeamRoute, activeRouteSlug, years, initialYear]);
 
     const setSharedPhoto = useAppStore((state) => state.setSharedPhoto);
     const isEventOnlyDeepLink = Boolean(eventDeepMatch && !initialPhoto);
     const hasValidDeepLink = Boolean(
-        !isFindRoute && initialYear && initialEvent && (years.includes(initialYear) || isTeamRoute || isGearRoute)
+        initialYear && initialEvent && (years.includes(initialYear) || isTeamRoute || isGearRoute)
     );
     const hydratedDeepLinkKeyRef = useRef<string | null>(null);
 
@@ -126,8 +117,6 @@ export function usePortfolioRoute({ years }: UsePortfolioRouteOptions): Portfoli
         selectedTab,
         isGearRoute,
         isTeamRoute,
-        isFindRoute,
-        findTeamSlug,
         activeRouteSlug,
         initialSearchOpen,
         initialSearchQuery,

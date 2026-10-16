@@ -57,7 +57,6 @@ const LazyLightboxContainer = React.lazy(() =>
 );
 const GlobalSearchOverlay = React.lazy(() => import('./GlobalSearchOverlay'));
 const StoryExportModal = React.lazy(() => import('./StoryExportModal'));
-const FindMyPhotosView = React.lazy(() => import('./FindMyPhotosView'));
 
 // eslint-disable-next-line react-refresh/only-export-components
 export function warmPortfolioRoute(years: string[]): Promise<unknown> {
@@ -79,8 +78,6 @@ export default function Portfolio({ years }: PortfolioProps) {
     const {
         selectedTab,
         isGearRoute,
-        isFindRoute,
-        findTeamSlug,
         activeRouteSlug,
         initialSearchOpen,
         initialSearchQuery,
@@ -609,7 +606,7 @@ export default function Portfolio({ years }: PortfolioProps) {
     return (
         <section className="portfolio" id="portfolio" ref={portfolioRef}>
             <div className="container">
-                {recapCount > 0 && !isTeamMode && !isGearRoute && !isFindRoute && (
+                {recapCount > 0 && !isTeamMode && !isGearRoute && (
                     <div className="portfolio__recap-section">
                         <Recap
                             slug={selectedTab}
@@ -645,7 +642,6 @@ export default function Portfolio({ years }: PortfolioProps) {
                 <div className="portfolio__events-wrapper">
                     {!isGlobalSearchOpen &&
                         !isLightboxOpen &&
-                        !isFindRoute &&
                         (!isMultiYearMode ? (
                             <PortfolioMonthTrack key={selectedTab} events={events} selectedYear={selectedTab} />
                         ) : multiYearData.length > 1 ? (
@@ -667,13 +663,7 @@ export default function Portfolio({ years }: PortfolioProps) {
                         ) : null)}
 
                     <div className="portfolio__events" ref={stickyRef}>
-                        {isFindRoute ? (
-                            <ErrorBoundary name="FindMyPhotos">
-                                <Suspense fallback={null}>
-                                    <FindMyPhotosView initialTeamSlug={findTeamSlug} />
-                                </Suspense>
-                            </ErrorBoundary>
-                        ) : isFavoritesTab && favorites.length === 0 ? (
+                        {isFavoritesTab && favorites.length === 0 ? (
                             <EventEmptyFavorites />
                         ) : (
                             <>

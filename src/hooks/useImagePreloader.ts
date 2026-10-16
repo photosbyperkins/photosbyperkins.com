@@ -1,6 +1,36 @@
 import { useEffect } from 'react';
 import type { PhotoInput } from '../types';
 
+const MAX_READY_CACHE_ENTRIES = 250;
+const hiResReadyCache = new Set<string>();
+
+export function markHiResReady(src: string): void {
+    if (!src) return;
+    if (hiResReadyCache.size >= MAX_READY_CACHE_ENTRIES && !hiResReadyCache.has(src)) {
+        const oldest = hiResReadyCache.values().next().value;
+        if (oldest !== undefined) hiResReadyCache.delete(oldest);
+    }
+    hiResReadyCache.add(src);
+}
+
+export function isHiResReady(src: string): boolean {
+    if (!src) return false;
+    if (hiResReadyCache.has(src)) return true;
+    if (typeof Image !== 'undefined') {
+        const probe = new Image();
+        probe.src = src;
+        if (probe.complete && probe.naturalWidth > 0) {
+            markHiResReady(src);
+            return true;
+        }
+    }
+    return false;
+}
+
+export function clearHiResReadyCache(): void {
+    hiResReadyCache.clear();
+}
+
 interface UseImagePreloaderProps {
     images: PhotoInput[];
     currentIndex: number;
@@ -40,22 +70,32 @@ export function useImagePreloader({ images, currentIndex, mainImageLoaded, getDi
                 Boolean((navigator as { connection?: { saveData?: boolean } }).connection?.saveData);
             if (isSaveData) return;
 
-            // Fire off immediate next/prev directly into the browser network pipeline
+            // Fire off immediate next/prev directly into the browser network pipeline and pre-decode
             const immediate = allIdxs.slice(0, 2);
             immediate.forEach((idx) => {
                 const src = getDisplaySrc(images[idx]);
-                if (src) {
+                if (src && !hiResReadyCache.has(src)) {
                     const img = new Image();
                     if ('fetchPriority' in img) {
                         img.fetchPriority = 'low';
                     }
                     img.decoding = 'async';
+                    img.onload = () => {
+                        if (typeof img.decode === 'function') {
+                            img.decode().then(
+                                () => markHiResReady(src),
+                                () => markHiResReady(src)
+                            );
+                        } else {
+                            markHiResReady(src);
+                        }
+                    };
                     img.src = src;
                 }
             });
 
             // Wait briefly for immediate neighbours and UI animations to settle before trickling outer radius
-            await new Promise((r) => setTimeout(r, 2500));
+            await new Promise((r) => setTimeout(r, 400));
             if (isCancelled) return;
 
             // Asynchronously trickle-load the nearest photos (capped to prevent bandwidth/memory exhaustion)
@@ -65,7 +105,7 @@ export function useImagePreloader({ images, currentIndex, mainImageLoaded, getDi
                 if (isCancelled) break;
 
                 const src = getDisplaySrc(images[idx]);
-                if (!src) continue;
+                if (!src || hiResReadyCache.has(src)) continue;
 
                 await new Promise<void>((resolve) => {
                     const img = new Image();
@@ -80,7 +120,21 @@ export function useImagePreloader({ images, currentIndex, mainImageLoaded, getDi
                     }, 8000);
                     img.onload = () => {
                         clearTimeout(timer);
-                        resolve();
+                        if (typeof img.decode === 'function') {
+                            img.decode().then(
+                                () => {
+                                    markHiResReady(src);
+                                    resolve();
+                                },
+                                () => {
+                                    markHiResReady(src);
+                                    resolve();
+                                }
+                            );
+                        } else {
+                            markHiResReady(src);
+                            resolve();
+                        }
                     };
                     img.onerror = () => {
                         clearTimeout(timer);
@@ -90,7 +144,7 @@ export function useImagePreloader({ images, currentIndex, mainImageLoaded, getDi
                 });
 
                 // Pause to yield to main UI thread / network
-                await new Promise((r) => setTimeout(r, 150));
+                await new Promise((r) => setTimeout(r, 100));
             }
         };
 

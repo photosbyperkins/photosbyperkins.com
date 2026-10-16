@@ -134,18 +134,6 @@ export default function GlobalSearchOverlay({
                                         )}
                                         <span>Gear</span>
                                     </button>
-                                    <button
-                                        type="button"
-                                        onClick={() => {
-                                            onClose();
-                                            if (typeof window !== 'undefined') {
-                                                window.history.pushState({}, '', '/portfolio/find');
-                                                window.dispatchEvent(new PopStateEvent('popstate'));
-                                            }
-                                        }}
-                                    >
-                                        <span>#Jersey</span>
-                                    </button>
                                 </div>
                                 <div className="portfolio__search-input-wrap">
                                     <Search size={16} className="portfolio__search-input-icon" />
