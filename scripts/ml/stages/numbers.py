@@ -30,12 +30,12 @@ def is_valid_derby_number(text: str) -> bool:
 
 
 def _build_digit_templates() -> dict[str, np.ndarray]:
-    """Builds canonical 24x36 binary athletic block digit templates ('0'..'9') for zero-weight fallback."""
+    """Builds canonical unclipped binary athletic block digit templates ('0'..'9') for zero-weight fallback."""
     templates: dict[str, np.ndarray] = {}
     for ch in '0123456789':
-        canvas = np.zeros((36, 24), dtype=np.uint8)
-        cv2.putText(canvas, ch, (2, 31), cv2.FONT_HERSHEY_DUPLEX, 1.05, 255, 3, cv2.LINE_AA)
-        _, bw = cv2.threshold(canvas, 60, 255, cv2.THRESH_BINARY)
+        canvas = np.zeros((64, 64), dtype=np.uint8)
+        cv2.putText(canvas, ch, (12, 48), cv2.FONT_HERSHEY_DUPLEX, 1.25, 255, 3, cv2.LINE_AA)
+        _, bw = cv2.threshold(canvas, 0, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
         coords = cv2.findNonZero(bw)
         if coords is not None:
             x, y, w, h = cv2.boundingRect(coords)
