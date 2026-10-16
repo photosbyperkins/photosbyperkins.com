@@ -489,10 +489,12 @@ describe('StoryBurstCropper', () => {
         }
     });
 
-    it('renders slot pills in a dedicated overlay layer above the decorative frame overlay', () => {
+    it('renders slot pills and delta timestamp pills in a dedicated overlay layer above the decorative frame overlay', () => {
         const { container } = render(
             <StoryBurstCropper
                 images={sampleImages}
+                timeStamps={[0.0, 0.42, 0.84]}
+                showTimeStamps={true}
                 panOffsets={defaultPanOffsets}
                 onPanChange={mockOnPanChange}
                 frameId="derby-quads"
@@ -518,5 +520,11 @@ describe('StoryBurstCropper', () => {
         expect(pills[0].textContent).toContain('TOP');
         expect(pills[1].textContent).toContain('MID');
         expect(pills[2].textContent).toContain('BTM');
+
+        const timestampPills = slotPillsLayer!.querySelectorAll('.story-burst-cropper__timestamp-pill');
+        expect(timestampPills.length).toBe(3);
+        expect(timestampPills[0].textContent).toBe('+0.00s');
+        expect(timestampPills[1].textContent).toBe('+0.42s');
+        expect(timestampPills[2].textContent).toBe('+0.84s');
     });
 });

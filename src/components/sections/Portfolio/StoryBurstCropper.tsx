@@ -384,15 +384,11 @@ const StoryBurstPanel: React.FC<StoryBurstPanelProps> = ({
                 <span className="story-burst-cropper__grid-row story-burst-cropper__grid-row--2" />
             </div>
 
-            {/* Slot name accessible text */}
-            <span className="sr-only">{slotName}</span>
-
-            {/* Timestamp Pill */}
-            {shouldShowTimeStamp && (
-                <div className="story-burst-cropper__timestamp-pill" aria-hidden="true">
-                    +{dt === 0 ? '0.00' : dt.toFixed(2)}s
-                </div>
-            )}
+            {/* Slot name and timestamp accessible text */}
+            <span className="sr-only">
+                {slotName}
+                {shouldShowTimeStamp ? ` +${dt === 0 ? '0.00' : dt.toFixed(2)}s` : ''}
+            </span>
         </div>
     );
 };
@@ -491,7 +487,7 @@ export const StoryBurstCropper: React.FC<StoryBurstCropperProps> = ({
                     animated={isFrameAnimated}
                 />
 
-                {/* Slot Pills Layer (rendered on top of decorative frame overlay) */}
+                {/* Slot & Timestamp Pills Layer (rendered on top of decorative frame overlay) */}
                 <div className="story-burst-cropper__slot-pills-layer" aria-hidden="true">
                     {panelIndices.map((panelIdx) => {
                         const slotName = slotNames[panelIdx];
@@ -504,6 +500,7 @@ export const StoryBurstCropper: React.FC<StoryBurstCropperProps> = ({
                         const zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, pan.zoom ?? defZoom));
                         const isDragging = draggingPanelIdx === panelIdx;
                         const isHovered = hoveredPanelIdx === panelIdx;
+                        const dt = timeStamps?.[panelIdx] ?? 0;
 
                         return (
                             <div key={panelIdx} className="story-burst-cropper__slot-pill-anchor">
@@ -518,6 +515,11 @@ export const StoryBurstCropper: React.FC<StoryBurstCropperProps> = ({
                                     )}
                                     <span className="story-burst-cropper__pan-hint">Pan/Zoom</span>
                                 </div>
+                                {shouldShowTimeStamps && (
+                                    <div className="story-burst-cropper__timestamp-pill" aria-hidden="true">
+                                        +{dt === 0 ? '0.00' : dt.toFixed(2)}s
+                                    </div>
+                                )}
                             </div>
                         );
                     })}

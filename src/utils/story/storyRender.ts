@@ -100,7 +100,7 @@ export function drawStoryScene(
             targetH,
             resScale,
             filterCss,
-            { panelAnims: anim.panels, glowImages: assets.rawImages }
+            { panelAnims: anim.panels, glowImages: assets.rawImages, deferTimestamps: true }
         );
     }
     // ==========================================
@@ -316,6 +316,15 @@ export function drawStoryScene(
         } catch (err) {
             console.warn('Failed to draw story frame to canvas:', err);
         }
+    }
+
+    // ==========================================
+    // 2.6. RENDER BURST DELTA TIMESTAMPS (above decorative frames)
+    // ==========================================
+    if (config.mode === 'burst') {
+        renderBurstTimestamps(ctx, imageList, config, targetW, targetH, resScale, {
+            panelAnims: anim.panels,
+        });
     }
 
     // ==========================================
@@ -648,6 +657,8 @@ export interface BurstRenderOptions {
     panelAnims?: StoryPanelAnim[];
     /** Unfiltered images for the gutter-style background glow (keeps parity when filters are baked). */
     glowImages?: (HTMLImageElement | HTMLCanvasElement | null | undefined)[];
+    /** When true, skips drawing timestamp pills inside `renderBurstPanels` so `drawStoryScene` can draw them above decorative frames. */
+    deferTimestamps?: boolean;
 }
 
 const IDENTITY_PANEL: StoryPanelAnim = { dx: 0, dy: 0, zoomMul: 1, opacity: 1, detailOpacity: 1 };
@@ -702,13 +713,6 @@ export function renderBurstPanels(
         focusYList: [0.45, 0.45, 0.45],
     };
     const style = burst.dividerStyle || 'hairline';
-    const isMultiPhoto = Boolean(
-        burst.isTriptych || !burst.timeStamps || burst.timeStamps.length === 0 || burst.timeStamps.every((t) => t === 0)
-    );
-    const showTimeStamps = Boolean(
-        !isMultiPhoto && burst.showTimeStamps && burst.timeStamps && burst.timeStamps.some((t) => t > 0)
-    );
-    const timeStamps = burst.timeStamps || [];
     const panOffsets: { x: number; y: number; zoom?: number }[] =
         burst.panOffsets ||
         (burst.focusYList
@@ -807,13 +811,6 @@ export function renderBurstPanels(
                 drawRoundRect(ctx, panelX, panelY, panelW, panelH, panelRadius);
                 ctx.stroke();
                 ctx.restore();
-
-                if (showTimeStamps) {
-                    const dt = timeStamps[i] ?? 0;
-                    withAlpha(ctx, pa.detailOpacity, () =>
-                        drawTimestampPill(ctx, panelX, panelY, panelW, panelH, dt, resScale)
-                    );
-                }
             } else {
                 // Blank area for missing frame
                 ctx.save();
@@ -884,13 +881,6 @@ export function renderBurstPanels(
                     pa.zoomMul
                 );
                 ctx.restore();
-
-                if (showTimeStamps) {
-                    const dt = timeStamps[i] ?? 0;
-                    withAlpha(ctx, pa.detailOpacity, () =>
-                        drawTimestampPill(ctx, panelX, panelY, panelW, panelH, dt, resScale)
-                    );
-                }
             } else {
                 // Blank area for missing frame
                 ctx.save();
@@ -953,13 +943,6 @@ export function renderBurstPanels(
                     pa.zoomMul
                 );
                 ctx.restore();
-
-                if (showTimeStamps) {
-                    const dt = timeStamps[i] ?? 0;
-                    withAlpha(ctx, pa.detailOpacity, () =>
-                        drawTimestampPill(ctx, panelX, panelY, targetW, currentH, dt, resScale)
-                    );
-                }
             } else {
                 // Blank area for missing frame
                 ctx.save();
@@ -982,6 +965,78 @@ export function renderBurstPanels(
                 ctx.restore();
             });
         }
+    }
+
+    if (!options.deferTimestamps) {
+        renderBurstTimestamps(ctx, images, config, targetW, targetH, resScale, options);
+    }
+}
+
+/**
+ * Renders burst delta time (+Δt) pills for each panel.
+ * Called after decorative frames in `drawStoryScene` so delta timers always sit above frames.
+ */
+export function renderBurstTimestamps(
+    ctx: CanvasRenderingContext2D,
+    images: (HTMLImageElement | HTMLCanvasElement | null | undefined)[],
+    config: StoryRenderConfig,
+    targetW: number,
+    targetH: number,
+    resScale: number,
+    options: BurstRenderOptions = {}
+) {
+    const burst = config.burst;
+    if (!burst) return;
+    const isMultiPhoto = Boolean(
+        burst.isTriptych || !burst.timeStamps || burst.timeStamps.length === 0 || burst.timeStamps.every((t) => t === 0)
+    );
+    const showTimeStamps = Boolean(
+        !isMultiPhoto && burst.showTimeStamps && burst.timeStamps && burst.timeStamps.some((t) => t > 0)
+    );
+    if (!showTimeStamps) return;
+
+    const style = burst.dividerStyle || 'hairline';
+    const timeStamps = burst.timeStamps || [];
+    const panelCount: 2 | 3 = burst.panelCount ?? (images.length === 2 ? 2 : 3);
+    const panelImages: (HTMLImageElement | HTMLCanvasElement | null | undefined)[] =
+        panelCount === 2
+            ? [images[0] ?? null, images[1] ?? null]
+            : [images[0] ?? null, images[1] ?? null, images[2] ?? null];
+    const panelAnim = (i: number): StoryPanelAnim => options.panelAnims?.[i] ?? IDENTITY_PANEL;
+
+    let panelX = 0;
+    let panelW = targetW;
+    let topBottomMargin = 0;
+    let gutter = Math.round(4 * resScale);
+
+    if (style === 'gutter') {
+        const margin = Math.round(20 * resScale);
+        gutter = Math.round(14 * resScale);
+        topBottomMargin = Math.round(40 * resScale);
+        panelW = targetW - margin * 2;
+        panelX = margin;
+    } else if (style === 'filmstrip') {
+        const sideMargin = Math.round(46 * resScale);
+        gutter = Math.round(18 * resScale);
+        topBottomMargin = Math.round(42 * resScale);
+        panelW = targetW - sideMargin * 2;
+        panelX = sideMargin;
+    }
+
+    const availableH = targetH - topBottomMargin * 2 - gutter * (panelCount - 1);
+    const panelH = Math.floor(availableH / panelCount);
+
+    for (let i = 0; i < panelCount; i++) {
+        if (!panelImages[i]) continue;
+        const panelY = topBottomMargin + i * (panelH + gutter);
+        const currentH = style === 'hairline' && i === panelCount - 1 ? targetH - panelY : panelH;
+        const pa = panelAnim(i);
+        const transformed = beginPanelTransform(ctx, pa, panelW, currentH);
+        const dt = timeStamps[i] ?? 0;
+        withAlpha(ctx, pa.detailOpacity, () =>
+            drawTimestampPill(ctx, panelX, panelY, panelW, currentH, dt, resScale)
+        );
+        if (transformed) ctx.restore();
     }
 }
 
