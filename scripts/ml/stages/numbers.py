@@ -111,7 +111,7 @@ def recognize_jersey_crop_cv(crop_bgr: np.ndarray) -> tuple[str, float] | None:
             if w < cw * 0.04 or w > cw * 0.48:
                 continue
             aspect = h / float(max(w, 1))
-            if not (1.05 <= aspect <= 4.5):
+            if not (0.85 <= aspect <= 4.5):
                 continue
             if x <= 1 or y <= 1 or (x + w) >= (cw - 1) or (y + h) >= (ch - 1):
                 continue
