@@ -73,6 +73,45 @@ function formatErrorMessage(error: unknown): { message: string; stack?: string }
     }
 }
 
+function getTelemetryEndpoint(override?: string): string {
+    if (typeof override === 'string') return override.trim();
+    if (typeof import.meta !== 'undefined' && import.meta.env?.VITE_TELEMETRY_ENDPOINT) {
+        return String(import.meta.env.VITE_TELEMETRY_ENDPOINT).trim();
+    }
+    return '';
+}
+
+export function sendRumBeacon(sample: VitalSample, endpointOverride?: string): boolean {
+    const endpoint = getTelemetryEndpoint(endpointOverride);
+    if (!endpoint) return false;
+
+    const payload = JSON.stringify({
+        build: sample.build,
+        route: sample.route,
+        metric: sample.name,
+        value: sample.value,
+    });
+
+    try {
+        if (typeof navigator !== 'undefined' && typeof navigator.sendBeacon === 'function') {
+            return navigator.sendBeacon(endpoint, payload);
+        }
+        if (typeof fetch === 'function') {
+            void fetch(endpoint, {
+                method: 'POST',
+                body: payload,
+                keepalive: true,
+                credentials: 'omit',
+                headers: { 'Content-Type': 'application/json' },
+            }).catch(() => {});
+            return true;
+        }
+    } catch {
+        // Ignore network/beacon errors so RUM never impacts UX
+    }
+    return false;
+}
+
 function createPerfVitalsStore(): PerfVitalsStore {
     const store: PerfVitalsStore = {
         metrics: {
@@ -98,6 +137,7 @@ function createPerfVitalsStore(): PerfVitalsStore {
             if (store.history.length > MAX_HISTORY_SAMPLES) {
                 store.history.shift();
             }
+            sendRumBeacon(sample);
             return sample;
         },
         recordError(boundary: string, error: unknown, componentStack?: string): CapturedErrorRecord {

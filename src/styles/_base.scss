@@ -397,6 +397,33 @@ main {
     pointer-events: none;
     white-space: nowrap;
 
+    &--interactive {
+        pointer-events: auto;
+        padding: 0.35rem 0.55rem 0.35rem 1rem;
+    }
+
+    &__action {
+        appearance: none;
+        border: none;
+        background: var(--color-accent);
+        color: #fff;
+        font-family: var(--font-body);
+        font-size: 0.8rem;
+        font-weight: 600;
+        padding: 0.3rem 0.75rem;
+        border-radius: 999px;
+        cursor: pointer;
+        transition: opacity 0.15s ease, transform 0.15s ease;
+
+        &:hover {
+            opacity: 0.92;
+        }
+
+        &:active {
+            transform: scale(0.97);
+        }
+    }
+
     &__icon {
         flex-shrink: 0;
 

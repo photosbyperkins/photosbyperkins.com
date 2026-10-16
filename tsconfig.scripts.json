@@ -25,5 +25,5 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["scripts"]
+  "include": ["scripts", "src/vite-env.d.ts"]
 }

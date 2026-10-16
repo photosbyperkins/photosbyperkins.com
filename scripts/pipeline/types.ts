@@ -28,6 +28,13 @@ export interface EventData {
     title?: string;
     photoCount?: number;
     localScore?: Record<string, unknown>;
+    isJuniorBout?: boolean;
+    teams?: Array<{
+        name: string;
+        jerseyColorHex?: string | null;
+        score?: number | string | null;
+    }>;
+    coverPhoto?: string | null;
     earliestTime?: number;
     scrubberHash?: string;
 }

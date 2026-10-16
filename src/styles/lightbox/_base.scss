@@ -118,9 +118,9 @@
             z-index: 1;
             max-width: 100%;
             max-height: 100%;
-            width: auto;
-            height: auto;
-            object-fit: contain;
+            width: var(--lightbox-img-w, auto);
+            height: var(--lightbox-img-h, auto);
+            object-fit: cover;
             border-radius: 4px;
         }
 

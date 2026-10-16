@@ -9,6 +9,12 @@ export default defineConfig({
     workers: process.env.CI ? 1 : undefined,
     timeout: 60000,
     reporter: 'html',
+    expect: {
+        toHaveScreenshot: {
+            maxDiffPixelRatio: 0.02,
+            animations: 'disabled',
+        },
+    },
     use: {
         baseURL: 'http://localhost:5173',
         trace: 'on-first-retry',

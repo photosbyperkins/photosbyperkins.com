@@ -59,4 +59,36 @@ describe('PwaStatusToast', () => {
         });
         expect(screen.getByText(/Back online/i)).not.toBeNull();
     });
+
+    it('surfaces "New photos available — Refresh" pill on pwa:update-available event', () => {
+        render(<PwaStatusToast />);
+
+        act(() => {
+            window.dispatchEvent(new CustomEvent('pwa:update-available'));
+        });
+
+        expect(screen.getByText(/New photos available/i)).not.toBeNull();
+        expect(screen.getByRole('button', { name: /Refresh/i })).not.toBeNull();
+    });
+
+    it('detects buildNumber changes in /data/index.json on visibilitychange', async () => {
+        vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
+            ok: true,
+            json: async () => ({ buildNumber: 'build-999' }),
+        } as Response);
+
+        Object.defineProperty(document, 'visibilityState', {
+            value: 'visible',
+            configurable: true,
+        });
+
+        render(<PwaStatusToast currentBuildNumber="build-100" />);
+
+        await act(async () => {
+            document.dispatchEvent(new Event('visibilitychange'));
+        });
+
+        expect(screen.getByText(/New photos available/i)).not.toBeNull();
+        expect(screen.getByRole('button', { name: /Refresh/i })).not.toBeNull();
+    });
 });

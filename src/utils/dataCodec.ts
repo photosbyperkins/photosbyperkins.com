@@ -32,6 +32,7 @@ export interface BurstWire {
     i: number;
     fr: number[];
     dt: number[];
+    bf?: number;
 }
 
 export interface PhotoWire {
@@ -50,6 +51,8 @@ export interface PhotoWire {
     /** Faces / subjects as flat `[x, y, w, h, ...]` in hundredths. */
     fb?: number[];
     sb?: number[];
+    /** Compact 28-byte binary ThumbHash placeholder (base64). */
+    th?: string;
     b?: BurstWire;
     /** Raw burst metadata, only when it can't be expressed compactly. */
     rb?: BurstMetadata;
@@ -69,8 +72,10 @@ export interface HighlightWire {
     n?: number | string;
     o?: string;
     t?: string;
+    wh?: [number, number];
     f?: [number, number];
     fb?: number[];
+    th?: string;
 }
 
 /** Event metadata with `highlights` replaced by compact `hl` and the empty `album` omitted. */
@@ -142,6 +147,8 @@ function decodePathRef(year: string, slug: string, ref: Pick<PhotoWire, 'n' | 'o
 const ALBUM_PHOTO_FIELDS = new Set([
     'original',
     'thumb',
+    'tiny',
+    'th',
     'width',
     'height',
     'spriteIndex',
@@ -153,6 +160,8 @@ const ALBUM_PHOTO_FIELDS = new Set([
     'subjects',
     'scrubberHash',
     'burst',
+    'bestInBurst',
+    'qualityScore',
     // Pipeline-only: intentionally not shipped (leaks original filenames).
     'source',
 ]);
@@ -171,6 +180,7 @@ const COMPACT_BURST_FIELDS = new Set([
     'frameWidths',
     'frameHeights',
     'isDuet',
+    'bestFrameIndex',
 ]);
 
 function encodeBurst(burst: BurstMetadata, slug: string, indexByOriginal: Map<string, number>, album: PhotoRecord[]): Pick<PhotoWire, 'b' | 'rb'> {
@@ -190,7 +200,15 @@ function encodeBurst(burst: BurstMetadata, slug: string, indexByOriginal: Map<st
         (!burst.frameThumbs || burst.frameThumbs.every((t, j) => t === album[fr[j]!].thumb));
 
     if (!compactable) return { rb: burst };
-    return { b: { k, i: burst.index, fr: fr as number[], dt: burst.frameDeltas! } };
+    return {
+        b: {
+            k,
+            i: burst.index,
+            fr: fr as number[],
+            dt: burst.frameDeltas!,
+            ...(burst.bestFrameIndex !== undefined ? { bf: burst.bestFrameIndex } : {}),
+        },
+    };
 }
 
 function mostCommonDims(photos: PhotoRecord[]): [number, number] {
@@ -250,6 +268,8 @@ export function encodeAlbum(year: string, slug: string, photos: PhotoRecord[]): 
         if (fb) w.fb = fb;
         const sb = encodeBoxes(photo.subjects);
         if (sb) w.sb = sb;
+        const thVal = photo.th || (photo.tiny && !photo.tiny.startsWith('data:') && !photo.tiny.startsWith('/') ? photo.tiny : undefined);
+        if (thVal) w.th = thVal;
         if (photo.burst) Object.assign(w, encodeBurst(photo.burst, slug, indexByOriginal, photos));
         return w;
     });
@@ -291,6 +311,10 @@ export function decodeAlbum(json: unknown): PhotoRecord[] {
         if (faces) rec.faces = faces;
         const subjects = decodeBoxes(w.sb);
         if (subjects) rec.subjects = subjects;
+        if (w.th) {
+            rec.th = w.th;
+            rec.tiny = w.th;
+        }
         if (h) rec.scrubberHash = h;
         return rec;
     });
@@ -302,7 +326,7 @@ export function decodeAlbum(json: unknown): PhotoRecord[] {
             return;
         }
         if (!w.b) return;
-        const { k, i: index, fr, dt } = w.b;
+        const { k, i: index, fr, dt, bf } = w.b;
         const frames = fr.map((j) => photos[j]);
         const total = frames.length;
         photos[i].burst = {
@@ -318,6 +342,7 @@ export function decodeAlbum(json: unknown): PhotoRecord[] {
             frameWidths: frames.map((f) => f.width),
             frameHeights: frames.map((f) => f.height),
             ...(total === 2 ? { isDuet: true } : {}),
+            ...(bf !== undefined ? { bestFrameIndex: bf } : {}),
         };
     });
 
@@ -327,11 +352,15 @@ export function decodeAlbum(json: unknown): PhotoRecord[] {
 // --- Event chunks (years / teams / gear) --------------------------------------------------
 
 /** Pipeline-only or unused event fields that are never shipped to the client. */
-const DROPPED_EVENT_FIELDS = new Set(['wftdaRankings', 'earliestTime', 'hero', 'recapImages']);
+const DROPPED_EVENT_FIELDS = new Set(['wftdaRankings', 'earliestTime', 'hero', 'recapImages', 'teams', 'isJuniorBout']);
 
 interface HighlightInput {
     original?: string;
     thumb?: string;
+    tiny?: string;
+    th?: string;
+    width?: number;
+    height?: number;
     focusX?: number;
     focusY?: number;
     faces?: FaceBox[];
@@ -341,21 +370,32 @@ function encodeHighlight(h: HighlightInput, year: string | undefined, slug: stri
     const original = h.original ?? '';
     const thumb = h.thumb ?? original;
     const w: HighlightWire = year && slug ? encodePathRef(year, slug, original, thumb) : { o: original, t: thumb };
+    if (h.width && h.height) w.wh = [h.width, h.height];
     if (h.focusX != null && h.focusY != null) w.f = [quantize(h.focusX), quantize(h.focusY)];
     const fb = encodeBoxes(h.faces);
     if (fb) w.fb = fb;
+    const thVal = h.th || (h.tiny && !h.tiny.startsWith('data:') && !h.tiny.startsWith('/') ? h.tiny : undefined);
+    if (thVal) w.th = thVal;
     return w;
 }
 
 function decodeHighlight(w: HighlightWire, year: string | undefined, slug: string | undefined): PhotoRecord {
     const rec: PhotoRecord =
         year && slug && w.o === undefined ? decodePathRef(year, slug, w) : { original: w.o ?? '', thumb: w.t ?? w.o ?? '' };
+    if (w.wh) {
+        rec.width = w.wh[0];
+        rec.height = w.wh[1];
+    }
     if (w.f) {
         rec.focusX = dequantize(w.f[0]);
         rec.focusY = dequantize(w.f[1]);
     }
     const faces = decodeBoxes(w.fb);
     if (faces) rec.faces = faces;
+    if (w.th) {
+        rec.th = w.th;
+        rec.tiny = w.th;
+    }
     return rec;
 }
 

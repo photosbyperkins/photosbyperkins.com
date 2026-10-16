@@ -16,6 +16,34 @@ function writeJson(filePath: string, data: unknown): void {
 async function main(): Promise<void> {
     const publicDir = path.join(process.cwd(), 'public');
     const indexJsonPath = path.join(publicDir, 'data', 'index.json');
+    const findIndexPath = path.join(publicDir, 'data', 'find', 'index.json');
+
+    if (!fs.existsSync(findIndexPath)) {
+        writeJson(findIndexPath, {
+            v: 1,
+            teams: [
+                {
+                    name: 'Sacramento',
+                    slug: 'sacramento',
+                    colorHex: '#4B2E83',
+                    photoCount: 5,
+                    eventCount: 1,
+                    topNumbers: ['42', '88'],
+                },
+            ],
+        });
+        writeJson(path.join(publicDir, 'data', 'find', 'sacramento.json'), {
+            v: 1,
+            team: 'Sacramento',
+            slug: 'sacramento',
+            colorHex: '#4B2E83',
+            events: [{ y: YEAR, s: EVENT_SLUG, t: EVENT_TITLE }],
+            photos: [
+                { e: 0, i: 0, n: ['42'], r: 'jammer', g: ['apex-jump'], b: 1 },
+                { e: 0, i: 1, n: ['88'], r: 'pivot', g: ['pack'] },
+            ],
+        });
+    }
 
     // Only synthesize CI fixtures when real generated photo data is absent (e.g. clean GitHub Actions checkout)
     if (fs.existsSync(indexJsonPath)) {

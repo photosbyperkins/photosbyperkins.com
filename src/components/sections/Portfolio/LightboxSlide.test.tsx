@@ -69,4 +69,18 @@ describe('LightboxSlide', () => {
         expect(ref.current).toBeDefined();
         expect(typeof ref.current?.toggleZoom).toBe('function');
     });
+
+    it('locks on-screen dimensions to the full photo aspect ratio while displaying the thumbnail', () => {
+        const avifPhoto: PhotoInput = {
+            original: '/photos/2025/bout/photo_001.jpg',
+            thumb: '/thumbnails/2025/bout/photo_001.avif',
+            width: 3072,
+            height: 2048,
+        };
+        const { container } = render(<LightboxSlide image={avifPhoto} alt="AVIF Photo" />);
+        const img = container.querySelector('img') as HTMLImageElement;
+        expect(img.src).toContain('/thumbnails/2025/bout/photo_001.avif');
+        expect(img.style.getPropertyValue('--lightbox-img-w')).toBe('min(100%, 150vh)');
+        expect(img.style.getPropertyValue('--lightbox-img-h')).toBe('min(100%, 66.6667vw)');
+    });
 });

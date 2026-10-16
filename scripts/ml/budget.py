@@ -20,13 +20,27 @@ BUDGET = {
 }
 EXCLUDED = {'alt_text': 'VLM alt text: separate resumable job, not part of the 2-hour target'}
 
+STAGE_ALIASES = {
+    'bursts': 'phash',
+    'teams': 'phash',
+    'roles': 'jammer',
+    'numbers': 'ocr',
+}
+
 
 def evaluate(measured):
     """measured: {row: projected seconds for TARGET_PHOTOS}. Returns (rows, total, ok)."""
+    normalized = {}
+    for k, v in measured.items():
+        if k in ('alt', 'alt_text'):
+            continue
+        target_key = STAGE_ALIASES.get(k, k)
+        normalized[target_key] = normalized.get(target_key, 0.0) + float(v)
+
     rows, total, ok = [], 0.0, True
     for name, spec in BUDGET.items():
-        if name in measured:
-            secs = measured[name]
+        if name in normalized:
+            secs = normalized[name]
             row_ok = secs <= spec['seconds']
             status = 'measured'
         else:
@@ -37,7 +51,7 @@ def evaluate(measured):
         total += secs
         rows.append({'name': name, 'budget': spec['seconds'], 'projected': secs, 'status': status,
                      'ok': row_ok, 'note': spec['note']})
-    for name, secs in measured.items():
+    for name, secs in normalized.items():
         if name not in BUDGET:
             rows.append({'name': name, 'budget': 0, 'projected': secs, 'status': 'unbudgeted',
                          'ok': False, 'note': 'add a BUDGET row for this stage'})

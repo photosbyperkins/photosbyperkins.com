@@ -4,6 +4,7 @@ import {
     getPerfVitalsStore,
     recordRumMetric,
     recordRumError,
+    sendRumBeacon,
     initRum,
 } from './rum';
 
@@ -165,6 +166,37 @@ describe('rum (Tier 1 in-memory Core Web Vitals & error collector)', () => {
             expect(store.errors).toHaveLength(1);
             expect(store.errors[0].boundary).toBe('window.onerror');
             expect(store.errors[0].message).toBe('Unexpected runtime failure');
+        });
+    });
+
+    describe('Tier 2 Static Beacon (sendRumBeacon)', () => {
+        it('returns false and makes no network call when endpoint is empty', () => {
+            const sample = recordRumMetric('LCP', 1400, '/portfolio/2025');
+            expect(sendRumBeacon(sample, '')).toBe(false);
+        });
+
+        it('sends a cookieless zero-PII navigator.sendBeacon payload when endpoint is configured', () => {
+            const beaconMock = vi.fn().mockReturnValue(true);
+            Object.defineProperty(navigator, 'sendBeacon', {
+                value: beaconMock,
+                configurable: true,
+                writable: true,
+            });
+
+            const sample = recordRumMetric('LCP', 1520.4, '/portfolio/2025');
+            const sent = sendRumBeacon(sample, '/api/vitals.php');
+
+            expect(sent).toBe(true);
+            expect(beaconMock).toHaveBeenCalledTimes(1);
+            const [url, rawBody] = beaconMock.mock.calls[0];
+            expect(url).toBe('/api/vitals.php');
+            const parsed = JSON.parse(rawBody);
+            expect(parsed).toEqual({
+                build: sample.build,
+                route: '/portfolio/2025',
+                metric: 'LCP',
+                value: 1520.4,
+            });
         });
     });
 });

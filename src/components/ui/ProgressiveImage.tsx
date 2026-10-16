@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { withBuild } from '../../utils/build';
+import { resolvePlaceholderSrc } from '../../utils/thumbhash';
 import { loadedSrcs, beginPriorityImageLoad, enqueueNonPriorityLoad } from './progressiveImageCache';
 
 type ProgressiveImageProps = React.ImgHTMLAttributes<HTMLImageElement> & {
@@ -150,7 +151,7 @@ export default function ProgressiveImage({
     );
 
     const imageSrc = shouldLoad && src ? withBuild(src) : undefined;
-    const placeholderSrc = placeholder ? withBuild(placeholder) : null;
+    const placeholderSrc = resolvePlaceholderSrc(placeholder);
 
     return (
         <div

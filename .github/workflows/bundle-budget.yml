@@ -43,6 +43,16 @@ jobs:
       - name: Run unit tests
         run: npm test
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python ML test dependencies
+        run: pip install pytest numpy opencv-python-headless pillow
+
+      - name: Run Python ML unit tests & >=90% precision evaluation gate
+        run: npm run test:ml && npm run ml:eval
+
       - name: Build client
         run: npm run build:client
 

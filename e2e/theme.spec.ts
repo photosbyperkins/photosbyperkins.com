@@ -19,10 +19,7 @@ test.describe('Theme Switching', () => {
         if ((await toggle.count()) === 0) return;
 
         await toggle.click();
-        await page.waitForTimeout(300);
-
-        const theme = await page.locator('html').getAttribute('data-theme');
-        expect(theme).toBe('light');
+        await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
     });
 
     test('should persist theme across reload', async ({ page }) => {
@@ -30,12 +27,11 @@ test.describe('Theme Switching', () => {
         if ((await toggle.count()) === 0) return;
 
         await toggle.click();
-        await page.waitForTimeout(300);
+        await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 
         // Reload and check
         await page.reload();
-        const theme = await page.locator('html').getAttribute('data-theme');
-        expect(theme).toBe('light');
+        await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
     });
 
     test('should toggle back to dark theme', async ({ page }) => {
@@ -44,13 +40,15 @@ test.describe('Theme Switching', () => {
 
         // Toggle to light
         await toggle.click();
-        await page.waitForTimeout(300);
+        await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 
         // Toggle back to dark
         await toggle.click();
-        await page.waitForTimeout(300);
-
-        const theme = await page.locator('html').getAttribute('data-theme');
-        expect(theme === null || theme === 'dark').toBeTruthy();
+        await expect
+            .poll(async () => {
+                const attr = await page.locator('html').getAttribute('data-theme');
+                return attr === null || attr === 'dark';
+            })
+            .toBe(true);
     });
 });

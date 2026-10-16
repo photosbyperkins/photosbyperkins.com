@@ -11,6 +11,9 @@ import { EventActions } from './eventComponents/EventActions';
 import { EventHighlights } from './eventComponents/EventHighlights';
 import { EventGrid } from './eventComponents/EventGrid';
 import { EventEmptyFavorites } from './eventComponents/EventEmptyFavorites';
+import { EventTagFilterBar } from './eventComponents/EventTagFilterBar';
+import { useEventTags } from '../../../hooks/useEventTags';
+import { matchesEventTagFilter, type EventTagFilter } from '../../../utils/tagSidecar';
 import { useZipWorker } from '../../../hooks/useZipWorker';
 import { scrollToElement } from '../../../utils/scroll';
 import { buildFavoritesShareUrl } from '../../../utils/favoritesUrl';
@@ -181,15 +184,31 @@ const PortfolioEvent = memo(function PortfolioEvent({
         setEv,
     });
 
+    const [activeTagFilter, setActiveTagFilter] = useState<EventTagFilter>('all');
+    const effectiveEventYear = ev.originalYear || selectedYear;
+    const { sidecar: tagSidecar } = useEventTags(
+        effectiveEventYear,
+        ev.albumSlug,
+        Boolean(isGridView && eventName !== 'Favorites')
+    );
+
     const rawAlbumImages: PhotoRecord[] = useMemo(() => {
         if (!ev.album) return [];
         return ev.album.map((item: unknown) => toPhotoRecord(item as FavoriteStoreItem));
     }, [ev.album]);
 
-    const albumImages: PhotoRecord[] = useMemo(() => {
+    const gearFilteredAlbumImages: PhotoRecord[] = useMemo(() => {
         const effectiveYear = ev.originalYear || selectedYear;
         return filterAlbumByGear(rawAlbumImages, activeGearId, effectiveYear);
     }, [rawAlbumImages, activeGearId, ev.originalYear, selectedYear]);
+
+    const albumImages: PhotoRecord[] = useMemo(() => {
+        if (activeTagFilter === 'all' || !tagSidecar) return gearFilteredAlbumImages;
+        return gearFilteredAlbumImages.filter((item, idx) => {
+            const origIdx = typeof item.spriteIndex === 'number' ? item.spriteIndex : idx;
+            return matchesEventTagFilter(tagSidecar, origIdx, activeTagFilter);
+        });
+    }, [gearFilteredAlbumImages, activeTagFilter, tagSidecar]);
 
     const handleShareEventFavorites = useCallback(async () => {
         const sourcePhotos = albumImages.length > 0 ? albumImages : rawAlbumImages;
@@ -535,45 +554,56 @@ const PortfolioEvent = memo(function PortfolioEvent({
                                 {eventName === 'Favorites' && (!ev.album || ev.album.length === 0) ? (
                                     <EventEmptyFavorites />
                                 ) : isGridView || eventName === 'Favorites' ? (
-                                    albumImages.length >
-                                        (parseInt(import.meta.env.VITE_VIRTUAL_GRID_THRESHOLD || '50', 10) || 50) &&
-                                    eventName !== 'Favorites' ? (
-                                        <>
-                                            <VirtualizedAlbumGrid
-                                                photos={albumImages}
+                                    <>
+                                        {eventName !== 'Favorites' && (
+                                            <EventTagFilterBar
+                                                sidecar={tagSidecar}
+                                                totalPhotos={gearFilteredAlbumImages.length}
+                                                activeFilter={activeTagFilter}
+                                                onSelectFilter={setActiveTagFilter}
+                                                filteredCount={albumImages.length}
+                                            />
+                                        )}
+                                        {albumImages.length >
+                                            (parseInt(import.meta.env.VITE_VIRTUAL_GRID_THRESHOLD || '50', 10) || 50) &&
+                                        eventName !== 'Favorites' ? (
+                                            <>
+                                                <VirtualizedAlbumGrid
+                                                    photos={albumImages}
+                                                    eventName={eventName}
+                                                    selectedYear={selectedYear}
+                                                    maxExifChars={ev.maxExifChars}
+                                                    localScore={eventScore}
+                                                    openLightbox={handleOpenLightbox}
+                                                    isSelectMode={isBatchSelectMode}
+                                                    selectedUrls={selectedUrls}
+                                                    selectionIndexMap={selectionIndexMap}
+                                                    onToggleSelect={handleToggleSelect}
+                                                />
+                                                {loading && <div className="portfolio__loading">Loading photos...</div>}
+                                                {fetchError && (
+                                                    <div className="portfolio__error">
+                                                        Error loading photos. Please try refreshing.
+                                                    </div>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <EventGrid
+                                                albumImages={albumImages}
                                                 eventName={eventName}
                                                 selectedYear={selectedYear}
                                                 maxExifChars={ev.maxExifChars}
-                                                localScore={eventScore}
+                                                eventScore={eventScore}
+                                                loading={loading}
+                                                fetchError={fetchError}
                                                 openLightbox={handleOpenLightbox}
                                                 isSelectMode={isBatchSelectMode}
                                                 selectedUrls={selectedUrls}
                                                 selectionIndexMap={selectionIndexMap}
                                                 onToggleSelect={handleToggleSelect}
                                             />
-                                            {loading && <div className="portfolio__loading">Loading photos...</div>}
-                                            {fetchError && (
-                                                <div className="portfolio__error">
-                                                    Error loading photos. Please try refreshing.
-                                                </div>
-                                            )}
-                                        </>
-                                    ) : (
-                                        <EventGrid
-                                            albumImages={albumImages}
-                                            eventName={eventName}
-                                            selectedYear={selectedYear}
-                                            maxExifChars={ev.maxExifChars}
-                                            eventScore={eventScore}
-                                            loading={loading}
-                                            fetchError={fetchError}
-                                            openLightbox={handleOpenLightbox}
-                                            isSelectMode={isBatchSelectMode}
-                                            selectedUrls={selectedUrls}
-                                            selectionIndexMap={selectionIndexMap}
-                                            onToggleSelect={handleToggleSelect}
-                                        />
-                                    )
+                                        )}
+                                    </>
                                 ) : (
                                     <EventHighlights
                                         featuredPhotos={featuredPhotos}

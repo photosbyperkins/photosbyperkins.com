@@ -19,14 +19,39 @@ def save_json(path, data, indent=None):
     os.replace(tmp, path)
 
 
-def collect(photos_data):
+def _matches_event_filter(event_filter, year, event_name, event_data):
+    if not event_filter:
+        return True
+    norm = event_filter.strip().lower().replace('\\', '/')
+    slug = (event_data.get('albumSlug') or '').lower()
+    import re
+    auto_slug = re.sub(r'[^a-z0-9]+', '-', event_name.lower()).strip('-')
+    candidates = (
+        f'{year}/{event_name}'.lower(),
+        f'{year}/{slug}'.lower() if slug else '',
+        f'{year}/{auto_slug}'.lower(),
+        event_name.lower(),
+        slug,
+        auto_slug,
+    )
+    return any(c and (c == norm or norm in c) for c in candidates)
+
+
+def collect(photos_data, event_filter=None):
     """Group photo records by thumbnail (a thumbnail can appear in both album and highlights).
 
-    Returns {thumb: {'photos': [records], 'thumb_path': local path, 'source': local source path|None}}.
+    Returns {thumb: {'photos': [records], 'thumb_path': local path, 'source': local source path|None,
+                     'year': str, 'event_name': str, 'is_junior_bout': bool, 'teams': list}}.
     """
     items = {}
-    for events in photos_data.values():
-        for event_data in events.values():
+    for year, events in photos_data.items():
+        if not isinstance(events, dict):
+            continue
+        for event_name, event_data in events.items():
+            if not isinstance(event_data, dict):
+                continue
+            if not _matches_event_filter(event_filter, year, event_name, event_data):
+                continue
             for list_key in ('album', 'highlights'):
                 for photo in event_data.get(list_key) or []:
                     if not (isinstance(photo, dict) and photo.get('thumb')):
@@ -38,6 +63,10 @@ def collect(photos_data):
                             'photos': [],
                             'thumb_path': os.path.normpath(os.path.join('build', thumb.lstrip('/'))),
                             'source': None,
+                            'year': str(year),
+                            'event_name': str(event_name),
+                            'is_junior_bout': bool(event_data.get('isJuniorBout', False)),
+                            'teams': event_data.get('teams') or [],
                         }
                     item['photos'].append(photo)
                     if item['source'] is None and photo.get('source'):

@@ -57,6 +57,7 @@ const LazyLightboxContainer = React.lazy(() =>
 );
 const GlobalSearchOverlay = React.lazy(() => import('./GlobalSearchOverlay'));
 const StoryExportModal = React.lazy(() => import('./StoryExportModal'));
+const FindMyPhotosView = React.lazy(() => import('./FindMyPhotosView'));
 
 // eslint-disable-next-line react-refresh/only-export-components
 export function warmPortfolioRoute(years: string[]): Promise<unknown> {
@@ -75,7 +76,15 @@ const EMPTY_BATCH_SELECTED: FavoriteStoreItem[] = [];
 export default function Portfolio({ years }: PortfolioProps) {
     const location = useLocation();
     const canShare = useCanShare();
-    const { selectedTab, isGearRoute, activeRouteSlug, initialSearchOpen, initialSearchQuery } = usePortfolioRoute({
+    const {
+        selectedTab,
+        isGearRoute,
+        isFindRoute,
+        findTeamSlug,
+        activeRouteSlug,
+        initialSearchOpen,
+        initialSearchQuery,
+    } = usePortfolioRoute({
         years,
     });
 
@@ -600,7 +609,7 @@ export default function Portfolio({ years }: PortfolioProps) {
     return (
         <section className="portfolio" id="portfolio" ref={portfolioRef}>
             <div className="container">
-                {recapCount > 0 && !isTeamMode && !isGearRoute && (
+                {recapCount > 0 && !isTeamMode && !isGearRoute && !isFindRoute && (
                     <div className="portfolio__recap-section">
                         <Recap
                             slug={selectedTab}
@@ -636,6 +645,7 @@ export default function Portfolio({ years }: PortfolioProps) {
                 <div className="portfolio__events-wrapper">
                     {!isGlobalSearchOpen &&
                         !isLightboxOpen &&
+                        !isFindRoute &&
                         (!isMultiYearMode ? (
                             <PortfolioMonthTrack key={selectedTab} events={events} selectedYear={selectedTab} />
                         ) : multiYearData.length > 1 ? (
@@ -657,7 +667,13 @@ export default function Portfolio({ years }: PortfolioProps) {
                         ) : null)}
 
                     <div className="portfolio__events" ref={stickyRef}>
-                        {isFavoritesTab && favorites.length === 0 ? (
+                        {isFindRoute ? (
+                            <ErrorBoundary name="FindMyPhotos">
+                                <Suspense fallback={null}>
+                                    <FindMyPhotosView initialTeamSlug={findTeamSlug} />
+                                </Suspense>
+                            </ErrorBoundary>
+                        ) : isFavoritesTab && favorites.length === 0 ? (
                             <EventEmptyFavorites />
                         ) : (
                             <>

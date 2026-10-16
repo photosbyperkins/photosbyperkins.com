@@ -1,10 +1,11 @@
 import fs from 'fs';
 import path from 'path';
+import { buildEventJsonFromDirectory } from './pipeline/eventMetadata.js';
 
 const PHOTOS_DIR = path.join(process.cwd(), 'photos');
 
 function main() {
-    console.log('🔄 Scanning events for score.json population...\n');
+    console.log('🔄 Scanning events for event.json & score.json population...\n');
 
     if (!fs.existsSync(PHOTOS_DIR)) {
         console.error('❌ Cannot find photos directory.');
@@ -27,9 +28,16 @@ function main() {
             .map((e) => e.name);
 
         for (const eventDir of eventDirs) {
+            const eventPath = path.join(yearPath, eventDir);
+            const eventJsonFile = path.join(eventPath, 'event.json');
+            if (!fs.existsSync(eventJsonFile)) {
+                const eventPayload = buildEventJsonFromDirectory(eventPath, eventDir);
+                fs.writeFileSync(eventJsonFile, JSON.stringify(eventPayload, null, 2) + '\n');
+            }
+
             if (!eventDir.toLowerCase().includes('vs')) continue;
 
-            const scoreFile = path.join(yearPath, eventDir, 'score.json');
+            const scoreFile = path.join(eventPath, 'score.json');
             if (!fs.existsSync(scoreFile)) {
                 const template = {
                     team1Score: null,
@@ -37,7 +45,7 @@ function main() {
                 };
                 fs.writeFileSync(scoreFile, JSON.stringify(template, null, 2));
                 addedCount++;
-                console.log(`  ➕ Created score.json for: ${year}/${eventDir}`);
+                console.log(`  ➕ Created score.json & event.json for: ${year}/${eventDir}`);
             } else {
                 existingCount++;
             }

@@ -6,6 +6,7 @@ import os from 'os';
 import { findOptimalQuality } from './ssim2Pool.js';
 import { applyPhotoMetadata } from './metadataInjection.js';
 import { runWithConcurrency, removeStaleFiles } from './utils.js';
+import { rgbaToThumbHashBase64 } from '../../src/utils/thumbhash.js';
 import type { IndexState } from './types.js';
 import { logger } from './logger';
 
@@ -144,6 +145,22 @@ export async function encodePhotos(indexData: IndexState, cleanStale = true) {
                                 procPipeline
                                     .jpeg({ quality: pQ, mozjpeg: true, chromaSubsampling: '4:2:0', trellisQuantisation: true, overshootDeringing: true, optimizeScans: true })
                                     .toFile(processedPath)
+                            );
+                        }
+
+                        if (!imgObj.th) {
+                            ops.push(
+                                pipeline
+                                    .clone()
+                                    .resize({ width: 32, height: 32, fit: 'inside', withoutEnlargement: true })
+                                    .ensureAlpha()
+                                    .raw()
+                                    .toBuffer({ resolveWithObject: true })
+                                    .then(({ data, info }) => {
+                                        const th = rgbaToThumbHashBase64(info.width, info.height, data);
+                                        imgObj.th = th;
+                                        imgObj.tiny = th;
+                                    })
                             );
                         }
 

@@ -2,11 +2,13 @@ import { test, expect } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 
 test.describe('Automated WCAG 2.1 AA Accessibility (axe-core)', () => {
+    test.beforeEach(async ({ page }) => {
+        await page.emulateMedia({ reducedMotion: 'reduce' });
+    });
+
     test('homepage should have zero WCAG 2.1 AA critical or serious violations', async ({ page }) => {
         await page.goto('/');
         await page.locator('.portfolio__event').first().waitFor({ timeout: 10000 });
-        // Allow initial theme CSS color transition (150ms) to settle
-        await page.waitForTimeout(300);
 
         const results = await new AxeBuilder({ page })
             .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
@@ -35,9 +37,7 @@ test.describe('Automated WCAG 2.1 AA Accessibility (axe-core)', () => {
 
         const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
         await expect(lightbox).toBeVisible({ timeout: 10000 });
-        // Allow framer-motion entrance animation to reach full opacity
         await expect(lightbox).toHaveCSS('opacity', '1', { timeout: 10000 });
-        await page.waitForTimeout(300);
 
         const results = await new AxeBuilder({ page })
             .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
@@ -64,8 +64,7 @@ test.describe('Automated WCAG 2.1 AA Accessibility (axe-core)', () => {
 
         const modal = page.locator('[role="dialog"][aria-label="About the photographer"]');
         await expect(modal).toBeVisible({ timeout: 5000 });
-        // Allow framer-motion entrance animation to reach full opacity
-        await page.waitForTimeout(500);
+        await expect(modal).toHaveCSS('opacity', '1', { timeout: 5000 });
 
         const results = await new AxeBuilder({ page })
             .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
@@ -93,8 +92,7 @@ test.describe('Automated WCAG 2.1 AA Accessibility (axe-core)', () => {
 
         const searchOverlay = page.locator('.portfolio__global-search-overlay');
         await expect(searchOverlay).toBeVisible({ timeout: 5000 });
-        // Allow framer-motion entrance animation to reach full opacity
-        await page.waitForTimeout(500);
+        await expect(searchOverlay).toHaveCSS('opacity', '1', { timeout: 5000 });
 
         const results = await new AxeBuilder({ page })
             .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
@@ -107,6 +105,27 @@ test.describe('Automated WCAG 2.1 AA Accessibility (axe-core)', () => {
 
         if (criticalOrSerious.length > 0) {
             console.error('Search WCAG Violations:', JSON.stringify(criticalOrSerious, null, 2));
+        }
+
+        expect(criticalOrSerious).toEqual([]);
+    });
+
+    test('Find My Photos (/portfolio/find) should have zero WCAG 2.1 AA critical or serious violations', async ({ page }) => {
+        await page.goto('/portfolio/find');
+        const findView = page.locator('.portfolio__find-my-photos');
+        await expect(findView).toBeVisible({ timeout: 10000 });
+
+        const results = await new AxeBuilder({ page })
+            .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+            .disableRules(['meta-viewport'])
+            .analyze();
+
+        const criticalOrSerious = results.violations.filter(
+            (v) => v.impact === 'critical' || v.impact === 'serious'
+        );
+
+        if (criticalOrSerious.length > 0) {
+            console.error('Find My Photos WCAG Violations:', JSON.stringify(criticalOrSerious, null, 2));
         }
 
         expect(criticalOrSerious).toEqual([]);

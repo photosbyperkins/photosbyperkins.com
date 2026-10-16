@@ -130,6 +130,26 @@ export async function processAndCopyPhotos(data: IndexState) {
         queueScrubberFiles(scrubberDir);
     }
 
+    // Pass 1.95: Queue lazy per-event ML tag sidecars (/public/data/tags/<year>/<slug>.json)
+    const tagsDir = path.join(process.cwd(), 'public', 'data', 'tags');
+    if (fs.existsSync(tagsDir)) {
+        function queueTagSidecarFiles(dir: string) {
+            const entries = fs.readdirSync(dir, { withFileTypes: true });
+            for (const entry of entries) {
+                const fullPath = path.join(dir, entry.name);
+                if (entry.isDirectory()) {
+                    queueTagSidecarFiles(fullPath);
+                } else if (entry.name.endsWith('.json')) {
+                    const relativePath = path.relative(path.join(process.cwd(), 'public'), fullPath);
+                    const destPath = path.join(DIST_DIR, relativePath);
+                    validDestPaths.add(destPath);
+                    copyTasks.push({ source: fullPath, dest: destPath });
+                }
+            }
+        }
+        queueTagSidecarFiles(tagsDir);
+    }
+
     // Pass 2: Transfer Build Payload
     logger.step(`Copying ${copyTasks.length} mapped photos and assets to dist...`);
     for (const { source, dest } of copyTasks) {

@@ -43,12 +43,16 @@ export interface BurstMetadata {
     frameEventNames?: (string | undefined)[];
     frameYears?: (string | undefined)[];
     frameScores?: (EventScore | undefined)[];
+    bestFrameIndex?: number;
+    frameQualityScores?: number[];
 }
 
 export interface PhotoRecord {
     original: string;
     thumb: string;
     tiny?: string;
+    /** Compact 28-byte binary ThumbHash placeholder (base64-encoded). */
+    th?: string;
     src?: string;
     focusX?: number;
     focusY?: number;
@@ -63,6 +67,8 @@ export interface PhotoRecord {
     scrubberHash?: string;
     exif?: ExifData;
     burst?: BurstMetadata;
+    bestInBurst?: boolean;
+    qualityScore?: number;
     eventName?: string;
     year?: string;
 }
@@ -137,3 +143,44 @@ export interface SharedPhotoState {
     preventScroll?: boolean;
     openAlbumGrid?: boolean;
 }
+
+// --- Lazy Per-Event ML Tag Sidecar (/data/tags/<year>/<slug>.json) ---
+
+export type SkaterRole = 'jammer' | 'pivot' | 'blocker' | 'ref' | 'spectator';
+
+export type SimilarPhotoRef = [year: string, albumSlug: string, photoIndex: number];
+
+export interface PhotoTagEntry {
+    /** Detected primary subject role ('jammer' | 'pivot' | 'blocker' | 'ref' | 'spectator') */
+    r?: SkaterRole;
+    /** High-confidence jersey numbers */
+    n?: string[];
+    /** Team index (0 = team1, 1 = team2, null = unassigned/ref) */
+    tm?: 0 | 1 | null;
+    /** Indices into EventTagSidecar.vocab for matched scene/action tags */
+    t?: number[];
+    /** Grounded factual alt text (12-28 words) */
+    a?: string;
+    /** Top visually similar photos across the portfolio: [year, slug, idx][] */
+    s?: SimilarPhotoRef[];
+    /** Composite frame quality score (0..1) */
+    q?: number;
+    /** 1 if this photo is the highest-ranked frame in its burst */
+    b?: 1;
+}
+
+export interface EventTagSidecar {
+    v: 1;
+    year?: string;
+    slug?: string;
+    eventName?: string;
+    isJuniorBout?: boolean;
+    teams?: Array<{
+        name: string;
+        jerseyColorHex?: string | null;
+        score?: number | string | null;
+    }>;
+    vocab: string[];
+    photos: Record<string, PhotoTagEntry>;
+}
+

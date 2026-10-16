@@ -23,6 +23,7 @@ import exifr from 'exifr';
 import type { IndexState, FaceBox, FocusSource, PhotoObject } from './types.js';
 import { logger } from './logger';
 import { runWithConcurrency } from './utils.js';
+import { loadEventMetadata, type ResolvedEventMetadata } from './eventMetadata.js';
 import { loadBuildCache, saveBuildCache, computeDirHash, setAlbumCache } from './cache.js';
 import type { BurstMetadata, ExifData } from '../../src/types';
 
@@ -450,7 +451,8 @@ async function processEventDir(
     eventDir: string,
     year: string,
     eventSlug: string,
-    facesCache: Record<string, FaceCacheEntry> = {}
+    facesCache: Record<string, FaceCacheEntry> = {},
+    eventMeta?: ResolvedEventMetadata
 ) {
     let subdirs;
     try {
@@ -507,6 +509,16 @@ async function processEventDir(
                 }
             }
         }
+    }
+
+    if (eventMeta && eventMeta.hiddenPhotos.size > 0) {
+        const isHidden = (abs: string) => {
+            const base = path.basename(abs).toLowerCase();
+            const norm = normalizeBasename(base);
+            return eventMeta.hiddenPhotos.has(base) || eventMeta.hiddenPhotos.has(norm);
+        };
+        albumFiles = albumFiles.filter((abs) => !isHidden(abs));
+        highlightFiles = highlightFiles.filter((abs) => !isHidden(abs));
     }
 
     // 1. Prepare album entries first
@@ -577,6 +589,29 @@ async function processEventDir(
             `${year}/${eventSlug}:extras`
         ).slice(0, remaining);
         finalHighlights = finalHighlights.concat(extras);
+    }
+
+    if (eventMeta?.coverPhoto && albumArr.length > 0) {
+        const targetCover = eventMeta.coverPhoto.toLowerCase();
+        const targetNorm = normalizeBasename(targetCover);
+        const coverMatch = albumArr.find(
+            (a) =>
+                a.basename === targetCover ||
+                a.normalized === targetNorm ||
+                a.original.toLowerCase().endsWith(targetCover) ||
+                a.source.toLowerCase().endsWith(targetCover)
+        );
+        if (coverMatch) {
+            const coverEntry = {
+                source: coverMatch.source,
+                original: coverMatch.original,
+                thumb: coverMatch.thumb,
+            };
+            finalHighlights = [
+                coverEntry,
+                ...finalHighlights.filter((h) => h.original !== coverEntry.original),
+            ].slice(0, 10);
+        }
     }
 
     // --- ANALYZE DIMENSIONS AND EXIF, AND SLIGHTLY REORDER ---
@@ -704,10 +739,45 @@ function formatEventLabel(dirName: string) {
         .trim();
 }
 
-export async function generatePhotoIndex(): Promise<IndexState> {
-    logger.header('Generating photo index...');
+export function matchesTargetEventFilter(
+    targetFilter: string,
+    year: string,
+    eventDir: string,
+    label: string,
+    eventSlug: string
+): boolean {
+    const normFilter = targetFilter.replace(/\\/g, '/').replace(/^photos\//i, '').trim().toLowerCase();
+    const candidates = [
+        `${year}/${eventDir}`.toLowerCase(),
+        `${year}/${label}`.toLowerCase(),
+        `${year}/${eventSlug}`.toLowerCase(),
+        eventDir.toLowerCase(),
+        label.toLowerCase(),
+        eventSlug.toLowerCase(),
+    ];
+    return candidates.some((c) => c === normFilter || c.includes(normFilter));
+}
+
+export async function generatePhotoIndex(targetEventFilter?: string): Promise<IndexState> {
+    logger.header(
+        targetEventFilter
+            ? `Generating photo index incrementally for "${targetEventFilter}"...`
+            : 'Generating photo index...'
+    );
     const output: IndexState = {};
     const facesCache = loadFacesCache();
+
+    let existingIndex: IndexState = {};
+    if (targetEventFilter) {
+        const existingPath = path.join(process.cwd(), 'data', 'photos.json');
+        if (fs.existsSync(existingPath)) {
+            try {
+                existingIndex = JSON.parse(fs.readFileSync(existingPath, 'utf8'));
+            } catch {
+                existingIndex = {};
+            }
+        }
+    }
 
     const years = fs
         .readdirSync(PHOTOS_DIR, { withFileTypes: true })
@@ -726,6 +796,10 @@ export async function generatePhotoIndex(): Promise<IndexState> {
         output[year] = {};
 
         if (eventDirs.length === 0) {
+            if (targetEventFilter && existingIndex[year]?.['All Photos']) {
+                output[year]['All Photos'] = existingIndex[year]['All Photos'];
+                continue;
+            }
             // Year has no subdirs – flat jpgs directly under year
             const flat = getJpgs(yearPath);
             if (flat.length > 0) {
@@ -774,38 +848,52 @@ export async function generatePhotoIndex(): Promise<IndexState> {
             // Parallelize per-event processing across all CPU cores
             const eventTasks = eventDirs.map((eventDir) => async () => {
                 const eventPath = path.join(yearPath, eventDir);
-
                 const label = formatEventLabel(eventDir);
                 const eventSlug = slugify(label);
 
-                const result = await processEventDir(eventPath, year, eventSlug, facesCache);
-
-                let localScore = null;
-                const scoreFile = path.join(eventPath, 'score.json');
-                if (fs.existsSync(scoreFile)) {
-                    try {
-                        localScore = JSON.parse(fs.readFileSync(scoreFile, 'utf8'));
-                    } catch {
-                        console.error(`  ⚠️  Failed to parse score.json in ${eventDir}`);
-                    }
+                if (
+                    targetEventFilter &&
+                    !matchesTargetEventFilter(targetEventFilter, year, eventDir, label, eventSlug) &&
+                    existingIndex[year]?.[label]
+                ) {
+                    return {
+                        label,
+                        eventDir,
+                        reused: existingIndex[year][label],
+                        result: null,
+                        eventMeta: null,
+                    };
                 }
 
-                return { label, result, localScore };
+                const eventMeta = loadEventMetadata(eventPath, label);
+                const result = await processEventDir(eventPath, year, eventSlug, facesCache, eventMeta);
+
+                return { label, eventDir, reused: null, result, eventMeta };
             });
 
             const results = await runWithConcurrency(eventTasks, concurrency);
 
-            for (const { label, result, localScore } of results) {
+            for (const { label, eventDir, reused, result, eventMeta } of results) {
+                if (reused) {
+                    output[year][label] = reused;
+                    continue;
+                }
+                if (!result || !eventMeta) continue;
+
                 if (result.album.length > 0 || result.highlights.length > 0) {
+                    const hasScore =
+                        eventMeta.localScore.team1Score !== null || eventMeta.localScore.team2Score !== null;
                     output[year][label] = {
                         ...result,
-                        ...(localScore ? { localScore } : {}),
-                        date: null,
-                        description: null,
+                        ...(hasScore ? { localScore: eventMeta.localScore as unknown as Record<string, unknown> } : {}),
+                        ...(eventMeta.isJuniorBout ? { isJuniorBout: true } : {}),
+                        ...(eventMeta.teams.length > 0 ? { teams: eventMeta.teams } : {}),
+                        ...(eventMeta.coverPhoto ? { coverPhoto: eventMeta.coverPhoto } : {}),
+                        date: eventMeta.date,
+                        description: eventMeta.description,
                     };
 
                     const albumKey = `${year}/${slugify(label)}`;
-                    const eventDir = eventDirs.find((d) => formatEventLabel(d) === label);
                     if (eventDir) {
                         const eventPath = path.join(yearPath, eventDir);
                         const hash = computeDirHash(eventPath);

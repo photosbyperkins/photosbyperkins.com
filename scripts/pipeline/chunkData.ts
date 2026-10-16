@@ -79,8 +79,21 @@ const stripConfidence = ({ x, y, w, h }: FaceBox): FaceBox => ({ x, y, ...(w != 
  * caps faces, and keeps only the primary subject's body box (the one containing the lead face).
  */
 export function toClientPhoto(img: PhotoObject): PhotoObject {
-    const { faceScore: _faceScore, recapScore: _recapScore, faces, subjects, ...rest } = img;
+    const {
+        faceScore: _faceScore,
+        recapScore: _recapScore,
+        qualityScore: _qualityScore,
+        bestInBurst: _bestInBurst,
+        faces,
+        subjects,
+        burst,
+        ...rest
+    } = img as PhotoObject & { qualityScore?: number; bestInBurst?: boolean };
     const out: PhotoObject = { ...rest };
+    if (burst) {
+        const { frameQualityScores: _frameQualityScores, ...cleanBurst } = burst;
+        out.burst = cleanBurst;
+    }
     if (faces && faces.length > 0) out.faces = faces.slice(0, CLIENT_MAX_FACES).map(stripConfidence);
     if (subjects && subjects.length > 0) {
         const lead = faces?.[0];

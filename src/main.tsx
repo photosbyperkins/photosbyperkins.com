@@ -24,11 +24,17 @@ window.addEventListener('vite:preloadError', (event) => {
     window.location.reload();
 });
 
-let refreshing = false;
+let updateNotified = false;
+const notifyPwaUpdate = () => {
+    if (updateNotified) return;
+    updateNotified = true;
+    window.dispatchEvent(new CustomEvent('pwa:update-available'));
+};
+
 if (!import.meta.env.DEV && 'serviceWorker' in navigator) {
     const hasExistingController = Boolean(navigator.serviceWorker.controller);
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-        // Do not reload on first install / claim; only reload on update of existing SW
+        // Do not notify on first install / claim; only notify on update of existing SW
         const wasPreviouslyControlled = hasExistingController || sessionStorage.getItem('sw-initialized') === 'true';
         if (!wasPreviouslyControlled) {
             sessionStorage.setItem('sw-initialized', 'true');
@@ -37,16 +43,16 @@ if (!import.meta.env.DEV && 'serviceWorker' in navigator) {
         if (typeof navigator !== 'undefined' && !navigator.onLine) {
             return;
         }
-        if (!refreshing) {
-            refreshing = true;
-            window.location.reload();
-        }
+        notifyPwaUpdate();
     });
 }
 
 const startServiceWorker = () => {
     registerSW({
         immediate: false,
+        onNeedRefresh() {
+            notifyPwaUpdate();
+        },
         onRegisteredSW(_swScriptUrl, registration) {
             if (!registration) return;
             // Check for service worker updates whenever the user returns to the tab or app on mobile

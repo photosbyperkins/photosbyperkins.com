@@ -622,6 +622,14 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                                         {photoLabel}
                                                     </span>
                                                 )}
+                                                {!burst.isTriptych && burst.bestFrameIndex === fIdx && (
+                                                    <span
+                                                        className="story-export-modal__burst-thumb-best"
+                                                        title="Best frame in burst"
+                                                    >
+                                                        ★ Best
+                                                    </span>
+                                                )}
                                                 {!burst.isTriptych && (
                                                     <span className="story-export-modal__burst-thumb-badge">
                                                         +{delta.toFixed(2)}s
@@ -947,6 +955,14 @@ export const StoryLayoutTab: React.FC<StoryLayoutTabProps> = ({
                                                         ) : (
                                                             <span className="story-export-modal__burst-thumb-idx">
                                                                 {burst.isTriptych ? `P${fIdx + 1}` : `F${fIdx + 1}`}
+                                                            </span>
+                                                        )}
+                                                        {!burst.isTriptych && burst.bestFrameIndex === fIdx && (
+                                                            <span
+                                                                className="story-export-modal__burst-thumb-best"
+                                                                title="Best frame in burst"
+                                                            >
+                                                                ★ Best
                                                             </span>
                                                         )}
                                                         {!burst.isTriptych && (

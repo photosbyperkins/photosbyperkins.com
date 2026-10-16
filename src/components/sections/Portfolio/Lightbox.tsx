@@ -8,6 +8,9 @@ import LightboxAmbient from './LightboxAmbient';
 import LightboxHeader from './LightboxHeader';
 import LightboxScrubber, { SCRUBBER_COLUMNS, MAX_SPRITE_FRAMES } from './LightboxScrubber';
 import LightboxHelp from './LightboxHelp';
+import { LightboxSimilarDrawer } from './LightboxSimilarDrawer';
+import { useEventTags } from '../../../hooks/useEventTags';
+import { getPhotoSceneTags, getPhotoTagEntry, slugifyEventName as slugify } from '../../../utils/tagSidecar';
 import type { PhotoInput, EventScore } from '../../../types';
 import { withBuild, triggerPhotoDownload } from '../../../utils/build';
 import { triggerHaptic } from '../../../utils/haptics';
@@ -254,6 +257,35 @@ export default function Lightbox({
     const currentPhoto = images[index];
     const isFavorite = checkIfFavorite(currentPhoto);
 
+    const currentYear = (typeof currentPhoto === 'object' && currentPhoto?.year) || year || '';
+    const currentSlug = useMemo(() => {
+        if (typeof currentPhoto === 'object' && currentPhoto?.thumb) {
+            const parts = currentPhoto.thumb.split('/').filter(Boolean);
+            if (parts.length >= 3 && parts[0] === 'thumbnails') {
+                return parts[2];
+            }
+        }
+        return eventName && eventName !== 'Favorites' ? slugify(eventName) : '';
+    }, [currentPhoto, eventName]);
+
+    const { sidecar: tagSidecar } = useEventTags(
+        currentYear,
+        currentSlug,
+        Boolean(scrubberReady && currentYear && currentSlug)
+    );
+    const currentPhotoIdx =
+        typeof currentPhoto === 'object' && typeof currentPhoto?.spriteIndex === 'number'
+            ? currentPhoto.spriteIndex
+            : index;
+    const currentTagEntry = useMemo(
+        () => getPhotoTagEntry(tagSidecar, currentPhotoIdx),
+        [tagSidecar, currentPhotoIdx]
+    );
+    const currentSceneTags = useMemo(
+        () => getPhotoSceneTags(tagSidecar, currentPhotoIdx),
+        [tagSidecar, currentPhotoIdx]
+    );
+
     const {
         x,
         isAnimating,
@@ -463,9 +495,10 @@ export default function Lightbox({
                             ref={slideRef}
                             image={images[index]}
                             alt={
-                                eventName
+                                currentTagEntry?.a ||
+                                (eventName
                                     ? `Photo ${index + 1} from ${eventName}${year ? `, ${year}` : ''}`
-                                    : `Photo ${index + 1}`
+                                    : `Photo ${index + 1}`)
                             }
                             priority={true}
                             onZoomChange={setIsZoomed}
@@ -485,6 +518,17 @@ export default function Lightbox({
                     </div>
                 </motion.div>
             </motion.div>
+
+            {!isTheaterMode && currentYear && currentSlug && (
+                <LightboxSimilarDrawer
+                    entry={currentTagEntry}
+                    sceneTags={currentSceneTags}
+                    currentYear={currentYear}
+                    currentSlug={currentSlug}
+                    onSelectIndex={onSetIndex}
+                    onCloseLightbox={handleClose}
+                />
+            )}
 
             <LightboxScrubber
                 images={images}

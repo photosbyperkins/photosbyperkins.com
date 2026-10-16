@@ -1,4 +1,4 @@
-import { motion, useIsPresent } from 'framer-motion';
+import { motion, useIsPresent, type MotionStyle } from 'framer-motion';
 import { forwardRef, useImperativeHandle, memo, useState, useEffect, useCallback } from 'react';
 import { useSlideZoom } from '../../../hooks/useSlideZoom';
 import { getPhotoDisplayUrl } from '../../../utils/formatters';
@@ -42,6 +42,7 @@ const LightboxSlide = memo(
 
     const [upgradedUrl, setUpgradedUrl] = useState<string | null>(null);
     const [zoomRequested, setZoomRequested] = useState(false);
+    const [naturalDims, setNaturalDims] = useState<{ url: string; w: number; h: number } | null>(null);
 
     const handleZoomChange = useCallback(
         (isZoomed: boolean) => {
@@ -78,6 +79,12 @@ const LightboxSlide = memo(
     }, [deferLoad, avifThumbUrl, displayUrl, upgradedUrl, zoomRequested]);
 
     const activeSrc = avifThumbUrl && upgradedUrl !== displayUrl ? avifThumbUrl : displayUrl;
+    const hasExplicitDims = Boolean(imgWidth && imgHeight && imgWidth > 0 && imgHeight > 0);
+    const fallbackDims = !hasExplicitDims && naturalDims?.url === url ? naturalDims : null;
+    const aspectW = hasExplicitDims ? imgWidth! : fallbackDims ? fallbackDims.w : 3;
+    const aspectH = hasExplicitDims ? imgHeight! : fallbackDims ? fallbackDims.h : 2;
+    const fitWidthVh = Number(((aspectW / aspectH) * 100).toFixed(4));
+    const fitHeightVw = Number(((aspectH / aspectW) * 100).toFixed(4));
 
     const { containerRef, scale, panX, panY, dragMode, constraints, toggleZoom, resetZoom, handleImageLoad, containerProps } =
         useSlideZoom({
@@ -107,16 +114,30 @@ const LightboxSlide = memo(
                     className="portfolio__lightbox-image-full"
                     fetchPriority={priority ? 'high' : 'low'}
                     decoding="async"
-                    onLoad={() => {
+                    onLoad={(e) => {
+                        const el = e.currentTarget;
+                        if (!hasExplicitDims && el.naturalWidth > 0 && el.naturalHeight > 0) {
+                            setNaturalDims((prev) =>
+                                prev && prev.url === url && prev.w === el.naturalWidth && prev.h === el.naturalHeight
+                                    ? prev
+                                    : { url, w: el.naturalWidth, h: el.naturalHeight }
+                            );
+                        }
                         handleImageLoad();
                         if (onLoad) onLoad();
                     }}
-                    style={{
-                        scale,
-                        x: panX,
-                        y: panY,
-                        objectPosition: `${focusX != null ? focusX * 100 : 50}% ${focusY != null ? focusY * 100 : 50}%`,
-                    }}
+                    style={
+                        {
+                            '--lightbox-img-w': `min(100%, ${fitWidthVh}vh)`,
+                            '--lightbox-img-h': `min(100%, ${fitHeightVw}vw)`,
+                            width: `min(100%, ${fitWidthVh}vh)`,
+                            height: `min(100%, ${fitHeightVw}vw)`,
+                            scale,
+                            x: panX,
+                            y: panY,
+                            objectPosition: `${focusX != null ? focusX * 100 : 50}% ${focusY != null ? focusY * 100 : 50}%`,
+                        } as MotionStyle
+                    }
                     drag={isPresent ? dragMode : false}
                     dragConstraints={constraints}
                     dragElastic={0.1}
