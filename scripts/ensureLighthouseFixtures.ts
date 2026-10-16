@@ -61,6 +61,7 @@ async function main(): Promise<void> {
     });
 
     writeJson(path.join(publicDir, 'data', 'years', `${YEAR}.json`), {
+        v: 2,
         events: {
             [EVENT_TITLE]: {
                 albumSlug: EVENT_SLUG,
@@ -73,10 +74,8 @@ async function main(): Promise<void> {
         recapCount: 5,
         recapEvents: [
             {
-                name: EVENT_TITLE,
-                slug: EVENT_SLUG,
-                date: '11.08',
-                count: 5,
+                eventName: EVENT_TITLE,
+                photoIndex: 0,
             },
         ],
         recapHash: 'ci',
@@ -84,27 +83,32 @@ async function main(): Promise<void> {
         stats: {
             totalEvents: 1,
             totalPhotos: 5,
-            firstSeenTeam: { name: 'River City Rapids', slug: 'river-city-rapids', date: '11.08' },
-            mostSeenTeam: { name: 'River City Rapids', slug: 'river-city-rapids', count: 1 },
+            firstSeenTeams: ['River City Rapids'],
+            mostSeenTeams: ['River City Rapids'],
+            mostUsedCamera: 'Canon EOS R5',
+            mostUsedLens: 'RF70-200mm F2.8 L IS USM',
         },
     });
 
     writeJson(path.join(publicDir, 'data', 'albums', YEAR, `${EVENT_SLUG}.json`), {
-        version: 2,
-        year: YEAR,
-        slug: EVENT_SLUG,
-        dims: [[3000, 2000]],
-        cameras: ['Canon EOS R5'],
-        lenses: ['RF70-200mm F2.8 L IS USM'],
-        isos: [1600],
-        apertures: ['f/2.8'],
-        shutters: ['1/1000s'],
-        dates: ['2025-11-08'],
-        p: [1, 2, 3, 4, 5].map((n) => ({
-            n,
-            d: 0,
+        v: 2,
+        y: YEAR,
+        s: EVENT_SLUG,
+        d: [3000, 2000],
+        x: [
+            {
+                cameraModel: 'Canon EOS R5',
+                lens: 'RF70-200mm F2.8 L IS USM',
+                focalLength: '135mm',
+                aperture: 'f/2.8',
+                shutterSpeed: '1/1000s',
+                iso: 'ISO 1600',
+                isPrime: false,
+            },
+        ],
+        p: [1, 2, 3, 4, 5].map(() => ({
+            e: 0,
             f: [50, 40],
-            e: [0, 0, 8192, 0, 0, 0, 0],
         })),
     });
 

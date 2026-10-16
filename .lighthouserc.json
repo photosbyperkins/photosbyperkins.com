@@ -9,7 +9,7 @@
         "http://localhost:4173/portfolio/2025/1108-sacramento-roller-derby-river-city-rapids-vs-sacramento-roller-derby-tower-bridge-terrors",
         "http://localhost:4173/portfolio/2025/1108-sacramento-roller-derby-river-city-rapids-vs-sacramento-roller-derby-tower-bridge-terrors/0"
       ],
-      "numberOfRuns": 1,
+      "numberOfRuns": 2,
       "settings": {
         "chromeFlags": "--no-sandbox --disable-gpu --headless=new"
       }
