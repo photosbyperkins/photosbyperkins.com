@@ -3,7 +3,7 @@
 # On NVIDIA swap onnxruntime-directml for onnxruntime-gpu; without a GPU use onnxruntime.
 onnxruntime-directml==1.24.4; sys_platform == "win32"
 onnxruntime>=1.20; sys_platform != "win32"
-opencv-python==4.13.0.92
+opencv-python==5.0.0.93
 numpy==2.4.3
 pillow==12.1.1
 
