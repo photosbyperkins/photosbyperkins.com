@@ -36,7 +36,7 @@ def test_subjects_fingerprint_tracks_params_and_backend(monkeypatch):
     assert stage.fingerprint() != fp
     monkeypatch.setitem(subjects.PARAMS, 'FACE_SCORE_MIN', 0.5)
     assert stage.fingerprint() == fp
-    stage.backend = 'opencv'
+    stage.backend = 'ort' if stage.backend == 'opencv' else 'opencv'
     assert stage.fingerprint() != fp
 
 

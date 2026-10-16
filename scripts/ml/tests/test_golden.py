@@ -12,6 +12,7 @@ import os
 import pytest
 
 from ml.hashing import sha256_file
+from ml.runtime import ort
 from ml.scheduler import run_inline, run_pipelined
 from ml.stages.subjects import SubjectsStage
 
@@ -36,7 +37,7 @@ def _entries():
 
 
 ENTRIES = _entries()
-pytestmark = pytest.mark.skipif(len(ENTRIES) < 40, reason='golden photos not available locally')
+pytestmark = pytest.mark.skipif(ort is None or len(ENTRIES) < 40, reason='onnxruntime or golden photos not available locally')
 
 
 def _close(a, b, rtol):
