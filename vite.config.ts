@@ -317,7 +317,7 @@ export default defineConfig(({ mode }) => {
                                         `var ms=function(u){if(!u)return;var l=document.createElement('link');l.rel='stylesheet';l.crossOrigin='';l.href='/'+u;document.head.appendChild(l);};` +
                                         `mp(${JSON.stringify(portfolioJs)});mp(${JSON.stringify(modalShellJs)});ms(${JSON.stringify(portfolioCss)});ms(${JSON.stringify(modalShellCss)});` +
                                         `var s=location.pathname.split('/').filter(Boolean);` +
-                                        `if(s[0]==='portfolio'&&(s[1]==='team'||s[1]==='gear'||s[1]==='favorites'))return;` +
+                                        `if(s[0]==='portfolio'&&(s[1]==='team'||s[1]==='find'||s[1]==='gear'||s[1]==='favorites'))return;` +
                                         `var y=(s[0]==='portfolio'&&s[1]&&yrs.indexOf(s[1])!==-1)?s[1]:yrs[0];` +
                                         `var ev=s[0]==='portfolio'&&s[2]?decodeURIComponent(s[2]):'';` +
                                         `var ph=s[0]==='portfolio'&&s[3]!==undefined?parseInt(s[3],10):NaN;` +

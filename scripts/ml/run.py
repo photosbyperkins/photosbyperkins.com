@@ -355,6 +355,32 @@ def run(args, cache):
     ph.save_json(ph.PHOTOS_FILE, photos_data, indent=2)
 
     if any(n in SIDECAR_STAGE_NAMES for n in names):
+        for sname in SIDECAR_STAGE_NAMES:
+            if sname in by_thumb_all or sname not in STAGES:
+                continue
+            try:
+                s_inst = STAGES[sname](use_gpu=not args.cpu)
+                s_fp = s_inst.fingerprint()
+                if sname == 'clip':
+                    raw_clip = cache.get_many(sname, s_fp, keys, with_blob=True)
+                    by_thumb_all[sname] = {
+                        thumb: raw_clip[k][0]
+                        for thumb, k in key_by_thumb.items()
+                        if k in raw_clip and raw_clip[k][0] is not None
+                    }
+                    for thumb, k in key_by_thumb.items():
+                        if k in raw_clip and raw_clip[k][1] is not None:
+                            blobs_by_thumb[thumb] = raw_clip[k][1]
+                else:
+                    cached_map = cache.get_many(sname, s_fp, keys)
+                    by_thumb_all[sname] = {
+                        thumb: cached_map[k]
+                        for thumb, k in key_by_thumb.items()
+                        if k in cached_map and cached_map[k] is not None
+                    }
+            except Exception:
+                pass
+
         sidecars_written = export_all_sidecars(
             Path(ph.PHOTOS_FILE),
             Path(SIDECAR_DIR),

@@ -109,4 +109,40 @@ test.describe('Automated WCAG 2.1 AA Accessibility (axe-core)', () => {
 
         expect(criticalOrSerious).toEqual([]);
     });
+
+    test('jersey search modal (/portfolio/find) and jersey search results (/portfolio/find?num=44) should have zero WCAG 2.1 AA critical or serious violations', async ({ page }) => {
+        await page.goto('/portfolio/find');
+        const searchOverlay = page.locator('.portfolio__global-search-overlay');
+        await expect(searchOverlay).toBeVisible({ timeout: 10000 });
+        await expect(searchOverlay).toHaveCSS('opacity', '1', { timeout: 5000 });
+        await page.locator('.portfolio__jersey-pill').first().waitFor({ state: 'visible', timeout: 10000 });
+
+        const modalResults = await new AxeBuilder({ page })
+            .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+            .disableRules(['meta-viewport'])
+            .analyze();
+
+        const modalViolations = modalResults.violations.filter(
+            (v) => v.impact === 'critical' || v.impact === 'serious'
+        );
+        expect(modalViolations).toEqual([]);
+
+        await page.goto('/portfolio/find?num=44');
+        await page.locator('.portfolio__find-my-photos .portfolio__event').first().waitFor({ state: 'visible', timeout: 10000 });
+
+        const results = await new AxeBuilder({ page })
+            .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+            .disableRules(['meta-viewport'])
+            .analyze();
+
+        const criticalOrSerious = results.violations.filter(
+            (v) => v.impact === 'critical' || v.impact === 'serious'
+        );
+
+        if (criticalOrSerious.length > 0) {
+            console.error('Find My Photos WCAG Violations:', JSON.stringify(criticalOrSerious, null, 2));
+        }
+
+        expect(criticalOrSerious).toEqual([]);
+    });
 });

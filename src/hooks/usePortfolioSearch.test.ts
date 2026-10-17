@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { usePortfolioSearch } from './usePortfolioSearch';
+import { clearFindMyPhotosCache } from '../utils/findMyPhotos';
 
 describe('usePortfolioSearch', () => {
     const mockTeams = [
@@ -34,6 +35,7 @@ describe('usePortfolioSearch', () => {
 
     beforeEach(() => {
         vi.restoreAllMocks();
+        clearFindMyPhotosCache();
         globalThis.fetch = vi.fn().mockImplementation((url: string) => {
             if (url.includes('/data/teams/index.json')) {
                 return Promise.resolve({
@@ -45,6 +47,12 @@ describe('usePortfolioSearch', () => {
                 return Promise.resolve({
                     ok: true,
                     json: () => Promise.resolve(mockGear),
+                });
+            }
+            if (url.includes('/data/find/index.json')) {
+                return Promise.resolve({
+                    ok: true,
+                    json: () => Promise.resolve({ v: 1, teams: [] }),
                 });
             }
             return Promise.reject(new Error('Unknown url'));
@@ -73,9 +81,10 @@ describe('usePortfolioSearch', () => {
         await waitFor(() => {
             expect(result.current.teamIndex).toEqual(mockTeams);
             expect(result.current.gearIndex).toEqual(mockGear);
+            expect(result.current.isFindIndexLoading).toBe(false);
         });
 
-        expect(globalThis.fetch).toHaveBeenCalledTimes(2);
+        expect(globalThis.fetch).toHaveBeenCalledTimes(3);
     });
 
     it('loads indexes when ensureIndexesLoaded is called', async () => {

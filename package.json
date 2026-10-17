@@ -27,6 +27,7 @@
     "ml:budget": "python scripts/ml/run.py --sample 1000 --budget",
     "ml:eval": "python scripts/ml/eval.py",
     "ml:extract-crops": "python scripts/ml/label_crops.py",
+    "ml:label-numbers": "python scripts/ml/label_crops.py --numbers",
     "test:ml": "python -m pytest scripts/ml/tests -q",
     "migrate:events": "tsx scripts/migrateEvents.ts",
     "publish": "tsx scripts/publishEvent.ts",

@@ -12,6 +12,8 @@ export interface PortfolioYearNavProps {
     currentGearItem: GearItem | null;
     isTeamMode: boolean;
     activeTeamMeta: { name: string; slug: string; count?: number } | null;
+    isFindRoute?: boolean;
+    activeJerseyNumber?: string;
     prefetchTab: (tab: string) => void;
 }
 
@@ -22,8 +24,13 @@ export default function PortfolioYearNav({
     currentGearItem,
     isTeamMode,
     activeTeamMeta,
+    isFindRoute,
+    activeJerseyNumber,
     prefetchTab,
 }: PortfolioYearNavProps) {
+    const cleanJerseyNum = (activeJerseyNumber || '').trim().replace(/^#/, '');
+    const jerseyLabel = cleanJerseyNum ? `#${cleanJerseyNum}` : 'Jersey';
+
     return (
         <nav className="portfolio__years" aria-label="Year Navigation">
             {isGearRoute && currentGearItem ? (
@@ -52,6 +59,21 @@ export default function PortfolioYearNav({
                     }}
                 >
                     <span>{formatTeamName(activeTeamMeta.name)}</span>
+                    <span className="portfolio__team-clear-icon" aria-hidden="true">
+                        <X size={15} strokeWidth={3} />
+                    </span>
+                </Link>
+            ) : isFindRoute ? (
+                <Link
+                    to="/portfolio"
+                    className="portfolio__active-filter active"
+                    aria-label={`Remove filter for ${jerseyLabel}`}
+                    title={`Remove filter for ${jerseyLabel}`}
+                    onClick={() => {
+                        window.scrollTo({ top: 0, behavior: 'instant' });
+                    }}
+                >
+                    <span>{jerseyLabel}</span>
                     <span className="portfolio__team-clear-icon" aria-hidden="true">
                         <X size={15} strokeWidth={3} />
                     </span>

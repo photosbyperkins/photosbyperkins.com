@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type FuseType from 'fuse.js';
 import type { GearMeta } from '../components/sections/Portfolio/GearFilter';
 import { getBuildNumber } from '../utils/build';
+import type { FindTeamEntry } from '../utils/findMyPhotos';
 
 export interface TeamMeta {
     name: string;
@@ -12,8 +13,10 @@ export interface TeamMeta {
 
 interface UsePortfolioSearchOptions {
     initialSearchQuery?: string;
+    initialJerseyQuery?: string;
     initialSearchOpen?: boolean;
     isGearRoute?: boolean;
+    isFindRoute?: boolean;
 }
 
 let fuseModulePromise: Promise<typeof import('fuse.js')> | null = null;
@@ -29,8 +32,10 @@ function loadFuseModule() {
 
 export function usePortfolioSearch({
     initialSearchQuery = '',
+    initialJerseyQuery = '',
     initialSearchOpen = false,
     isGearRoute = false,
+    isFindRoute = false,
 }: UsePortfolioSearchOptions = {}) {
     const [teamIndex, setTeamIndex] = useState<TeamMeta[]>([]);
     const [teamSearchQuery, setTeamSearchQuery] = useState(initialSearchQuery);
@@ -41,6 +46,11 @@ export function usePortfolioSearch({
     const [gearSearchQuery, setGearSearchQuery] = useState('');
     const [isGearIndexLoading, setIsGearIndexLoading] = useState(false);
     const hasFetchedGear = useRef(false);
+
+    const [findIndex, setFindIndex] = useState<FindTeamEntry[]>([]);
+    const [jerseySearchQuery, setJerseySearchQuery] = useState(initialJerseyQuery);
+    const [isFindIndexLoading, setIsFindIndexLoading] = useState(false);
+    const hasFetchedFind = useRef(false);
 
     const [teamFuse, setTeamFuse] = useState<FuseType<TeamMeta> | null>(null);
     const [gearFuse, setGearFuse] = useState<FuseType<GearMeta> | null>(null);
@@ -85,13 +95,31 @@ export function usePortfolioSearch({
             });
     }, []);
 
-    // Prefetch indexes if opened with search open or on a gear route
+    const fetchFindIndex = useCallback(() => {
+        if (hasFetchedFind.current) return;
+        hasFetchedFind.current = true;
+        setIsFindIndexLoading(true);
+        import('../utils/findMyPhotos')
+            .then(({ fetchFindTeamsIndex }) => fetchFindTeamsIndex())
+            .then((data) => {
+                setFindIndex(data?.teams || []);
+                setIsFindIndexLoading(false);
+            })
+            .catch((err) => {
+                console.error('Failed to load find index:', err);
+                hasFetchedFind.current = false;
+                setIsFindIndexLoading(false);
+            });
+    }, []);
+
+    // Prefetch indexes if opened with search open or on a gear/find route
     useEffect(() => {
-        if (initialSearchOpen || isGearRoute) {
+        if (initialSearchOpen || isGearRoute || isFindRoute) {
             fetchTeamIndex();
             fetchGearIndex();
+            fetchFindIndex();
         }
-    }, [initialSearchOpen, isGearRoute, fetchTeamIndex, fetchGearIndex]);
+    }, [initialSearchOpen, isGearRoute, isFindRoute, fetchTeamIndex, fetchGearIndex, fetchFindIndex]);
 
     // Lazily instantiate Fuse for teams when searching
     useEffect(() => {
@@ -160,19 +188,25 @@ export function usePortfolioSearch({
     const ensureIndexesLoaded = useCallback(() => {
         fetchTeamIndex();
         fetchGearIndex();
-    }, [fetchTeamIndex, fetchGearIndex]);
+        fetchFindIndex();
+    }, [fetchTeamIndex, fetchGearIndex, fetchFindIndex]);
 
     return {
         teamIndex,
         gearIndex,
+        findIndex,
         isTeamIndexLoading,
         isGearIndexLoading,
+        isFindIndexLoading,
         teamSearchQuery,
         setTeamSearchQuery,
         gearSearchQuery,
         setGearSearchQuery,
+        jerseySearchQuery,
+        setJerseySearchQuery,
         filteredTeams,
         filteredGear,
         ensureIndexesLoaded,
     };
 }
+

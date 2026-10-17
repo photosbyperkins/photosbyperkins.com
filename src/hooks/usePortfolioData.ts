@@ -70,6 +70,65 @@ function fetchChunkWithDedup(basePath: string, slug: string): Promise<FetchPaylo
 export function _clearYearDataCache(): void {
     yearDataCache.clear();
     inFlightYearFetches.clear();
+    completeYearEventsCache.clear();
+}
+
+const completeYearEventsCache = new Map<string, YearData>();
+
+export function getCachedYearEvent(
+    year: string,
+    eventName: string,
+    albumSlug?: string
+): YearData[string] | undefined {
+    const eventsInYear = completeYearEventsCache.get(year) ?? yearDataCache.get(`year:${year}`)?.events;
+    if (!eventsInYear) return undefined;
+    let cachedEvent: YearData[string] | undefined = eventsInYear[eventName];
+    if (!cachedEvent) {
+        const cleanName = eventName.replace(/^\[\d{4}\]\s*/, '');
+        cachedEvent = eventsInYear[cleanName] || eventsInYear[`[${year}] ${cleanName}`];
+        if (!cachedEvent && albumSlug) {
+            cachedEvent = Object.values(eventsInYear).find((ev) => ev.albumSlug === albumSlug);
+        }
+    }
+    return cachedEvent;
+}
+
+export async function ensureYearEventsLoaded(year: string, isCancelled?: () => boolean): Promise<void> {
+    if (!year) return;
+    if (completeYearEventsCache.has(year)) return;
+    const cacheKey = `year:${year}`;
+    const existing = yearDataCache.get(cacheKey);
+    if (existing && !existing.nextPart) {
+        completeYearEventsCache.set(year, existing.events);
+        return;
+    }
+
+    if (
+        typeof import.meta !== 'undefined' &&
+        import.meta.env?.MODE === 'test' &&
+        typeof fetch === 'function' &&
+        !('mock' in fetch)
+    ) {
+        return;
+    }
+
+    const accumulatedEvents: YearData = existing ? { ...existing.events } : {};
+    let currentPart: string | null = existing ? existing.nextPart : year;
+    let loadedAny = Boolean(existing);
+
+    while (currentPart && !isCancelled?.()) {
+        const res = await fetch(`/data/years/${currentPart}.json?build=${getBuildNumber()}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const json = await res.json();
+        const payload = decodeEventChunk(json) as FetchPayload;
+        Object.assign(accumulatedEvents, payload.events);
+        loadedAny = true;
+        currentPart = payload.nextPart ?? null;
+    }
+
+    if (loadedAny && !isCancelled?.()) {
+        completeYearEventsCache.set(year, accumulatedEvents);
+    }
 }
 
 /**
@@ -126,7 +185,7 @@ export function warmRouteData(years: string[]): Promise<void> {
             }
             return Promise.resolve();
         }
-        if (segments[1] === 'favorites') return Promise.resolve();
+        if (segments[1] === 'favorites' || segments[1] === 'find') return Promise.resolve();
         if (segments[1] && years.includes(segments[1])) {
             targetYear = segments[1];
         }
@@ -234,9 +293,15 @@ export function usePortfolioData({
     onDataLoadAction,
     isGearMode = false,
 }: UsePortfolioDataOptions) {
-    const initialIsTeam = Boolean(selectedTab && selectedTab !== 'favorites' && !years.includes(selectedTab) && !isGearMode);
+    const initialIsTeam = Boolean(
+        selectedTab &&
+            selectedTab !== 'favorites' &&
+            selectedTab !== 'find' &&
+            !years.includes(selectedTab) &&
+            !isGearMode
+    );
     const initialCached =
-        selectedTab && selectedTab !== 'favorites'
+        selectedTab && selectedTab !== 'favorites' && selectedTab !== 'find'
             ? yearDataCache.get(getCacheKey(selectedTab, isGearMode, initialIsTeam))
             : undefined;
 
@@ -556,7 +621,7 @@ export function usePortfolioData({
 
     const getForTab = useCallback(
         (tabSlug: string, setData: boolean, isTeamMode: boolean) => {
-            if (tabSlug === 'favorites') return;
+            if (tabSlug === 'favorites' || tabSlug === 'find') return;
 
             const basePath = isGearMode ? `/data/gear` : isTeamMode ? `/data/teams` : `/data/years`;
             const cacheKey = getCacheKey(tabSlug, isGearMode, isTeamMode);
@@ -749,7 +814,7 @@ export function usePortfolioData({
 
     // Initial load for active tab
     useEffect(() => {
-        if (!selectedTab) return;
+        if (!selectedTab || selectedTab === 'find') return;
         const isTeamMode = !years.includes(selectedTab) && !isGearMode;
         // eslint-disable-next-line react-hooks/set-state-in-effect
         getForTab(selectedTab, true, isTeamMode);
@@ -757,7 +822,7 @@ export function usePortfolioData({
 
     const prefetchTab = useCallback(
         (tabSlug: string) => {
-            if (!tabSlug || tabSlug === 'favorites') return;
+            if (!tabSlug || tabSlug === 'favorites' || tabSlug === 'find') return;
             const isTeamMode = !years.includes(tabSlug) && !isGearMode;
             const cacheKey = getCacheKey(tabSlug, isGearMode, isTeamMode);
             if (yearDataCache.has(cacheKey)) return;

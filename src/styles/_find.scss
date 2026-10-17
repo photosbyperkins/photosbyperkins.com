@@ -1,0 +1,64 @@
+@use './globals' as *;
+
+.portfolio {
+    // --- Adjust 3-tab segmented toggle on mobile so Teams | Jersey | Gear fits comfortably ---
+    &__search-tab-toggle.portfolio__segmented-toggle button {
+        width: auto;
+        min-width: 64px;
+        padding: 0 0.65rem;
+
+        @media (min-width: 641px) {
+            min-width: 78px;
+            padding: 0 0.75rem;
+        }
+    }
+
+    // GlobalSearchOverlay topbar on narrow mobile screens (< 640px):
+    // 3-tab toggle sits on row 1 with the close button, search input gets 100% full width on row 2.
+    @media (max-width: 640px) {
+        &__search-topbar {
+            padding-top: max(0.75rem, calc(env(safe-area-inset-top) + 0.35rem));
+            padding-bottom: 0.65rem;
+
+            &-inner {
+                display: grid;
+                grid-template-columns: 1fr auto;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            &-left {
+                display: contents;
+            }
+        }
+
+        &__search-tab-toggle {
+            grid-column: 1;
+            grid-row: 1;
+            justify-self: start;
+        }
+
+        &__global-search-back-btn {
+            grid-column: 2;
+            grid-row: 1;
+            justify-self: end;
+        }
+
+        &__search-input-wrap {
+            grid-column: 1 / -1;
+            grid-row: 2;
+            max-width: none;
+            width: 100%;
+        }
+    }
+
+    &__jersey-pill {
+        cursor: pointer;
+        text-align: left;
+        font: inherit;
+    }
+
+    &__find-my-photos {
+        width: 100%;
+    }
+}

@@ -133,4 +133,62 @@ describe('GlobalSearchOverlay', () => {
 
         expect(mockProps.onClose).toHaveBeenCalled();
     });
+
+    it('renders Jersey tab in middle position with unfiltered pills linking to search results and partial matches', async () => {
+        const setJerseySearchQuery = vi.fn();
+        const findTeams = [
+            {
+                name: 'Sacramento Roller Derby',
+                slug: 'sacramento-roller-derby',
+                photoCount: 3,
+                numberedPhotoCount: 3,
+                eventCount: 1,
+                topNumbers: ['42', '88'],
+                numberCounts: { '42': 2, '88': 1 },
+            },
+        ];
+
+        const { rerender } = render(
+            <MemoryRouter>
+                <GlobalSearchOverlay
+                    {...mockProps}
+                    initialTab="jersey"
+                    jerseySearchQuery=""
+                    setJerseySearchQuery={setJerseySearchQuery}
+                    findTeams={findTeams}
+                />
+            </MemoryRouter>
+        );
+
+        // Verify tab order: Teams, Jersey, Gear
+        const tabButtons = screen.getByRole('group', { name: 'Search category' }).querySelectorAll('button');
+        expect(Array.from(tabButtons).map((b) => b.textContent)).toEqual(['Teams', 'Jersey', 'Gear']);
+
+        // Verify search input has no placeholder
+        const searchInput = screen.getByRole('searchbox');
+        expect(searchInput.getAttribute('placeholder')).toBeNull();
+
+        // Unfiltered Jersey pills (#42, #88) link to /portfolio/find?num=...
+        const pill42 = await screen.findByRole('link', { name: /#42/i });
+        expect(pill42.getAttribute('href')).toBe('/portfolio/find?num=42');
+        fireEvent.click(pill42);
+        expect(mockProps.onClose).toHaveBeenCalled();
+
+        // Rerender with query that has no exact match -> shows Possible Partial Matches
+        rerender(
+            <MemoryRouter>
+                <GlobalSearchOverlay
+                    {...mockProps}
+                    initialTab="jersey"
+                    jerseySearchQuery="429"
+                    setJerseySearchQuery={setJerseySearchQuery}
+                    findTeams={findTeams}
+                />
+            </MemoryRouter>
+        );
+
+        expect(await screen.findByText(/Possible Partial Matches for #429/i)).toBeTruthy();
+        expect(screen.getByRole('link', { name: /#42/i }).getAttribute('href')).toBe('/portfolio/find?num=42');
+    });
 });
+

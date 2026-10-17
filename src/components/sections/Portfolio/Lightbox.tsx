@@ -42,7 +42,8 @@ let isInitialDeepLinkMount =
     initialPathSegments[0] === 'portfolio' &&
     initialPathSegments.length >= 4 &&
     initialPathSegments[1] !== 'team' &&
-    initialPathSegments[1] !== 'gear';
+    initialPathSegments[1] !== 'gear' &&
+    initialPathSegments[1] !== 'find';
 
 export default function Lightbox({
     images,
@@ -196,6 +197,12 @@ export default function Lightbox({
     const [isPopping, setIsPopping] = useState(false);
     const popTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+    const currentPhoto = images[index];
+    const effectiveEventName =
+        (typeof currentPhoto === 'object' && currentPhoto?.eventName) || eventName;
+    const effectiveYear =
+        (typeof currentPhoto === 'object' && currentPhoto?.year) || year;
+
     const handleToggleFavorite = useCallback(() => {
         const photo = images[index];
         if (!photo) return;
@@ -210,10 +217,10 @@ export default function Lightbox({
         triggerHaptic('tap');
         toggleFavorite({
             photo,
-            eventName: eventName || '',
-            year: year || '',
+            eventName: effectiveEventName || '',
+            year: effectiveYear || '',
         });
-    }, [checkIfFavorite, images, index, toggleFavorite, eventName, year]);
+    }, [checkIfFavorite, images, index, toggleFavorite, effectiveEventName, effectiveYear]);
 
     useEffect(() => {
         return () => {
@@ -251,7 +258,6 @@ export default function Lightbox({
         setIsStoryExportOpen(true);
     }, []);
 
-    const currentPhoto = images[index];
     const isFavorite = checkIfFavorite(currentPhoto);
 
     const {
@@ -342,13 +348,13 @@ export default function Lightbox({
     useEffect(() => {
         const appTitle = import.meta.env.VITE_SITE_APP_TITLE || 'Photography Portfolio';
         const prevTitle = document.title;
-        if (eventName) {
-            document.title = `${eventName}${year ? ` (${year})` : ''} | ${appTitle}`;
+        if (effectiveEventName) {
+            document.title = `${effectiveEventName}${effectiveYear ? ` (${effectiveYear})` : ''} | ${appTitle}`;
         }
         return () => {
             document.title = prevTitle;
         };
-    }, [eventName, year]);
+    }, [effectiveEventName, effectiveYear]);
 
     const content = (
         <motion.div
@@ -414,8 +420,8 @@ export default function Lightbox({
             <LightboxHeader
                 images={images}
                 index={index}
-                year={year}
-                eventName={eventName}
+                year={effectiveYear}
+                eventName={effectiveEventName}
                 maxExifChars={maxExifChars}
                 canShare={canShare}
                 onClose={handleClose}
@@ -451,7 +457,7 @@ export default function Lightbox({
                     <div className="portfolio__lightbox-slide portfolio__lightbox-slide--prev">
                         <LightboxSlide
                             image={images[(index - 1 + images.length) % images.length]}
-                            alt={eventName ? `Previous photo from ${eventName}` : 'Previous photo'}
+                            alt={effectiveEventName ? `Previous photo from ${effectiveEventName}` : 'Previous photo'}
                             deferLoad={!mainImageLoaded && !isAnimating && !isDragging}
                             onSingleClick={() => setIsTheaterMode((prev) => !prev)}
                         />
@@ -463,8 +469,8 @@ export default function Lightbox({
                             ref={slideRef}
                             image={images[index]}
                             alt={
-                                eventName
-                                    ? `Photo ${index + 1} from ${eventName}${year ? `, ${year}` : ''}`
+                                effectiveEventName
+                                    ? `Photo ${index + 1} from ${effectiveEventName}${effectiveYear ? `, ${effectiveYear}` : ''}`
                                     : `Photo ${index + 1}`
                             }
                             priority={true}
@@ -478,7 +484,7 @@ export default function Lightbox({
                     <div className="portfolio__lightbox-slide portfolio__lightbox-slide--next">
                         <LightboxSlide
                             image={images[(index + 1) % images.length]}
-                            alt={eventName ? `Next photo from ${eventName}` : 'Next photo'}
+                            alt={effectiveEventName ? `Next photo from ${effectiveEventName}` : 'Next photo'}
                             deferLoad={!mainImageLoaded && !isAnimating && !isDragging}
                             onSingleClick={() => setIsTheaterMode((prev) => !prev)}
                         />
@@ -525,8 +531,8 @@ export default function Lightbox({
                                 isOpen={isStoryExportOpen}
                                 onClose={() => setIsStoryExportOpen(false)}
                                 photo={images[index]}
-                                eventName={eventName}
-                                year={year}
+                                eventName={effectiveEventName}
+                                year={effectiveYear}
                                 index={index}
                                 localScore={localScore}
                             />

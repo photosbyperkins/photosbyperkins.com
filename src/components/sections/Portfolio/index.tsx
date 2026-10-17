@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useMemo, useCallback, Suspense } fr
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import { usePortfolioRoute } from '../../../hooks/usePortfolioRoute';
-import { usePortfolioData, warmRouteData } from '../../../hooks/usePortfolioData';
+import { getCachedYearEvent, usePortfolioData, warmRouteData } from '../../../hooks/usePortfolioData';
 import { usePortfolioScroll } from '../../../hooks/usePortfolioScroll';
 import { usePortfolioSearch } from '../../../hooks/usePortfolioSearch';
 import { useStickyHeader } from '../../../hooks/useStickyHeader';
@@ -40,7 +40,8 @@ const hasInitialDeepLink =
     initialSegments[0] === 'portfolio' &&
     initialSegments.length >= 3 &&
     initialSegments[1] !== 'team' &&
-    initialSegments[1] !== 'gear';
+    initialSegments[1] !== 'gear' &&
+    initialSegments[1] !== 'find';
 const hasInitialPhotoDeepLink = hasInitialDeepLink && initialSegments.length >= 4;
 let ResolvedLightboxContainer: React.ComponentType | null = null;
 const lightboxContainerImport = hasInitialPhotoDeepLink
@@ -57,6 +58,7 @@ const LazyLightboxContainer = React.lazy(() =>
 );
 const GlobalSearchOverlay = React.lazy(() => import('./GlobalSearchOverlay'));
 const StoryExportModal = React.lazy(() => import('./StoryExportModal'));
+const FindMyPhotosView = React.lazy(() => import('./FindMyPhotosView'));
 
 // eslint-disable-next-line react-refresh/only-export-components
 export function warmPortfolioRoute(years: string[]): Promise<unknown> {
@@ -78,30 +80,24 @@ export default function Portfolio({ years }: PortfolioProps) {
     const {
         selectedTab,
         isGearRoute,
+        isFindRoute,
+        findTeamSlug,
         activeRouteSlug,
         initialSearchOpen,
         initialSearchQuery,
+        params,
     } = usePortfolioRoute({
         years,
     });
 
+    const initialJerseyParam = params.get('jersey') || '';
     const [isGlobalSearchOpen, setIsGlobalSearchOpen] = useState(initialSearchOpen);
     const [hasEverOpenedSearch, setHasEverOpenedSearch] = useState(initialSearchOpen);
-
-    const isFirstRender = useRef(true);
 
     // Know whether Animated Story (MP4) export works before Story Maker opens (idle-time, memoised)
     useEffect(() => {
         prefetchStoryVideoSupport();
     }, []);
-
-    useEffect(() => {
-        if (isFirstRender.current) {
-            isFirstRender.current = false;
-            return;
-        }
-        setIsGlobalSearchOpen(false);
-    }, [location.pathname]);
 
     useBodyScrollLock(isGlobalSearchOpen);
 
@@ -133,20 +129,48 @@ export default function Portfolio({ years }: PortfolioProps) {
     const {
         teamIndex,
         gearIndex,
+        findIndex,
         isTeamIndexLoading,
         isGearIndexLoading,
+        isFindIndexLoading,
         teamSearchQuery,
         setTeamSearchQuery,
         gearSearchQuery,
         setGearSearchQuery,
+        jerseySearchQuery,
+        setJerseySearchQuery,
         filteredTeams,
         filteredGear,
         ensureIndexesLoaded,
     } = usePortfolioSearch({
         initialSearchQuery,
+        initialJerseyQuery: initialJerseyParam ? `#${initialJerseyParam.replace(/^#/, '')}` : '',
         initialSearchOpen,
         isGearRoute,
+        isFindRoute,
     });
+
+    const shouldOpenJerseyModal =
+        Boolean(params.get('jersey')) || (isFindRoute && !params.get('num') && !findTeamSlug);
+    const locationRouteKey = `${location.pathname}${location.search}`;
+    const [prevLocationRouteKey, setPrevLocationRouteKey] = useState(locationRouteKey);
+    if (locationRouteKey !== prevLocationRouteKey) {
+        setPrevLocationRouteKey(locationRouteKey);
+        if (shouldOpenJerseyModal) {
+            setHasEverOpenedSearch(true);
+            setIsGlobalSearchOpen(true);
+            const nextNum = params.get('jersey');
+            setJerseySearchQuery(nextNum ? `#${nextNum.replace(/^#/, '')}` : '');
+        } else {
+            setIsGlobalSearchOpen(false);
+        }
+    }
+
+    useEffect(() => {
+        if (shouldOpenJerseyModal) {
+            ensureIndexesLoaded();
+        }
+    }, [shouldOpenJerseyModal, ensureIndexesLoaded]);
 
     const { stickyRef, sentinelRef } = useStickyHeader();
     useFirstEventOffset(stickyRef);
@@ -163,10 +187,20 @@ export default function Portfolio({ years }: PortfolioProps) {
         if (prevRouteHash.current !== currentRouteHash) {
             setTeamSearchQuery('');
             setGearSearchQuery('');
+            if (!isFindRoute) {
+                setJerseySearchQuery('');
+            }
             scrollOnNextDataLoadRef.current = true;
             prevRouteHash.current = currentRouteHash;
         }
-    }, [activeRouteSlug, scrollOnNextDataLoadRef, setTeamSearchQuery, setGearSearchQuery]);
+    }, [
+        activeRouteSlug,
+        isFindRoute,
+        scrollOnNextDataLoadRef,
+        setTeamSearchQuery,
+        setGearSearchQuery,
+        setJerseySearchQuery,
+    ]);
 
     const { sharedFavorites, clearSharedFavorites } = useSharedFavorites();
 
@@ -180,7 +214,7 @@ export default function Portfolio({ years }: PortfolioProps) {
     const events = useMemo(() => Object.entries(yearData), [yearData]);
 
     const isFavoritesTab = selectedTab === 'favorites';
-    const isTeamMode = !years.includes(selectedTab) && !isGearRoute && !isFavoritesTab;
+    const isTeamMode = !years.includes(selectedTab) && !isGearRoute && !isFavoritesTab && !isFindRoute;
     const isMultiYearMode = isTeamMode || isGearRoute || isFavoritesTab;
 
     const currentGearItem = useMemo(() => {
@@ -220,6 +254,8 @@ export default function Portfolio({ years }: PortfolioProps) {
             currentGearItem={currentGearItem}
             isTeamMode={isTeamMode}
             activeTeamMeta={activeTeamMeta}
+            isFindRoute={isFindRoute}
+            activeJerseyNumber={params.get('num') || ''}
             prefetchTab={prefetchTab}
         />
     );
@@ -366,6 +402,19 @@ export default function Portfolio({ years }: PortfolioProps) {
         const list: FavoriteStoreItem[] = [];
         const seen = new Set<string>();
 
+        if (isFindRoute) {
+            for (const photos of Object.values(visiblePhotosMap)) {
+                for (const item of photos) {
+                    const photoRecord = toPhotoRecord(item);
+                    if (photoRecord.original && !seen.has(photoRecord.original)) {
+                        seen.add(photoRecord.original);
+                        list.push(item);
+                    }
+                }
+            }
+            return list;
+        }
+
         // Include visible recap photos when recap is active
         const recapPhotos = visiblePhotosMap['__recap__'];
         if (recapPhotos && recapCount > 0 && !isTeamMode && !isGearRoute) {
@@ -412,7 +461,7 @@ export default function Portfolio({ years }: PortfolioProps) {
             }
         }
         return list;
-    }, [isBatchSelectMode, events, visiblePhotosMap, selectedTab, recapCount, isTeamMode, isGearRoute]);
+    }, [isBatchSelectMode, isFindRoute, events, visiblePhotosMap, selectedTab, recapCount, isTeamMode, isGearRoute]);
 
     const isAllSelected = useMemo(() => {
         if (!isBatchSelectMode || allSelectablePhotos.length === 0) return false;
@@ -517,7 +566,7 @@ export default function Portfolio({ years }: PortfolioProps) {
             setDirectStoryPhoto(p);
             setDirectStoryEventName(evtName);
             setDirectStoryYear(yearStr);
-            const matchedEvent = yearData[evtName];
+            const matchedEvent = yearData[evtName] ?? getCachedYearEvent(yearStr, evtName);
             const scorePayload =
                 matchedEvent?.localScore ||
                 (matchedEvent?.wftdaMatch
@@ -549,8 +598,9 @@ export default function Portfolio({ years }: PortfolioProps) {
                     selectedTab
                 );
             });
-            const frameScores = frameEvents.map((ev) => {
-                const matched = ev ? yearData[ev] : undefined;
+            const frameScores = frameEvents.map((ev, i) => {
+                const yr = frameYears[i] || selectedTab;
+                const matched = ev ? (yearData[ev] ?? getCachedYearEvent(yr, ev)) : undefined;
                 return (
                     matched?.localScore ||
                     (matched?.wftdaMatch
@@ -606,7 +656,7 @@ export default function Portfolio({ years }: PortfolioProps) {
     return (
         <section className="portfolio" id="portfolio" ref={portfolioRef}>
             <div className="container">
-                {recapCount > 0 && !isTeamMode && !isGearRoute && (
+                {recapCount > 0 && !isTeamMode && !isGearRoute && !isFindRoute && (
                     <div className="portfolio__recap-section">
                         <Recap
                             slug={selectedTab}
@@ -639,111 +689,129 @@ export default function Portfolio({ years }: PortfolioProps) {
                     />
                 )}
 
-                <div className="portfolio__events-wrapper">
-                    {!isGlobalSearchOpen &&
-                        !isLightboxOpen &&
-                        (!isMultiYearMode ? (
-                            <PortfolioMonthTrack key={selectedTab} events={events} selectedYear={selectedTab} />
-                        ) : multiYearData.length > 1 ? (
-                            <PortfolioYearTrack
-                                key={selectedTab}
-                                events={events}
-                                title={
-                                    activeTeamMeta?.name ||
-                                    currentGearItem?.name ||
-                                    (isFavoritesTab ? 'Favorites' : undefined)
-                                }
+                {isFindRoute ? (
+                    <ErrorBoundary name="FindMyPhotosView" variant="section">
+                        <Suspense
+                            fallback={
+                                <div className="portfolio__loading" role="status" aria-live="polite">
+                                    Loading jersey photos…
+                                </div>
+                            }
+                        >
+                            <FindMyPhotosView
+                                initialTeamSlug={findTeamSlug}
+                                initialNumberQuery={params.get('num') || ''}
+                                hideTracks={isGlobalSearchOpen || isLightboxOpen}
                             />
-                        ) : multiYearData.length === 1 ? (
-                            <PortfolioMonthTrack
-                                key={`${selectedTab}-${multiYearData[0].year}`}
-                                events={events}
-                                selectedYear={multiYearData[0].year}
-                            />
-                        ) : null)}
+                        </Suspense>
+                    </ErrorBoundary>
+                ) : (
+                    <div className="portfolio__events-wrapper">
+                        {!isGlobalSearchOpen &&
+                            !isLightboxOpen &&
+                            (!isMultiYearMode ? (
+                                <PortfolioMonthTrack key={selectedTab} events={events} selectedYear={selectedTab} />
+                            ) : multiYearData.length > 1 ? (
+                                <PortfolioYearTrack
+                                    key={selectedTab}
+                                    events={events}
+                                    title={
+                                        activeTeamMeta?.name ||
+                                        currentGearItem?.name ||
+                                        (isFavoritesTab ? 'Favorites' : undefined)
+                                    }
+                                />
+                            ) : multiYearData.length === 1 ? (
+                                <PortfolioMonthTrack
+                                    key={`${selectedTab}-${multiYearData[0].year}`}
+                                    events={events}
+                                    selectedYear={multiYearData[0].year}
+                                />
+                            ) : null)}
 
-                    <div className="portfolio__events" ref={stickyRef}>
-                        {isFavoritesTab && favorites.length === 0 ? (
-                            <EventEmptyFavorites />
-                        ) : (
-                            <>
-                                {isFavoritesTab && (
-                                    <div className="portfolio__favorites-header">
-                                        <div className="portfolio__event-teams">
-                                            <h2>
-                                                <span style={{ color: 'var(--color-accent)' }}>YOUR&nbsp;</span>
-                                                FAVORITES
-                                            </h2>
+                        <div className="portfolio__events" ref={stickyRef}>
+                            {isFavoritesTab && favorites.length === 0 ? (
+                                <EventEmptyFavorites />
+                            ) : (
+                                <>
+                                    {isFavoritesTab && (
+                                        <div className="portfolio__favorites-header">
+                                            <div className="portfolio__event-teams">
+                                                <h2>
+                                                    <span style={{ color: 'var(--color-accent)' }}>YOUR&nbsp;</span>
+                                                    FAVORITES
+                                                </h2>
+                                            </div>
+                                            <div className="portfolio__event-meta">
+                                                {!canShare && (
+                                                    <button
+                                                        type="button"
+                                                        className="portfolio__zip-btn"
+                                                        onClick={handleDownloadAllFavorites}
+                                                        disabled={isZipping}
+                                                        title="Download All Original Photos (.zip)"
+                                                        aria-label="Download All Original Photos (.zip)"
+                                                        style={{
+                                                            cursor: isZipping ? 'wait' : 'pointer',
+                                                            ['--p' as string]: isZipping ? `${zipProgress / 100}` : 0,
+                                                            borderColor: isZipping ? 'var(--color-accent)' : undefined,
+                                                            color: isZipping
+                                                                ? zipProgress > 50
+                                                                    ? '#fff'
+                                                                    : 'var(--color-accent)'
+                                                                : undefined,
+                                                        }}
+                                                    >
+                                                        <Save size={16} />
+                                                    </button>
+                                                )}
+                                                {canShare && (
+                                                    <button
+                                                        type="button"
+                                                        className="portfolio__zip-btn"
+                                                        onClick={handleShareAllFavorites}
+                                                        title="Share Favorites"
+                                                        aria-label="Share Favorites"
+                                                    >
+                                                        <Share2 size={16} />
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="portfolio__event-meta">
-                                            {!canShare && (
-                                                <button
-                                                    type="button"
-                                                    className="portfolio__zip-btn"
-                                                    onClick={handleDownloadAllFavorites}
-                                                    disabled={isZipping}
-                                                    title="Download All Original Photos (.zip)"
-                                                    aria-label="Download All Original Photos (.zip)"
-                                                    style={{
-                                                        cursor: isZipping ? 'wait' : 'pointer',
-                                                        ['--p' as string]: isZipping ? `${zipProgress / 100}` : 0,
-                                                        borderColor: isZipping ? 'var(--color-accent)' : undefined,
-                                                        color: isZipping
-                                                            ? zipProgress > 50
-                                                                ? '#fff'
-                                                                : 'var(--color-accent)'
-                                                            : undefined,
-                                                    }}
-                                                >
-                                                    <Save size={16} />
-                                                </button>
-                                            )}
-                                            {canShare && (
-                                                <button
-                                                    type="button"
-                                                    className="portfolio__zip-btn"
-                                                    onClick={handleShareAllFavorites}
-                                                    title="Share Favorites"
-                                                    aria-label="Share Favorites"
-                                                >
-                                                    <Share2 size={16} />
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                )}
-                                {eventRows.map((row) =>
-                                    row.type === 'divider' ? (
-                                        <div
-                                            key={`divider-${row.year}`}
-                                            id={`year-divider-${row.year}`}
-                                            className="portfolio__year-divider"
-                                            aria-hidden="true"
-                                        >
-                                            <span>{row.year}</span>
-                                        </div>
-                                    ) : (
-                                        <PortfolioEvent
-                                            key={`${selectedTab}-${row.eventName}`}
-                                            eventName={row.eventName}
-                                            ev={row.ev}
-                                            evIdx={row.evIdx}
-                                            selectedYear={
-                                                isMultiYearMode && row.ev.originalYear
-                                                    ? row.ev.originalYear
-                                                    : selectedTab
-                                            }
-                                            inViewParent={inView}
-                                            activeTeamName={activeTeamMeta?.name}
-                                            activeGearId={isGearRoute ? activeRouteSlug : undefined}
-                                            isFavoritesTab={isFavoritesTab}
-                                        />
-                                    )
-                                )}
-                            </>
-                        )}
+                                    )}
+                                    {eventRows.map((row) =>
+                                        row.type === 'divider' ? (
+                                            <div
+                                                key={`divider-${row.year}`}
+                                                id={`year-divider-${row.year}`}
+                                                className="portfolio__year-divider"
+                                                aria-hidden="true"
+                                            >
+                                                <span>{row.year}</span>
+                                            </div>
+                                        ) : (
+                                            <PortfolioEvent
+                                                key={`${selectedTab}-${row.eventName}`}
+                                                eventName={row.eventName}
+                                                ev={row.ev}
+                                                evIdx={row.evIdx}
+                                                selectedYear={
+                                                    isMultiYearMode && row.ev.originalYear
+                                                        ? row.ev.originalYear
+                                                        : selectedTab
+                                                }
+                                                inViewParent={inView}
+                                                activeTeamName={activeTeamMeta?.name}
+                                                activeGearId={isGearRoute ? activeRouteSlug : undefined}
+                                                isFavoritesTab={isFavoritesTab}
+                                            />
+                                        )
+                                    )}
+                                </>
+                            )}
+                        </div>
                     </div>
-                </div>
+                )}
             </div>
 
             <ErrorBoundary
@@ -754,6 +822,7 @@ export default function Portfolio({ years }: PortfolioProps) {
                     setIsGlobalSearchOpen(false);
                     setTeamSearchQuery('');
                     setGearSearchQuery('');
+                    setJerseySearchQuery('');
                 }}
             >
                 <Suspense fallback={null}>
@@ -764,6 +833,7 @@ export default function Portfolio({ years }: PortfolioProps) {
                                 setIsGlobalSearchOpen(false);
                                 setTeamSearchQuery('');
                                 setGearSearchQuery('');
+                                setJerseySearchQuery('');
                             }}
                             teamSearchQuery={teamSearchQuery}
                             setTeamSearchQuery={setTeamSearchQuery}
@@ -773,6 +843,12 @@ export default function Portfolio({ years }: PortfolioProps) {
                             setGearSearchQuery={setGearSearchQuery}
                             filteredGear={filteredGear}
                             isGearIndexLoading={isGearIndexLoading}
+                            jerseySearchQuery={jerseySearchQuery}
+                            setJerseySearchQuery={setJerseySearchQuery}
+                            findTeams={findIndex}
+                            isFindIndexLoading={isFindIndexLoading}
+                            initialTab={isFindRoute || Boolean(params.get('jersey')) ? 'jersey' : 'teams'}
+                            initialTeamSlug={findTeamSlug}
                         />
                     )}
                 </Suspense>

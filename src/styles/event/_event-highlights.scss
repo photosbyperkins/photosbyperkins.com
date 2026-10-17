@@ -11,6 +11,45 @@
             /* 5 cols, 4 gaps of 4px = 16px */
             grid-auto-rows: calc(((100cqw + 4px) / 5) * (2 / 3) - 4px);
 
+            &[data-count='1'] {
+                grid-template-columns: 1fr;
+                grid-auto-rows: calc(100cqw * (2 / 3));
+
+                .portfolio__featured-item:nth-child(n) {
+                    grid-column: 1 / -1;
+                    grid-row: span 1;
+                }
+            }
+
+            &[data-count='2'],
+            &[data-count='4'] {
+                grid-template-columns: repeat(2, 1fr);
+                grid-auto-rows: calc(((100cqw + 4px) / 2) * (2 / 3) - 4px);
+
+                .portfolio__featured-item:nth-child(n) {
+                    grid-column: span 1;
+                    grid-row: span 1;
+                }
+            }
+
+            &[data-count='3'] {
+                grid-template-columns: repeat(3, 1fr);
+                grid-auto-rows: calc(((100cqw + 4px) / 3) * (2 / 3) - 4px);
+
+                .portfolio__featured-item {
+                    &:nth-child(1) {
+                        grid-column: span 2;
+                        grid-row: span 2;
+                    }
+
+                    &:nth-child(2),
+                    &:nth-child(3) {
+                        grid-column: span 1;
+                        grid-row: span 1;
+                    }
+                }
+            }
+
             .portfolio__featured-item {
                 position: relative;
                 overflow: hidden;

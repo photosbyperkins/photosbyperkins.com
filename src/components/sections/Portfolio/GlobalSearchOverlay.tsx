@@ -4,9 +4,12 @@ import { createPortal } from 'react-dom';
 import { Search, X } from '../../ui/icons';
 import { useFocusTrap } from '../../../hooks/useFocusTrap';
 import { useBodyScrollLock } from '../../../hooks/useBodyScrollLock';
+import { useAppStore } from '../../../store/useAppStore';
 import { DURATION, EASE_OUT_EXPO, EASE_IN_OUT, SPRING_SNAPPY } from '../../../utils/motion';
 import TeamFilter from './TeamFilter';
 import GearFilter, { type GearMeta } from './GearFilter';
+import JerseySearchFilter from './JerseySearchFilter';
+import type { FindTeamEntry } from '../../../utils/findMyPhotos';
 
 interface TeamMeta {
     name: string;
@@ -25,6 +28,12 @@ interface GlobalSearchOverlayProps {
     setGearSearchQuery: (query: string) => void;
     filteredGear: GearMeta[];
     isGearIndexLoading: boolean;
+    jerseySearchQuery?: string;
+    setJerseySearchQuery?: (query: string) => void;
+    findTeams?: FindTeamEntry[];
+    isFindIndexLoading?: boolean;
+    initialTab?: 'teams' | 'gear' | 'jersey';
+    initialTeamSlug?: string;
 }
 
 export default function GlobalSearchOverlay({
@@ -38,12 +47,25 @@ export default function GlobalSearchOverlay({
     setGearSearchQuery,
     filteredGear,
     isGearIndexLoading,
+    jerseySearchQuery = '',
+    setJerseySearchQuery,
+    findTeams = [],
+    isFindIndexLoading = false,
+    initialTab = 'teams',
+    initialTeamSlug,
 }: GlobalSearchOverlayProps) {
-    const [activeTab, setActiveTab] = useState<'teams' | 'gear'>('teams');
+    const [activeTab, setActiveTab] = useState<'teams' | 'gear' | 'jersey'>(initialTab);
+    const [prevInitialTab, setPrevInitialTab] = useState(initialTab);
+    if (initialTab !== prevInitialTab) {
+        setPrevInitialTab(initialTab);
+        setActiveTab(initialTab);
+    }
+
+    const isLightboxOpen = useAppStore((state) => state.lightbox.isOpen);
     const overlayRef = useRef<HTMLDivElement>(null);
     const searchInputRef = useRef<HTMLInputElement>(null);
 
-    useFocusTrap(overlayRef, isOpen, searchInputRef);
+    useFocusTrap(overlayRef, isOpen && !isLightboxOpen, searchInputRef);
     useBodyScrollLock(isOpen);
 
     useEffect(() => {
@@ -51,6 +73,13 @@ export default function GlobalSearchOverlay({
 
         const handleKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
+                const state = useAppStore.getState();
+                if (state.lightbox.isOpen) return;
+                if (state.isBatchSelectMode) {
+                    e.stopPropagation();
+                    state.setIsBatchSelectMode(false);
+                    return;
+                }
                 e.stopPropagation();
                 onClose();
             }
@@ -62,24 +91,44 @@ export default function GlobalSearchOverlay({
     }, [isOpen, onClose]);
 
     useEffect(() => {
-        if (isOpen) {
+        if (isOpen && !isLightboxOpen) {
             requestAnimationFrame(() => {
                 searchInputRef.current?.focus();
             });
         }
-    }, [isOpen, activeTab]);
+    }, [isOpen, activeTab, isLightboxOpen]);
 
     if (typeof document === 'undefined') return null;
 
     const isTeams = activeTab === 'teams';
-    const currentQuery = isTeams ? teamSearchQuery : gearSearchQuery;
+    const isGear = activeTab === 'gear';
+    const isJersey = activeTab === 'jersey';
+    const currentQuery = isTeams ? teamSearchQuery : isGear ? gearSearchQuery : jerseySearchQuery;
+
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = e.target.value;
+        // Auto-switch to Jersey tab if user types #<digit> in Teams or Gear tab
+        if (!isJersey && /(?:^|\s)#\d/.test(val) && setJerseySearchQuery) {
+            setActiveTab('jersey');
+            setJerseySearchQuery(val);
+            if (isTeams) setTeamSearchQuery('');
+            if (isGear) setGearSearchQuery('');
+            return;
+        }
         if (isTeams) {
-            setTeamSearchQuery(e.target.value);
+            setTeamSearchQuery(val);
+        } else if (isGear) {
+            setGearSearchQuery(val);
         } else {
-            setGearSearchQuery(e.target.value);
+            setJerseySearchQuery?.(val);
         }
     };
+
+    const searchAriaLabel = isTeams
+        ? 'Search teams'
+        : isGear
+          ? 'Search gear'
+          : 'Search jersey number';
 
     return createPortal(
         <AnimatePresence>
@@ -103,7 +152,7 @@ export default function GlobalSearchOverlay({
                                     className="portfolio__segmented-toggle portfolio__search-tab-toggle"
                                     role="group"
                                     aria-label="Search category"
-                                    >
+                                >
                                     <button
                                         type="button"
                                         className={activeTab === 'teams' ? 'active' : ''}
@@ -118,6 +167,21 @@ export default function GlobalSearchOverlay({
                                             />
                                         )}
                                         <span>Teams</span>
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={activeTab === 'jersey' ? 'active' : ''}
+                                        onClick={() => setActiveTab('jersey')}
+                                        aria-pressed={activeTab === 'jersey'}
+                                    >
+                                        {activeTab === 'jersey' && (
+                                            <motion.span
+                                                className="portfolio__segment-pill"
+                                                layoutId="searchTabPill"
+                                                transition={SPRING_SNAPPY}
+                                            />
+                                        )}
+                                        <span>Jersey</span>
                                     </button>
                                     <button
                                         type="button"
@@ -142,7 +206,7 @@ export default function GlobalSearchOverlay({
                                         type="search"
                                         autoFocus
                                         enterKeyHint="search"
-                                        aria-label={isTeams ? 'Search teams' : 'Search gear'}
+                                        aria-label={searchAriaLabel}
                                         value={currentQuery}
                                         onChange={handleSearchChange}
                                     />
@@ -154,13 +218,15 @@ export default function GlobalSearchOverlay({
                         </div>
                     </div>
 
-                    <div className="sr-only" role="status" aria-live="polite">
-                        {currentQuery
-                            ? isTeams
-                                ? `${filteredTeams.length} ${filteredTeams.length === 1 ? 'team' : 'teams'} found`
-                                : `${filteredGear.length} ${filteredGear.length === 1 ? 'gear item' : 'gear items'} found`
-                            : ''}
-                    </div>
+                    {!isJersey && (
+                        <div className="sr-only" role="status" aria-live="polite">
+                            {currentQuery
+                                ? isTeams
+                                    ? `${filteredTeams.length} ${filteredTeams.length === 1 ? 'team' : 'teams'} found`
+                                    : `${filteredGear.length} ${filteredGear.length === 1 ? 'gear item' : 'gear items'} found`
+                                : ''}
+                        </div>
+                    )}
 
                     <div className="portfolio__global-search-content">
                         {isTeams ? (
@@ -170,11 +236,20 @@ export default function GlobalSearchOverlay({
                                 teamIndexLoading={isTeamIndexLoading}
                                 onBack={onClose}
                             />
-                        ) : (
+                        ) : isGear ? (
                             <GearFilter
                                 gearSearchQuery={gearSearchQuery}
                                 filteredGear={filteredGear}
                                 gearIndexLoading={isGearIndexLoading}
+                                onBack={onClose}
+                            />
+                        ) : (
+                            <JerseySearchFilter
+                                jerseySearchQuery={jerseySearchQuery}
+                                setJerseySearchQuery={setJerseySearchQuery}
+                                findTeams={findTeams}
+                                isFindIndexLoading={isFindIndexLoading}
+                                initialTeamSlug={initialTeamSlug}
                                 onBack={onClose}
                             />
                         )}
@@ -185,3 +260,4 @@ export default function GlobalSearchOverlay({
         document.body
     );
 }
+

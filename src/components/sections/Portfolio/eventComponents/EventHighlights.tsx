@@ -57,7 +57,10 @@ export const EventHighlights = React.memo(function EventHighlights({
     }
 
     return (
-        <div className="portfolio__event-featured">
+        <div
+            className="portfolio__event-featured"
+            data-count={Math.min(featuredPhotos.length, 5)}
+        >
             {featuredPhotos.map((photo, i) => {
                 const isLast = i === 4;
                 const origUrl = photo.original;

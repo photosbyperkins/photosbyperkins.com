@@ -12,10 +12,11 @@ from ml import run as runner
 from ml.export_sidecars import (
     apply_burst_consensus_numbers,
     export_all_sidecars,
+    parse_override_numbers,
     rank_event_bursts,
     resolve_event_teams,
 )
-from ml.label_crops import extract_crops
+from ml.label_crops import extract_crops, extract_number_crops
 from ml.neighbors import compute_top_neighbors
 from ml.stages.alt_text import synthesize_grounded_alt_text, verify_grounded_alt_text
 from ml.stages.bursts import BurstsStage, compute_dhash_hex, hamming_distance_hex
@@ -161,6 +162,59 @@ def test_numbers_ocr_junior_skip_and_burst_consensus():
     jr_promoted = apply_burst_consensus_numbers(album, numbers_map, is_junior_bout=True)
     assert jr_promoted['/t/f1.avif'] == ['88']
 
+    # Partial-occlusion burst merging: Frame 1 has full '428', Frame 2 has partially cut-off '42'
+    partial_burst_map = {
+        '/t/f1.avif': {'numbers': [{'num': '428', 'conf': 0.89}], 'candidates': []},
+        '/t/f2.avif': {'numbers': [{'num': '42', 'conf': 0.88}], 'candidates': []},
+    }
+    merged_burst = apply_burst_consensus_numbers(album, partial_burst_map)
+    assert merged_burst['/t/f1.avif'] == ['428']
+    assert merged_burst['/t/f2.avif'] == ['428']
+
+    # Manual jersey overrides can fix cut-off numbers, mark partial numbers ('?'), or suppress false positives
+    assert parse_override_numbers('#428, 12') == ['428', '12']
+    assert parse_override_numbers('42?, ?51, 7*') == ['42?', '?51', '7?']
+    assert parse_override_numbers({'status': 'partial', 'numbers': ['7', '42']}) == ['7?', '42?']
+    assert parse_override_numbers('reject') == []
+    overridden = apply_burst_consensus_numbers(
+        album,
+        partial_burst_map,
+        jersey_overrides={'/t/f1.avif': [], '/t/f2.avif': ['428']},
+    )
+    assert overridden['/t/f1.avif'] == []
+    assert overridden['/t/f2.avif'] == ['428']
+
+    # Bout-wide partial-occlusion resolution: single-occurrence 2-digit '33' and explicit partial '?51' resolve to confirmed bout numbers, while unresolved partial '7?' is preserved
+    bout_album = [
+        {'thumb': '/t/b1.avif'},
+        {'thumb': '/t/b2.avif'},
+        {'thumb': '/t/b3.avif'},
+        {'thumb': '/t/b4.avif'},
+        {'thumb': '/t/b5.avif'},
+    ]
+    bout_numbers_map = {
+        '/t/b1.avif': {'numbers': [{'num': '333', 'conf': 0.92}], 'candidates': []},
+        '/t/b2.avif': {'numbers': [{'num': '451', 'conf': 0.94}], 'candidates': []},
+        '/t/b3.avif': {'numbers': [{'num': '33', 'conf': 0.88}], 'candidates': []},
+        '/t/b4.avif': {'numbers': [], 'candidates': []},
+        '/t/b5.avif': {'numbers': [], 'candidates': []},
+    }
+    bout_resolved = apply_burst_consensus_numbers(
+        bout_album,
+        bout_numbers_map,
+        jersey_overrides={'/t/b4.avif': ['?51'], '/t/b5.avif': ['7?']},
+    )
+    assert bout_resolved['/t/b3.avif'] == ['333']
+    assert bout_resolved['/t/b4.avif'] == ['451']
+    assert bout_resolved['/t/b5.avif'] == ['7?']
+
+    # Narrow vertical strap noise must not hallucinate '44' or '41'
+    strap_crop = np.full((64, 112, 3), 35, dtype=np.uint8)
+    cv2.rectangle(strap_crop, (30, 8), (34, 52), (235, 235, 235), -1)
+    cv2.rectangle(strap_crop, (75, 8), (79, 52), (235, 235, 235), -1)
+    strap_rec = recognize_jersey_crop_cv(strap_crop)
+    assert strap_rec is None or strap_rec[0] not in ('44', '41', '14')
+
 
 def test_clip_embedding_and_neighbors_mask_same_burst():
     img1 = np.full((64, 64, 3), (40, 20, 180), dtype=np.uint8)
@@ -271,10 +325,19 @@ def test_end_to_end_runner_exports_sidecars_and_eval_passes(tmp_path: Path, monk
     assert sidecar['photos']['0']['a']
     assert sidecar['photos']['0']['s'] == [['2025', '11-08-sacramento-vs-outlaws', 1]]
 
-    # Test label_crops extractor
+    # Test label_crops extractor (both helmet roles and jersey numbers modes)
     crops_res = extract_crops(photos_file=photos_path, out_dir=tmp_path / 'data' / 'labeling', limit=10)
     assert crops_res['extracted'] == 2
     assert (tmp_path / 'data' / 'labeling' / 'index.html').exists()
+
+    nums_res = extract_number_crops(
+        photos_file=photos_path,
+        out_dir=tmp_path / 'data' / 'labeling',
+        cache_db=tmp_path / 'data' / 'ml_cache.sqlite',
+        limit=10,
+    )
+    assert nums_res['extracted'] >= 0
+    assert (tmp_path / 'data' / 'labeling' / 'numbers.html').exists()
 
     # Test eval harness
     eval_rc = ml_eval.main(

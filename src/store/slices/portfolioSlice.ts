@@ -101,7 +101,9 @@ export const extractInitialSharedPhoto = (): SharedPhotoState | null => {
     if (typeof window === 'undefined') return null;
     const segments = window.location.pathname.split('/').filter(Boolean);
     if (segments[0] !== 'portfolio' || segments.length < 3) return null;
-    if (segments[1] === 'team' || segments[1] === 'gear' || segments[1] === 'favorites') return null;
+    if (segments[1] === 'team' || segments[1] === 'gear' || segments[1] === 'favorites' || segments[1] === 'find') {
+        return null;
+    }
     let decodedEvent = segments[2];
     try {
         decodedEvent = decodeURIComponent(segments[2]);

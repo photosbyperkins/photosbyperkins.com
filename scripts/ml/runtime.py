@@ -17,6 +17,7 @@ except Exception:  # pragma: no cover - optional dependency
     ort = None
 
 MODEL_DIR = os.path.join('data', 'models')
+REPO_MODEL_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'data', 'models'))
 
 # sha256 doubles as the model's identity in stage fingerprints: swapping a file changes results.
 MODELS = {
@@ -34,6 +35,16 @@ MODELS = {
         'file': 'yolox_l.onnx',
         'url': 'https://github.com/Megvii-BaseDetection/YOLOX/releases/download/0.1.1rc0/yolox_l.onnx',
         'sha256': '7860ae79de6c89a3c1eb72ae9a2756c0ccfbe04b7791bb5880afabd97855a411',
+    },
+    'ppocr_det': {
+        'file': 'text_detection_en_ppocrv3_2023may.onnx',
+        'url': 'https://huggingface.co/opencv/text_detection_ppocr/resolve/main/text_detection_en_ppocrv3_2023may.onnx',
+        'sha256': '03f550c6b406fda8bf54bd8327815f6c7e2edd98cea02348c93d879254366587',
+    },
+    'ppocr_rec': {
+        'file': 'en_PP-OCRv4_rec_infer.onnx',
+        'url': 'https://huggingface.co/breezedeus/cnocr-ppocr-en_PP-OCRv4/resolve/main/en_PP-OCRv4_rec_infer.onnx',
+        'sha256': '5ca59a096cf493d5fd5044b9ccc1bdea9229fbcf656bd76040ff80a00201ee16',
     },
 }
 
@@ -87,6 +98,9 @@ def ensure_model(key):
     path = os.path.join(MODEL_DIR, spec['file'])
     if os.path.exists(path):
         return path
+    repo_candidate = os.path.join(REPO_MODEL_DIR, spec['file'])
+    if os.path.exists(repo_candidate):
+        return repo_candidate
     print(f"Downloading {spec['file']}...")
     req = urllib.request.Request(spec['url'], headers={'User-Agent': 'photosbyperkins-pipeline'})
     tmp = path + '.part'
