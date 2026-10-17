@@ -151,4 +151,33 @@ describe('Lightbox', () => {
         const firstThumb = scrubberThumbs[0] as HTMLElement;
         expect(firstThumb.style.backgroundImage).toContain('/scrubber/2026/event/sprite.webp?h=hash123456');
     });
+
+    it('disables keyboard shortcuts except "?" and "Escape" when keyboard shortcuts modal is open', () => {
+        const onClose = vi.fn();
+        const onSetIndex = vi.fn();
+        render(<Lightbox {...defaultProps} onClose={onClose} onSetIndex={onSetIndex} />);
+
+        // Open keyboard shortcuts modal via '?'
+        fireEvent.keyDown(window, { key: '?' });
+        expect(screen.getByRole('dialog', { name: 'Keyboard Shortcuts' })).not.toBeNull();
+
+        // Other shortcuts should be ignored while the modal is open
+        fireEvent.keyDown(window, { key: 'f' });
+        fireEvent.keyDown(window, { key: 't' });
+        fireEvent.keyDown(window, { key: 'ArrowRight' });
+        expect(useAppStore.getState().favorites).toHaveLength(0);
+        expect(onSetIndex).not.toHaveBeenCalled();
+
+        // '?' closes the keyboard shortcuts modal without closing the lightbox
+        fireEvent.keyDown(window, { key: '?' });
+        expect(screen.queryByRole('dialog', { name: 'Keyboard Shortcuts' })).toBeNull();
+        expect(onClose).not.toHaveBeenCalled();
+
+        // Re-open with '?' and close with 'Escape'
+        fireEvent.keyDown(window, { key: '?' });
+        expect(screen.getByRole('dialog', { name: 'Keyboard Shortcuts' })).not.toBeNull();
+        fireEvent.keyDown(window, { key: 'Escape' });
+        expect(screen.queryByRole('dialog', { name: 'Keyboard Shortcuts' })).toBeNull();
+        expect(onClose).not.toHaveBeenCalled();
+    });
 });

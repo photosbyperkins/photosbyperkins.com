@@ -232,4 +232,39 @@ describe('useLightboxNavigation', () => {
         expect(onToggleZoom).not.toHaveBeenCalled();
         document.body.removeChild(editable);
     });
+
+    it('disables all shortcuts except "?" and "Escape" when isHelpOpen is true', () => {
+        renderHook(() =>
+            useLightboxNavigation({
+                onClose,
+                onPaginate,
+                isZoomed: false,
+                isHelpOpen: true,
+                onToggleFavorite,
+                onToggleZoom,
+                onToggleTheater,
+                onDownload,
+                onToggleHelp,
+                onOpenStoryExport,
+            })
+        );
+
+        for (const key of ['ArrowLeft', 'ArrowRight', ' ', 'f', 'F', 'l', 'L', 'z', 'Z', 't', 'T', 'd', 'D', 'c', 'C']) {
+            window.dispatchEvent(new KeyboardEvent('keydown', { key }));
+        }
+        window.dispatchEvent(new WheelEvent('wheel', { deltaY: 50 }));
+
+        expect(onPaginate).not.toHaveBeenCalled();
+        expect(onToggleFavorite).not.toHaveBeenCalled();
+        expect(onToggleZoom).not.toHaveBeenCalled();
+        expect(onToggleTheater).not.toHaveBeenCalled();
+        expect(onDownload).not.toHaveBeenCalled();
+        expect(onOpenStoryExport).not.toHaveBeenCalled();
+
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: '?' }));
+        expect(onToggleHelp).toHaveBeenCalledTimes(1);
+
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+        expect(onClose).toHaveBeenCalledTimes(1);
+    });
 });

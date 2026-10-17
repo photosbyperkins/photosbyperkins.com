@@ -308,6 +308,7 @@ export default function Lightbox({
         isZoomed,
         isActive: isPresent && !isStoryExportOpen,
         isAnimating,
+        isHelpOpen: !canShare && isHelpOpen,
         onToggleFavorite: handleToggleFavorite,
         onToggleZoom: handleToggleZoom,
         onToggleTheater: handleToggleTheater,

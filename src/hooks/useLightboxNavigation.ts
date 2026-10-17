@@ -6,6 +6,7 @@ interface UseLightboxNavigationProps {
     isZoomed: boolean;
     isActive?: boolean;
     isAnimating?: boolean;
+    isHelpOpen?: boolean;
     onToggleFavorite?: () => void;
     onToggleZoom?: () => void;
     onToggleTheater?: () => void;
@@ -20,6 +21,7 @@ export function useLightboxNavigation({
     isZoomed,
     isActive = true,
     isAnimating = false,
+    isHelpOpen = false,
     onToggleFavorite,
     onToggleZoom,
     onToggleTheater,
@@ -53,8 +55,17 @@ export function useLightboxNavigation({
                 return;
             }
 
-            // Block slide navigation and secondary actions mid-slide, but allow Escape above
-            if (isAnimating) {
+            if (e.key === '?') {
+                if (!isAnimating || isHelpOpen) {
+                    e.preventDefault();
+                    onToggleHelp?.();
+                }
+                return;
+            }
+
+            // When the keyboard shortcuts modal is open, disable all shortcuts except '?' and 'Escape'.
+            // Also block slide navigation and secondary actions mid-slide.
+            if (isHelpOpen || isAnimating) {
                 return;
             }
 
@@ -89,9 +100,6 @@ export function useLightboxNavigation({
             } else if (e.key === 'c' || e.key === 'C') {
                 e.preventDefault();
                 onOpenStoryExport?.();
-            } else if (e.key === '?') {
-                e.preventDefault();
-                onToggleHelp?.();
             }
         };
 
@@ -103,6 +111,7 @@ export function useLightboxNavigation({
         isZoomed,
         isActive,
         isAnimating,
+        isHelpOpen,
         onToggleFavorite,
         onToggleZoom,
         onToggleTheater,
@@ -126,7 +135,7 @@ export function useLightboxNavigation({
         if (!isActive) return;
 
         const handleWheel = (e: WheelEvent) => {
-            if (isZoomed || wheelCooldownRef.current || isAnimating) return;
+            if (isZoomed || isHelpOpen || wheelCooldownRef.current || isAnimating) return;
 
             const delta = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
             if (Math.abs(delta) < 10) return;
@@ -146,5 +155,5 @@ export function useLightboxNavigation({
 
         window.addEventListener('wheel', handleWheel, { passive: false });
         return () => window.removeEventListener('wheel', handleWheel);
-    }, [onPaginate, isZoomed, isActive, isAnimating]);
+    }, [onPaginate, isZoomed, isActive, isAnimating, isHelpOpen]);
 }
