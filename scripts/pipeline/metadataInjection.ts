@@ -1,5 +1,10 @@
 import type { Sharp } from 'sharp';
-import 'dotenv/config';
+
+try {
+    process.loadEnvFile?.();
+} catch {
+    // .env file is optional (e.g., in CI environments)
+}
 
 export interface MetadataOptions {
     year?: string | number;

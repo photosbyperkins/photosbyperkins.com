@@ -411,7 +411,9 @@ export default defineConfig(({ mode }) => {
         open: true,
     },
     test: {
+        pool: 'vmThreads',
         environment: 'happy-dom',
+        setupFiles: ['./src/test/setup.ts'],
         environmentOptions: {
             happyDOM: {
                 settings: {
