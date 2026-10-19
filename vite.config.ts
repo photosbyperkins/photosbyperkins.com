@@ -424,7 +424,7 @@ export default defineConfig(({ mode }) => {
             }
         },
         isolate: true,
-        exclude: ['e2e/**', 'node_modules/**']
+        exclude: ['e2e/**', 'node_modules/**', '.claude/**']
     }
     }
 })

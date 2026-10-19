@@ -5,13 +5,16 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-    { ignores: ['dist', 'build', 'node_modules'] },
+    // .claude/ holds agent worktrees: full checkouts that would otherwise be linted as a second
+    // project root (typescript-eslint then can't infer tsconfigRootDir).
+    { ignores: ['dist', 'build', 'node_modules', '.claude'] },
     {
         extends: [js.configs.recommended, ...tseslint.configs.recommended],
         files: ['src/**/*.{ts,tsx}'],
         languageOptions: {
             ecmaVersion: 2020,
             globals: globals.browser,
+            parserOptions: { tsconfigRootDir: import.meta.dirname },
         },
         plugins: {
             'react-hooks': reactHooks,
@@ -42,6 +45,7 @@ export default tseslint.config(
         languageOptions: {
             ecmaVersion: 2022,
             globals: globals.node,
+            parserOptions: { tsconfigRootDir: import.meta.dirname },
         },
         rules: {
             '@typescript-eslint/no-explicit-any': 'off',
