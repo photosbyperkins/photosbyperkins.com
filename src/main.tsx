@@ -6,6 +6,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { registerSW } from 'virtual:pwa-register';
 import App, { appReadyPromise } from './App.tsx';
 import { initRum } from './utils/rum';
+import { markUpdatePending, startDataVersionWatch } from './utils/appUpdate';
 import './index.scss';
 import '@fontsource/barlow-condensed/latin-400.css';
 import '@fontsource/barlow-condensed/latin-600.css';
@@ -24,34 +25,12 @@ window.addEventListener('vite:preloadError', (event) => {
     window.location.reload();
 });
 
-let updateNotified = false;
-const notifyPwaUpdate = () => {
-    if (updateNotified) return;
-    updateNotified = true;
-    window.dispatchEvent(new CustomEvent('pwa:update-available'));
-};
-
-if (!import.meta.env.DEV && 'serviceWorker' in navigator) {
-    const hasExistingController = Boolean(navigator.serviceWorker.controller);
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-        // Do not notify on first install / claim; only notify on update of existing SW
-        const wasPreviouslyControlled = hasExistingController || sessionStorage.getItem('sw-initialized') === 'true';
-        if (!wasPreviouslyControlled) {
-            sessionStorage.setItem('sw-initialized', 'true');
-            return;
-        }
-        if (typeof navigator !== 'undefined' && !navigator.onLine) {
-            return;
-        }
-        notifyPwaUpdate();
-    });
-}
-
 const startServiceWorker = () => {
     registerSW({
         immediate: false,
-        onNeedRefresh() {
-            notifyPwaUpdate();
+        // autoUpdate would otherwise hard-reload as soon as a new SW activates; defer to a safe moment instead
+        onNeedReload() {
+            markUpdatePending('code');
         },
         onRegisteredSW(_swScriptUrl, registration) {
             if (!registration) return;
@@ -72,14 +51,19 @@ const startServiceWorker = () => {
     });
 };
 
+const startUpdateChecks = () => {
+    startServiceWorker();
+    if (!import.meta.env.DEV) startDataVersionWatch();
+};
+
 if (typeof window !== 'undefined') {
     if (document.readyState === 'complete') {
-        setTimeout(startServiceWorker, 3500);
+        setTimeout(startUpdateChecks, 3500);
     } else {
         window.addEventListener(
             'load',
             () => {
-                setTimeout(startServiceWorker, 3500);
+                setTimeout(startUpdateChecks, 3500);
             },
             { once: true }
         );

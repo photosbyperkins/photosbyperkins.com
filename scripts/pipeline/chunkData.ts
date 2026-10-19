@@ -334,6 +334,23 @@ export function writeChunkedFile<T = unknown>(
     return writtenFiles;
 }
 
+/** Short content hash over every file under `dirs` (by relative path and bytes). */
+export function computeDataVersion(dirs: string[]): string {
+    const hash = crypto.createHash('sha256');
+    for (const dir of dirs) {
+        if (!fs.existsSync(dir)) continue;
+        const files = (fs.readdirSync(dir, { recursive: true }) as string[])
+            .map((f) => f.split(path.sep).join('/'))
+            .filter((f) => fs.statSync(path.join(dir, f)).isFile())
+            .sort();
+        for (const file of files) {
+            hash.update(`${path.basename(dir)}/${file}\0`);
+            hash.update(fs.readFileSync(path.join(dir, file)));
+        }
+    }
+    return hash.digest('hex').slice(0, 12);
+}
+
 /** Encodes processed event metadata for the client chunk files. */
 const encodeChunkEvent = (ev: ProcessedEventData) => encodeEvent(ev as unknown as Record<string, unknown>);
 
@@ -346,18 +363,11 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
     const years = Object.keys(data).sort((a, b) => b.localeCompare(a));
     const recapDefinitions: RecapDefinitions = {};
 
-    const indexData = {
-        years: years,
-    };
-
     // Ensure/Clean years dir
     if (fs.existsSync(YEARS_DIR)) {
         fs.rmSync(YEARS_DIR, { recursive: true, force: true });
     }
     fs.mkdirSync(YEARS_DIR, { recursive: true });
-
-    fs.writeFileSync(INDEX_FILE, JSON.stringify(indexData, null, 2));
-    logger.success(`Wrote index.json with ${years.length} years.`);
 
     // 2. Generate chunks per year and individual albums
     const ALBUMS_DIR = path.join(process.cwd(), 'public', 'data', 'albums');
@@ -764,6 +774,15 @@ export async function chunkData(data: IndexState): Promise<RecapDefinitions> {
         );
         // logger.info(`Chunked year: ${year} into parts with ${Object.keys(processedYearData).length} albums`);
     }
+
+    // Written after the year/album chunks so `dataVersion` reflects them; the client watches it to
+    // pick up newly published photos (src/utils/appUpdate.ts).
+    const indexData = {
+        years: years,
+        dataVersion: computeDataVersion([YEARS_DIR, ALBUMS_DIR]),
+    };
+    fs.writeFileSync(INDEX_FILE, JSON.stringify(indexData, null, 2));
+    logger.success(`Wrote index.json with ${years.length} years (dataVersion ${indexData.dataVersion}).`);
 
     // Write out Teams Data
     logger.step(`Writing Team Chunks...`);

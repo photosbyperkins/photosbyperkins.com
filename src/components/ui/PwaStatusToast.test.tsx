@@ -2,6 +2,7 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act, cleanup } from '@testing-library/react';
 import PwaStatusToast from './PwaStatusToast';
+import { UPDATED_STORAGE_KEY } from '../../utils/appUpdate';
 
 vi.mock('framer-motion', async (importOriginal) => {
     const actual = await importOriginal<typeof import('framer-motion')>();
@@ -23,6 +24,7 @@ vi.mock('framer-motion', async (importOriginal) => {
 describe('PwaStatusToast', () => {
     beforeEach(() => {
         Object.defineProperty(navigator, 'onLine', { value: true, configurable: true });
+        sessionStorage.clear();
     });
 
     afterEach(() => {
@@ -60,35 +62,25 @@ describe('PwaStatusToast', () => {
         expect(screen.getByText(/Back online/i)).not.toBeNull();
     });
 
-    it('surfaces "New photos available — Refresh" pill on pwa:update-available event', () => {
+    it('shows a brief non-interactive note after a reload that applied new photos', () => {
+        vi.useFakeTimers();
+        sessionStorage.setItem(UPDATED_STORAGE_KEY, 'data');
         render(<PwaStatusToast />);
 
-        act(() => {
-            window.dispatchEvent(new CustomEvent('pwa:update-available'));
-        });
+        expect(screen.getByText(/Updated with new photos/i)).not.toBeNull();
+        expect(screen.queryByRole('button')).toBeNull();
+        expect(sessionStorage.getItem(UPDATED_STORAGE_KEY)).toBeNull();
 
-        expect(screen.getByText(/New photos available/i)).not.toBeNull();
-        expect(screen.getByRole('button', { name: /Refresh/i })).not.toBeNull();
+        act(() => {
+            vi.advanceTimersByTime(3000);
+        });
+        expect(screen.queryByRole('status')).toBeNull();
+        vi.useRealTimers();
     });
 
-    it('detects buildNumber changes in /data/index.json on visibilitychange', async () => {
-        vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce({
-            ok: true,
-            json: async () => ({ buildNumber: 'build-999' }),
-        } as Response);
-
-        Object.defineProperty(document, 'visibilityState', {
-            value: 'visible',
-            configurable: true,
-        });
-
-        render(<PwaStatusToast currentBuildNumber="build-100" />);
-
-        await act(async () => {
-            document.dispatchEvent(new Event('visibilitychange'));
-        });
-
-        expect(screen.getByText(/New photos available/i)).not.toBeNull();
-        expect(screen.getByRole('button', { name: /Refresh/i })).not.toBeNull();
+    it('shows "Site updated" after a code update reload', () => {
+        sessionStorage.setItem(UPDATED_STORAGE_KEY, 'code');
+        render(<PwaStatusToast />);
+        expect(screen.getByText(/Site updated/i)).not.toBeNull();
     });
 });

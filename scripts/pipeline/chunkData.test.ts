@@ -11,6 +11,7 @@ import {
     computeScrubberHash,
     toClientPhoto,
     toClientHighlight,
+    computeDataVersion,
 } from './chunkData';
 import { DATA_FORMAT_VERSION } from '../../src/utils/dataCodec';
 
@@ -283,6 +284,46 @@ describe('chunkData pipeline helpers', () => {
             ];
             const hashB = computeScrubberHash(albumB);
             expect(hashB).not.toEqual(hashA);
+        });
+    });
+
+    describe('computeDataVersion', () => {
+        let tempDir: string;
+        let yearsDir: string;
+        let albumsDir: string;
+
+        beforeEach(() => {
+            tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'chunkdata-version-'));
+            yearsDir = path.join(tempDir, 'years');
+            albumsDir = path.join(tempDir, 'albums');
+            fs.mkdirSync(path.join(albumsDir, '2026'), { recursive: true });
+            fs.mkdirSync(yearsDir, { recursive: true });
+            fs.writeFileSync(path.join(yearsDir, '2026.json'), '{"events":{}}');
+            fs.writeFileSync(path.join(albumsDir, '2026', 'bout.json'), '{"p":[1,2]}');
+        });
+
+        afterEach(() => {
+            fs.rmSync(tempDir, { recursive: true, force: true });
+        });
+
+        it('is stable for identical content', () => {
+            const a = computeDataVersion([yearsDir, albumsDir]);
+            expect(a).toMatch(/^[0-9a-f]{12}$/);
+            expect(computeDataVersion([yearsDir, albumsDir])).toBe(a);
+        });
+
+        it('changes when an album gains photos or a new album is added', () => {
+            const before = computeDataVersion([yearsDir, albumsDir]);
+            fs.writeFileSync(path.join(albumsDir, '2026', 'bout.json'), '{"p":[1,2,3]}');
+            const afterEdit = computeDataVersion([yearsDir, albumsDir]);
+            expect(afterEdit).not.toBe(before);
+
+            fs.writeFileSync(path.join(albumsDir, '2026', 'new-bout.json'), '{"p":[]}');
+            expect(computeDataVersion([yearsDir, albumsDir])).not.toBe(afterEdit);
+        });
+
+        it('ignores missing directories', () => {
+            expect(computeDataVersion([path.join(tempDir, 'missing')])).toMatch(/^[0-9a-f]{12}$/);
         });
     });
 });

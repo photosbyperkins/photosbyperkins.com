@@ -10,6 +10,7 @@ import type { BadgeOptions, StoryPhotoFilterId } from '../../../utils/storyCanva
 import type { StoryFrameId } from './storyFrames/types';
 import type { EventScore, PhotoInput } from '../../../types';
 import { LAYOUT_HOLD_S, previewLayoutKey } from '../../../utils/story/storyTransitions';
+import { registerBusy, unregisterBusy } from '../../../utils/appUpdate';
 import ModalShell from '../../ui/ModalShell';
 import { StoryCropper } from './StoryCropper';
 import { StoryBurstCropper } from './StoryBurstCropper';
@@ -63,6 +64,13 @@ export const StoryExportModal: React.FC<StoryExportModalProps> = ({
     const layoutMode = useStoryLayoutMode();
     const isSheetMode = layoutMode === 'sheet';
     const [isSheetOpen, setIsSheetOpen] = useState(false);
+
+    // The open studio isn't in the URL, so hold off silent app updates while it's up
+    useEffect(() => {
+        if (!isOpen) return;
+        registerBusy('story');
+        return () => unregisterBusy('story');
+    }, [isOpen]);
 
     const photoRecord = useMemo(() => (typeof photo === 'string' ? { original: photo, thumb: photo } : photo), [photo]);
 

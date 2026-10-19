@@ -1,10 +1,19 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, useId } from 'react';
+import { registerBusy, unregisterBusy } from '../utils/appUpdate';
 
 export function useZipWorker() {
     const [isZipping, setIsZipping] = useState(false);
     const [zipProgress, setZipProgress] = useState(0);
     const zipWorkerRef = useRef<Worker | null>(null);
     const activeUrlsRef = useRef<Set<string>>(new Set());
+    const busyKey = `zip:${useId()}`;
+
+    // A reload would abort the download, so hold off silent app updates while zipping
+    useEffect(() => {
+        if (!isZipping) return;
+        registerBusy(busyKey);
+        return () => unregisterBusy(busyKey);
+    }, [isZipping, busyKey]);
 
     // Terminate the zip worker and revoke blob URLs on unmount to prevent leaks
     useEffect(() => {

@@ -6,6 +6,7 @@ import PwaStatusToast from './components/ui/PwaStatusToast';
 import ErrorBoundary from './components/ui/ErrorBoundary';
 import { getBuildNumber } from './utils/build';
 import { useAppStore } from './store/useAppStore';
+import { useApplyPendingUpdate } from './utils/appUpdate';
 
 const About = lazy(() => import('./components/sections/About'));
 let ResolvedPortfolio: React.ComponentType<{ years: string[] }> | null = null;
@@ -73,6 +74,8 @@ export default function App() {
     const [indexData, setIndexData] = useState<IndexData | null>(initialIndexData);
     const [fetchError, setFetchError] = useState(false);
     const isMountedRef = useRef(true);
+
+    useApplyPendingUpdate();
 
     const isAboutOpen = useAppStore((state) => state.isAboutOpen);
     const isAiPolicyOpen = useAppStore((state) => state.isAiPolicyOpen);

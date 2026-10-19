@@ -379,9 +379,13 @@ main {
 }
 
 // Floating PWA Status Toast
+// Same safe-area offset as the portfolio floating dock / batch bar; stacks above them while they're mounted.
+$toast-bottom: max(1.5rem, calc(env(safe-area-inset-bottom, 0px) + 0.75rem));
+$dock-height: 44px; // 32px buttons + 0.35rem padding each side + border
+
 .pwa-status-toast {
     position: fixed;
-    bottom: 24px;
+    bottom: $toast-bottom;
     left: 50%;
     z-index: var(--z-floating);
     display: flex;
@@ -397,31 +401,8 @@ main {
     pointer-events: none;
     white-space: nowrap;
 
-    &--interactive {
-        pointer-events: auto;
-        padding: 0.35rem 0.55rem 0.35rem 1rem;
-    }
-
-    &__action {
-        appearance: none;
-        border: none;
-        background: var(--color-accent);
-        color: #fff;
-        font-family: var(--font-body);
-        font-size: 0.8rem;
-        font-weight: 600;
-        padding: 0.3rem 0.75rem;
-        border-radius: 999px;
-        cursor: pointer;
-        transition: opacity 0.15s ease, transform 0.15s ease;
-
-        &:hover {
-            opacity: 0.92;
-        }
-
-        &:active {
-            transform: scale(0.97);
-        }
+    body:has(.portfolio__floating-dock, .portfolio__batch-bar) & {
+        bottom: calc(#{$toast-bottom} + #{$dock-height} + 0.5rem);
     }
 
     &__icon {
