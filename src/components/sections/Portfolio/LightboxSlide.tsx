@@ -146,7 +146,7 @@ const LightboxSlide = memo(
                     alt={alt}
                     width={imgWidth}
                     height={imgHeight}
-                    className="portfolio__lightbox-image-full"
+                    className={`portfolio__lightbox-image-full${dragMode ? ' is-zoomed' : ''}`}
                     fetchPriority={priority ? 'high' : 'low'}
                     decoding="async"
                     onLoad={(e) => {

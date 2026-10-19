@@ -150,4 +150,68 @@ describe('useSlideZoom', () => {
 
         expect(onSingleClick).toHaveBeenCalledTimes(1);
     });
+
+    describe('double-tap scale on a high-DPR phone', () => {
+        const setSize = (el: HTMLElement, props: Record<string, number>) => {
+            for (const [key, value] of Object.entries(props)) {
+                Object.defineProperty(el, key, { configurable: true, value });
+            }
+        };
+
+        const mountIphone = (image: typeof mockImage, naturalWidth: number) => {
+            const onCanZoomChange = vi.fn();
+            const hook = renderHook(() => useSlideZoom({ image, onCanZoomChange, reducedMotion: true }));
+            const container = document.createElement('div');
+            const img = document.createElement('img');
+            container.appendChild(img);
+            // iPhone portrait viewport (390 x 844 CSS px), landscape photo fitted to the width.
+            setSize(container, { clientWidth: 390, clientHeight: 844 });
+            setSize(img, { clientWidth: 390, clientHeight: 260, naturalWidth });
+            hook.result.current.containerRef.current = container;
+            act(() => {
+                hook.result.current.handleImageLoad();
+            });
+            return { ...hook, onCanZoomChange };
+        };
+
+        beforeEach(() => {
+            vi.spyOn(window, 'devicePixelRatio', 'get').mockReturnValue(3);
+        });
+
+        it('zooms to 1:1 device pixels of the display AVIF instead of the original width', () => {
+            const photo = { ...mockImage, width: 6000, height: 4000 };
+            const { result, onCanZoomChange } = mountIphone(photo, 3840);
+
+            expect(onCanZoomChange).toHaveBeenLastCalledWith(true);
+            act(() => {
+                result.current.toggleZoom();
+            });
+
+            // 3840px / (390 CSS px * DPR 3) ≈ 3.28x, not 6000 / 390 ≈ 15.4x.
+            expect(result.current.scale.get()).toBeCloseTo(3840 / (390 * 3), 5);
+        });
+
+        it('uses the display AVIF size even while the 1080px thumbnail is still shown', () => {
+            const photo = { ...mockImage, width: 6000, height: 4000 };
+            const { result } = mountIphone(photo, 1080);
+
+            act(() => {
+                result.current.toggleZoom();
+            });
+
+            expect(result.current.scale.get()).toBeCloseTo(3840 / (390 * 3), 5);
+        });
+
+        it('keeps the minimum zoom for small sources and leaves zoomed state settled for re-rasterizing', () => {
+            const photo = { ...mockImage, width: 1200, height: 800 };
+            const { result } = mountIphone(photo, 1200);
+
+            act(() => {
+                result.current.toggleZoom();
+            });
+
+            expect(result.current.scale.get()).toBe(2);
+            expect(result.current.dragMode).toBe(true);
+        });
+    });
 });

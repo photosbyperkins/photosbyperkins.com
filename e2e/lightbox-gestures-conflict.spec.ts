@@ -83,4 +83,46 @@ test.describe('Lightbox Gesture Isolation (Zoom vs Swipe/Pan)', () => {
         // Should be unzoomed again
         await expect(nextOverlay).toBeVisible();
     });
+
+    test('double-tap zoom stops at one image pixel per device pixel so high-DPR screens stay sharp', async ({
+        page,
+        hasTouch,
+    }) => {
+        const lightbox = page.locator('[role="dialog"][aria-label="Photo lightbox"]');
+        const fullImg = lightbox.locator('.portfolio__lightbox-slide--current .portfolio__lightbox-image-full');
+        await expect(fullImg).toBeVisible({ timeout: 10000 });
+        // Wait for the swap from the thumbnail to the display AVIF.
+        await expect(fullImg).toHaveAttribute('src', /\/avif\//, { timeout: 15000 });
+
+        if (hasTouch) {
+            // Two quick taps hit the touch double-tap path used on phones.
+            const box = (await fullImg.boundingBox())!;
+            const x = box.x + box.width / 2;
+            const y = box.y + box.height / 2;
+            await page.touchscreen.tap(x, y);
+            await page.touchscreen.tap(x, y);
+        } else {
+            await fullImg.dblclick();
+        }
+        // `is-zoomed` is set once the zoom animation settles.
+        await expect(fullImg).toHaveClass(/is-zoomed/, { timeout: 5000 });
+
+        const { scale, devicePxPerImagePx } = await fullImg.evaluate((el: HTMLImageElement) => {
+            // Some WebKit builds (e.g. Playwright's on Windows) can't decode AVIF, so naturalWidth is 0.
+            // Fall back to the photo's dimensions fitted inside the 3840px display AVIF.
+            const w = Number(el.getAttribute('width'));
+            const h = Number(el.getAttribute('height'));
+            const sourceWidth = el.naturalWidth || Math.round(w * Math.min(1, 3840 / Math.max(w, h)));
+            const renderedWidth = el.getBoundingClientRect().width;
+            return {
+                scale: renderedWidth / el.clientWidth,
+                devicePxPerImagePx: (renderedWidth * window.devicePixelRatio) / sourceWidth,
+            };
+        });
+        expect(scale).toBeGreaterThan(1.05);
+        // Either capped at 1:1 device pixels, or at the 2x minimum zoom for small sources.
+        expect(devicePxPerImagePx <= 1.01 || Math.abs(scale - 2) < 0.01).toBe(true);
+        // The settled zoom drops `will-change` so the browser re-rasterizes at the final scale.
+        await expect(fullImg).toHaveCSS('will-change', 'auto');
+    });
 });

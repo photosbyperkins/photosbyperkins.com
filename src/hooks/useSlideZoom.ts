@@ -3,6 +3,7 @@ import { useRef, useState, useCallback, useEffect } from 'react';
 import { useDebounce } from './useDebounce';
 import { useReducedMotion } from './useReducedMotion';
 import { SPRING_ZOOM } from '../utils/motion';
+import { getDoubleTapScale, getZoomSourceWidth, MIN_DOUBLE_TAP_SCALE } from '../utils/zoomScale';
 import type { PhotoInput } from '../types';
 
 export interface UseSlideZoomOptions {
@@ -115,11 +116,12 @@ export function useSlideZoom({
     const calculateMaxScale = useCallback(() => {
         const img = containerRef.current?.querySelector('img');
         if (img && img.clientWidth > 0) {
-            const fullWidth =
-                typeof image === 'object' && image?.width && image.width > img.naturalWidth
-                    ? image.width
+            const sourceWidth =
+                typeof image === 'object' && image
+                    ? getZoomSourceWidth(img.naturalWidth, image.width, image.height)
                     : img.naturalWidth;
-            maxScaleRef.current = Math.max(fullWidth / img.clientWidth, 1);
+            const dpr = typeof window !== 'undefined' ? window.devicePixelRatio : 1;
+            maxScaleRef.current = getDoubleTapScale(sourceWidth, img.clientWidth, dpr);
             checkConstraints();
             if (onCanZoomChange) onCanZoomChange(maxScaleRef.current > 1.05);
         }
@@ -210,7 +212,8 @@ export function useSlideZoom({
                 isAnimatingOutRef.current = false;
                 setDragMode(false);
 
-                const s = Math.max(maxScaleRef.current, 2);
+                // Fall back to the minimum zoom if the image hasn't been measured yet (e.g. keyboard 'z').
+                const s = maxScaleRef.current > 1.05 ? maxScaleRef.current : MIN_DOUBLE_TAP_SCALE;
                 animateTo(scale, s, () => {
                     checkConstraints(s);
                     setDragMode(true);

@@ -126,6 +126,13 @@
 
         &-slide--current &-image-full {
             will-change: transform;
+
+            // Once zoom has settled, drop the layer hint. A `will-change: transform` layer keeps the
+            // raster scale it was created with, so a zoomed image would stay an upscaled, blurry copy
+            // of the unzoomed bitmap. Without the hint the browser re-rasterizes at the final scale.
+            &.is-zoomed {
+                will-change: auto;
+            }
         }
 
         &-nav-overlay {
