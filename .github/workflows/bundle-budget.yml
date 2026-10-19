@@ -47,8 +47,16 @@ jobs:
         with:
           python-version: '3.11'
 
+      # Use the versions pinned in requirements-ml.txt (with the headless OpenCV build), so CI tests the
+      # OpenCV the pipeline actually runs. Unpinned installs pick up OpenCV 5, whose Hershey glyphs
+      # break the synthetic jersey-number eval.
       - name: Install Python ML test dependencies
-        run: pip install pytest numpy opencv-python-headless pillow
+        run: |
+          grep -E '^(numpy|pillow|pytest)==' requirements-ml.txt > "$RUNNER_TEMP/ml-ci-requirements.txt"
+          sed -n 's/^opencv-python==/opencv-python-headless==/p' requirements-ml.txt >> "$RUNNER_TEMP/ml-ci-requirements.txt"
+          cat "$RUNNER_TEMP/ml-ci-requirements.txt"
+          grep -q '^opencv-python-headless==' "$RUNNER_TEMP/ml-ci-requirements.txt"
+          pip install -r "$RUNNER_TEMP/ml-ci-requirements.txt"
 
       - name: Run Python ML unit tests & >=90% precision evaluation gate
         run: npm run test:ml && npm run ml:eval
