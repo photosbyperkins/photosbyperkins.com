@@ -5,6 +5,11 @@
     &__body {
         padding-top: 1rem;
         padding-bottom: 1rem;
+
+        // This grid sits outside .portfolio__events, so give its cqw row heights a container.
+        .portfolio__event {
+            container-type: inline-size;
+        }
     }
 
     .modal-shell__footer-bar-inner {

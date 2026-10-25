@@ -9,7 +9,11 @@
         --event-overflow-top: 1rem;
         padding-top: var(--event-overflow-top);
         margin-top: calc(-1 * var(--event-overflow-top));
-        container-type: inline-size;
+        // No container-type here: Firefox ignores contain-intrinsic-size on a
+        // content-visibility: auto element that is also a size container, so
+        // off-screen events collapse to their padding and the page shrinks under
+        // the reader. The grids' cqw units resolve against .portfolio__events,
+        // which is an inline-size container of the same width.
         scroll-margin-top: calc(var(--nav-height-total) + 1.5rem - var(--event-overflow-top));
         content-visibility: auto;
         contain-intrinsic-size: auto 650px;
