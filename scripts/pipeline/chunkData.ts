@@ -196,6 +196,13 @@ export function generateRecapImages(eventsObj: Record<string, Partial<ProcessedE
 }
 
 /**
+ * Bump to change every year's recapHash without touching the slices. The service worker caches sprites
+ * CacheFirst for a year, so this is the way to evict a sprite cached under a hash it didn't match.
+ * 2: single-event publishes advertised new hashes over the previous sprite.
+ */
+const RECAP_HASH_VERSION = 2;
+
+/**
  * Computes a deterministic 10-hex digest of a year's recap slice composition.
  * Changes whenever slices are added/removed/reordered, framing version changes,
  * or face/subject crop focus points update.
@@ -203,7 +210,7 @@ export function generateRecapImages(eventsObj: Record<string, Partial<ProcessedE
 export function computeRecapHash(recapImages: Array<SubjectFraming & { src: string }>): string | undefined {
     if (!recapImages || recapImages.length === 0) return undefined;
     const str = recapImages.map((img) => sliceCacheKey(img.src, img)).join(';');
-    return crypto.createHash('sha256').update(str).digest('hex').slice(0, 10);
+    return crypto.createHash('sha256').update(`r${RECAP_HASH_VERSION};${str}`).digest('hex').slice(0, 10);
 }
 
 /**

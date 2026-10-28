@@ -7,6 +7,7 @@ import { encodePhotos } from './pipeline/encodePhotos.js';
 import { stopPool } from './pipeline/ssim2Pool.js';
 import { generateZips } from './pipeline/generateZips.js';
 import { chunkData } from './pipeline/chunkData.js';
+import { generateRecaps } from './pipeline/generateRecaps.js';
 import { generateScrubber } from './pipeline/generateScrubber.js';
 import { generateSocialCards } from './pipeline/generateSocialCards.js';
 import { generateSitemap } from './pipeline/generateSitemap.js';
@@ -124,6 +125,16 @@ function copyEventAssetsToDist(year: string, eventLabel: string, eventSlug: stri
         }
     }
 
+    // Copy the year's recap sprite. The year JSON's recapEvents/recapHash describe the rebuilt sprite,
+    // so the two must ship together or recap slices open the wrong photo.
+    const recapSprite = path.join(process.cwd(), 'build', 'recap', year, 'sprite.webp');
+    if (fs.existsSync(recapSprite)) {
+        const destSprite = path.join(DIST_DIR, 'recap', year, 'sprite.webp');
+        fs.mkdirSync(path.dirname(destSprite), { recursive: true });
+        fs.copyFileSync(recapSprite, destSprite);
+        copied++;
+    }
+
     // Copy updated public/data JSON files + tag sidecar to dist/data
     const dataFilesToSync = [
         path.join('data', 'index.json'),
@@ -200,6 +211,9 @@ function deltaDeployEvent(year: string, eventLabel: string, eventSlug: string, e
         { local: path.join(DIST_DIR, 'avif', year, eventSlug), remote: `avif/${year}/` },
         { local: path.join(DIST_DIR, 'data', 'albums', year, `${eventSlug}.json`), remote: `data/albums/${year}/` },
         { local: path.join(DIST_DIR, 'data', 'tags', year, `${eventSlug}.json`), remote: `data/tags/${year}/` },
+        // Before the year JSON, so its new recapHash never points at the previous sprite (which the
+        // service worker would then cache under the new hash).
+        { local: path.join(DIST_DIR, 'recap', year, 'sprite.webp'), remote: `recap/${year}/` },
         { local: path.join(DIST_DIR, 'data', 'years', `${year}.json`), remote: `data/years/` },
         { local: path.join(DIST_DIR, 'data', 'index.json'), remote: `data/` },
     ];
@@ -286,9 +300,10 @@ export async function publishSingleEvent(options: PublishOptions): Promise<Publi
         }
     }
 
-    // Step 4: Generate zip, chunks, scrubber sprite, social card, sitemap, and share page
+    // Step 4: Generate zip, chunks, recap + scrubber sprites, social card, sitemap, and share page
     await generateZips(indexData);
-    await chunkData(indexData);
+    const recapDefinitions = await chunkData(indexData);
+    await generateRecaps(recapDefinitions);
     await generateScrubber(indexData);
     fs.writeFileSync(DATA_FILE, JSON.stringify(indexData, null, 2));
 
