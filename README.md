@@ -100,7 +100,7 @@ The build pipeline intelligently parses folder names:
 | Command | Description |
 |---|---|
 | `npm run dev` | Starts the local Vite development server. |
-| `npm test` | Runs the full Vitest unit test suite (108 test files, 995+ tests). |
+| `npm test` | Runs the full Vitest unit test suite (121 test files, 1,079 tests). |
 | `npm run test:e2e` | Runs Playwright end-to-end integration tests. |
 | `npm run typecheck` | Validates TypeScript across application code and build scripts. |
 | `npm run build` | Executes the complete multi-phase asset and data generation pipeline. |
